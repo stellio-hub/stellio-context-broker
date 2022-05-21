@@ -625,7 +625,7 @@ class TemporalEntityHandlerTests {
             .map {
                 TemporalEntityAttribute(
                     entityId = entityUri,
-                    type = BEEHIVE_COMPACT_TYPE,
+                    types = listOf(BEEHIVE_TYPE),
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                 )
@@ -999,7 +999,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)!!
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
         coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
@@ -1031,7 +1031,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if entityId is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)!!
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         every {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
@@ -1064,7 +1064,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if temporalEntityAttributeName is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)!!
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         every {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
@@ -1097,7 +1097,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)!!
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
         coEvery {
@@ -1138,7 +1138,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 403 if user is not allowed`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)!!
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
             entityAccessRightsService.canWriteEntity(any(), any())

@@ -241,7 +241,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == NAME_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -279,7 +279,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == LUMINOSITY_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
@@ -328,7 +328,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == TEMPERATURE_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
@@ -375,7 +375,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == CREATED_BY_RELATIONSHIP &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Relationship &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -443,7 +443,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == TEMPERATURE_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&

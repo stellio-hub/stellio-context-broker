@@ -345,7 +345,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNull(
@@ -375,8 +375,8 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
-        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
+        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNotNull(

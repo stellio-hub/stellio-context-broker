@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:Beekeeper:01",
-  "entityType": "Beekeeper",
+  "entityTypes": ["Beekeeper"],
   "attributeName": "specificAccessPolicy",
   "operationPayload": "{\"type\":\"Property\",\"value\":\"AUTH_READ\"}",
   "updatedEntity": "",

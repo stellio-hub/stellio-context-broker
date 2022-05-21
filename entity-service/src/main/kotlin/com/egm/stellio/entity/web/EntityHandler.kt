@@ -331,7 +331,7 @@ class EntityHandler(
 
             val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
             val contexts = checkAndGetContext(httpHeaders, body)
-            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            val expandedAttrId = expandJsonLdTerm(attrId, contexts)
             authorizationService.isUpdateAuthorized(
                 entityUri,
                 entityService.getEntityTypes(entityUri),
@@ -386,7 +386,7 @@ class EntityHandler(
             entityService.checkExistence(entityUri).bind()
 
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            val expandedAttrId = expandJsonLdTerm(attrId, contexts)
             authorizationService.isUpdateAuthorized(
                 entityUri,
                 entityService.getEntityTypes(entityUri),

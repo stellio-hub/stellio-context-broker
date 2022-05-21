@@ -308,7 +308,7 @@ class SubscriptionService(
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)!!
+                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }

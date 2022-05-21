@@ -1,7 +1,7 @@
 {
   "operationType": "ENTITY_CREATE",
   "entityId": "urn:ngsi-ld:Notification:1234",
-  "entityType": "Notification",
+  "entityTypes": ["Notification"],
   "operationPayload": "{\"id\": \"urn:ngsi-ld:Notification:1234\",\"type\": \"Notification\",\"notifiedAt\": \"2020-03-10T00:00:00Z\",\"subscriptionId\": \"urn:ngsi-ld:Subscription:1234\",\"data\": [\n{\n\"id\": \"urn:ngsi-ld:BeeHive:TESTC\",\n\"type\": \"BeeHive\",\n\"createdAt\": \"2020-01-24T13:01:21.938Z\",\n\"name\": {\n\"type\": \"Property\",\n\"value\": \"ParisBeehive12\",\n\"createdAt\": \"2020-01-24T13:01:22.066Z\"\n},\n\"incoming\": {\n\"type\": \"Property\",\n\"value\": 1543,\n\"observedAt\": \"2020-01-24T13:01:22.066Z\"\n},\n\"@context\": [\n\"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld\",\n\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld\",\n\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic.jsonld\"\n]\n},\n{\n\"id\": \"urn:ngsi-ld:BeeHive:TESTD\",\n\"type\": \"BeeHive\",\n\"createdAt\": \"2020-02-24T13:01:21.938Z\",\n\"name\": {\n\"type\": \"Property\",\n\"value\": \"ValbonneBeehive12\",\n\"createdAt\": \"2020-02-24T13:01:22.066Z\"\n},\n\"incoming\": {\n\"type\": \"Property\",\n\"value\": 6688,\n\"observedAt\": \"2020-02-25T13:01:22.066Z\"\n}\n}\n]\n}",
   "contexts":[
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",

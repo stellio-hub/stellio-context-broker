@@ -121,16 +121,21 @@ object JsonLdUtils {
             expandJsonLdEntity(it, contexts)
         }
 
-    fun expandJsonLdTerm(term: String, context: String): String? =
+    fun expandJsonLdTerms(terms: List<String>, contexts: List<String>): List<ExpandedTerm> =
+        terms.map {
+            expandJsonLdTerm(it, contexts)
+        }
+
+    fun expandJsonLdTerm(term: String, context: String): String =
         expandJsonLdTerm(term, listOf(context))
 
-    fun expandJsonLdTerm(term: String, contexts: List<String>): String? {
+    fun expandJsonLdTerm(term: String, contexts: List<String>): String {
         val expandedType = JsonLdProcessor.expand(mapOf(term to mapOf<String, Any>()), defaultJsonLdOptions(contexts))
         logger.debug("Expanded type $term to $expandedType")
         return if (expandedType.isNotEmpty())
             (expandedType[0] as Map<String, Any>).keys.first()
         else
-            null
+            term
     }
 
     fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
@@ -311,6 +316,11 @@ object JsonLdUtils {
                     ) == datasetId.toString()
             }
     }
+
+    fun compactTerms(terms: List<ExpandedTerm>, contexts: List<String>): List<String> =
+        terms.map {
+            compactTerm(it, contexts)
+        }
 
     /**
      * Compact a term (type, attribute name, ...) using the provided context.

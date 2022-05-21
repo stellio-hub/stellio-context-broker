@@ -28,7 +28,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS)
 
         assertEquals("urn:ngsi-ld:Device:01234", ngsiLdEntity.id)
-        assertEquals("https://uri.fiware.org/ns/data-models#Device", ngsiLdEntity.type)
+        assertEquals(listOf("https://uri.fiware.org/ns/data-models#Device"), ngsiLdEntity.types)
     }
 
     @Test

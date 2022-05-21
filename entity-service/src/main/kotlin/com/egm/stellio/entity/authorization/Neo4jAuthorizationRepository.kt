@@ -151,7 +151,7 @@ class Neo4jAuthorizationRepository(
                     when (rolesEntry) {
                         is String -> listOf(rolesEntry)
                         is List<*> -> rolesEntry as List<String>
-                        else -> null
+                        else -> emptyList()
                     }
                 }
             }

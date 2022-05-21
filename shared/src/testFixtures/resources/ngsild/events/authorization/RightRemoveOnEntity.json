@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d",
-  "entityType": "User",
+  "entityTypes": ["User"],
   "attributeName": "urn:ngsi-ld:Beekeeper:01",
   "updatedEntity": "",
   "contexts": [

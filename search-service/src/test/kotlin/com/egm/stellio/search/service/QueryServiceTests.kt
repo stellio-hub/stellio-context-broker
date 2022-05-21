@@ -74,7 +74,7 @@ class QueryServiceTests {
                 listOf("incoming", "outgoing").map {
                     TemporalEntityAttribute(
                         entityId = entityUri,
-                        type = BEEHIVE_COMPACT_TYPE,
+                        types = listOf(BEEHIVE_TYPE),
                         attributeName = it,
                         attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                     )
@@ -134,7 +134,7 @@ class QueryServiceTests {
         runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
-                type = BEEHIVE_COMPACT_TYPE,
+                types = listOf(BEEHIVE_TYPE),
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
@@ -208,7 +208,7 @@ class QueryServiceTests {
         runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
-                type = BEEHIVE_COMPACT_TYPE,
+                types = listOf(BEEHIVE_TYPE),
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )

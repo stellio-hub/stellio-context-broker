@@ -3,6 +3,7 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -21,7 +22,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to
@@ -56,7 +57,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
@@ -94,7 +95,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri()
@@ -123,7 +124,7 @@ class ParameterizedTests {
                             ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
@@ -159,7 +160,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
@@ -195,7 +196,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
@@ -231,7 +232,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
                         ) to
@@ -268,7 +269,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to
@@ -295,7 +296,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri()
@@ -314,7 +315,7 @@ class ParameterizedTests {
                             ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
@@ -340,7 +341,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
@@ -366,7 +367,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
                         ) to
@@ -393,7 +394,7 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,

@@ -31,7 +31,7 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            type = "https://uri.etsi.org/ngsi-ld/Subscription",
+            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
@@ -95,7 +95,7 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with values aggregated`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            type = "https://uri.etsi.org/ngsi-ld/Subscription",
+            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )

@@ -49,7 +49,7 @@ class SubscriptionEventListenerServiceTest {
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri() &&
-                        entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
+                        entityTemporalProperty.types == listOf("https://uri.etsi.org/ngsi-ld/Subscription")
                 }
             )
             entityAccessRightsService.setAdminRoleOnEntity(null, "urn:ngsi-ld:Subscription:04".toUri())

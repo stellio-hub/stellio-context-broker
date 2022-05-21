@@ -165,7 +165,7 @@ class TemporalEntityHandler(
             val entityUri = entityId.toUri()
             val instanceUri = instanceId.toUri()
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)!!
+            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
 

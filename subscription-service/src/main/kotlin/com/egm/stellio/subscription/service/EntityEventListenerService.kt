@@ -14,7 +14,7 @@ class EntityEventListenerService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_subscription")
+    @KafkaListener(topicPattern = "cim.entity._CatchAll", groupId = "context_subscription")
     fun processMessage(content: String) {
         val entityEvent = deserializeAs<EntityEvent>(content)
         logger.debug("Handling ${entityEvent.operationType} event on entity ${entityEvent.entityId}")

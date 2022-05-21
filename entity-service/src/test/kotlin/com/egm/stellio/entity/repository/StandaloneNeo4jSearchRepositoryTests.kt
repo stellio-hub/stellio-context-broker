@@ -39,7 +39,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val deadFishUri = "urn:ngsi-ld:DeadFishes:019BN".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
-    private val expandedNameProperty = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
+    private val expandedNameProperty = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
     private val sub = None
     private val offset = 0
     private val limit = 20
@@ -88,7 +88,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishNumber", DEFAULT_CONTEXTS)!!, value = 500))
+            mutableListOf(Property(name = expandJsonLdTerm("fishNumber", DEFAULT_CONTEXTS), value = 500))
         )
 
         val entities = searchRepository.getEntities(
@@ -105,7 +105,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishNumber", DEFAULT_CONTEXTS)!!, value = 500))
+            mutableListOf(Property(name = expandJsonLdTerm("fishNumber", DEFAULT_CONTEXTS), value = 500))
         )
 
         val entities = searchRepository.getEntities(
@@ -122,7 +122,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS)!!, value = 120.50))
+            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = 120.50))
         )
 
         val entities = searchRepository.getEntities(
@@ -139,7 +139,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS)!!, value = -120.50))
+            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = -120.50))
         )
 
         val entities = searchRepository.getEntities(
@@ -156,7 +156,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS)!!, value = 180.9))
+            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = 180.9))
         )
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("DeadFishes"), q = "fishWeight>180.9", offset = offset, limit = limit),
@@ -172,7 +172,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS)!!, value = 255))
+            mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = 255))
         )
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("DeadFishes"), q = "fishWeight>=255", offset = offset, limit = limit),
@@ -222,7 +222,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = "measure",
                     observedAt = ZonedDateTime.parse("2018-12-04T12:00:00Z")
                 )
@@ -248,7 +248,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = ZonedDateTime.parse("2018-12-04T12:00:00Z")
                 )
             )
@@ -274,7 +274,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalDate.parse("2018-12-04")
                 )
             )
@@ -295,7 +295,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalDate.parse("2018-12-04")
                 )
             )
@@ -316,7 +316,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalTime.parse("12:00:00")
                 )
             )
@@ -337,7 +337,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalTime.parse("12:00:00")
                 ),
                 Property(name = expandedNameProperty, value = "beekeeper")
@@ -364,7 +364,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalTime.parse("12:00:00")
                 ),
                 Property(name = expandedNameProperty, value = "beekeeper")
@@ -404,7 +404,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS)!!,
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
                     value = LocalTime.parse("12:00:00")
                 ),
                 Property(name = expandedNameProperty, value = "beekeeper")
@@ -669,7 +669,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdTerm("description", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdTerm("description", DEFAULT_CONTEXTS), value = "Scalpa2"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(attrs = setOf(expandedNameProperty), offset = offset, limit = limit),

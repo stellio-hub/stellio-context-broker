@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "attributeName": "createdBy",
   "overwrite": true,
   "operationPayload": "{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Craftman:01\"}",

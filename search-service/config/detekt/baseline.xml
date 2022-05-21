@@ -6,7 +6,7 @@
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, jsonNode: JsonNode, sub: String? = null )</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt;, sub: String? = null )</ID>
-    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( sub: String?, entityId: URI, entityType: String, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( sub: String?, entityId: URI, entityTypes: List&lt;String&gt;, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityId: URI, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;): TemporalQuery</ID>

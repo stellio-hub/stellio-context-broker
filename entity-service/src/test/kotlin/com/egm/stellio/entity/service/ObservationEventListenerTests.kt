@@ -118,7 +118,7 @@ class ObservationEventListenerTests {
             emptyList()
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        every { mockedJsonLdEntity.type } returns BEEHIVE_TYPE
+        every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
         every {
             entityEventService.publishAttributeAppendEvent(
                 any(), any(), any(), any(), any(), any(), any(), any()

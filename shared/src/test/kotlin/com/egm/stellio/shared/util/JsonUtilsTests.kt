@@ -121,7 +121,7 @@ class JsonUtilsTests {
             EntityCreateEvent(
                 "0123456789-1234-5678-987654321",
                 entityId,
-                BEEHIVE_COMPACT_TYPE,
+                listOf(BEEHIVE_COMPACT_TYPE),
                 entityPayload,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
@@ -135,7 +135,7 @@ class JsonUtilsTests {
             EntityDeleteEvent(
                 null,
                 entityId,
-                BEEHIVE_COMPACT_TYPE,
+                listOf(BEEHIVE_COMPACT_TYPE),
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )

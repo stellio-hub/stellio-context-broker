@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -35,7 +36,7 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
+    @KafkaListener(topicPattern = "cim.entity._CatchAll", groupId = "context_search")
     fun processMessage(content: String) {
         logger.debug("Processing message: $content")
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
@@ -106,7 +107,7 @@ class EntityEventListenerService(
 
     private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
         val expandedAttributeName =
-            expandJsonLdTerm(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
+            expandJsonLdTerm(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)
         val compactedJsonLdEntity = addContextsToEntity(
             deserializeObject(attributeDeleteEvent.updatedEntity),
             attributeDeleteEvent.contexts
@@ -143,7 +144,7 @@ class EntityEventListenerService(
     ) {
         val expandedAttributeName = expandJsonLdTerm(
             attributeDeleteAllInstancesEvent.attributeName, attributeDeleteAllInstancesEvent.contexts
-        )!!
+        )
         val compactedJsonLdEntity = addContextsToEntity(
             deserializeObject(attributeDeleteAllInstancesEvent.updatedEntity),
             attributeDeleteAllInstancesEvent.contexts
@@ -186,7 +187,7 @@ class EntityEventListenerService(
         handleAttributeUpdate(
             attributeReplaceEvent.sub,
             attributeReplaceEvent.entityId,
-            attributeReplaceEvent.entityType,
+            attributeReplaceEvent.entityTypes,
             attributeReplaceEvent.attributeName,
             attributeReplaceEvent.datasetId,
             operationPayloadNode.has("observedAt"),
@@ -201,7 +202,7 @@ class EntityEventListenerService(
         handleAttributeUpdate(
             attributeUpdateEvent.sub,
             attributeUpdateEvent.entityId,
-            attributeUpdateEvent.entityType,
+            attributeUpdateEvent.entityTypes,
             attributeUpdateEvent.attributeName,
             attributeUpdateEvent.datasetId,
             operationPayloadNode.has("observedAt"),
@@ -213,7 +214,7 @@ class EntityEventListenerService(
     private fun handleAttributeUpdate(
         sub: String?,
         entityId: URI,
-        entityType: String,
+        entityTypes: List<String>,
         attributeName: String,
         datasetId: URI?,
         isNewObservation: Boolean,
@@ -234,7 +235,7 @@ class EntityEventListenerService(
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)!!
+                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
                 temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId, expandedAttributeName, attributeMetadata.datasetId
                 ).switchIfEmpty {
@@ -242,7 +243,7 @@ class EntityEventListenerService(
                     // we transparently create the temporal entity attribute
                     val temporalEntityAttribute = TemporalEntityAttribute(
                         entityId = entityId,
-                        type = expandJsonLdTerm(entityType, contexts)!!,
+                        types = expandJsonLdTerms(entityTypes, contexts),
                         attributeName = expandedAttributeName,
                         attributeType = attributeMetadata.type,
                         attributeValueType = attributeMetadata.valueType,
@@ -284,7 +285,7 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeAppend(attributeAppendEvent: AttributeAppendEvent) {
-        val (sub, entityId, entityType, attributeName, datasetId, _, _, updatedEntity, contexts) = attributeAppendEvent
+        val (sub, entityId, entityTypes, attributeName, datasetId, _, _, updatedEntity, contexts) = attributeAppendEvent
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
         val fullAttributeInstance = extractAttributeInstanceFromCompactedEntity(
             compactedJsonLdEntity,
@@ -299,11 +300,11 @@ class EntityEventListenerService(
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)!!
+                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
 
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = entityId,
-                    type = expandJsonLdTerm(entityType, contexts)!!,
+                    types = expandJsonLdTerms(entityTypes, contexts),
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,

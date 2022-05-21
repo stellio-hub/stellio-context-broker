@@ -1,7 +1,7 @@
 {
   "operationType": "ATTRIBUTE_REPLACE",
   "entityId": "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
-  "entityType": "Group",
+  "entityTypes": ["Group"],
   "attributeName": "name",
   "operationPayload": "{\"type\":\"Property\",\"value\":\"EGM Team\"}",
   "updatedEntity": "",

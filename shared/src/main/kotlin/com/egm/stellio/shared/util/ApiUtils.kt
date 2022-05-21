@@ -121,7 +121,7 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {
-            JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)!!
+            JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
         }.toSet()
 
 fun extractAndValidatePaginationParameters(

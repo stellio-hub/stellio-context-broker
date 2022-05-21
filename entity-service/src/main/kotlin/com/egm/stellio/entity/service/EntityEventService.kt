@@ -1,7 +1,8 @@
 package com.egm.stellio.entity.service
 
-import arrow.core.Validated
-import arrow.core.invalid
+import arrow.core.ValidatedNel
+import arrow.core.invalidNel
+import arrow.core.traverse
 import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
@@ -13,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.apache.kafka.common.errors.InvalidTopicException
@@ -30,27 +32,38 @@ class EntityEventService(
     private val entityService: EntityService
 ) {
 
+    private val catchAllTopic = "cim.entity._CatchAll"
+
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    internal fun composeTopicName(entityType: String, attributeName: String?): Validated<Unit, String> {
+    data class TopicNameError(val reason: String)
+
+    internal fun composeTopicName(entityType: String, attributeName: String?): ValidatedNel<TopicNameError, String> {
         val topicName = entityChannelName(entityType, attributeName)
         return try {
             Topic.validate(topicName)
             topicName.valid()
         } catch (e: InvalidTopicException) {
-            logger.error("Invalid topic name generated for entity type $entityType: $topicName", e)
-            return Unit.invalid()
+            val reason = "Invalid topic name generated for entity type $entityType: $topicName"
+            logger.error(reason, e)
+            TopicNameError(reason).invalidNel()
         }
     }
 
     internal fun publishEntityEvent(event: EntityEvent): java.lang.Boolean =
-        composeTopicName(event.entityType, event.getAttribute())
+        event.entityTypes
+            .traverse {
+                composeTopicName(it, event.getAttribute())
+            }
             .fold(
                 {
                     false as java.lang.Boolean
                 },
-                { topic ->
-                    kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
+                { topics ->
+                    topics.forEach { topic ->
+                        kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
+                    }
+                    kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
                     return true as java.lang.Boolean
                 }
             )
@@ -70,11 +83,9 @@ class EntityEventService(
     ) {
         logger.debug("Sending create event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
-        entityTypes.forEach {
-            publishEntityEvent(
-                EntityCreateEvent(sub, entityId, compactTerm(it, contexts), typeAndPayload.second, contexts)
-            )
-        }
+        publishEntityEvent(
+            EntityCreateEvent(sub, entityId, compactTerms(entityTypes, contexts), typeAndPayload.second, contexts)
+        )
     }
 
     @Async
@@ -86,11 +97,9 @@ class EntityEventService(
     ) {
         logger.debug("Sending replace event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
-        entityTypes.forEach {
-            publishEntityEvent(
-                EntityReplaceEvent(sub, entityId, compactTerm(it, contexts), typeAndPayload.second, contexts)
-            )
-        }
+        publishEntityEvent(
+            EntityReplaceEvent(sub, entityId, compactTerms(entityTypes, contexts), typeAndPayload.second, contexts)
+        )
     }
 
     @Async
@@ -101,11 +110,9 @@ class EntityEventService(
         contexts: List<String>
     ) {
         logger.debug("Sending delete event for entity $entityId")
-        entityTypes.forEach {
-            publishEntityEvent(
-                EntityDeleteEvent(sub, entityId, compactTerm(it, contexts), contexts)
-            )
-        }
+        publishEntityEvent(
+            EntityDeleteEvent(sub, entityId, compactTerms(entityTypes, contexts), contexts)
+        )
     }
 
     @Async
@@ -126,7 +133,7 @@ class EntityEventService(
                 AttributeAppendEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     attributeName,
                     datasetId,
                     overwrite,
@@ -140,7 +147,7 @@ class EntityEventService(
                 AttributeReplaceEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     attributeName,
                     datasetId,
                     operationPayload,
@@ -172,7 +179,7 @@ class EntityEventService(
                     AttributeAppendEvent(
                         sub,
                         entityId,
-                        compactTerm(typeAndPayload.first, contexts),
+                        compactTerms(typeAndPayload.first, contexts),
                         compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
                         true,
@@ -186,7 +193,7 @@ class EntityEventService(
                     AttributeReplaceEvent(
                         sub,
                         entityId,
-                        compactTerm(typeAndPayload.first, contexts),
+                        compactTerms(typeAndPayload.first, contexts),
                         compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
                         serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
@@ -218,7 +225,7 @@ class EntityEventService(
                 AttributeReplaceEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     compactTerm(attributeName, contexts),
                     updatedDetails.datasetId,
                     serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
@@ -250,7 +257,7 @@ class EntityEventService(
                 AttributeUpdateEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     compactTerm(attributeName, contexts),
                     updatedDetail.datasetId,
                     serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
@@ -277,7 +284,7 @@ class EntityEventService(
                 AttributeDeleteAllInstancesEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     attributeName,
                     typeAndPayload.second,
                     contexts
@@ -288,7 +295,7 @@ class EntityEventService(
                 AttributeDeleteEvent(
                     sub,
                     entityId,
-                    compactTerm(typeAndPayload.first, contexts),
+                    compactTerms(typeAndPayload.first, contexts),
                     attributeName,
                     datasetId,
                     typeAndPayload.second,
@@ -297,9 +304,9 @@ class EntityEventService(
             )
     }
 
-    private fun getSerializedEntity(entityId: URI, contexts: List<String>): Pair<ExpandedTerm, String> =
+    private fun getSerializedEntity(entityId: URI, contexts: List<String>): Pair<List<ExpandedTerm>, String> =
         entityService.getFullEntityById(entityId, true)
             .let {
-                Pair(it.type, compactAndSerialize(it, contexts, MediaType.APPLICATION_JSON))
+                Pair(it.types, compactAndSerialize(it, contexts, MediaType.APPLICATION_JSON))
             }
 }

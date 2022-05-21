@@ -1,7 +1,7 @@
 {
   "operationType": "ENTITY_CREATE",
   "entityId": "urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954",
-  "entityType": "Client",
+  "entityTypes": ["Client"],
   "operationPayload": "{\"id\":\"urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954\",\"type\":\"Client\",\"clientId\":{\"type\":\"Property\",\"value\":\"stellio-client\"}}",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",

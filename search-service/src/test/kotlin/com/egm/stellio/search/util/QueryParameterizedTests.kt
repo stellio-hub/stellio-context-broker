@@ -3,6 +3,7 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -21,7 +22,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -38,7 +39,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -59,7 +60,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -81,7 +82,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -107,7 +108,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -119,7 +120,7 @@ class QueryParameterizedTests {
                         ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -137,7 +138,7 @@ class QueryParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
@@ -149,7 +150,7 @@ class QueryParameterizedTests {
                         ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE

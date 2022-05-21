@@ -11,7 +11,7 @@
     <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, datasetId: String? = null, right: String, specificAccessPolicy: String? = null, rCanReadUser: URI? = null, createdAt: String? = null, modifiedAt: String? = null, context: String )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, overwrite: Boolean, operationPayload: String, updateOperationResult: UpdateOperationResult, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$( id: URI, type: List&lt;String&gt;, properties: MutableList&lt;Property&gt; = mutableListOf(), location: String? = null, operationSpace: String? = null, observationSpace: String? = null )</ID>
+    <ID>LongParameterList:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$( id: URI, types: List&lt;String&gt;, properties: MutableList&lt;Property&gt; = mutableListOf(), location: String? = null, operationSpace: String? = null, observationSpace: String? = null )</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
     <ID>TooManyFunctions:AuthorizationService.kt$AuthorizationService</ID>

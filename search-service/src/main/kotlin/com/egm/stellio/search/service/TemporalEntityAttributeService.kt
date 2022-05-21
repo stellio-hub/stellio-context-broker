@@ -46,7 +46,7 @@ class TemporalEntityAttributeService(
         )
             .bind("id", temporalEntityAttribute.id)
             .bind("entity_id", temporalEntityAttribute.entityId)
-            .bind("types", temporalEntityAttribute.types)
+            .bind("types", temporalEntityAttribute.types.toTypedArray())
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
@@ -254,7 +254,7 @@ class TemporalEntityAttributeService(
     ): Mono<List<TemporalEntityAttribute>> {
         val selectQuery =
             """
-                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE
             """.trimIndent()
@@ -312,7 +312,7 @@ class TemporalEntityAttributeService(
             else null
         val formattedTypes =
             if (queryParams.types.isNotEmpty())
-                queryParams.types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
+                queryParams.types.joinToString(separator = ",", prefix = "types && ARRAY[", postfix = "]") { "'$it'" }
             else null
         val formattedAttrs =
             if (queryParams.attrs.isNotEmpty())
@@ -329,7 +329,7 @@ class TemporalEntityAttributeService(
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
-                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
@@ -390,7 +390,7 @@ class TemporalEntityAttributeService(
         TemporalEntityAttribute(
             id = row["id"] as UUID,
             entityId = (row["entity_id"] as String).toUri(),
-            types = row["types"] as List<ExpandedTerm>,
+            types = (row["types"] as Array<ExpandedTerm>).toList(),
             attributeName = row["attribute_name"] as ExpandedTerm,
             attributeType = TemporalEntityAttribute.AttributeType.valueOf(row["attribute_type"] as String),
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(

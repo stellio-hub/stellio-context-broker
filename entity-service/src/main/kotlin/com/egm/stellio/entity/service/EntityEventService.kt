@@ -1,9 +1,5 @@
 package com.egm.stellio.entity.service
 
-import arrow.core.ValidatedNel
-import arrow.core.invalidNel
-import arrow.core.traverse
-import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
@@ -36,37 +32,29 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    data class TopicNameError(val reason: String)
-
-    internal fun composeTopicName(entityType: String, attributeName: String?): ValidatedNel<TopicNameError, String> {
+    internal fun composeTopicName(entityType: String, attributeName: String?): String? {
         val topicName = entityChannelName(entityType, attributeName)
         return try {
             Topic.validate(topicName)
-            topicName.valid()
+            topicName
         } catch (e: InvalidTopicException) {
             val reason = "Invalid topic name generated for entity type $entityType: $topicName"
             logger.error(reason, e)
-            TopicNameError(reason).invalidNel()
+            null
         }
     }
 
     internal fun publishEntityEvent(event: EntityEvent): java.lang.Boolean =
         event.entityTypes
-            .traverse {
+            .mapNotNull {
                 composeTopicName(it, event.getAttribute())
-            }
-            .fold(
-                {
-                    false as java.lang.Boolean
-                },
-                { topics ->
-                    topics.forEach { topic ->
-                        kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
-                    }
-                    kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
-                    return true as java.lang.Boolean
+            }.let { topics ->
+                topics.forEach { topic ->
+                    kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
                 }
-            )
+                kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
+                true as java.lang.Boolean
+            }
 
     private fun entityChannelName(entityType: String, attributeName: String?) =
         if (IAM_COMPACTED_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)

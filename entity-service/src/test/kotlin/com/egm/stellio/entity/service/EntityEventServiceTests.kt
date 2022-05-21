@@ -11,7 +11,8 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -42,50 +43,27 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should not validate a topic name with characters not supported by Kafka`() {
-        assertTrue(
-            entityEventService
-                .composeTopicName("https://some.host/type", null)
-                .isInvalid
-        )
+        assertNull(entityEventService.composeTopicName("https://some.host/type", null))
     }
 
     @Test
     fun `it should validate a topic name with characters supported by Kafka`() {
-        assertTrue(
-            entityEventService
-                .composeTopicName("Specie", null)
-                .isValid
-        )
+        assertEquals("cim.entity.Specie", entityEventService.composeTopicName("Specie", null))
     }
 
     @Test
     fun `it should send a specific access policy event to IAM topic`() {
-        entityEventService
-            .composeTopicName("Specie", AUTH_TERM_SAP)
-            .fold(
-                { fail("it should have succeeded") },
-                { assertEquals("cim.iam.rights", it) }
-            )
+        assertEquals("cim.iam.rights", entityEventService.composeTopicName("Specie", AUTH_TERM_SAP))
     }
 
     @Test
     fun `it should send an access right event to IAM topic`() {
-        entityEventService
-            .composeTopicName("User", null)
-            .fold(
-                { fail("it should have succeeded") },
-                { assertEquals("cim.iam.rights", it) }
-            )
+        assertEquals("cim.iam.rights", entityEventService.composeTopicName("User", null))
     }
 
     @Test
     fun `it should send normal attributes events to entity topic`() {
-        entityEventService
-            .composeTopicName("Specie", "someAttribute")
-            .fold(
-                { fail("it should have succeeded") },
-                { assertEquals("cim.entity.Specie", it) }
-            )
+        assertEquals("cim.entity.Specie", entityEventService.composeTopicName("Specie", "someAttribute"))
     }
 
     @Test
@@ -98,6 +76,47 @@ class EntityEventServiceTests {
         )
 
         verify { kafkaTemplate.send(any(), any(), any()) wasNot Called }
+    }
+
+    @Test
+    fun `it should cross publish all events on the catch-all topic`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(
+                null,
+                breedingServiceUri,
+                listOf("BreedingService"),
+                "",
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        )
+
+        verify {
+            kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
+            kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any())
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should only publish events for valid topic names`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(
+                null,
+                breedingServiceUri,
+                listOf("BreedingService", "https://some.host/invalid"),
+                "",
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        )
+
+        verify {
+            kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
+        }
+        confirmVerified()
     }
 
     @Test

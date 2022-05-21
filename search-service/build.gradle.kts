@@ -18,7 +18,7 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
-    implementation("io.r2dbc:r2dbc-postgresql")
+    implementation("org.postgresql:r2dbc-postgresql")
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")

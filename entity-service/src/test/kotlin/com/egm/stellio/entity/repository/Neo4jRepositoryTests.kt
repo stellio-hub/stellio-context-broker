@@ -112,6 +112,22 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should add labels to an entity`() {
+        createEntity(beekeeperUri, listOf("Beekeeper"))
+
+        val updated = neo4jRepository.addTypesToEntity(
+            beekeeperUri,
+            listOf("Person", "https://ontology.eglobalmark.com/apic#Farmer")
+        )
+
+        assertTrue(updated)
+        val entityTypes = entityRepository.getEntityCoreById(beekeeperUri.toString())!!.types
+        assertEquals(3, entityTypes.size)
+        assertThat(listOf("Beekeeper", "Person", "https://ontology.eglobalmark.com/apic#Farmer"))
+            .containsAll(entityTypes)
+    }
+
+    @Test
     fun `it should create a property for a subject`() {
         val entity = createEntity(
             beekeeperUri,

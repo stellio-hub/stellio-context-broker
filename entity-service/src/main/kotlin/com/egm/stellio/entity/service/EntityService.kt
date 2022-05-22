@@ -8,6 +8,7 @@ import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
@@ -230,7 +231,7 @@ class EntityService(
         )
     }
 
-    fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
+    fun getEntityCoreProperties(entityId: URI): Entity = entityRepository.getEntityCoreById(entityId.toString())!!
 
     fun getEntityTypes(entityId: URI): List<ExpandedTerm> = getEntityCoreProperties(entityId).types
 
@@ -265,6 +266,48 @@ class EntityService(
         )
 
         return Pair(result.first, getFullEntitiesById(result.second, queryParams.includeSysAttrs))
+    }
+
+    @Transactional
+    fun appendEntityTypes(
+        entityId: URI,
+        types: List<ExpandedTerm>
+    ): UpdateResult {
+        val currentTypes = getEntityTypes(entityId)
+        if (!types.containsAll(currentTypes)) {
+            val removedTypes = currentTypes.minus(types)
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE_TERM,
+                        updateOperationResult = UpdateOperationResult.FAILED,
+                        errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
+                    )
+                )
+            )
+        }
+
+        val newTypes = types.partition { currentTypes.contains(it) }.second
+        val result = neo4jRepository.addTypesToEntity(entityId, newTypes)
+        if (result)
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE_TERM,
+                        updateOperationResult = UpdateOperationResult.APPENDED
+                    )
+                )
+            )
+        else
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE_TERM,
+                        updateOperationResult = UpdateOperationResult.FAILED,
+                        errorMessage = "Append operation has unexpectedly failed"
+                    )
+                )
+            )
     }
 
     @Transactional

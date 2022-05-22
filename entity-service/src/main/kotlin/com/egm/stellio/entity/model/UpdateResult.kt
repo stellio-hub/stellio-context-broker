@@ -31,7 +31,7 @@ data class UpdatedDetails(
 
 data class UpdateAttributeResult(
     val attributeName: String,
-    val datasetId: URI?,
+    val datasetId: URI? = null,
     val updateOperationResult: UpdateOperationResult,
     val errorMessage: String? = null
 ) {

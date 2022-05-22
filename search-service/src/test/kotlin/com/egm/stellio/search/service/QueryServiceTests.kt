@@ -1,6 +1,5 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -9,8 +8,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
-import org.junit.Rule
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,9 +25,6 @@ import java.time.ZonedDateTime
 @ActiveProfiles("test")
 @ExperimentalCoroutinesApi
 class QueryServiceTests {
-
-    @get:Rule
-    var coroutinesTestRule = CoroutineTestRule()
 
     @Autowired
     private lateinit var queryService: QueryService
@@ -50,7 +45,7 @@ class QueryServiceTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } answers { Flux.empty() }
 
         val exception = assertThrows<ResourceNotFoundException> {
-            coroutinesTestRule.testDispatcher.runBlockingTest {
+            runTest {
                 queryService.queryTemporalEntity(
                     entityUri,
                     TemporalQuery(
@@ -73,7 +68,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should query a temporal entity as requested by query params`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttributes =
                 listOf("incoming", "outgoing").map {
                     TemporalEntityAttribute(
@@ -135,7 +130,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should query temporal entities as requested by query params`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
                 type = BEEHIVE_COMPACT_TYPE,
@@ -219,7 +214,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should return an empty list for a temporal entity attribute if it has no temporal values`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
                 type = BEEHIVE_COMPACT_TYPE,

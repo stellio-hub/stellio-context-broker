@@ -13,49 +13,37 @@ import java.util.Optional
 
 fun parseAndCheckQueryParams(
     pagination: ApplicationProperties.Pagination,
-    queryParams: MultiValueMap<String, String>,
+    requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): TemporalEntitiesQuery {
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
-    val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
-    val temporalQuery = buildTemporalQuery(queryParams, contextLink)
-    val (offset, limit) = extractAndValidatePaginationParameters(
-        queryParams,
-        pagination.limitDefault,
-        pagination.limitMax,
-        count
+    val temporalQuery = buildTemporalQuery(requestParams)
+    val queryParams = parseAndCheckParams(
+        Pair(pagination.limitDefault, pagination.limitMax),
+        requestParams,
+        contextLink
     )
-
-    if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
-        throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     return TemporalEntitiesQuery(
-        ids = ids,
-        types = types,
+        queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
-        withAudit = withAudit,
-        limit = limit,
-        offset = offset,
-        count = count
+        withAudit = withAudit
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {
+fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
     val timeBucketParam = params.getFirst("timeBucket")
     val aggregateParam = params.getFirst("aggregate")
     val lastNParam = params.getFirst("lastN")
-    val attrsParam = params.getFirst("attrs")
     val timeproperty = params.getFirst("timeproperty")?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
@@ -86,10 +74,7 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: Strin
         if (it >= 1) it else null
     }
 
-    val expandedAttrs = parseAndExpandRequestParameter(attrsParam, contextLink)
-
     return TemporalQuery(
-        expandedAttrs = expandedAttrs,
         timerel = timerel,
         timeAt = timeAt,
         endTimeAt = endTimeAt,

@@ -59,14 +59,14 @@ class TemporalEntityOperationsHandler(
             "/ngsi-ld/v1/temporal/entities",
             queryParams,
             total,
-            temporalEntitiesQuery.offset,
-            temporalEntitiesQuery.limit
+            temporalEntitiesQuery.queryParams.offset,
+            temporalEntitiesQuery.queryParams.limit
         )
 
         return PagingUtils.buildPaginationResponse(
             (serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })),
             total,
-            temporalEntitiesQuery.count,
+            temporalEntitiesQuery.queryParams.count,
             prevAndNextLinks,
             mediaType,
             contextLink

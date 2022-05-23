@@ -268,7 +268,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
         every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any())
         } returns Pair(
             3,
             listOf(
@@ -296,11 +296,8 @@ class Neo4jAuthorizationServiceTest {
         )
 
         val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
-            queryParams = QueryParams(),
+            queryParams = QueryParams(offset = offset, limit = limit),
             sub = mockUserSub,
-            offset = offset,
-            limit = limit,
-            includeSysAttrs = false,
             NGSILD_CORE_CONTEXT
         )
 
@@ -334,7 +331,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every { neo4jAuthorizationRepository.getSubjectRoles(userUri) } returns setOf(GlobalRole.STELLIO_ADMIN.key)
         every {
-            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(any(), any(), any())
+            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(any())
         } returns Pair(
             1,
             listOf(
@@ -351,15 +348,20 @@ class Neo4jAuthorizationServiceTest {
         )
 
         val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
-            queryParams = QueryParams(),
+            queryParams = QueryParams(offset = offset, limit = limit, includeSysAttrs = true),
             sub = Some(userUri.toString()),
-            offset = offset,
-            limit = limit,
-            includeSysAttrs = true,
             NGSILD_CORE_CONTEXT
         )
 
-        verify { neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, limit) }
+        verify {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
+                QueryParams(
+                    offset = offset,
+                    limit = limit,
+                    includeSysAttrs = true
+                )
+            )
+        }
 
         assertEquals(1, countAndAuthorizedEntities.first)
         assertEquals(1, countAndAuthorizedEntities.second.size)

@@ -7,11 +7,10 @@
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, jsonNode: JsonNode, sub: String? = null )</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt;, sub: String? = null )</ID>
     <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( sub: String?, entityId: URI, entityType: String, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, accessRightFilter: () -&gt; String? )</ID>
+    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;ExpandedTerm&gt;, attrs: Set&lt;ExpandedTerm&gt;, accessRightFilter: () -&gt; String? )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityId: URI, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, contextLink: String): TemporalQuery</ID>
-    <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
+    <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;): TemporalQuery</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>
   </CurrentIssues>

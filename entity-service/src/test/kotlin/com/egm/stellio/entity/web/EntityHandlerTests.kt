@@ -283,6 +283,9 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should return 200 when entity exists`() {
         mockkDefaultBehaviorForGetEntityById()
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanReadEntity(any(), any()) } returns true
         val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.getFullEntityById(any()) } returns returnedJsonLdEntity
         every { returnedJsonLdEntity.checkContainsAnyOf(any()) } returns Unit.right()
@@ -456,7 +459,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             1,
             listOf(
                 JsonLdEntity(
@@ -495,7 +498,18 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), true) } returns Pair(
+        every {
+            entityService.searchEntities(
+                QueryParams(
+                    types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+                    includeSysAttrs = true,
+                    offset = 0,
+                    limit = 30
+                ),
+                any(),
+                any<String>()
+            )
+        } returns Pair(
             1,
             listOf(
                 JsonLdEntity(
@@ -538,7 +552,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 200 with prev and next link header if exists`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             3,
             listOf(
                 JsonLdEntity(
@@ -578,7 +592,7 @@ class EntityHandlerTests {
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
         every { entityService.exists(any()) } returns true
         every {
-            entityService.searchEntities(any(), any(), any(), any(), any<String>(), any())
+            entityService.searchEntities(any(), any(), any<String>())
         } returns Pair(0, emptyList())
 
         webClient.get()
@@ -625,7 +639,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             3,
             emptyList()
         )
@@ -658,7 +672,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             0,
             emptyList()
         )

@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.util.*
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -15,16 +16,13 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
-        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
-        val idClause = buildIdClause(id)
-        val idPatternClause = buildIdPatternClause(idPattern)
+        val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
+        val matchEntityClause = buildMatchEntityClause(queryParams.types, "")
+        val idClause = buildIdsClause(queryParams.ids)
+        val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
             .filter { it.isNotEmpty() }
@@ -54,7 +52,7 @@ object QueryUtils {
             $finalFilterClause
             """.trimIndent()
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity.id) as count
             """.trimIndent()
@@ -64,7 +62,7 @@ object QueryUtils {
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                SKIP $offset LIMIT $limit
+                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         return """
@@ -75,24 +73,22 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithoutAuthentication(
         queryParams: QueryParams,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
 
-        val matchEntityClause = buildMatchEntityClause(expandedType)
-        val idClause = buildIdClause(id)
-        val idPatternClause = buildIdPatternClause(idPattern)
+        val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
+
+        val matchEntityClause = buildMatchEntityClause(queryParams.types)
+        val idClause = buildIdsClause(queryParams.ids)
+        val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
             .filter { it.isNotEmpty() }
             .joinToString(separator = " AND ", prefix = " WHERE ")
             .takeIf { it.trim() != "WHERE" } ?: ""
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity) as count
             """.trimIndent()
@@ -102,7 +98,7 @@ object QueryUtils {
             UNWIND entitiesIds as entityId
             RETURN entityId as id, count
             ORDER BY id
-            SKIP $offset LIMIT $limit
+            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         return """
@@ -112,15 +108,15 @@ object QueryUtils {
             """
     }
 
-    fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
-        if (expandedType == null)
+    fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =
+        if (types.isEmpty())
             "$prefix (entity:Entity)"
         else
-            "$prefix (entity:`$expandedType`)"
+            "$prefix (entity:`${types.first()}`)"
 
-    private fun buildIdClause(id: List<URI>?): String {
-        return if (id != null) {
-            val formattedIds = id.map { "'$it'" }
+    private fun buildIdsClause(ids: Set<URI>): String {
+        return if (ids.isNotEmpty()) {
+            val formattedIds = ids.map { "'$it'" }
             " entity.id in $formattedIds "
         } else ""
     }
@@ -131,7 +127,6 @@ object QueryUtils {
         else ""
 
     private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
-
         rawQuery.replace(qPattern.toRegex()) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
@@ -171,16 +166,16 @@ object QueryUtils {
             .replace(";", " AND ")
             .replace("|", " OR ")
 
-    private fun buildInnerAttrsFilterQuery(expandedAttrs: Set<String>): String =
-        expandedAttrs.joinToString(
+    private fun buildInnerAttrFilterQuery(attrs: Set<ExpandedTerm>): String =
+        attrs.joinToString(
             separator = " AND "
-        ) { expandedAttr ->
+        ) { attr ->
             """
                EXISTS {
                    MATCH (entity)
                    WHERE (
-                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })) OR 
-                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$expandedAttr`))
+                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$attr' })) OR 
+                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$attr`))
                    ) 
                }
             """.trimIndent()

@@ -13,9 +13,6 @@ interface AuthorizationService {
     fun getAuthorizedEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        includeSysAttrs: Boolean,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>>
     fun userIsAdmin(sub: Option<Sub>): Boolean

@@ -8,6 +8,7 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -71,14 +72,10 @@ class TemporalEntityOperationsHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                ids = emptySet(),
-                types = setOf("BeeHive", "Apiary"),
+                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 1, offset = 0),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false,
-                limit = 1,
-                offset = 0,
-                false
+                withAudit = false
             )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
@@ -108,10 +105,10 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.limit == 1 &&
-                        temporalEntitiesQuery.offset == 0 &&
-                        temporalEntitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
+                    temporalEntitiesQuery.queryParams.limit == 1 &&
+                        temporalEntitiesQuery.queryParams.offset == 0 &&
+                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
+                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
@@ -134,14 +131,15 @@ class TemporalEntityOperationsHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                ids = emptySet(),
-                types = setOf("BeeHive", "Apiary"),
+                queryParams = QueryParams(
+                    types = setOf("BeeHive", "Apiary"),
+                    limit = 0,
+                    offset = 1,
+                    count = true
+                ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false,
-                limit = 0,
-                offset = 1,
-                true
+                withAudit = false
             )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
@@ -172,12 +170,12 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.limit == 0 &&
-                        temporalEntitiesQuery.offset == 1 &&
-                        temporalEntitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
+                    temporalEntitiesQuery.queryParams.limit == 0 &&
+                        temporalEntitiesQuery.queryParams.offset == 1 &&
+                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
+                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.count
+                        temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
                 },
                 eq(APIC_COMPOUND_CONTEXT),
                 any()

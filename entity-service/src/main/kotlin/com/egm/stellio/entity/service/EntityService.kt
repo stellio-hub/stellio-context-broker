@@ -242,12 +242,9 @@ class EntityService(
     fun searchEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        contextLink: String,
-        includeSysAttrs: Boolean
+        contextLink: String
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(queryParams, sub, offset, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(queryParams, sub, listOf(contextLink))
 
     /**
      * Search entities by type and query parameters
@@ -261,20 +258,15 @@ class EntityService(
     fun searchEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        contexts: List<String>,
-        includeSysAttrs: Boolean
+        contexts: List<String>
     ): Pair<Int, List<JsonLdEntity>> {
         val result = searchRepository.getEntities(
             queryParams,
             sub,
-            offset,
-            limit,
             contexts
         )
 
-        return Pair(result.first, getFullEntitiesById(result.second, includeSysAttrs))
+        return Pair(result.first, getFullEntitiesById(result.second, queryParams.includeSysAttrs))
     }
 
     @Transactional

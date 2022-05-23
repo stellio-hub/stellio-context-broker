@@ -25,8 +25,6 @@ interface SearchRepository {
     fun getEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>>
 

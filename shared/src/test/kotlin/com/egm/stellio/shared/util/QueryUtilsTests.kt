@@ -31,28 +31,6 @@ class QueryUtilsTests {
     }
 
     @Test
-    fun `it should create queryParams`() {
-        val requestParams = gimmeFullParamsMap()
-        val queryParams = parseAndCheckParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT)
-
-        Assertions.assertEquals(
-            QueryParams(
-                types = setOf(BEEHIVE_TYPE, APIARY_TYPE),
-                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                ids = setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
-                idPattern = ".*BeeHive.*",
-                q = "brandName!=Mercedes",
-                count = true,
-                offset = 1,
-                limit = 10,
-                useSimplifiedRepresentation = true,
-                includeSysAttrs = false,
-            ),
-            queryParams
-        )
-    }
-
-    @Test
     fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("options", "sysAttrs")
@@ -85,26 +63,6 @@ class QueryUtilsTests {
         Assertions.assertEquals(30, queryParams.limit)
         Assertions.assertEquals(false, queryParams.useSimplifiedRepresentation)
         Assertions.assertEquals(false, queryParams.includeSysAttrs)
-    }
-
-    @Test
-    fun `it should create queryParams with default parameters`() {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
-
-        Assertions.assertEquals(
-            QueryParams(
-                types = emptySet(),
-                attrs = emptySet(),
-                ids = emptySet(),
-                count = false,
-                offset = 0,
-                limit = 30,
-                useSimplifiedRepresentation = false,
-                includeSysAttrs = false,
-            ),
-            queryParams
-        )
     }
 
     private fun gimmeFullParamsMap(): LinkedMultiValueMap<String, String> {

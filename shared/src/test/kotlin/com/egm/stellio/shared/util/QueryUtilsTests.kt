@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test

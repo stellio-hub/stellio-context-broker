@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -63,5 +65,73 @@ object PagingUtils {
         requestParams.addAll(mutableMapOf("limit" to listOf(limit.toString())).entries)
         requestParams.addAll(mutableMapOf("offset" to listOf(offset.toString())).entries)
         return requestParams.joinToString("&") { it.key + "=" + it.value.joinToString(",") }
+    }
+
+    fun constructPaginationResponse(
+        countAndEntities: Pair<Int, List<JsonLdEntity>>,
+        resourceUrl: String,
+        queryParams: QueryParams,
+        requestParams: MultiValueMap<String, String>,
+        mediaType: MediaType,
+        contextLink: String
+    ): ResponseEntity<String> {
+        if (countAndEntities.second.isEmpty())
+            return buildPaginationResponse(
+                JsonUtils.serializeObject(emptyList<JsonLdEntity>()),
+                countAndEntities.first,
+                queryParams.count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
+        else {
+            val compactedEntities = JsonLdUtils.compactEntities(
+                countAndEntities.second,
+                queryParams.useSimplifiedRepresentation,
+                contextLink,
+                mediaType
+            )
+
+            val prevAndNextLinks = getPagingLinks(
+                resourceUrl,
+                requestParams,
+                countAndEntities.first,
+                queryParams.offset,
+                queryParams.limit
+            )
+
+            return buildPaginationResponse(
+                JsonUtils.serializeObject(compactedEntities),
+                countAndEntities.first,
+                queryParams.count,
+                prevAndNextLinks,
+                mediaType, contextLink
+            )
+        }
+    }
+
+    fun constructPaginationResponse(
+        countAndBody: Pair<Int, String>,
+        queryParams: QueryParams,
+        requestParams: MultiValueMap<String, String>,
+        resourceUrl: String,
+        mediaType: MediaType,
+        contextLink: String
+    ): ResponseEntity<String> {
+        val prevAndNextLinks = getPagingLinks(
+            resourceUrl,
+            requestParams,
+            countAndBody.first,
+            queryParams.offset,
+            queryParams.limit
+        )
+
+        return buildPaginationResponse(
+            countAndBody.second,
+            countAndBody.first,
+            queryParams.count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
     }
 }

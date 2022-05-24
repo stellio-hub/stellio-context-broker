@@ -104,19 +104,14 @@ class TemporalEntityHandler(
             accessRightFilter
         )
 
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
-            "/ngsi-ld/v1/temporal/entities",
+        return PagingUtils.constructPaginationResponse(
+            Pair(
+                total,
+                serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })
+            ),
+            temporalEntitiesQuery.queryParams,
             params,
-            total,
-            temporalEntitiesQuery.queryParams.offset,
-            temporalEntitiesQuery.queryParams.limit
-        )
-
-        return PagingUtils.buildPaginationResponse(
-            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
-            total,
-            temporalEntitiesQuery.queryParams.count,
-            prevAndNextLinks,
+            "/ngsi-ld/v1/temporal/entities",
             mediaType,
             contextLink
         )

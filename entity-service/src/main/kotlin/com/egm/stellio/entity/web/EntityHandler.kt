@@ -11,7 +11,6 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compact
-import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -19,6 +18,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.PagingUtils.constructPaginationResponse
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -102,15 +102,6 @@ class EntityHandler(
 
         val countAndEntities = entityService.searchEntities(queryParams, sub, contextLink)
 
-        if (countAndEntities.second.isEmpty())
-            return PagingUtils.buildPaginationResponse(
-                serializeObject(emptyList<JsonLdEntity>()),
-                countAndEntities.first,
-                queryParams.count,
-                Pair(null, null),
-                mediaType, contextLink
-            )
-
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(queryParams.attrs) }
                 .map {
@@ -120,26 +111,13 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = compactEntities(
-            filteredEntities,
-            queryParams.useSimplifiedRepresentation,
-            contextLink,
-            mediaType
-        )
-
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
+        return constructPaginationResponse(
+            Pair(countAndEntities.first, filteredEntities),
             "/ngsi-ld/v1/entities",
+            queryParams,
             params,
-            countAndEntities.first,
-            queryParams.offset,
-            queryParams.limit
-        )
-        return PagingUtils.buildPaginationResponse(
-            serializeObject(compactedEntities),
-            countAndEntities.first,
-            queryParams.count,
-            prevAndNextLinks,
-            mediaType, contextLink
+            mediaType,
+            contextLink
         )
     }
 

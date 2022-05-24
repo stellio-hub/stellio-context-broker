@@ -13,7 +13,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serialize
-import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
@@ -90,19 +89,12 @@ class SubscriptionHandler(
         val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
             .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
-        val prevAndNextLinks = getPagingLinks(
-            "/ngsi-ld/v1/subscriptions",
-            params,
-            subscriptionsCount,
-            queryParams.offset,
-            queryParams.limit
-        )
 
-        return PagingUtils.buildPaginationResponse(
-            subscriptions,
-            subscriptionsCount,
-            queryParams.count,
-            prevAndNextLinks,
+        return PagingUtils.constructPaginationResponse(
+            Pair(subscriptionsCount, subscriptions),
+            queryParams,
+            params,
+            "/ngsi-ld/v1/subscriptions",
             mediaType,
             contextLink
         )

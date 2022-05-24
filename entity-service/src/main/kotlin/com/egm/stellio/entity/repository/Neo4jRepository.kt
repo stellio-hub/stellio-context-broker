@@ -442,7 +442,7 @@ class Neo4jRepository(
 
     fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
         // The match on geoProperties is specific since they are not fully supported
-        // (currently we only support location that is stored among the entity node attributes)
+        // (currently we only support core geoproperties that are stored among the entity node attributes)
         val query =
             """
                 MATCH (entity:Entity:`$expandedType`)
@@ -493,7 +493,7 @@ class Neo4jRepository(
 
     fun getEntityTypes(): List<Map<String, Any>> {
         // The match on geoProperties is specific since they are not fully supported
-        // (currently we only support location that is stored among the entity node attributes)
+        // (currently we only support core geoproperties that are stored among the entity node attributes)
         val query =
             """
                 MATCH (entity:Entity)

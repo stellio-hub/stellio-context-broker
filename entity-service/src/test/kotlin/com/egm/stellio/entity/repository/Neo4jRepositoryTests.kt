@@ -820,7 +820,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should retrieve entity type attributes information for three entities with one geo properties`() {
+    fun `it should retrieve entity type attributes information for three entities with one geo property`() {
         createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -828,7 +828,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966))"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -873,8 +873,8 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            "POINT (24.30623 60.07966))",
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966))",
+            operationSpace = "POINT (24.30623 60.07966))"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -969,9 +969,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "name", value = "Beehive TESTB")
             ),
-            "POINT (24.30623 60.07966))",
-            "POINT (24.30623 60.07966))",
-            "POINT (24.30623 60.07966))"
+            location ="POINT (24.30623 60.07966))",
+            operationSpace = "POINT (24.30623 60.07966))",
+            observationSpace = "POINT (24.30623 60.07966))"
 
         )
         val thirdEntity = createEntity(
@@ -1027,9 +1027,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "deviceParameter", value = 30),
                 Property(name = "isContainedIn", value = 61)
             ),
-            "POINT (24.30623 60.07966))",
-            "POINT (24.30623 60.07966))",
-            "POINT (24.30623 60.07966))"
+            location ="POINT (24.30623 60.07966))",
+            operationSpace = "POINT (24.30623 60.07966))",
+            observationSpace = "POINT (24.30623 60.07966))"
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
@@ -1067,7 +1067,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "isContainedIn", value = 61)
             ),
-            observationSpace = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966))"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -1087,7 +1087,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                     "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
                 ),
                 mapOf(
-                    "attribute" to "https://uri.etsi.org/ngsi-ld/observationSpace",
+                    "attribute" to "https://uri.etsi.org/ngsi-ld/location",
                     "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
                 ),
                 mapOf(

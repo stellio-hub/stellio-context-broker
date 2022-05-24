@@ -969,7 +969,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "name", value = "Beehive TESTB")
             ),
-            location ="POINT (24.30623 60.07966))",
+            location = "POINT (24.30623 60.07966))",
             operationSpace = "POINT (24.30623 60.07966))",
             observationSpace = "POINT (24.30623 60.07966))"
 
@@ -1027,7 +1027,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "deviceParameter", value = 30),
                 Property(name = "isContainedIn", value = 61)
             ),
-            location ="POINT (24.30623 60.07966))",
+            location = "POINT (24.30623 60.07966))",
             operationSpace = "POINT (24.30623 60.07966))",
             observationSpace = "POINT (24.30623 60.07966))"
         )

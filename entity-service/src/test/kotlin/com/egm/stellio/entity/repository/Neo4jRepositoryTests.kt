@@ -1297,7 +1297,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         neo4jRepository.addGeoPropertyToEntity("urn:ngsi-ld:Sensor:1233".toUri(), "location", geoProperty)
 
-        assertFalse(
+        assertTrue(
             neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
         )
 

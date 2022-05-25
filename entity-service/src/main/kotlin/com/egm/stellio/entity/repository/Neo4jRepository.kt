@@ -125,7 +125,7 @@ class Neo4jRepository(
         val query =
             """
             MERGE (subject:Entity { id: ${'$'}subjectId })
-            ON MATCH SET subject.propertyKey = ${'$'}wktCoordinates
+            ON MATCH SET subject.${propertyKey} = ${'$'}wktCoordinates
             """
 
         return neo4jClient.query(query)
@@ -290,7 +290,7 @@ class Neo4jRepository(
         val query =
             """
             MERGE (entity:Entity { id: ${'$'}entityId })
-            ON MATCH SET entity.propertyKey = ${'$'}wktCoordinates
+            ON MATCH SET entity.${propertyKey} = ${'$'}wktCoordinates
             """
         return neo4jClient.query(query)
             .bind(entityId.toString()).to("entityId")

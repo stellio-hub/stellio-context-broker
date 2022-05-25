@@ -37,16 +37,16 @@ class EntityTest {
         val serializedEntity = entity.serializeCoreProperties(true)
         Assertions.assertTrue(serializedEntity.contains(NGSILD_CREATED_AT_PROPERTY))
         Assertions.assertTrue(serializedEntity.contains(NGSILD_MODIFIED_AT_PROPERTY))
-        Assertions.assertFalse(serializedEntity.contains("location"))
+        Assertions.assertFalse(serializedEntity.contains(NGSILD_LOCATION_PROPERTY))
     }
 
     @Test
     fun `it should serialize entity with location if specified`() {
-        val entityWithLocation = entity.copy(location = "POINT (24.30623 60.07966))")
+        val entityWithLocation = entity.copy(location = "POINT (24.30623 60.07966)")
         val serializedEntity = entityWithLocation.serializeCoreProperties(true)
         Assertions.assertTrue(serializedEntity.contains(NGSILD_LOCATION_PROPERTY))
         Assertions.assertEquals(
-            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (24.30623 60.07966))"),
+            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (24.30623 60.07966)"),
             serializedEntity[NGSILD_LOCATION_PROPERTY]
         )
         Assertions.assertFalse(serializedEntity.contains(NGSILD_OPERATION_SPACE_PROPERTY))
@@ -56,24 +56,24 @@ class EntityTest {
     @Test
     fun `it should serialize entity with all geo properties if specified`() {
         val entityWithLocation = entity.copy(
-            location = "POINT (24.30623 60.07966))",
-            operationSpace = "POINT (25.30623 62.07966))",
-            observationSpace = "POINT (26.30623 58.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (25.30623 62.07966)",
+            observationSpace = "POINT (26.30623 58.07966)"
         )
         val serializedEntity = entityWithLocation.serializeCoreProperties(true)
         Assertions.assertTrue(serializedEntity.contains(NGSILD_LOCATION_PROPERTY))
         Assertions.assertEquals(
-            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (24.30623 60.07966))"),
+            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (24.30623 60.07966)"),
             serializedEntity[NGSILD_LOCATION_PROPERTY]
         )
         Assertions.assertTrue(serializedEntity.contains(NGSILD_OPERATION_SPACE_PROPERTY))
         Assertions.assertEquals(
-            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (25.30623 62.07966))"),
+            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (25.30623 62.07966)"),
             serializedEntity[NGSILD_OPERATION_SPACE_PROPERTY]
         )
         Assertions.assertTrue(serializedEntity.contains(NGSILD_OBSERVATION_SPACE_PROPERTY))
         Assertions.assertEquals(
-            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (26.30623 58.07966))"),
+            mapOf(JSONLD_TYPE to "GeoProperty", JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to "POINT (26.30623 58.07966)"),
             serializedEntity[NGSILD_OBSERVATION_SPACE_PROPERTY]
         )
     }

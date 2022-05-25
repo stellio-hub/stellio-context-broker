@@ -125,13 +125,12 @@ class Neo4jRepository(
         val query =
             """
             MERGE (subject:Entity { id: ${'$'}subjectId })
-            ON MATCH SET subject.propertyKey = ${'$'}wktCoordinates
+            ON MATCH SET subject.$propertyKey = ${'$'}wktCoordinates
             """
 
         return neo4jClient.query(query)
             .bind(subjectId.toString()).to("subjectId")
             .bind(geoProperty.coordinates.value).to("wktCoordinates")
-            .bind(propertyKey).to("propertyKey")
             .run().counters().propertiesSet()
     }
 
@@ -290,12 +289,11 @@ class Neo4jRepository(
         val query =
             """
             MERGE (entity:Entity { id: ${'$'}entityId })
-            ON MATCH SET entity.propertyKey = ${'$'}wktCoordinates
+            ON MATCH SET entity.$propertyKey = ${'$'}wktCoordinates
             """
         return neo4jClient.query(query)
             .bind(entityId.toString()).to("entityId")
             .bind(geoProperty.coordinates.value).to("wktCoordinates")
-            .bind(propertyKey).to("propertyKey")
             .run().counters().propertiesSet()
     }
 

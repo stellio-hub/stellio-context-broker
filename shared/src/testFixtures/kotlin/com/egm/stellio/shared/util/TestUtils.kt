@@ -22,14 +22,15 @@ fun String.removeNoise(): String =
 fun String.matchContent(other: String?): Boolean =
     this.removeNoise() == other?.removeNoise()
 
-fun parseLocationFragmentToPointGeoProperty(
+fun parseGeoFragmentToPointGeoProperty(
+    propertyKey: String,
     longitude: Double,
     latitude: Double
 ): NgsiLdGeoProperty {
     val locationFragment =
         """
             {
-                "location": {
+                "$propertyKey": {
                     "type": "GeoProperty",
                     "value": {
                         "type": "Point",
@@ -45,13 +46,14 @@ fun parseLocationFragmentToPointGeoProperty(
     return parseToNgsiLdAttributes(expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS))[0] as NgsiLdGeoProperty
 }
 
-fun parseLocationFragmentToPolygonGeoProperty(
+fun parseGeoFragmentToPolygonGeoProperty(
+    propertyKey: String,
     coordinates: List<List<List<Double>>>
 ): NgsiLdGeoProperty {
     val locationFragment =
         """
             {
-                "location": {
+                "$propertyKey": {
                     "type": "GeoProperty",
                     "value": {
                         "type": "Polygon",

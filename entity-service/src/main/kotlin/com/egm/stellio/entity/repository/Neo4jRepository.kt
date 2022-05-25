@@ -131,7 +131,6 @@ class Neo4jRepository(
         return neo4jClient.query(query)
             .bind(subjectId.toString()).to("subjectId")
             .bind(geoProperty.coordinates.value).to("wktCoordinates")
-            .bind(propertyKey).to("propertyKey")
             .run().counters().propertiesSet()
     }
 
@@ -295,7 +294,6 @@ class Neo4jRepository(
         return neo4jClient.query(query)
             .bind(entityId.toString()).to("entityId")
             .bind(geoProperty.coordinates.value).to("wktCoordinates")
-            .bind(propertyKey).to("propertyKey")
             .run().counters().propertiesSet()
     }
 

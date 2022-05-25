@@ -1265,7 +1265,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
 
         val geoProperty = NgsiLdGeoPropertyInstance(
-            coordinates = WKTCoordinates("(24.30623, 60.07966)"),
+            coordinates = WKTCoordinates("POINT (25.30623 61.07966)"),
             createdAt = null,
             modifiedAt = null
         )
@@ -1286,7 +1286,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
 
         val geoProperty = NgsiLdGeoPropertyInstance(
-            coordinates = WKTCoordinates("(24.30623, 60.07966)"),
+            coordinates = WKTCoordinates("POINT (24.30623 60.07966)"),
             createdAt = null,
             modifiedAt = null
         )

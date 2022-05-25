@@ -82,8 +82,15 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        return PagingUtils.constructPaginationResponse(
-            countAndAuthorizedEntities,
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndAuthorizedEntities.second,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+
+        return constructResponse(
+            Pair(countAndAuthorizedEntities.first, compactedEntities),
             "/ngsi-ld/v1/entityAccessControl/entities",
             queryParams,
             params,
@@ -113,8 +120,15 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        return PagingUtils.constructPaginationResponse(
-            countAndGroupEntities,
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndGroupEntities.second,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+
+        return constructResponse(
+            Pair(countAndGroupEntities.first, compactedEntities),
             "/ngsi-ld/v1/entityAccessControl/entities",
             queryParams,
             params,

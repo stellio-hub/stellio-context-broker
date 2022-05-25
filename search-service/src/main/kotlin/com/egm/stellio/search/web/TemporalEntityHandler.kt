@@ -104,7 +104,7 @@ class TemporalEntityHandler(
             accessRightFilter
         )
 
-        return PagingUtils.constructPaginationResponse(
+        return constructResponse(
             Pair(
                 total,
                 serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })

@@ -18,7 +18,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.PagingUtils.constructPaginationResponse
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -111,8 +110,15 @@ class EntityHandler(
                     )
                 }
 
-        return constructPaginationResponse(
-            Pair(countAndEntities.first, filteredEntities),
+        val compactedEntities = JsonLdUtils.compactEntities(
+            filteredEntities,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+
+        return constructResponse(
+            Pair(countAndEntities.first, compactedEntities),
             "/ngsi-ld/v1/entities",
             queryParams,
             params,

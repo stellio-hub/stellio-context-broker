@@ -1,9 +1,11 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
 
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
 
@@ -49,3 +51,90 @@ private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseE
     ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
         .body(JsonUtils.serializeObject(exception))
+
+fun constructResponse(
+    countAndEntities: Pair<Int, List<CompactedJsonLdEntity>>,
+    resourceUrl: String,
+    queryParams: QueryParams,
+    requestParams: MultiValueMap<String, String>,
+    mediaType: MediaType,
+    contextLink: String
+): ResponseEntity<String> {
+    if (countAndEntities.second.isEmpty())
+        return buildResponse(
+            JsonUtils.serializeObject(emptyList<CompactedJsonLdEntity>()),
+            countAndEntities.first,
+            queryParams.count,
+            Pair(null, null),
+            mediaType, contextLink
+        )
+    else {
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            resourceUrl,
+            requestParams,
+            countAndEntities.first,
+            queryParams.offset,
+            queryParams.limit
+        )
+
+        return buildResponse(
+            JsonUtils.serializeObject(countAndEntities.second),
+            countAndEntities.first,
+            queryParams.count,
+            prevAndNextLinks,
+            mediaType, contextLink
+        )
+    }
+}
+
+fun constructResponse(
+    countAndBody: Pair<Int, String>,
+    queryParams: QueryParams,
+    requestParams: MultiValueMap<String, String>,
+    resourceUrl: String,
+    mediaType: MediaType,
+    contextLink: String
+): ResponseEntity<String> {
+    val prevAndNextLinks = PagingUtils.getPagingLinks(
+        resourceUrl,
+        requestParams,
+        countAndBody.first,
+        queryParams.offset,
+        queryParams.limit
+    )
+
+    return buildResponse(
+        countAndBody.second,
+        countAndBody.first,
+        queryParams.count,
+        prevAndNextLinks,
+        mediaType,
+        contextLink
+    )
+}
+
+fun buildResponse(
+    body: String,
+    resourcesCount: Int,
+    count: Boolean,
+    prevAndNextLinks: Pair<String?, String?>,
+    mediaType: MediaType,
+    contextLink: String
+): ResponseEntity<String> {
+    val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
+        buildGetSuccessResponse(mediaType, contextLink)
+            .header(HttpHeaders.LINK, prevAndNextLinks.first)
+            .header(HttpHeaders.LINK, prevAndNextLinks.second)
+
+    else if (prevAndNextLinks.first != null)
+        buildGetSuccessResponse(mediaType, contextLink)
+            .header(HttpHeaders.LINK, prevAndNextLinks.first)
+    else if (prevAndNextLinks.second != null)
+        buildGetSuccessResponse(mediaType, contextLink)
+            .header(HttpHeaders.LINK, prevAndNextLinks.second)
+    else
+        buildGetSuccessResponse(mediaType, contextLink)
+
+    return if (count) responseHeaders.header(RESULTS_COUNT_HEADER, resourcesCount.toString()).body(body)
+    else responseHeaders.body(body)
+}

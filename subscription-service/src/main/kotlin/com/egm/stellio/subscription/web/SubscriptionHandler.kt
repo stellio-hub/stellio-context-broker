@@ -90,7 +90,7 @@ class SubscriptionHandler(
             .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
 
-        return PagingUtils.constructPaginationResponse(
+        return constructResponse(
             Pair(subscriptionsCount, subscriptions),
             queryParams,
             params,

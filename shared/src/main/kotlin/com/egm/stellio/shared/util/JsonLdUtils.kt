@@ -548,8 +548,7 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
             val geoJsonAsString = geoAttribute[JSONLD_VALUE]
             val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
             geoAttribute[JSONLD_VALUE] = wktGeom
-            jsonFragment
-        } else jsonFragment
+        }
     }
     return jsonFragment
 }

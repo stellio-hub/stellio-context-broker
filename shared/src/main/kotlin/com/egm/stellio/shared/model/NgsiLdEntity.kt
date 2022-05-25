@@ -9,7 +9,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
@@ -74,8 +73,8 @@ class NgsiLdEntity private constructor(
             geoProperties.flatMap { it.getLinkedEntitiesIds() }
         )
 
-    fun getLocation(): NgsiLdGeoProperty? =
-        geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
+    fun getGeoProperty(geoProperty: String?): NgsiLdGeoProperty? =
+        geoProperties.find { geoProperty == it.name }
 }
 
 sealed class NgsiLdAttribute(val name: String) {

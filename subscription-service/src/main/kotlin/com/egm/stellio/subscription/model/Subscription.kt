@@ -39,6 +39,7 @@ data class Subscription(
         this.notification.attributes = this.notification.attributes?.map {
             JsonLdUtils.expandJsonLdTerm(it, context)!!
         }
+        this.geoQ?.geoproperty = this.geoQ?.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, context) }
     }
 
     fun compact(contexts: List<String>): Subscription =
@@ -48,6 +49,9 @@ data class Subscription(
             }.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
+            ),
+            geoQ = geoQ?.copy(
+                geoproperty = geoQ.geoproperty?.let { compactTerm(it, contexts) }
             )
         )
 

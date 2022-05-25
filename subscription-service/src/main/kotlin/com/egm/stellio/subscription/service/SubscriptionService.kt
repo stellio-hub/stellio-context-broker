@@ -1,13 +1,13 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Option
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.NgsiLdGeoProperty
-import com.egm.stellio.shared.model.NotImplementedException
-import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.repository.SubscriptionRepository
+import com.egm.stellio.subscription.utils.ParsingUtils
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
@@ -122,12 +122,15 @@ class SubscriptionService(
 
             databaseClient.sql(
                 """
-                INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, subscription_id) 
-                VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :subscription_id)
+                INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, geoproperty, subscription_id) 
+                VALUES (
+                    :georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :geoproperty, :subscription_id
+                )
                 """
             )
                 .bind("georel", geoQuery.georel)
                 .bind("geometry", geoQuery.geometry)
+                .bind("geoproperty", geoQuery.geoproperty)
                 .bind("coordinates", storedCoordinates)
                 .bind("wkt_coordinates", wktCoordinates)
                 .bind("subscription_id", subscriptionId)
@@ -185,7 +188,7 @@ class SubscriptionService(
         }.forEach {
             when {
                 it.key == "geoQ" -> {
-                    val geoQuery = it.value as Map<String, Any>
+                    val geoQuery = ParsingUtils.parseGeoQuery(it.value as Map<String, Any>, contexts)
                     updates.add(updateGeometryQuery(subscriptionId, geoQuery))
                 }
                 it.key == "notification" -> {
@@ -240,27 +243,28 @@ class SubscriptionService(
             }
     }
 
-    fun updateGeometryQuery(subscriptionId: URI, geoQuery: Map<String, Any>): Mono<Int> {
+    fun updateGeometryQuery(subscriptionId: URI, geoQuery: GeoQuery): Mono<Int> {
         val storedCoordinates: String =
-            when (val coordinates = geoQuery["coordinates"]) {
+            when (val coordinates = geoQuery.coordinates) {
                 is String -> coordinates
                 is List<*> -> coordinates.toString()
                 else -> coordinates.toString()
             }
-        val wktCoordinates = geoJsonToWkt(geoQuery["geometry"] as String, storedCoordinates)
+        val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
 
         return databaseClient.sql(
             """
             UPDATE geometry_query
             SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
-                pgis_geometry = ST_GeomFromText(:wkt_coordinates) 
+                pgis_geometry = ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
             WHERE subscription_id = :subscription_id
             """
         )
-            .bind("georel", geoQuery["georel"] as String)
-            .bind("geometry", geoQuery["geometry"] as String)
+            .bind("georel", geoQuery.georel)
+            .bind("geometry", geoQuery.geometry)
             .bind("coordinates", storedCoordinates)
             .bind("wkt_coordinates", wktCoordinates)
+            .bind("geoproperty", geoQuery.geoproperty)
             .bind("subscription_id", subscriptionId)
             .fetch()
             .rowsUpdated()
@@ -449,13 +453,13 @@ class SubscriptionService(
         return res.isNotEmpty()
     }
 
-    fun isMatchingGeoQuery(subscriptionId: URI, location: NgsiLdGeoProperty?): Mono<Boolean> {
-        return if (location == null)
+    fun isMatchingGeoQuery(subscriptionId: URI, geoProperty: NgsiLdGeoProperty?): Mono<Boolean> {
+        return if (geoProperty == null)
             Mono.just(true)
         else {
             getMatchingGeoQuery(subscriptionId)
                 .map {
-                    createGeoQueryStatement(it, location)
+                    createGeoQueryStatement(it, geoProperty)
                 }.flatMap {
                     runGeoQueryStatement(it)
                 }
@@ -572,7 +576,8 @@ class SubscriptionService(
                 georel = row.get("georel", String::class.java)!!,
                 geometry = row.get("geometry", String::class.java)!!,
                 coordinates = row.get("coordinates", String::class.java)!!,
-                pgisGeometry = row.get("pgis_geometry", String::class.java)!!
+                pgisGeometry = row.get("pgis_geometry", String::class.java)!!,
+                geoproperty = row.get("geoproperty", ExpandedTerm::class.java) ?: NGSILD_LOCATION_PROPERTY
             )
         else
             null

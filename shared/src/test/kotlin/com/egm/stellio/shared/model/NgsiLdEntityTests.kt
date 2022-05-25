@@ -627,14 +627,14 @@ class NgsiLdEntityTests {
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
-        val location = ngsiLdEntity.getLocation()
+        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
-        assertEquals(1, location!!.instances.size)
-        val locationInstance = location.instances[0]
-        assertEquals("POLYGON ((100 0, 101 0, 101 1, 100 1, 100 0))", locationInstance.coordinates.value)
-        assertNull(locationInstance.createdAt)
-        assertNull(locationInstance.modifiedAt)
+        assertEquals(1, location?.instances?.size)
+        val locationInstance = location?.instances?.get(0)
+        assertEquals("POLYGON ((100 0, 101 0, 101 1, 100 1, 100 0))", locationInstance?.coordinates?.value)
+        assertNull(locationInstance?.createdAt)
+        assertNull(locationInstance?.modifiedAt)
     }
 
     @Test
@@ -671,11 +671,11 @@ class NgsiLdEntityTests {
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
-        val location = ngsiLdEntity.getLocation()
+        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
         assertNotNull(location)
+        assertEquals(1, location?.instances?.size)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
-        assertEquals(1, location!!.instances.size)
-        val locationInstance = location.instances[0]
+        val locationInstance = location?.instances?.get(0)
         assertEquals(
             """
             MULTIPOLYGON ((
@@ -683,7 +683,7 @@ class NgsiLdEntityTests {
             (703458.5 114441.8, 703494.3 114477.6, 703709.8 114268.8, 703675 114232.8, 703458.5 114441.8)
             ))
             """.trimIndent().replace("\n", ""),
-            locationInstance.coordinates.value
+            locationInstance?.coordinates?.value
         )
     }
 
@@ -709,12 +709,12 @@ class NgsiLdEntityTests {
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
-        val location = ngsiLdEntity.getLocation()
+        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
-        assertEquals(1, location!!.instances.size)
-        val locationInstance = location.instances[0]
-        assertEquals("POINT (24.30623 60.07966)", locationInstance.coordinates.value)
+        assertEquals(1, location?.instances?.size)
+        val locationInstance = location?.instances?.get(0)
+        assertEquals("POINT (24.30623 60.07966)", locationInstance?.coordinates?.value)
     }
 
     @Test

@@ -86,6 +86,7 @@ class EntityHandlerTests {
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
+    private val fishSizeAttribute = "https://ontology.eglobalmark.com/aquac#fishSize"
     private val hcmrContext = listOf(
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/shared-jsonld-contexts/egm.jsonld",
@@ -1131,6 +1132,7 @@ class EntityHandlerTests {
         )
 
         mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
 
         webClient.post()
@@ -1167,7 +1169,7 @@ class EntityHandlerTests {
 
     @Test
     fun `append entity attribute should return a 207 if some attributes could not be appended`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_twoNewProperties.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendResult = UpdateResult(
             listOf(
@@ -1177,10 +1179,11 @@ class EntityHandlerTests {
                     UpdateOperationResult.APPENDED
                 )
             ),
-            listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
+            listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
         )
 
         mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
 
         webClient.post()
@@ -1194,7 +1197,7 @@ class EntityHandlerTests {
                 """
                 {
                     "updated":["$fishNumberAttribute"],
-                    "notUpdated":[{"attributeName":"wrongAttribute","reason":"overwrite disallowed"}]
+                    "notUpdated":[{"attributeName":"$fishSizeAttribute","reason":"overwrite disallowed"}]
                 } 
                 """.trimIndent()
             )
@@ -1215,6 +1218,106 @@ class EntityHandlerTests {
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
+    }
+
+    @Test
+    fun `append entity attribute should return a 204 when adding a new type to an entity`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val appendTypeResult = UpdateResult(
+            listOf(UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        )
+        val appendResult = UpdateResult(emptyList(), emptyList())
+
+        mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns appendTypeResult
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NO_CONTENT)
+
+        verify {
+            entityService.checkExistence(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
+            entityService.appendEntityTypes(
+                eq(entityId),
+                listOf(breedingServiceType, deadFishesType)
+            )
+            entityService.appendEntityAttributes(
+                eq(entityId),
+                emptyList(),
+                eq(false)
+            )
+            entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                appendTypeResult,
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `append entity attribute should return a 207 if types or attributes could not be appended`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newInvalidTypeAndAttribute.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val appendTypeResult = UpdateResult(
+            emptyList(),
+            listOf(NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"))
+        )
+        val appendResult = UpdateResult(
+            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+            listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
+        )
+
+        mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns appendTypeResult
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                {
+                    "updated":["$fishNumberAttribute"],
+                    "notUpdated":[
+                      {"attributeName":"$fishSizeAttribute","reason":"overwrite disallowed"},
+                      {"attributeName":"$JSONLD_TYPE","reason":"Append operation has unexpectedly failed"}
+                    ]
+                } 
+                """.trimIndent()
+            )
+
+        verify {
+            entityService.checkExistence(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
+            entityService.appendEntityAttributes(
+                eq(entityId),
+                any(),
+                eq(false)
+            )
+            entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                appendTypeResult.mergeWith(appendResult),
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified()
     }
 
     @Test

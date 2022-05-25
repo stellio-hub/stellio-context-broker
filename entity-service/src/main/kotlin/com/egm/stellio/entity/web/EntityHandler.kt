@@ -10,6 +10,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -19,7 +20,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.withContext
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -224,7 +227,8 @@ class EntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JSONLD_TYPE }
+            val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
             authorizationService.isUpdateAuthorized(
                 entityUri,
                 entityService.getEntityTypes(entityUri),
@@ -232,11 +236,18 @@ class EntityHandler(
                 sub
             ).bind()
 
-            val updateResult = entityService.appendEntityAttributes(
-                entityUri,
-                ngsiLdAttributes,
-                disallowOverwrite
-            )
+            val updateResult = withContext(Dispatchers.IO) {
+                entityService.appendEntityTypes(
+                    entityUri,
+                    typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+                ).mergeWith(
+                    entityService.appendEntityAttributes(
+                        entityUri,
+                        ngsiLdAttributes,
+                        disallowOverwrite
+                    )
+                )
+            }
 
             if (updateResult.updated.isNotEmpty()) {
                 entityEventService.publishAttributeAppendEvents(

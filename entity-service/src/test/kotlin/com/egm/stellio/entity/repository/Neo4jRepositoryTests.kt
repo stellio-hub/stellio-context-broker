@@ -2,6 +2,8 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.*
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.toUri
 import org.assertj.core.api.Assertions.assertThat
@@ -828,7 +830,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            location = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -873,8 +875,8 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            location = "POINT (24.30623 60.07966))",
-            operationSpace = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -891,7 +893,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 25),
                 Property(name = "humidity", value = 89),
             ),
-            observationSpace = "POINT (24.30623 60.07966))"
+            observationSpace = "POINT (24.30623 60.07966)"
         )
 
         val attributesInformation = neo4jRepository
@@ -969,9 +971,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "name", value = "Beehive TESTB")
             ),
-            location = "POINT (24.30623 60.07966))",
-            operationSpace = "POINT (24.30623 60.07966))",
-            observationSpace = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)",
+            observationSpace = "POINT (24.30623 60.07966)"
 
         )
         val thirdEntity = createEntity(
@@ -1027,9 +1029,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "deviceParameter", value = 30),
                 Property(name = "isContainedIn", value = 61)
             ),
-            location = "POINT (24.30623 60.07966))",
-            operationSpace = "POINT (24.30623 60.07966))",
-            observationSpace = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)",
+            observationSpace = "POINT (24.30623 60.07966)"
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
@@ -1067,7 +1069,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "isContainedIn", value = 61)
             ),
-            location = "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -1223,6 +1225,83 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(relationship.type, listOf(EGM_OBSERVED_BY))
+    }
+
+    @Test
+    fun `has geo property of name should return true`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor"),
+            location = "POINT (24.30623 60.07966)"
+        )
+
+        assertTrue(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `has geo property of name should return false`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor")
+        )
+
+        assertFalse(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update geo property`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor"),
+            location = "POINT (24.30623 60.07966)"
+        )
+
+        val geoProperty = NgsiLdGeoPropertyInstance(
+            coordinates = WKTCoordinates("(24.30623, 60.07966)"),
+            createdAt = null,
+            modifiedAt = null
+        )
+
+        assertEquals(
+            1,
+            neo4jRepository.updateGeoPropertyOfEntity("urn:ngsi-ld:Sensor:1233".toUri(), "location", geoProperty)
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should add new geo property`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor")
+        )
+
+        val geoProperty = NgsiLdGeoPropertyInstance(
+            coordinates = WKTCoordinates("(24.30623, 60.07966)"),
+            createdAt = null,
+            modifiedAt = null
+        )
+
+        assertFalse(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.addGeoPropertyToEntity("urn:ngsi-ld:Sensor:1233".toUri(), "location", geoProperty)
+
+        assertFalse(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     fun createEntity(

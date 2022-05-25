@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
@@ -365,7 +364,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should correctly parse Point location property for an entity`() {
+    fun `it should correctly parse Point geo property for an entity`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val ngsiLdGeoProperty = parseGeoFragmentToPointGeoProperty("location", 23.45, 67.87)
 
@@ -386,28 +385,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should correctly parse Point observationSpace property for an entity`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
-        val ngsiLdGeoProperty = parseGeoFragmentToPointGeoProperty("observationSpace", 23.45, 67.87)
-
-        every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
-
-        entityService.createGeoProperty(entityId, "observationSpace", ngsiLdGeoProperty.instances[0])
-
-        verify {
-            neo4jRepository.addGeoPropertyToEntity(
-                entityId,
-                eq("observationSpace"),
-                match {
-                    it.coordinates.value == "POINT (23.45 67.87)"
-                }
-            )
-        }
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should correctly parse Polygon location property for an entity`() {
+    fun `it should correctly parse Polygon geo property for an entity`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val coordinates = listOf(
             listOf(
@@ -426,35 +404,6 @@ class EntityServiceTests {
             neo4jRepository.addGeoPropertyToEntity(
                 entityId,
                 eq("location"),
-                match {
-                    it.coordinates.value == "POLYGON ((23.25 67.8, 83.49 17.87, 23.25 67.8))"
-                }
-            )
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should correctly parse Polygon observationSpace property for an entity`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
-        val coordinates = listOf(
-            listOf(
-                listOf(23.25, 67.80),
-                listOf(83.49, 17.87),
-                listOf(23.25, 67.80)
-            )
-        )
-        val ngsiLdGeoProperty = parseGeoFragmentToPolygonGeoProperty("observationSpace", coordinates)
-
-        every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
-
-        entityService.createGeoProperty(entityId, "observationSpace", ngsiLdGeoProperty.instances[0])
-
-        verify {
-            neo4jRepository.addGeoPropertyToEntity(
-                entityId,
-                eq("observationSpace"),
                 match {
                     it.coordinates.value == "POLYGON ((23.25 67.8, 83.49 17.87, 23.25 67.8))"
                 }
@@ -1002,53 +951,6 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should create a new operationSpace geoproperty`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
-        val newGeoProperty =
-            """
-            {
-              "operationSpace": {
-                  "type": "GeoProperty",
-                  "value": {
-                    "type": "Point",
-                    "coordinates": [
-                      29.30623,
-                      83.07966
-                    ]
-                  }
-              }
-            }
-            """.trimIndent()
-
-        val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, listOf(AQUAC_COMPOUND_CONTEXT))
-        )
-
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
-
-        every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns false
-        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
-        every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
-
-        entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
-
-        verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify {
-            neo4jRepository.addGeoPropertyToEntity(
-                entityId,
-                eq(NGSILD_OPERATION_SPACE_PROPERTY),
-                match {
-                    it.coordinates.value == "POINT (29.30623 83.07966)"
-                }
-            )
-        }
-
-        confirmVerified()
-    }
-
-    @Test
     fun `it should replace a location geoproperty if overwrite is allowed`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newGeoProperty =
@@ -1081,48 +983,6 @@ class EntityServiceTests {
             neo4jRepository.updateGeoPropertyOfEntity(
                 entityId,
                 eq(NGSILD_LOCATION_PROPERTY),
-                match {
-                    it.coordinates.value == "POINT (29.30623 83.07966)"
-                }
-            )
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should replace a operationSpace geoproperty if overwrite is allowed`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
-        val newGeoProperty =
-            """
-            {
-              "operationSpace": {
-                  "type": "GeoProperty",
-                  "value": {
-                    "type": "Point",
-                    "coordinates": [
-                      29.30623,
-                      83.07966
-                    ]
-                  }
-              }
-            }
-            """.trimIndent()
-
-        val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, listOf(AQUAC_COMPOUND_CONTEXT))
-        )
-
-        every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.updateGeoPropertyOfEntity(any(), any(), any()) } returns 1
-
-        entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
-
-        verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify {
-            neo4jRepository.updateGeoPropertyOfEntity(
-                entityId,
-                eq(NGSILD_OPERATION_SPACE_PROPERTY),
                 match {
                     it.coordinates.value == "POINT (29.30623 83.07966)"
                 }

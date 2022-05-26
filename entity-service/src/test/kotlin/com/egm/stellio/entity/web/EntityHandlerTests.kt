@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -1432,6 +1433,34 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `partial attribute update should return a 204 if type could be appended`() {
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialTypeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.UPDATED)
+            ),
+            notUpdated = arrayListOf()
+        )
+        mockkDefaultBehaviorForPartialUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns updateResult
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$JSONLD_TYPE_TERM")
+            .header("Link", aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            entityService.appendEntityTypes(eq(entityId), listOf(breedingServiceType))
+        }
+        confirmVerified()
+    }
+
+    @Test
     fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
@@ -1625,6 +1654,7 @@ class EntityHandlerTests {
         )
 
         mockkDefaultBehaviorForUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.updateEntityAttributes(any(), any()) } returns updateResult
         every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
@@ -1645,6 +1675,7 @@ class EntityHandlerTests {
                 any<List<NgsiLdAttribute>>(),
                 eq(sub)
             )
+            entityService.appendEntityTypes(eq(entityId), eq(emptyList()))
             entityService.updateEntityAttributes(eq(entityId), any())
             entityEventService.publishAttributeUpdateEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -1665,6 +1696,7 @@ class EntityHandlerTests {
         val notUpdatedAttribute = NotUpdatedDetails("removedFrom", "Property is not valid")
 
         mockkDefaultBehaviorForUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.updateEntityAttributes(any(), any())
         } returns UpdateResult(
@@ -1682,6 +1714,38 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+    }
+
+    @Test
+    fun `entity attributes update should return a 207 if types could not be updated`() {
+        val jsonLdFile = ClassPathResource(
+            "/ngsild/aquac/fragments/DeadFishes_updateEntityAttributes_invalidType.json"
+        )
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        mockkDefaultBehaviorForUpdateAttribute()
+        every {
+            entityService.appendEntityTypes(any(), any())
+        } returns UpdateResult(
+            updated = emptyList(),
+            notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
+        )
+        every { entityService.updateEntityAttributes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+
+        verify {
+            entityService.appendEntityTypes(eq(entityId), eq(listOf(breedingServiceType)))
+            entityService.updateEntityAttributes(eq(entityId), emptyList())
+        }
+        confirmVerified()
     }
 
     @Test

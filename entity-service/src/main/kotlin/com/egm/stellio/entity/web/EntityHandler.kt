@@ -290,7 +290,8 @@ class EntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JSONLD_TYPE }
+            val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
             authorizationService.isUpdateAuthorized(
                 entityUri,
                 entityService.getEntityTypes(entityUri),
@@ -298,7 +299,14 @@ class EntityHandler(
                 sub
             ).bind()
 
-            val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
+            val updateResult = withContext(Dispatchers.IO) {
+                entityService.appendEntityTypes(
+                    entityUri,
+                    typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+                ).mergeWith(
+                    entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
+                )
+            }
 
             if (updateResult.updated.isNotEmpty()) {
                 entityEventService.publishAttributeUpdateEvents(
@@ -342,7 +350,9 @@ class EntityHandler(
 
             val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
             val contexts = checkAndGetContext(httpHeaders, body)
-            val expandedAttrId = expandJsonLdTerm(attrId, contexts)
+            val expandedPayload = expandJsonLdFragment(body, contexts)
+            val expandedAttrId = expandedPayload.keys.first()
+
             authorizationService.isUpdateAuthorized(
                 entityUri,
                 entityService.getEntityTypes(entityUri),
@@ -350,28 +360,35 @@ class EntityHandler(
                 sub
             ).bind()
 
-            val expandedPayload = expandJsonLdFragment(body, contexts)
-
-            entityAttributeService.partialUpdateEntityAttribute(
-                entityUri,
-                expandedPayload as Map<String, List<Map<String, List<Any>>>>,
-                contexts
-            )
-                .let {
-                    if (it.updated.isEmpty())
-                        ResourceNotFoundException("Unknown attribute in entity $entityId").left()
-                    else {
-                        entityEventService.publishPartialAttributeUpdateEvents(
-                            sub.orNull(),
+            withContext(Dispatchers.IO) {
+                when (expandedAttrId) {
+                    JSONLD_TYPE ->
+                        entityService.appendEntityTypes(
                             entityUri,
-                            expandedPayload,
-                            it.updated,
+                            expandedPayload[JSONLD_TYPE] as List<ExpandedTerm>
+                        )
+                    else ->
+                        entityAttributeService.partialUpdateEntityAttribute(
+                            entityUri,
+                            expandedPayload as Map<String, List<Map<String, List<Any>>>>,
                             contexts
                         )
-
-                        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
-                    }.bind()
                 }
+            }.let {
+                if (it.updated.isEmpty())
+                    ResourceNotFoundException("Unknown attribute in entity $entityId").left()
+                else {
+                    entityEventService.publishPartialAttributeUpdateEvents(
+                        sub.orNull(),
+                        entityUri,
+                        expandedPayload,
+                        it.updated,
+                        contexts
+                    )
+
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
+                }.bind()
+            }
         }.fold(
             { it.toErrorResponse() },
             { it }

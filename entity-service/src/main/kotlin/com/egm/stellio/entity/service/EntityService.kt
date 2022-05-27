@@ -274,6 +274,8 @@ class EntityService(
         types: List<ExpandedTerm>
     ): UpdateResult {
         val currentTypes = getEntityTypes(entityId)
+        if (currentTypes.sorted() == types.sorted())
+            return UpdateResult(emptyList(), emptyList())
         if (!types.containsAll(currentTypes)) {
             val removedTypes = currentTypes.minus(types)
             return updateResultFromDetailedResult(

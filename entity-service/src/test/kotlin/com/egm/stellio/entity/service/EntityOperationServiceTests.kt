@@ -105,6 +105,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to update attributes of entities`() {
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -125,6 +126,7 @@ class EntityOperationServiceTests {
             batchOperationResult.getSuccessfulEntitiesIds()
         )
 
+        verify(exactly = 2) { entityService.appendEntityTypes(any(), any()) }
         verify { entityService.appendEntityAttributes(eq(firstEntityURI), any(), false) }
         verify { entityService.appendEntityAttributes(eq(secondEntityURI), any(), false) }
         confirmVerified(entityService)
@@ -132,6 +134,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error an update which raises a BadRequestDataException`() {
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -164,6 +167,7 @@ class EntityOperationServiceTests {
                 NotUpdatedDetails("attribute#2", "reason")
             )
         )
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -192,6 +196,7 @@ class EntityOperationServiceTests {
     @Test
     fun `it should ask to replace entities`() {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -218,6 +223,7 @@ class EntityOperationServiceTests {
         verify { neo4jRepository.deleteEntityAttributes(secondEntityURI) }
         confirmVerified(neo4jRepository)
 
+        verify(exactly = 2) { entityService.appendEntityTypes(any(), any()) }
         verify { entityService.appendEntityAttributes(eq(firstEntityURI), any(), false) }
         verify { entityService.appendEntityAttributes(eq(secondEntityURI), any(), false) }
         confirmVerified(entityService)
@@ -226,6 +232,7 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error an replace which raises a BadRequestDataException`() {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -249,6 +256,7 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error not replaced entities in entities`() {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(

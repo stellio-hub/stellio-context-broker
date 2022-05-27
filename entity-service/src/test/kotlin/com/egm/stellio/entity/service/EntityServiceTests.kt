@@ -489,6 +489,25 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should not try to append a type if the provided list is equal to existing types`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedEntity
+        every { mockkedEntity.types } returns listOf(APIARY_TYPE)
+
+        val updateResult = entityService.appendEntityTypes(entityId, listOf(APIARY_TYPE))
+
+        assertThat(updateResult.updated).isEmpty()
+        assertThat(updateResult.notUpdated).isEmpty()
+
+        verify {
+            entityRepository.getEntityCoreById(entityId.toString())
+        }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should not append a type if the provided list removes an existing type`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val mockkedEntity = mockkClass(Entity::class)

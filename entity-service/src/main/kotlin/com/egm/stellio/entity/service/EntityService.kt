@@ -9,6 +9,7 @@ import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_PROPERTIES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
@@ -614,11 +615,4 @@ class EntityService(
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
-
-    internal fun compactedGeoPropertyKey(expandedPropertyKey: String): String =
-        NGSILD_GEO_PROPERTIES_PROPERTIES
-            .zip(NGSILD_GEO_PROPERTIES_TERMS)
-            .filter { it.first == expandedPropertyKey }
-            .map { it.second }
-            .first()
 }

@@ -353,7 +353,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.updateGeoPropertyOfEntity(
                 sensorId,
-                    eq(NGSILD_OBSERVATION_SPACE_TERM),
+                eq(NGSILD_OBSERVATION_SPACE_TERM),
                 match {
                     it.coordinates.value == "POINT (9.30623 8.07966)"
                 }
@@ -370,7 +370,11 @@ class EntityServiceTests {
 
         every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
 
-        entityService.createGeoProperty(entityId, "https://uri.etsi.org/ngsi-ld/location", ngsiLdGeoProperty.instances[0])
+        entityService.createGeoProperty(
+            entityId,
+            "https://uri.etsi.org/ngsi-ld/location",
+            ngsiLdGeoProperty.instances[0]
+        )
 
         verify {
             neo4jRepository.addGeoPropertyToEntity(
@@ -398,7 +402,11 @@ class EntityServiceTests {
 
         every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
 
-        entityService.createGeoProperty(entityId, "https://uri.etsi.org/ngsi-ld/location", ngsiLdGeoProperty.instances[0])
+        entityService.createGeoProperty(
+            entityId,
+            "https://uri.etsi.org/ngsi-ld/location",
+            ngsiLdGeoProperty.instances[0]
+        )
 
         verify {
             neo4jRepository.addGeoPropertyToEntity(

@@ -7,13 +7,11 @@ import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_PROPERTIES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -139,20 +137,9 @@ class EntityService(
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ): Int {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        return neo4jRepository.addGeoPropertyToEntity(
-            entityId,
-            compactedGeoPropertyKey(propertyKey),
-            ngsiLdGeoPropertyInstance
-        )
-    }
-
-    internal fun compactedGeoPropertyKey(expandedPropertyKey: String): String {
-        return JsonLdProcessor.compact(
-            expandedPropertyKey,
-            mapOf(JsonLdUtils.JSONLD_CONTEXT to NGSILD_CORE_CONTEXT),
-            JsonLdOptions()
-        ).keys.toString()
+        val compactedGeoPropertyKey = compactedGeoPropertyKey(propertyKey)
+        logger.debug("Geo property $compactedGeoPropertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        return neo4jRepository.addGeoPropertyToEntity(entityId, compactedGeoPropertyKey, ngsiLdGeoPropertyInstance)
     }
 
     fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
@@ -577,8 +564,9 @@ class EntityService(
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ) {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        neo4jRepository.updateGeoPropertyOfEntity(entityId, propertyKey, ngsiLdGeoPropertyInstance)
+        val compactedGeoPropertyKey = compactedGeoPropertyKey(propertyKey)
+        logger.debug("Geo property $compactedGeoPropertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        neo4jRepository.updateGeoPropertyOfEntity(entityId, compactedGeoPropertyKey, ngsiLdGeoPropertyInstance)
     }
 
     @Transactional
@@ -626,4 +614,11 @@ class EntityService(
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
+
+    internal fun compactedGeoPropertyKey(expandedPropertyKey: String): String =
+        NGSILD_GEO_PROPERTIES_PROPERTIES
+            .zip(NGSILD_GEO_PROPERTIES_TERMS)
+            .filter { it.first == expandedPropertyKey }
+            .map { it.second }
+            .first()
 }

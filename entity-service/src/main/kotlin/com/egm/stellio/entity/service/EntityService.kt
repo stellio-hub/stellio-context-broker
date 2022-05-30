@@ -7,8 +7,6 @@ import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_PROPERTIES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage

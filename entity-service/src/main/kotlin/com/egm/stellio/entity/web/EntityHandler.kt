@@ -11,6 +11,7 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compact
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -110,7 +111,7 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = JsonLdUtils.compactEntities(
+        val compactedEntities = compactEntities(
             filteredEntities,
             queryParams.useSimplifiedRepresentation,
             contextLink,

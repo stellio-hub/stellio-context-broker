@@ -82,35 +82,19 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        if (countAndAuthorizedEntities.second.isEmpty())
-            return PagingUtils.buildPaginationResponse(
-                serializeObject(emptyList<JsonLdEntity>()),
-                countAndAuthorizedEntities.first,
-                queryParams.count,
-                Pair(null, null),
-                mediaType, contextLink
-            )
-
-        val compactedAuthorizedEntities = JsonLdUtils.compactEntities(
+        val compactedEntities = JsonLdUtils.compactEntities(
             countAndAuthorizedEntities.second,
-            false,
+            queryParams.useSimplifiedRepresentation,
             contextLink,
             mediaType
         )
 
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
+        return buildQueryResponse(
+            compactedEntities,
+            countAndAuthorizedEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
+            queryParams,
             params,
-            countAndAuthorizedEntities.first,
-            queryParams.offset,
-            queryParams.limit
-        )
-
-        return PagingUtils.buildPaginationResponse(
-            serializeObject(compactedAuthorizedEntities),
-            countAndAuthorizedEntities.first,
-            queryParams.count,
-            prevAndNextLinks,
             mediaType,
             contextLink
         )
@@ -121,52 +105,35 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val (offset, limit) = extractAndValidatePaginationParameters(
-            params,
-            applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax,
-            count
-        )
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
+        val queryParams = parseAndCheckParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        )
 
-        val countAndGroupEntities = authorizationService.getGroupsMemberships(sub, offset, limit, contextLink)
+        val countAndGroupEntities =
+            authorizationService.getGroupsMemberships(sub, queryParams.offset, queryParams.limit, contextLink)
 
         if (countAndGroupEntities.first == -1) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        if (countAndGroupEntities.second.isEmpty())
-            return PagingUtils.buildPaginationResponse(
-                serializeObject(emptyList<JsonLdEntity>()),
-                countAndGroupEntities.first,
-                count,
-                Pair(null, null),
-                mediaType, contextLink
-            )
-
-        val compactedGroupEntities = JsonLdUtils.compactEntities(
+        val compactedEntities = JsonLdUtils.compactEntities(
             countAndGroupEntities.second,
-            false,
+            queryParams.useSimplifiedRepresentation,
             contextLink,
             mediaType
         )
 
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
+        return buildQueryResponse(
+            compactedEntities,
+            countAndGroupEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
+            queryParams,
             params,
-            countAndGroupEntities.first,
-            offset,
-            limit
-        )
-
-        return PagingUtils.buildPaginationResponse(
-            serializeObject(compactedGroupEntities),
-            countAndGroupEntities.first,
-            count,
-            prevAndNextLinks,
             mediaType,
             contextLink
         )

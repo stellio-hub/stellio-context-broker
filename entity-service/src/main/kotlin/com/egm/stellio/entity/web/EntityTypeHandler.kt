@@ -33,7 +33,7 @@ class EntityTypeHandler(
         else
             entityTypeService.getEntityTypeList(listOf(contextLink))
 
-        return buildGetSuccessResponse(mediaType, contextLink)
+        return prepareGetSuccessResponse(mediaType, contextLink)
             .body(JsonUtils.serializeObject(availableEntityTypes))
     }
 
@@ -52,7 +52,7 @@ class EntityTypeHandler(
         val entityTypeInfo = entityTypeService.getEntityTypeInfo(expandedType, listOf(contextLink))
             ?: throw ResourceNotFoundException("No entities found for type $expandedType")
 
-        return buildGetSuccessResponse(mediaType, contextLink)
+        return prepareGetSuccessResponse(mediaType, contextLink)
             .body(JsonUtils.serializeObject(entityTypeInfo))
     }
 }

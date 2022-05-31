@@ -102,15 +102,6 @@ class EntityHandler(
 
         val countAndEntities = entityService.searchEntities(queryParams, sub, contextLink)
 
-        if (countAndEntities.second.isEmpty())
-            return PagingUtils.buildPaginationResponse(
-                serializeObject(emptyList<JsonLdEntity>()),
-                countAndEntities.first,
-                queryParams.count,
-                Pair(null, null),
-                mediaType, contextLink
-            )
-
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(queryParams.attrs) }
                 .map {
@@ -127,19 +118,14 @@ class EntityHandler(
             mediaType
         )
 
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
+        return buildQueryResponse(
+            compactedEntities,
+            countAndEntities.first,
             "/ngsi-ld/v1/entities",
+            queryParams,
             params,
-            countAndEntities.first,
-            queryParams.offset,
-            queryParams.limit
-        )
-        return PagingUtils.buildPaginationResponse(
-            serializeObject(compactedEntities),
-            countAndEntities.first,
-            queryParams.count,
-            prevAndNextLinks,
-            mediaType, contextLink
+            mediaType,
+            contextLink
         )
     }
 
@@ -177,7 +163,7 @@ class EntityHandler(
             )
             val compactedEntity = compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-            buildGetSuccessResponse(mediaType, contextLink)
+            prepareGetSuccessResponse(mediaType, contextLink)
                 .let {
                     if (queryParams.useSimplifiedRepresentation)
                         it.body(serializeObject(compactedEntity.toKeyValues()))

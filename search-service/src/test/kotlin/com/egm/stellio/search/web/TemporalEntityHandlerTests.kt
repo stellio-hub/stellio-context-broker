@@ -15,7 +15,7 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -515,7 +515,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=P1DT1H&options=aggregatedValues"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -524,7 +524,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -537,7 +537,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrMethods=unknown"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -546,7 +546,29 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Value 'unknown' is not supported for 'aggregate' parameter"
+                    "detail":"'unknown' is not a recognized aggregation method for 'aggrMethods' parameter"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if aggrPeriodDuration is not in the correct format`() {
+        buildDefaultMockResponsesForGetEntity()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=PXD3N"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -756,8 +778,8 @@ class TemporalEntityHandlerTests {
         }
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
             coEvery {
-                attributeInstanceService.search(any(), it.second, withTemporalValues)
-            } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1])
+                attributeInstanceService.search(any(), it.second)
+            } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]).right()
         }
 
         coEvery {

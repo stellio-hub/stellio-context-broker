@@ -3,9 +3,9 @@ package com.egm.stellio.search.service
 import arrow.core.Either
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeType
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException

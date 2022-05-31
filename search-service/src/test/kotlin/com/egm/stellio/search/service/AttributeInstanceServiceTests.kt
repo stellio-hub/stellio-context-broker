@@ -1,15 +1,7 @@
 package com.egm.stellio.search.service
 
-import arrow.core.Either
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.support.WithKafkaContainer
-import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.search.util.execute
-import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.search.model.*
+import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -40,7 +32,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
-import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -49,6 +40,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
+
+    @Autowired
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
@@ -73,7 +67,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        createTemporalEntityAttribute(incomingTemporalEntityAttribute)
+        runBlocking {
+            temporalEntityAttributeService.create(incomingTemporalEntityAttribute)
+        }
 
         outgoingTemporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
@@ -83,7 +79,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        createTemporalEntityAttribute(outgoingTemporalEntityAttribute)
+        runBlocking {
+            temporalEntityAttributeService.create(outgoingTemporalEntityAttribute)
+        }
     }
 
     @AfterEach
@@ -101,46 +99,52 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve a full instance if temporalValues are not asked for`() = runTest {
-        val observation = gimmeAttributeInstance().copy(
+        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             time = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation)
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("temporalEntityAttribute", incomingTemporalEntityAttribute.id)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .singleElement()
+                    .hasFieldOrPropertyWithValue("temporalEntityAttribute", incomingTemporalEntityAttribute.id)
+            }
     }
 
     @Test
     fun `it should retrieve an instance having the corresponding time property value`() = runTest {
-        val observation = gimmeAttributeInstance().copy(
+        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation)
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1),
+                timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .singleElement()
+            }
     }
 
     @Test
     fun `it should retrieve an instance with audit info if time property is not observedAt`() = runTest {
-        val observation = gimmeAttributeInstance().copy(
+        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4,
@@ -148,60 +152,74 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
         attributeInstanceService.create(observation)
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1),
+                timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("sub", "sub")
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .singleElement()
+                    .hasFieldOrPropertyWithValue("sub", "sub")
+            }
     }
 
     @Test
     fun `it should not retrieve an instance not having the corresponding time property value`() = runTest {
-        val observation = gimmeAttributeInstance().copy(
+        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation)
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1),
+                timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .isEmpty()
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .isEmpty()
+            }
     }
 
     @Test
     fun `it should retrieve all full instances if temporalValues are not asked for`() = runTest {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
+        (1..10).forEach { _ ->
+            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+        }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .hasSize(10)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(10)
+            }
     }
 
     @Test
     fun `it should retrieve all instances when no timerel and time parameters are provided`() = runTest {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
+        (1..10).forEach { _ ->
+            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+        }
 
-        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .hasSize(10)
+        attributeInstanceService.search(gimmeTemporalEntitiesQuery(TemporalQuery()), incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(10)
+            }
     }
 
     @Test
@@ -214,7 +232,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        createTemporalEntityAttribute(temporalEntityAttribute2)
+        temporalEntityAttributeService.create(temporalEntityAttribute2)
 
         (1..10).forEach { _ ->
             val observedAt = Instant.now().atZone(ZoneOffset.UTC)
@@ -230,101 +248,24 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(attributeInstance)
         }
 
-        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute2, true)
-
-        assertThat(enrichedEntity)
-            .hasSize(10)
-            .allMatch {
-                it.temporalEntityAttribute == temporalEntityAttribute2.id &&
-                    (it as SimplifiedAttributeInstanceResult).value == "some value"
-            }
-    }
-
-    @Test
-    fun `it should sum all instances for a day`() = runTest {
-        (1..10).forEach { _ ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
-            attributeInstanceService.create(attributeInstance)
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(TemporalQuery(), withTemporalValues = true),
+            temporalEntityAttribute2
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(10)
+                .allMatch {
+                    it.temporalEntityAttribute == temporalEntityAttribute2.id &&
+                        (it as SimplifiedAttributeInstanceResult).value == "some value"
+                }
         }
-
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.SUM
-        )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("value", 10.0)
-    }
-
-    @Test
-    fun `it should count all instances for a day`() = runTest {
-        (1..9).forEach { _ ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
-            attributeInstanceService.create(attributeInstance)
-        }
-
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.COUNT
-        )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("value", 9L)
-    }
-
-    @Test
-    fun `it should return min value of all instances for a day`() = runTest {
-        (1..9).forEach { i ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = i.toDouble())
-            attributeInstanceService.create(attributeInstance)
-        }
-
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MIN
-        )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("value", 1.0)
-    }
-
-    @Test
-    fun `it should return max value of all instances for a day`() = runTest {
-        (1..9).forEach { i ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = i.toDouble())
-            attributeInstanceService.create(attributeInstance)
-        }
-
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MAX
-        )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("value", 9.0)
     }
 
     @Test
     fun `it should only return the last n aggregates asked in the temporal query`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance()
+                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = 1.0,
                         time = now.minusHours(index.toLong())
@@ -332,138 +273,174 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(attributeInstance)
         }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(12),
-            timeBucket = "2 hours",
-            aggregate = TemporalQuery.Aggregate.SUM,
-            lastN = 3
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(12),
+                aggrPeriodDuration = "PT2H",
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                lastN = 3
+            ),
+            withAggregatedValues = true
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .hasSize(3)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(3)
+            }
     }
 
     @Test
     fun `it should set the start time to the timeAt value if asking for an after timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance()
+                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MIN
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+                aggrPeriodDuration = "P30D",
+                aggrMethods = listOf(TemporalQuery.Aggregate.MIN)
+            ),
+            withAggregatedValues = true
         )
 
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 3.0)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { results ->
+                assertThat(results)
+                    .singleElement()
+                    .matches {
+                        it is AggregatedAttributeInstanceResult &&
+                            it.values.size == 1 &&
+                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-03T00:00:00Z")
+                    }
+            }
     }
 
     @Test
     fun `it should set the start time to the timeAt value if asking for a before timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance()
+                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.BEFORE,
-            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+                aggrPeriodDuration = "P30D",
+                aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
+            ),
+            withAggregatedValues = true
         )
 
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-06-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 1.0)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { results ->
+                assertThat(results)
+                    .singleElement()
+                    .matches {
+                        it is AggregatedAttributeInstanceResult &&
+                            it.values.size == 1 &&
+                            it.values[0].startDateTime == ZonedDateTime.parse("2022-06-03T00:00:00Z")
+                    }
+            }
     }
 
     @Test
     fun `it should set the start time to the timeAt value if asking for a between timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance()
+                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.BETWEEN,
-            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+                endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
+                aggrPeriodDuration = "P30D",
+                aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
+            ),
+            withAggregatedValues = true
         )
 
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 4.0)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { results ->
+                assertThat(results)
+                    .singleElement()
+                    .matches {
+                        it is AggregatedAttributeInstanceResult &&
+                            it.values.size == 1 &&
+                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-03T00:00:00Z")
+                    }
+            }
     }
 
     @Test
     fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance()
+                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
-        val temporalQuery = TemporalQuery(
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                aggrPeriodDuration = "P30D",
+                aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
+            ),
+            withAggregatedValues = true
         )
 
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-01T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 8.0)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { results ->
+                assertThat(results)
+                    .singleElement()
+                    .matches {
+                        it is AggregatedAttributeInstanceResult &&
+                            it.values.size == 1 &&
+                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-01T00:00:00Z")
+                    }
+            }
     }
 
     @Test
     fun `it should only return the last n instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+                .copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance)
         }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1),
-            lastN = 5
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1),
+                lastN = 5
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .hasSize(5)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(5)
+            }
     }
 
     @Test
@@ -476,85 +453,96 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        createTemporalEntityAttribute(temporalEntityAttribute2)
+        temporalEntityAttributeService.create(temporalEntityAttribute2)
 
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
+        (1..10).forEach { _ ->
+            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+        }
         (1..5).forEach { _ ->
-            attributeInstanceService.create(
-                gimmeAttributeInstance().copy(temporalEntityAttribute = temporalEntityAttribute2.id)
-            )
+            attributeInstanceService.create(gimmeAttributeInstance(temporalEntityAttribute2.id))
         }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
+            )
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .hasSize(10)
-            .allMatch {
-                it.temporalEntityAttribute == incomingTemporalEntityAttribute.id
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { results ->
+                assertThat(results)
+                    .hasSize(10)
+                    .allMatch {
+                        it.temporalEntityAttribute == incomingTemporalEntityAttribute.id
+                    }
             }
     }
 
     @Test
     fun `it should not retrieve any instance if temporal entity does not match`() = runTest {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
+        (1..10).forEach { _ ->
+            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+        }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
-        )
-        val enrichedEntity =
-            attributeInstanceService.search(
-                temporalQuery,
-                incomingTemporalEntityAttribute.copy(id = UUID.randomUUID()),
-                false
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
             )
-
-        assertThat(enrichedEntity)
-            .isEmpty()
+        )
+        attributeInstanceService.search(
+            temporalEntitiesQuery,
+            incomingTemporalEntityAttribute.copy(id = UUID.randomUUID())
+        ).shouldSucceedWith {
+            assertThat(it)
+                .isEmpty()
+        }
     }
 
     @Test
     fun `it should not retrieve any instance if there is no value in the time interval`() = runTest {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
+        (1..10).forEach { _ ->
+            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+        }
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.plusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.plusHours(1)
+            )
         )
-        val enrichedEntity =
-            attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .isEmpty()
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .isEmpty()
+            }
     }
 
     @Test
     fun `it should update an existing attribute instance with same observation date`() = runTest {
-        val attributeInstance = gimmeAttributeInstance()
+        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
 
         attributeInstanceService.create(attributeInstance)
 
         val createResult = attributeInstanceService.create(attributeInstance.copy(measuredValue = 100.0))
         assertThat(createResult.isRight())
 
-        val enrichedEntity = attributeInstanceService.search(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
-                timeAt = now.minusHours(1)
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                TemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = now.minusHours(1)
+                ),
+                withTemporalValues = true
             ),
-            incomingTemporalEntityAttribute,
-            true
-        )
-
-        assertThat(enrichedEntity)
-            .singleElement()
-            .matches {
-                (it as SimplifiedAttributeInstanceResult).value == 100.0
-            }
+            incomingTemporalEntityAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .singleElement()
+                .matches {
+                    (it as SimplifiedAttributeInstanceResult).value == 100.0
+                }
+        }
     }
 
     @Test
@@ -702,7 +690,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should delete attribute instance`() = runTest {
-        val attributeInstance = gimmeAttributeInstance()
+        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
         attributeInstanceService.deleteInstance(
@@ -711,16 +699,16 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstance.instanceId
         ).shouldSucceed()
 
-        val enrichedEntity =
-            attributeInstanceService.search(TemporalQuery(), incomingTemporalEntityAttribute, false)
-
-        assertThat(enrichedEntity)
-            .isEmpty()
+        attributeInstanceService.search(gimmeTemporalEntitiesQuery(TemporalQuery()), incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .isEmpty()
+            }
     }
 
     @Test
     fun `it should not delete attribute instance if attribute name is not found`() = runTest {
-        val attributeInstance = gimmeAttributeInstance()
+        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
         attributeInstanceService.deleteInstance(
@@ -741,7 +729,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should not delete attribute instance if instanceID is not found`() = runTest {
-        val attributeInstance = gimmeAttributeInstance()
+        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
         val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
@@ -765,27 +753,37 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should delete all instances of an entity`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
-                attributeInstanceService.create(gimmeAttributeInstance())
+                attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
             else
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(timeProperty = AttributeInstance.TemporalProperty.CREATED_AT)
+                    gimmeAttributeInstance(
+                        teaUuid = incomingTemporalEntityAttribute.id,
+                        timeProperty = AttributeInstance.TemporalProperty.CREATED_AT
+                    )
                 )
         }
 
         attributeInstanceService.deleteInstancesOfEntity(entityId).shouldSucceed()
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
+            )
         )
-        assertThat(attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false))
-            .isEmpty()
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).isEmpty() }
 
-        val temporalAuditQuery = temporalQuery.copy(
-            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        val temporalEntitiesAuditQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1),
+                timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+            )
         )
-        assertThat(attributeInstanceService.search(temporalAuditQuery, incomingTemporalEntityAttribute, false))
-            .isEmpty()
+
+        attributeInstanceService.search(temporalEntitiesAuditQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).isEmpty() }
     }
 
     @Test
@@ -803,14 +801,16 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.deleteAllInstancesOfAttribute(entityId, INCOMING_PROPERTY).shouldSucceed()
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
+            )
         )
-        assertThat(attributeInstanceService.search(temporalQuery, outgoingTemporalEntityAttribute, false))
-            .hasSize(5)
-        assertThat(attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false))
-            .isEmpty()
+        attributeInstanceService.search(temporalEntitiesQuery, outgoingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).hasSize(5) }
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).isEmpty() }
     }
 
     @Test
@@ -828,51 +828,15 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.deleteInstancesOfAttribute(entityId, INCOMING_PROPERTY, null).shouldSucceed()
 
-        val temporalQuery = TemporalQuery(
-            timerel = TemporalQuery.Timerel.AFTER,
-            timeAt = now.minusHours(1)
-        )
-        assertThat(attributeInstanceService.search(temporalQuery, outgoingTemporalEntityAttribute, false))
-            .hasSize(5)
-        assertThat(attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false))
-            .isEmpty()
-    }
-
-    private fun gimmeAttributeInstance(
-        teaUuid: UUID = incomingTemporalEntityAttribute.id,
-        timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
-    ): AttributeInstance {
-        val measuredValue = Random.nextDouble()
-        val observedAt = Instant.now().atZone(ZoneOffset.UTC)
-        return AttributeInstance(
-            temporalEntityAttribute = teaUuid,
-            measuredValue = measuredValue,
-            timeProperty = timeProperty,
-            time = observedAt,
-            payload = buildExpandedProperty(measuredValue)
-                .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
-                .getSingleEntry()
-        )
-    }
-
-    private fun createTemporalEntityAttribute(
-        temporalEntityAttribute: TemporalEntityAttribute
-    ): Either<APIException, Unit> =
-        runBlocking {
-            databaseClient.sql(
-                """
-                INSERT INTO temporal_entity_attribute 
-                    (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at)
-                VALUES 
-                    (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at)
-                """.trimIndent()
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = now.minusHours(1)
             )
-                .bind("id", temporalEntityAttribute.id)
-                .bind("entity_id", temporalEntityAttribute.entityId)
-                .bind("attribute_name", temporalEntityAttribute.attributeName)
-                .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
-                .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
-                .bind("created_at", temporalEntityAttribute.createdAt)
-                .execute()
-        }
+        )
+        attributeInstanceService.search(temporalEntitiesQuery, outgoingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).hasSize(5) }
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith { assertThat(it).isEmpty() }
+    }
 }

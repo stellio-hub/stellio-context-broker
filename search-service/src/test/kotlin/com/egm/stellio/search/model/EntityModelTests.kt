@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

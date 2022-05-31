@@ -4,8 +4,8 @@ import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*

@@ -1,8 +1,8 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.Some
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN

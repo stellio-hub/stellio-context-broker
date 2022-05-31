@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
@@ -13,13 +13,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.wktToGeoJson
-import org.springframework.stereotype.Service
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
 
-@Service
-class TemporalEntityService {
+object TemporalEntityBuilder {
 
     fun buildTemporalEntities(
         queryResult: List<Pair<EntityPayload, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>,
@@ -54,11 +52,19 @@ class TemporalEntityService {
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
     ): Map<String, Any> {
-        return if (
-            temporalEntitiesQuery.withTemporalValues ||
-            temporalEntitiesQuery.temporalQuery.timeBucket != null
-        ) {
+        return if (temporalEntitiesQuery.withTemporalValues) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
+            mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
+                .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
+                .mapValues {
+                    if (it.value.size == 1) it.value.first()
+                    else it.value
+                }
+        } else if (temporalEntitiesQuery.withAggregatedValues) {
+            val attributes = buildAttributesAggregatedRepresentation(
+                attributeAndResultsMap,
+                temporalEntitiesQuery.temporalQuery.aggrMethods!!
+            )
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
                 .mapValues {
@@ -135,6 +141,43 @@ class TemporalEntityService {
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
                 listOf(attributeInstanceResult.value, attributeInstanceResult.time)
             }
+            attributeInstance.toMap()
+        }
+    }
+
+    /**
+     * Creates the aggregated representation for each temporal entity attribute in the input map.
+     *
+     * The aggregated representation is created from the attribute instance results of the temporal entity attribute.
+     *
+     * It returns a map with the same keys as the input map and values corresponding to aggregated representations
+     * as described in 4.5.19.0
+     */
+    private fun buildAttributesAggregatedRepresentation(
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
+        aggrMethods: List<TemporalQuery.Aggregate>
+    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
+        return attributeAndResultsMap.mapValues {
+            val attributeInstance = mutableMapOf<String, Any>(
+                "type" to it.key.attributeType.toString()
+            )
+            it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+
+            aggrMethods.forEach { aggregate ->
+                val valuesForAggregate = it.value
+                    .map { attributeInstanceResult ->
+                        attributeInstanceResult as AggregatedAttributeInstanceResult
+                        attributeInstanceResult.values
+                    }
+                    .flatten()
+                    .filter { aggregateResult ->
+                        aggregateResult.aggregate == aggregate
+                    }
+                attributeInstance[aggregate.method] = valuesForAggregate.map { aggregateResult ->
+                    listOf(aggregateResult.value, aggregateResult.startDateTime, aggregateResult.endDateTime)
+                }
+            }
+
             attributeInstance.toMap()
         }
     }

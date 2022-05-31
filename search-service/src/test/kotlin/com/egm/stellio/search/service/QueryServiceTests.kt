@@ -3,7 +3,8 @@ package com.egm.stellio.search.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -41,21 +42,13 @@ class QueryServiceTests {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    @MockkBean
-    private lateinit var temporalEntityService: TemporalEntityService
-
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
-        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        val entityPayload = mockkClass(EntityPayload::class) {
-            every { entityId } returns entityUri
-            every { payload } returns Json.of(expandedPayload)
-        }
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns entityPayload.right()
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
 
         queryService.queryEntity(entityUri, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith {
@@ -77,15 +70,9 @@ class QueryServiceTests {
 
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
-        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        val entityPayload = mockkClass(EntityPayload::class) {
-            every { entityId } returns entityUri
-            every { payload } returns Json.of(expandedPayload)
-        }
-
         coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
-        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns listOf(entityPayload)
+        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns listOf(gimmeEntityPayload())
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
             .shouldSucceedWith {
@@ -126,7 +113,8 @@ class QueryServiceTests {
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             ),
             APIC_COMPOUND_CONTEXT
         ).fold({
@@ -143,8 +131,8 @@ class QueryServiceTests {
 
     @Test
     fun `it should query a temporal entity as requested by query params`() = runTest {
-        val temporalEntityAttributes =
-            listOf("incoming", "outgoing").map {
+        val teas =
+            listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).map {
                 TemporalEntityAttribute(
                     entityId = entityUri,
                     attributeName = it,
@@ -153,18 +141,16 @@ class QueryServiceTests {
                     payload = EMPTY_JSON_PAYLOAD
                 )
             }
-        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns temporalEntityAttributes
+
+        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns teas
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
             listOf(
-                FullAttributeInstanceResult(temporalEntityAttributes[0].id, "", now, NGSILD_CREATED_AT_TERM, null),
-                FullAttributeInstanceResult(temporalEntityAttributes[1].id, "", now, NGSILD_CREATED_AT_TERM, null)
-            )
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
-        every {
-            temporalEntityService.buildTemporalEntity(any(), any(), any(), any())
-        } returns emptyMap()
+                FullAttributeInstanceResult(teas[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null),
+                FullAttributeInstanceResult(teas[1].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
+            ).right()
 
         queryService.queryTemporalEntity(
             entityUri,
@@ -175,7 +161,8 @@ class QueryServiceTests {
                 ),
                 queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             ),
             APIC_COMPOUND_CONTEXT
         )
@@ -183,18 +170,13 @@ class QueryServiceTests {
         coVerify {
             temporalEntityAttributeService.getForEntity(entityUri, emptySet())
             attributeInstanceService.search(
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
-                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
+                        temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
+                            ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        )
                 },
-                any<List<TemporalEntityAttribute>>(),
-                false
-            )
-            temporalEntityService.buildTemporalEntity(
-                any(),
-                match { teaInstanceResult -> teaInstanceResult.size == 2 },
-                any(),
-                listOf(APIC_COMPOUND_CONTEXT)
+                any<List<TemporalEntityAttribute>>()
             )
         }
     }
@@ -203,19 +185,20 @@ class QueryServiceTests {
     fun `it should query temporal entities as requested by query params`() = runTest {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
-            attributeName = "incoming",
+            attributeName = INCOMING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
+
         coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
@@ -223,10 +206,7 @@ class QueryServiceTests {
                     value = 2.0,
                     time = ZonedDateTime.now()
                 )
-            )
-        every {
-            temporalEntityService.buildTemporalEntities(any(), any(), any())
-        } returns emptyList()
+            ).right()
 
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
@@ -240,8 +220,9 @@ class QueryServiceTests {
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                withTemporalValues = false,
-                withAudit = false
+                withTemporalValues = true,
+                withAudit = false,
+                withAggregatedValues = false
             )
         ) { null }
 
@@ -256,12 +237,13 @@ class QueryServiceTests {
                 )
             )
             attributeInstanceService.search(
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
-                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
+                        temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
+                            ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        )
                 },
-                any<List<TemporalEntityAttribute>>(),
-                false
+                any<List<TemporalEntityAttribute>>()
             )
             entityPayloadService.queryEntitiesCount(
                 QueryParams(
@@ -272,19 +254,14 @@ class QueryServiceTests {
                 ),
                 any()
             )
-            temporalEntityService.buildTemporalEntities(
-                any(),
-                any(),
-                listOf(APIC_COMPOUND_CONTEXT)
-            )
         }
     }
 
     @Test
-    fun `it should return an empty list for a temporal entity attribute if it has no temporal values`() = runTest {
+    fun `it should return an empty list for an attribute if it has no temporal values`() = runTest {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
-            attributeName = "incoming",
+            attributeName = INCOMING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -294,14 +271,11 @@ class QueryServiceTests {
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
-        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
-        } returns emptyList()
-        every {
-            temporalEntityService.buildTemporalEntities(any(), any(), any())
-        } returns emptyList()
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
+        } returns emptyList<AttributeInstanceResult>().right()
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
 
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
@@ -313,28 +287,40 @@ class QueryServiceTests {
                 ),
                 TemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
-                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                    aggrMethods = listOf(TemporalQuery.Aggregate.AVG)
                 ),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             )
         ) { null }
             .fold({
                 fail("it should have returned an empty list")
             }, {
-                assertThat(it.first).isEmpty()
+                assertThat(it.first).hasSize(1)
+                assertJsonPayloadsAreEqual(
+                    """
+                    {
+                        "id": "urn:ngsi-ld:BeeHive:TESTC",
+                        "type": "BeeHive",
+                        "incoming": {
+                            "type": "Property",
+                            "avg": []
+                        }
+                    }
+                    """.trimIndent(),
+                    JsonUtils.serializeObject(it.first[0])
+                )
             })
-
-        verify {
-            temporalEntityService.buildTemporalEntities(
-                match {
-                    it.size == 1 &&
-                        it.first().second.size == 1 &&
-                        it.first().second.values.first().isEmpty()
-                },
-                any(),
-                listOf(APIC_COMPOUND_CONTEXT)
-            )
-        }
     }
+
+    private fun gimmeEntityPayload(): EntityPayload =
+        EntityPayload(
+            entityId = entityUri,
+            types = listOf(BEEHIVE_TYPE),
+            createdAt = now,
+            contexts = listOf(APIC_COMPOUND_CONTEXT),
+            payload = Json.of(loadSampleData("beehive_expanded.jsonld"))
+        )
 }

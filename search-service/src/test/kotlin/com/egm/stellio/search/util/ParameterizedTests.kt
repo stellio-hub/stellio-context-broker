@@ -3,6 +3,8 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri

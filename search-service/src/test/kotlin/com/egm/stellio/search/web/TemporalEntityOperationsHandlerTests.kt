@@ -1,21 +1,14 @@
 package com.egm.stellio.search.web
 
 import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseQueryAndTemporalParams
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -55,13 +48,6 @@ class TemporalEntityOperationsHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
-
-        mockkStatic(::parseQueryAndTemporalParams)
-    }
-
-    @AfterAll
-    fun clearMock() {
-        unmockkStatic(::parseQueryAndTemporalParams)
     }
 
     @Test
@@ -72,19 +58,6 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
-            TemporalEntitiesQuery(
-                queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    limit = 1,
-                    offset = 0,
-                    context = APIC_COMPOUND_CONTEXT
-                ),
-                temporalQuery = temporalQuery,
-                withTemporalValues = true,
-                withAudit = false
-            ).right()
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
@@ -104,19 +77,12 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            parseQueryAndTemporalParams(
-                any(),
-                queryParams,
-                APIC_COMPOUND_CONTEXT
-            )
-        }
-        coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 1 &&
+                    temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -134,25 +100,12 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
-            TemporalEntitiesQuery(
-                queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    limit = 0,
-                    offset = 1,
-                    count = true,
-                    context = APIC_COMPOUND_CONTEXT
-                ),
-                temporalQuery = temporalQuery,
-                withTemporalValues = true,
-                withAudit = false
-            ).right()
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
+        queryParams.add("count", "true")
         queryParams.add("timerel", "between")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
@@ -168,22 +121,16 @@ class TemporalEntityOperationsHandlerTests {
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
 
         coVerify {
-            parseQueryAndTemporalParams(
-                any(),
-                queryParams,
-                APIC_COMPOUND_CONTEXT
-            )
-        }
-        coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 0 &&
-                        temporalEntitiesQuery.queryParams.offset == 1 &&
+                    temporalEntitiesQuery.queryParams.limit == 30 &&
+                        temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        temporalEntitiesQuery.queryParams.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
+                        temporalEntitiesQuery.withTemporalValues
                 },
                 any()
             )
@@ -194,11 +141,7 @@ class TemporalEntityOperationsHandlerTests {
 
     @Test
     fun `it should raise a 400 if required parameters are missing`() {
-        val queryParams = mapOf("timerel" to "before")
-
-        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns BadRequestDataException(
-            "'timerel' and 'time' must be used in conjunction"
-        ).left()
+        val queryParams = mapOf("timerel" to "before", "type" to "Beehive")
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")

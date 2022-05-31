@@ -49,7 +49,7 @@ class TemporalEntityOperationsHandler(
             }
 
             val temporalEntitiesQuery =
-                parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink).bind()
+                parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink, true).bind()
 
             val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
             val (temporalEntities, total) = queryService.queryTemporalEntities(

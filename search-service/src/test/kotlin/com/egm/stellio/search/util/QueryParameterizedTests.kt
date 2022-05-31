@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.params.provider.Arguments
 import java.time.Instant

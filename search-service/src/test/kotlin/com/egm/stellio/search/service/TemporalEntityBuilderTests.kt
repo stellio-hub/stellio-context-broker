@@ -1,7 +1,10 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
+import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
@@ -11,20 +14,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalEntityService::class])
 @ActiveProfiles("test")
-class TemporalEntityServiceTests {
-
-    @Autowired
-    private lateinit var temporalEntityService: TemporalEntityService
+class TemporalEntityBuilderTests {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
@@ -47,14 +43,15 @@ class TemporalEntityServiceTests {
             payload = EMPTY_JSON_PAYLOAD,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
-        val temporalEntity = temporalEntityService.buildTemporalEntity(
+        val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
             TemporalEntitiesQuery(
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
@@ -81,14 +78,15 @@ class TemporalEntityServiceTests {
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
 
-        val temporalEntity = temporalEntityService.buildTemporalEntity(
+        val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
             TemporalEntitiesQuery(
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
-                withAudit
+                withAudit,
+                false
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -103,13 +101,14 @@ class TemporalEntityServiceTests {
         withAudit: Boolean,
         expectation: String
     ) {
-        val temporalEntity = temporalEntityService.buildTemporalEntities(
+        val temporalEntity = TemporalEntityBuilder.buildTemporalEntities(
             queryResult,
             TemporalEntitiesQuery(
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
-                withAudit
+                withAudit,
+                false
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -121,21 +120,45 @@ class TemporalEntityServiceTests {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
-                SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = UUID.randomUUID(),
-                    value = "urn:ngsi-ld:Beehive:1234",
-                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                AggregatedAttributeInstanceResult(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    listOf(
+                        AggregateResult(
+                            TemporalQuery.Aggregate.SUM,
+                            12,
+                            ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                            ZonedDateTime.parse("2020-03-25T10:29:17.965206Z")
+                        ),
+                        AggregateResult(
+                            TemporalQuery.Aggregate.AVG,
+                            2,
+                            ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                            ZonedDateTime.parse("2020-03-25T10:29:17.965206Z")
+                        )
+                    )
                 ),
-                SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = UUID.randomUUID(),
-                    value = "urn:ngsi-ld:Beehive:5678",
-                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                AggregatedAttributeInstanceResult(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    listOf(
+                        AggregateResult(
+                            TemporalQuery.Aggregate.SUM,
+                            14,
+                            ZonedDateTime.parse("2020-03-25T10:29:17.965206Z"),
+                            ZonedDateTime.parse("2020-03-25T12:29:17.965206Z")
+                        ),
+                        AggregateResult(
+                            TemporalQuery.Aggregate.AVG,
+                            2.5,
+                            ZonedDateTime.parse("2020-03-25T10:29:17.965206Z"),
+                            ZonedDateTime.parse("2020-03-25T12:29:17.965206Z")
+                        )
+                    )
                 )
             )
         )
@@ -143,8 +166,8 @@ class TemporalEntityServiceTests {
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null,
-            "1 day",
-            TemporalQuery.Aggregate.SUM
+            "P1D",
+            listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG)
         )
         val entityPayload = EntityPayload(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
@@ -154,14 +177,15 @@ class TemporalEntityServiceTests {
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val temporalEntity = temporalEntityService.buildTemporalEntity(
+        val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
             TemporalEntitiesQuery(
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )

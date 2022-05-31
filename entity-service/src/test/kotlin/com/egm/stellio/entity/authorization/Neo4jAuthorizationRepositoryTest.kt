@@ -566,7 +566,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf(firstEntity.id, secondEntity.id, thirdEntity.id, fourthEntity.id),
             result.second.map { it.id }
         )
-        assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" })
+        assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" && it.datasetId!=null})
         assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
         assertTrue(result.second.filter { it.id != fourthEntity.id }.none { it.specificAccessPolicy != null })
         assertTrue(result.second.find { it.id == fourthEntity.id }?.specificAccessPolicy == AUTH_READ)
@@ -642,7 +642,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(3, result.first)
         assertEquals(3, result.second.size)
-        assertTrue(result.second.all { it.right == R_CAN_ADMIN })
+        assertTrue(result.second.all { it.right == R_CAN_ADMIN && it.datasetId!=null })
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers?.size == 2)
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers == users)
         assertTrue(result.second.find { it.id == secondEntity.id }?.rCanAdminUsers?.size == 1)
@@ -802,7 +802,11 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     fun createRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, objectId: URI): Relationship {
-        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType))
+        val relationship = Relationship(
+            objectId = objectId,
+            type = listOf(relationshipType),
+            datasetId = "urn:ngsi-ld:Dataset:right:$objectId".toUri()
+        )
 
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 

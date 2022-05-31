@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
@@ -668,6 +669,7 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
+                    "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -676,9 +678,10 @@ class EntityAccessControlHandlerTests {
                     NGSILD_CORE_CONTEXT
                 ),
                 createJsonLdEntity(
-                    "urn:ngsi-ld:Beehive:TESTC",
+                    "urn:ngsi-ld:Beehive:TESTD",
                     "Beehive",
-                    AUTH_TERM_CAN_READ,
+                    "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
+                    AUTH_TERM_CAN_ADMIN,
                     AUTH_READ.toString(),
                     userUri.toUri(),
                     null,
@@ -699,13 +702,15 @@ class EntityAccessControlHandlerTests {
                     {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
+                            "datasetId": "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                             "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         },
                         {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "id": "urn:ngsi-ld:Beehive:TESTD",
                             "type": "Beehive",
-                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "datasetId": "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
+                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
                             "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
                             "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
@@ -728,6 +733,7 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
+                    "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -748,6 +754,7 @@ class EntityAccessControlHandlerTests {
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
+                            "datasetId": "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                             "right": {"type":"Property", "value": "rCanRead"},
                             "createdAt": "2015-10-18T11:20:30.000001Z",
                             "modifiedAt": "2015-10-18T11:20:30.000001Z",
@@ -883,6 +890,7 @@ class EntityAccessControlHandlerTests {
     private fun createJsonLdEntity(
         id: String,
         type: String,
+        datasetId: String,
         right: String,
         specificAccessPolicy: String? = null,
         rCanReadUser: URI? = null,
@@ -893,6 +901,9 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
+        jsonLdEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+            JsonLdUtils.JSONLD_ID to datasetId
+        )
         jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
         specificAccessPolicy?.run {
             jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)

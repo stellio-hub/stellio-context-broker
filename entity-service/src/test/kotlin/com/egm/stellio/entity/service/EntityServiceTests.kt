@@ -12,8 +12,8 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -353,7 +353,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.updateGeoPropertyOfEntity(
                 sensorId,
-                eq(NGSILD_OBSERVATION_SPACE_PROPERTY),
+                eq(NGSILD_OBSERVATION_SPACE_TERM),
                 match {
                     it.coordinates.value == "POINT (9.30623 8.07966)"
                 }
@@ -370,7 +370,11 @@ class EntityServiceTests {
 
         every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
 
-        entityService.createGeoProperty(entityId, "location", ngsiLdGeoProperty.instances[0])
+        entityService.createGeoProperty(
+            entityId,
+            "https://uri.etsi.org/ngsi-ld/location",
+            ngsiLdGeoProperty.instances[0]
+        )
 
         verify {
             neo4jRepository.addGeoPropertyToEntity(
@@ -398,7 +402,11 @@ class EntityServiceTests {
 
         every { neo4jRepository.addGeoPropertyToEntity(any(), any(), any()) } returns 1
 
-        entityService.createGeoProperty(entityId, "location", ngsiLdGeoProperty.instances[0])
+        entityService.createGeoProperty(
+            entityId,
+            "https://uri.etsi.org/ngsi-ld/location",
+            ngsiLdGeoProperty.instances[0]
+        )
 
         verify {
             neo4jRepository.addGeoPropertyToEntity(
@@ -940,7 +948,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.addGeoPropertyToEntity(
                 entityId,
-                eq(NGSILD_LOCATION_PROPERTY),
+                eq(NGSILD_LOCATION_TERM),
                 match {
                     it.coordinates.value == "POINT (29.30623 83.07966)"
                 }
@@ -982,7 +990,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.updateGeoPropertyOfEntity(
                 entityId,
-                eq(NGSILD_LOCATION_PROPERTY),
+                eq(NGSILD_LOCATION_TERM),
                 match {
                     it.coordinates.value == "POINT (29.30623 83.07966)"
                 }

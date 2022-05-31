@@ -421,6 +421,13 @@ object JsonLdUtils {
                 compact(it, context, mediaType)
         }
 
+    fun compactedGeoPropertyKey(geoPropertyName: ExpandedTerm): String =
+        NGSILD_GEO_PROPERTIES_PROPERTIES
+            .zip(NGSILD_GEO_PROPERTIES_TERMS)
+            .filter { it.first == geoPropertyName }
+            .map { it.second }
+            .first()
+
     fun filterCompactedEntityOnAttributes(
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>

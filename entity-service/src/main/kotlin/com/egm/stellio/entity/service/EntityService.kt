@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
@@ -135,8 +136,9 @@ class EntityService(
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ): Int {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        return neo4jRepository.addGeoPropertyToEntity(entityId, propertyKey, ngsiLdGeoPropertyInstance)
+        val compactedGeoPropertyKey = compactedGeoPropertyKey(propertyKey)
+        logger.debug("Geo property $compactedGeoPropertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        return neo4jRepository.addGeoPropertyToEntity(entityId, compactedGeoPropertyKey, ngsiLdGeoPropertyInstance)
     }
 
     fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
@@ -561,8 +563,9 @@ class EntityService(
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ) {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        neo4jRepository.updateGeoPropertyOfEntity(entityId, propertyKey, ngsiLdGeoPropertyInstance)
+        val compactedGeoPropertyKey = compactedGeoPropertyKey(propertyKey)
+        logger.debug("Geo property $compactedGeoPropertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        neo4jRepository.updateGeoPropertyOfEntity(entityId, compactedGeoPropertyKey, ngsiLdGeoPropertyInstance)
     }
 
     @Transactional

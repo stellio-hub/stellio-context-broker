@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2021.0.1"
+extra["springCloudVersion"] = "2021.0.3"
 extra["testcontainersVersion"] = "1.16.2"
 
 plugins {

@@ -227,13 +227,6 @@ object JsonLdUtils {
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
         value as List<Map<String, List<Any>>>
 
-    fun expandGeoPropertyKey(propertyKey: String): String =
-        NGSILD_GEO_PROPERTIES_TERMS
-            .zip(NGSILD_GEO_PROPERTIES_PROPERTIES)
-            .filter { it.first == propertyKey }
-            .map { it.second }
-            .first()
-
     /**
      * Extract the actual value (@value) of a property from the properties map of an expanded property.
      *
@@ -428,10 +421,10 @@ object JsonLdUtils {
                 compact(it, context, mediaType)
         }
 
-    fun compactedGeoPropertyKey(expandedPropertyKey: String): String =
+    fun compactedGeoPropertyKey(geoPropertyName: ExpandedTerm): String =
         NGSILD_GEO_PROPERTIES_PROPERTIES
             .zip(NGSILD_GEO_PROPERTIES_TERMS)
-            .filter { it.first == expandedPropertyKey }
+            .filter { it.first == geoPropertyName }
             .map { it.second }
             .first()
 

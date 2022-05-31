@@ -52,89 +52,68 @@ private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseE
         .contentType(MediaType.APPLICATION_JSON)
         .body(JsonUtils.serializeObject(exception))
 
-fun constructResponse(
-    countAndEntities: Pair<Int, List<CompactedJsonLdEntity>>,
+fun buildQueryResponse(
+    entities: List<CompactedJsonLdEntity>,
+    count: Int,
     resourceUrl: String,
     queryParams: QueryParams,
     requestParams: MultiValueMap<String, String>,
     mediaType: MediaType,
     contextLink: String
-): ResponseEntity<String> {
-    if (countAndEntities.second.isEmpty())
-        return buildResponse(
-            JsonUtils.serializeObject(emptyList<CompactedJsonLdEntity>()),
-            countAndEntities.first,
-            queryParams.count,
-            Pair(null, null),
-            mediaType, contextLink
-        )
-    else {
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
-            resourceUrl,
-            requestParams,
-            countAndEntities.first,
-            queryParams.offset,
-            queryParams.limit
-        )
+): ResponseEntity<String> =
+    buildQueryResponse(
+        JsonUtils.serializeObject(entities),
+        count,
+        resourceUrl,
+        queryParams,
+        requestParams,
+        mediaType,
+        contextLink
+    )
 
-        return buildResponse(
-            JsonUtils.serializeObject(countAndEntities.second),
-            countAndEntities.first,
-            queryParams.count,
-            prevAndNextLinks,
-            mediaType, contextLink
-        )
-    }
-}
-
-fun constructResponse(
-    countAndBody: Pair<Int, String>,
+fun buildQueryResponse(
+    body: String,
+    count: Int,
+    resourceUrl: String,
     queryParams: QueryParams,
     requestParams: MultiValueMap<String, String>,
-    resourceUrl: String,
     mediaType: MediaType,
     contextLink: String
 ): ResponseEntity<String> {
     val prevAndNextLinks = PagingUtils.getPagingLinks(
         resourceUrl,
         requestParams,
-        countAndBody.first,
+        count,
         queryParams.offset,
         queryParams.limit
     )
 
-    return buildResponse(
-        countAndBody.second,
-        countAndBody.first,
-        queryParams.count,
-        prevAndNextLinks,
-        mediaType,
-        contextLink
-    )
-}
-
-fun buildResponse(
-    body: String,
-    resourcesCount: Int,
-    count: Boolean,
-    prevAndNextLinks: Pair<String?, String?>,
-    mediaType: MediaType,
-    contextLink: String
-): ResponseEntity<String> {
     val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-        buildGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponse(mediaType, contextLink)
             .header(HttpHeaders.LINK, prevAndNextLinks.first)
             .header(HttpHeaders.LINK, prevAndNextLinks.second)
 
     else if (prevAndNextLinks.first != null)
-        buildGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponse(mediaType, contextLink)
             .header(HttpHeaders.LINK, prevAndNextLinks.first)
     else if (prevAndNextLinks.second != null)
-        buildGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponse(mediaType, contextLink)
             .header(HttpHeaders.LINK, prevAndNextLinks.second)
     else
-        buildGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponse(mediaType, contextLink)
 
-    return if (count) responseHeaders.header(RESULTS_COUNT_HEADER, resourcesCount.toString()).body(body)
+    return if (queryParams.count) responseHeaders.header(RESULTS_COUNT_HEADER, count.toString()).body(body)
     else responseHeaders.body(body)
+}
+
+fun prepareGetSuccessResponse(mediaType: MediaType, contextLink: String): ResponseEntity.BodyBuilder {
+    return ResponseEntity.status(HttpStatus.OK)
+        .apply {
+            if (mediaType == JSON_LD_MEDIA_TYPE) {
+                this.header(HttpHeaders.CONTENT_TYPE, JSON_LD_CONTENT_TYPE)
+            } else {
+                this.header(HttpHeaders.LINK, buildContextLinkHeader(contextLink))
+                this.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            }
+        }
 }

@@ -31,7 +31,7 @@ class AttributeHandler(
         else
             attributeService.getAttributeList(listOf(contextLink))
 
-        return buildGetSuccessResponse(mediaType, contextLink)
+        return prepareGetSuccessResponse(mediaType, contextLink)
             .body(JsonUtils.serializeObject(availableAttribute))
     }
 
@@ -50,7 +50,7 @@ class AttributeHandler(
         val attributeTypeInfo = attributeService.getAttributeTypeInfo(expandedType, contextLink)
             ?: throw ResourceNotFoundException("No information found for attribute $expandedType")
 
-        return buildGetSuccessResponse(mediaType, contextLink)
+        return prepareGetSuccessResponse(mediaType, contextLink)
             .body(JsonUtils.serializeObject(attributeTypeInfo))
     }
 }

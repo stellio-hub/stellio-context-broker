@@ -117,8 +117,9 @@ class EntityHandler(
             mediaType
         )
 
-        return constructResponse(
-            Pair(countAndEntities.first, compactedEntities),
+        return buildQueryResponse(
+            compactedEntities,
+            countAndEntities.first,
             "/ngsi-ld/v1/entities",
             queryParams,
             params,
@@ -161,7 +162,7 @@ class EntityHandler(
             )
             val compactedEntity = compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-            buildGetSuccessResponse(mediaType, contextLink)
+            prepareGetSuccessResponse(mediaType, contextLink)
                 .let {
                     if (queryParams.useSimplifiedRepresentation)
                         it.body(serializeObject(compactedEntity.toKeyValues()))

@@ -89,8 +89,9 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        return constructResponse(
-            Pair(countAndAuthorizedEntities.first, compactedEntities),
+        return buildQueryResponse(
+            compactedEntities,
+            countAndAuthorizedEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
             queryParams,
             params,
@@ -127,8 +128,9 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        return constructResponse(
-            Pair(countAndGroupEntities.first, compactedEntities),
+        return buildQueryResponse(
+            compactedEntities,
+            countAndGroupEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
             queryParams,
             params,

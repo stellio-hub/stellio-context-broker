@@ -104,14 +104,12 @@ class TemporalEntityHandler(
             accessRightFilter
         )
 
-        return constructResponse(
-            Pair(
-                total,
-                serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })
-            ),
+        return buildQueryResponse(
+            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+            total,
+            "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery.queryParams,
             params,
-            "/ngsi-ld/v1/temporal/entities",
             mediaType,
             contextLink
         )
@@ -144,7 +142,7 @@ class TemporalEntityHandler(
                 contextLink
             )
 
-            buildGetSuccessResponse(mediaType, contextLink)
+            prepareGetSuccessResponse(mediaType, contextLink)
                 .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
         }.fold(
             { it.toErrorResponse() },

@@ -90,11 +90,12 @@ class SubscriptionHandler(
             .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
 
-        return constructResponse(
-            Pair(subscriptionsCount, subscriptions),
+        return buildQueryResponse(
+            subscriptions,
+            subscriptionsCount,
+            "/ngsi-ld/v1/subscriptions",
             queryParams,
             params,
-            "/ngsi-ld/v1/subscriptions",
             mediaType,
             contextLink
         )
@@ -121,7 +122,7 @@ class SubscriptionHandler(
             checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
             val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
 
-            buildGetSuccessResponse(mediaType, contextLink)
+            prepareGetSuccessResponse(mediaType, contextLink)
                 .body(subscription.toJson(contextLink, mediaType, includeSysAttrs))
         }.fold(
             { it.toErrorResponse() },

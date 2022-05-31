@@ -50,8 +50,8 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
-    val timeBucketParam = params.getFirst("timeBucket")
-    val aggregateParam = params.getFirst("aggregate")
+    val aggrPeriodDurationParam = params.getFirst("aggrPeriodDuration")
+    val aggrMethodsParam = params.getFirst("aggrMethods")
     val lastNParam = params.getFirst("lastN")
     val timeproperty = params.getFirst("timeproperty")?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
@@ -69,14 +69,14 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
         throw BadRequestDataException(it)
     }
 
-    if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
-        throw BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction")
+    if (listOf(aggrPeriodDurationParam, aggrMethodsParam).filter { it == null }.size == 1)
+        throw BadRequestDataException("'aggrPeriodDuration' and 'aggrMethods' must be used in conjunction")
 
-    val aggregate = aggregateParam?.let {
+    val aggregate = aggrMethodsParam?.let {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
             TemporalQuery.Aggregate.valueOf(it)
         else
-            throw BadRequestDataException("Value '$it' is not supported for 'aggregate' parameter")
+            throw BadRequestDataException("Value '$it' is not supported for 'aggrMethods' parameter")
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
@@ -87,8 +87,8 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
         timerel = timerel,
         timeAt = timeAt,
         endTimeAt = endTimeAt,
-        timeBucket = timeBucketParam,
-        aggregate = aggregate,
+        aggrPeriodDuration = aggrPeriodDurationParam,
+        aggrMethods = aggregate,
         lastN = lastN,
         timeproperty = timeproperty
     )

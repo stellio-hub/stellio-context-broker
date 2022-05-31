@@ -250,8 +250,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.SUM
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.SUM
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
 
@@ -270,8 +270,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.COUNT
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.SUM
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
 
@@ -290,8 +290,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MIN
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.MIN
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
 
@@ -310,8 +310,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.MAX
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
 
@@ -335,8 +335,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(12),
-            timeBucket = "2 hours",
-            aggregate = TemporalQuery.Aggregate.SUM,
+            aggrPeriodDuration = "2 hours",
+            aggrMethods = TemporalQuery.Aggregate.SUM,
             lastN = 3
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -359,8 +359,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MIN
+            aggrPeriodDuration = "30 day",
+            aggrMethods = TemporalQuery.Aggregate.MIN
         )
 
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -385,8 +385,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BEFORE,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+            aggrPeriodDuration = "30 day",
+            aggrMethods = TemporalQuery.Aggregate.MAX
         )
 
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -412,8 +412,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
             endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+            aggrPeriodDuration = "30 day",
+            aggrMethods = TemporalQuery.Aggregate.MAX
         )
 
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -436,8 +436,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(attributeInstance)
         }
         val temporalQuery = TemporalQuery(
-            timeBucket = "30 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+            aggrPeriodDuration = "30 day",
+            aggrMethods = TemporalQuery.Aggregate.MAX
         )
 
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)

@@ -6,8 +6,8 @@ data class TemporalQuery(
     val timerel: Timerel? = null,
     val timeAt: ZonedDateTime? = null,
     val endTimeAt: ZonedDateTime? = null,
-    val timeBucket: String? = null,
-    val aggregate: Aggregate? = null,
+    val aggrPeriodDuration: String? = null,
+    val aggrMethods: Aggregate? = null,
     val lastN: Int? = null,
     val timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) {
@@ -17,16 +17,19 @@ data class TemporalQuery(
         BETWEEN
     }
 
-    enum class Aggregate {
-        AVG,
-        SUM,
-        COUNT,
-        MIN,
-        MAX;
+    enum class Aggregate(val aggregate: String) {
+        TOTAL_COUNT("totalCount"),
+        DISTINCT_COUNT("distinctCount"),
+        SUM("sum"),
+        AVG("avg"),
+        MIN("min"),
+        MAX("max"),
+        STDDEV("stddev"),
+        SUMSQ("sumsq");
 
         companion object {
             fun isSupportedAggregate(aggregate: String): Boolean =
-                values().toList().any { it.name == aggregate.uppercase() }
+                values().toList().any { it.aggregate == aggregate }
         }
     }
 }

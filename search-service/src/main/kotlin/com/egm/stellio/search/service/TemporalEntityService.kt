@@ -56,7 +56,7 @@ class TemporalEntityService {
     ): Map<String, Any> {
         return if (
             temporalEntitiesQuery.withTemporalValues ||
-            temporalEntitiesQuery.temporalQuery.timeBucket != null
+            temporalEntitiesQuery.temporalQuery.aggrPeriodDuration != null
         ) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)

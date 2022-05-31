@@ -513,7 +513,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=1 minute"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -522,7 +522,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
+                    "detail":"'aggrPeriodDuration' and 'aggrMethods' must be used in conjunction"
                 } 
                 """
             )
@@ -535,7 +535,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=1 minute&aggrMethods=unknown"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -544,7 +544,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Value 'unknown' is not supported for 'aggregate' parameter"
+                    "detail":"Value 'unknown' is not supported for 'aggrMethods' parameter"
                 } 
                 """
             )

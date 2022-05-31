@@ -142,13 +142,13 @@ class AttributeInstanceService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
         val timestamp =
-            if (temporalQuery.timeBucket != null)
+            if (temporalQuery.aggrPeriodDuration != null)
                 temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
             else null
 
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
-        if (!inQueryEntities && temporalQuery.timeBucket == null)
+        if (!inQueryEntities && temporalQuery.aggrPeriodDuration == null)
             selectQuery = selectQuery.plus(", payload")
 
         selectQuery =
@@ -177,7 +177,7 @@ class AttributeInstanceService(
             else -> selectQuery
         }
 
-        selectQuery = if (temporalQuery.timeBucket != null)
+        selectQuery = if (temporalQuery.aggrPeriodDuration != null)
             selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
         else
             selectQuery.plus(" ORDER BY time DESC")
@@ -194,11 +194,11 @@ class AttributeInstanceService(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         timestamp: ZonedDateTime?
     ) = when {
-        temporalQuery.timeBucket != null ->
+        temporalQuery.aggrPeriodDuration != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
-                   ${temporalQuery.aggregate}(measured_value) as value
+                time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
+                ${temporalQuery.aggrMethods}(measured_value) as value
             """.trimIndent()
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
@@ -252,7 +252,7 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return if (withTemporalValues || temporalQuery.timeBucket != null)
+        return if (withTemporalValues || temporalQuery.aggrPeriodDuration != null)
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)

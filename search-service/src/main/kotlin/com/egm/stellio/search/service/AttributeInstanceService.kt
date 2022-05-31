@@ -107,7 +107,7 @@ class AttributeInstanceService(
     ): Mono<List<AttributeInstanceResult>> {
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
 
-        if (!withTemporalValues && temporalQuery.timeBucket == null)
+        if (!withTemporalValues && temporalQuery.aggrPeriodDuration == null)
             selectQuery = selectQuery.plus(", payload::TEXT")
 
         val temporalEntityAttributesIds =
@@ -139,7 +139,7 @@ class AttributeInstanceService(
             else -> selectQuery
         }
 
-        selectQuery = if (temporalQuery.timeBucket != null)
+        selectQuery = if (temporalQuery.aggrPeriodDuration != null)
             selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
         else
             selectQuery.plus(" ORDER BY time DESC")
@@ -160,11 +160,11 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>
     ) = when {
-        temporalQuery.timeBucket != null ->
+        temporalQuery.aggrPeriodDuration != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
-                   ${temporalQuery.aggregate}(measured_value) as value
+                   time_bucket('${temporalQuery.aggrPeriodDuration}', time) as time_bucket,
+                   ${temporalQuery.aggrMethods}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
         temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -184,7 +184,7 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return if (withTemporalValues || temporalQuery.timeBucket != null)
+        return if (withTemporalValues || temporalQuery.aggrPeriodDuration != null)
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,

@@ -255,8 +255,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.SUM
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.SUM
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -280,8 +280,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.COUNT
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.SUM
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -289,7 +289,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.size == 1 &&
                     it[0] is SimplifiedAttributeInstanceResult &&
-                    (it[0] as SimplifiedAttributeInstanceResult).value as Long == 9L
+                    (it[0] as SimplifiedAttributeInstanceResult).value == 9.0
             }
             .expectComplete()
             .verify()
@@ -305,8 +305,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MIN
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.MIN
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -330,8 +330,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            timeBucket = "1 day",
-            aggregate = TemporalQuery.Aggregate.MAX
+            aggrPeriodDuration = "1 day",
+            aggrMethods = TemporalQuery.Aggregate.MAX
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -360,8 +360,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(12),
-            timeBucket = "2 hours",
-            aggregate = TemporalQuery.Aggregate.SUM,
+            aggrPeriodDuration = "2 hours",
+            aggrMethods = TemporalQuery.Aggregate.SUM,
             lastN = 3
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)

@@ -55,7 +55,7 @@ class TemporalEntityService {
         withTemporalValues: Boolean,
         withAudit: Boolean
     ): Map<String, Any> {
-        return if (withTemporalValues || temporalQuery.timeBucket != null) {
+        return if (withTemporalValues || temporalQuery.aggrPeriodDuration != null) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }

@@ -15,6 +15,7 @@ import java.time.ZonedDateTime
 data class EntityAccessControl(
     val id: URI,
     val type: List<ExpandedTerm>,
+    val datasetId: URI? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
     val rCanAdminUsers: List<URI>? = null,
@@ -28,6 +29,11 @@ data class EntityAccessControl(
 
         resultEntity[JsonLdUtils.JSONLD_ID] = id.toString()
         resultEntity[JsonLdUtils.JSONLD_TYPE] = type
+        datasetId?.run {
+            resultEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                JsonLdUtils.JSONLD_ID to this.toString()
+            )
+        }
         resultEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right.attributeName)
 
         if (includeSysAttrs) {

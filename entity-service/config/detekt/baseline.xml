@@ -3,11 +3,12 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
+    <ID>LongMethod:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$@Test fun `get authorized entities should return entities I have a right on`()</ID>
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`()</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
     <ID>LongMethod:Neo4jAuthorizationServiceTest.kt$Neo4jAuthorizationServiceTest$@Test fun `it should get and transform authorized entities into JSON-LD entities`()</ID>
     <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes with one geo property`()</ID>
-    <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, right: String, specificAccessPolicy: String? = null, rCanReadUser: URI? = null, createdAt: String? = null, modifiedAt: String? = null, context: String )</ID>
+    <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, datasetId: String? = null, right: String, specificAccessPolicy: String? = null, rCanReadUser: URI? = null, createdAt: String? = null, modifiedAt: String? = null, context: String )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, overwrite: Boolean, operationPayload: String, updateOperationResult: UpdateOperationResult, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$( id: URI, type: List&lt;String&gt;, properties: MutableList&lt;Property&gt; = mutableListOf(), location: String? = null, operationSpace: String? = null, observationSpace: String? = null )</ID>

@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
@@ -271,7 +272,7 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any())
         } returns Pair(
             3,
-            listOf(
+            setOf(
                 EntityAccessControl(
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
@@ -283,14 +284,16 @@ class Neo4jAuthorizationServiceTest {
                     type = listOf("Beekeeper"),
                     createdAt = Instant.now().atZone(ZoneOffset.UTC),
                     right = AccessRight.R_CAN_WRITE,
-                    specificAccessPolicy = AUTH_READ
+                    specificAccessPolicy = AUTH_READ,
+                    datasetId = "urn:ngsi-ld:Dataset:rCanWrite:urn:ngsi-ld:Beekeeper:1231".toUri()
                 ),
                 EntityAccessControl(
                     id = "urn:ngsi-ld:Beekeeper:1232".toUri(),
                     type = listOf("Beekeeper"),
                     createdAt = Instant.now().atZone(ZoneOffset.UTC),
                     right = R_CAN_ADMIN,
-                    rCanReadUsers = users
+                    rCanReadUsers = users,
+                    datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beekeeper:1232".toUri()
                 )
             )
         )
@@ -310,8 +313,14 @@ class Neo4jAuthorizationServiceTest {
         )
         assertTrue {
             val properties =
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1230" }?.properties
+            properties != null && !properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
+        }
+        assertTrue {
+            val properties =
                 countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1231" }?.properties
-            properties != null && properties[AUTH_PROP_SAP] == buildJsonLdExpandedProperty(AUTH_READ)
+            properties != null && properties[AUTH_PROP_SAP] == buildJsonLdExpandedProperty(AUTH_READ) &&
+                properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
         }
         assertTrue {
             val properties =
@@ -321,7 +330,8 @@ class Neo4jAuthorizationServiceTest {
         assertTrue {
             val properties =
                 countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }?.properties
-            properties != null && properties[AUTH_REL_CAN_READ] == users.map { buildJsonLdExpandedRelationship(it) }
+            properties != null && properties[AUTH_REL_CAN_READ] == users.map { buildJsonLdExpandedRelationship(it) } &&
+                properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
         }
         assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
     }
@@ -334,7 +344,7 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(any())
         } returns Pair(
             1,
-            listOf(
+            setOf(
                 EntityAccessControl(
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
@@ -342,7 +352,8 @@ class Neo4jAuthorizationServiceTest {
                     createdAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
                     modifiedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
                     right = R_CAN_ADMIN,
-                    specificAccessPolicy = AUTH_READ
+                    specificAccessPolicy = AUTH_READ,
+                    datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beekeeper:1230".toUri()
                 )
             )
         )
@@ -366,6 +377,7 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(1, countAndAuthorizedEntities.first)
         assertEquals(1, countAndAuthorizedEntities.second.size)
         val entityProperties = countAndAuthorizedEntities.second.first().properties
+        assertTrue(entityProperties.containsKey(NGSILD_DATASET_ID_PROPERTY))
         assertTrue(
             entityProperties[NGSILD_CREATED_AT_PROPERTY] ==
                 buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))

@@ -733,7 +733,7 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
-                    "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
+                    null,
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -754,7 +754,6 @@ class EntityAccessControlHandlerTests {
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
-                            "datasetId": "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                             "right": {"type":"Property", "value": "rCanRead"},
                             "createdAt": "2015-10-18T11:20:30.000001Z",
                             "modifiedAt": "2015-10-18T11:20:30.000001Z",
@@ -890,7 +889,7 @@ class EntityAccessControlHandlerTests {
     private fun createJsonLdEntity(
         id: String,
         type: String,
-        datasetId: String,
+        datasetId: String? = null,
         right: String,
         specificAccessPolicy: String? = null,
         rCanReadUser: URI? = null,
@@ -901,9 +900,11 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        jsonLdEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
-            JsonLdUtils.JSONLD_ID to datasetId
-        )
+        datasetId?.run {
+            jsonLdEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                JsonLdUtils.JSONLD_ID to datasetId
+            )
+        }
         jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
         specificAccessPolicy?.run {
             jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)

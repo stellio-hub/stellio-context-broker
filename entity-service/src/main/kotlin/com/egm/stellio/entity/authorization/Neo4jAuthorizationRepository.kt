@@ -248,7 +248,7 @@ class Neo4jAuthorizationRepository(
             WHERE user.id IN ${'$'}userAndGroupIds
             MATCH (user)-[:HAS_OBJECT]->(rel:Relationship)-[right:$authTerm]->$matchEntityClause
             OPTIONAL MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
-            WITH entity, right, rel, prop.value as specificAccessPolicy
+            WITH entity, right, rel.datasetId as datasetId, prop.value as specificAccessPolicy
             ORDER BY entity.id
             """.trimIndent()
 
@@ -262,7 +262,7 @@ class Neo4jAuthorizationRepository(
                 collect(distinct({
                     entity: entity, 
                     right: right, 
-                    rel: rel,
+                    datasetId: datasetId,
                     specificAccessPolicy: specificAccessPolicy
                 })) as entities, 
                 count(distinct(entity)) as count
@@ -298,7 +298,7 @@ class Neo4jAuthorizationRepository(
             )
             MATCH (user)-[:HAS_OBJECT]->(rel:Relationship)-[]->$matchEntityClause
             OPTIONAL MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
-            WITH entity, rel, prop.value as specificAccessPolicy
+            WITH entity, rel.datasetId as datasetId, prop.value as specificAccessPolicy
             ORDER BY entity.id
             """.trimIndent()
 
@@ -312,7 +312,7 @@ class Neo4jAuthorizationRepository(
                 collect(distinct({
                     entity: entity, 
                     right: "$AUTH_TERM_CAN_ADMIN", 
-                    rel: rel,
+                    datasetId: datasetId,
                     specificAccessPolicy: specificAccessPolicy
                 })) as entities, 
                 count(distinct(entity)) as count 
@@ -384,8 +384,10 @@ class Neo4jAuthorizationRepository(
             val specificAccessPolicy = it["specificAccessPolicy"] as String?
             val entityId = (entityNode.get("id") as StringValue).asString().toUri()
             val userRightOnEntity = AccessRight.forAttributeName(rightOnEntity).orNull()!!
-            val relationshipNode = it["rel"] as Node
-            val datasetId = (relationshipNode.get("datasetId") as StringValue).asString().toUri()
+            val datasetId =
+                if(it["datasetId"] != null)
+                    (it["datasetId"] as String).toUri()
+                else null
 
             val usersRightsOnEntity =
                 if (userRightOnEntity == AccessRight.R_CAN_ADMIN)

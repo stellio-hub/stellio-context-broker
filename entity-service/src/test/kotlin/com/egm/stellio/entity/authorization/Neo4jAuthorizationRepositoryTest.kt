@@ -550,10 +550,10 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         )
         createEntity("urn:ngsi-ld:Beekeeper:1234".toUri(), listOf("Beekeeper"))
 
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, fourthEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, fourthEntity.id, true)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
             QueryParams(offset = offset, limit = limit),
@@ -613,7 +613,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
-        assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" })
+        assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" && it.datasetId == null })
         assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_WRITE)
         assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
     }
@@ -630,10 +630,10 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf("Beehive"),
             mutableListOf(Property(name = AUTH_PROP_SAP, value = AUTH_READ.name))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
-        createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id, true)
+        createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id, true)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
             QueryParams(offset = offset, limit = limit)
@@ -669,6 +669,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
+        assertTrue(result.second.all { it.datasetId == null })
         assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_ADMIN)
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanAdminUsers?.size == 1)
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanAdminUsers == listOf(userEntity.id))
@@ -801,11 +802,19 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         return entityRepository.save(entity)
     }
 
-    fun createRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, objectId: URI): Relationship {
+    fun createRelationship(
+        subjectNodeInfo: SubjectNodeInfo,
+        relationshipType: String,
+        objectId: URI,
+        hasDatasetId: Boolean = false
+    ): Relationship {
+        val datasetId =
+            if(hasDatasetId) "urn:ngsi-ld:datasetId:$objectId:$relationshipType".toUri()
+            else null
         val relationship = Relationship(
             objectId = objectId,
             type = listOf(relationshipType),
-            datasetId = "urn:ngsi-ld:Dataset:right:$objectId".toUri()
+            datasetId = datasetId
         )
 
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)

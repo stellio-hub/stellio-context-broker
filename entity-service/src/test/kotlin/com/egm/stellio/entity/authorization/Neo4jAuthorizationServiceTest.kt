@@ -277,8 +277,7 @@ class Neo4jAuthorizationServiceTest {
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
                     createdAt = Instant.now().atZone(ZoneOffset.UTC),
-                    right = AccessRight.R_CAN_READ,
-                    datasetId = "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beekeeper:1230".toUri()
+                    right = AccessRight.R_CAN_READ
                 ),
                 EntityAccessControl(
                     id = "urn:ngsi-ld:Beekeeper:1231".toUri(),
@@ -309,14 +308,19 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(3, countAndAuthorizedEntities.second.size)
         assertTrue(
             countAndAuthorizedEntities.second.all {
-                it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT) &&
-                    it.properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
+                it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
             }
         )
         assertTrue {
             val properties =
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1230" }?.properties
+            properties != null && !properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
+        }
+        assertTrue {
+            val properties =
                 countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1231" }?.properties
-            properties != null && properties[AUTH_PROP_SAP] == buildJsonLdExpandedProperty(AUTH_READ)
+            properties != null && properties[AUTH_PROP_SAP] == buildJsonLdExpandedProperty(AUTH_READ) &&
+                properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
         }
         assertTrue {
             val properties =
@@ -326,7 +330,8 @@ class Neo4jAuthorizationServiceTest {
         assertTrue {
             val properties =
                 countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }?.properties
-            properties != null && properties[AUTH_REL_CAN_READ] == users.map { buildJsonLdExpandedRelationship(it) }
+            properties != null && properties[AUTH_REL_CAN_READ] == users.map { buildJsonLdExpandedRelationship(it) } &&
+                properties.containsKey(NGSILD_DATASET_ID_PROPERTY)
         }
         assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
     }

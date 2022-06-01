@@ -385,7 +385,7 @@ class Neo4jAuthorizationRepository(
             val entityId = (entityNode.get("id") as StringValue).asString().toUri()
             val userRightOnEntity = AccessRight.forAttributeName(rightOnEntity).orNull()!!
             val datasetId =
-                if(it["datasetId"] != null)
+                if (it["datasetId"] != null)
                     (it["datasetId"] as String).toUri()
                 else null
 

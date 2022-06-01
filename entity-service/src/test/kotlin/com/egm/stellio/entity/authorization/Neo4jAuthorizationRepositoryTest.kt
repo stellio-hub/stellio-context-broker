@@ -809,7 +809,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         hasDatasetId: Boolean = false
     ): Relationship {
         val datasetId =
-            if(hasDatasetId) "urn:ngsi-ld:datasetId:$objectId:$relationshipType".toUri()
+            if (hasDatasetId) "urn:ngsi-ld:datasetId:$objectId:$relationshipType".toUri()
             else null
         val relationship = Relationship(
             objectId = objectId,

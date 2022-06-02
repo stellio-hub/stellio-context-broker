@@ -471,6 +471,11 @@ class EntityService(
                 )
             }
         }
+
+        // update modifiedAt in entity if at least one attribute has been added
+        if (updateStatuses.isNotEmpty())
+            neo4jRepository.updateEntityModifiedDate(id)
+
         return updateResultFromDetailedResult(updateStatuses)
     }
 
@@ -573,38 +578,47 @@ class EntityService(
 
     @Transactional
     fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): Boolean {
-        if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
+        if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName)) {
+            // update modifiedAt in entity if at least one attribute has been added
+            neo4jRepository.updateEntityModifiedDate(entityId)
             return neo4jRepository.deleteEntityProperty(
                 subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true
             ) >= 1
-        else if (neo4jRepository.hasRelationshipOfType(
+        } else if (neo4jRepository.hasRelationshipOfType(
                 EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
             )
-        )
+        ) {
+            // update modifiedAt in entity if at least one attribute has been added
+            neo4jRepository.updateEntityModifiedDate(entityId)
             return neo4jRepository.deleteEntityRelationship(
                 subjectNodeInfo = EntitySubjectNode(entityId),
                 relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true
             ) >= 1
-
+        }
         throw ResourceNotFoundException("Attribute $expandedAttributeName not found in entity $entityId")
     }
 
     @Transactional
     fun deleteEntityAttributeInstance(entityId: URI, expandedAttributeName: String, datasetId: URI?): Boolean {
-        if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
+        if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId)) {
+            // update modifiedAt in entity if at least one attribute has been added
+            neo4jRepository.updateEntityModifiedDate(entityId)
             return neo4jRepository.deleteEntityProperty(
                 EntitySubjectNode(entityId),
                 expandedAttributeName, datasetId
             ) >= 1
-        else if (neo4jRepository.hasRelationshipInstance(
+        } else if (neo4jRepository.hasRelationshipInstance(
                 EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
             )
-        )
+        ) {
+            // update modifiedAt in entity if at least one attribute has been added
+            neo4jRepository.updateEntityModifiedDate(entityId)
             return neo4jRepository.deleteEntityRelationship(
                 EntitySubjectNode(entityId),
                 expandedAttributeName.toRelationshipTypeName(),
                 datasetId
             ) >= 1
+        }
 
         if (datasetId != null)
             throw ResourceNotFoundException(

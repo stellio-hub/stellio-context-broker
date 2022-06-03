@@ -1038,7 +1038,7 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any(), any()) } returns 1
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.deleteEntityAttribute(entityId, "https://ontology.eglobalmark.com/aquac#fishNumber")
@@ -1111,7 +1111,6 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
-        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         val exception = assertThrows<ResourceNotFoundException>(
             "Attribute fishNumber not found in entity urn:ngsi-ld:Beehive:123456"
@@ -1134,7 +1133,6 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns false
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
-        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         val exception = assertThrows<ResourceNotFoundException>(
             "Default instance of fishNumber not found in entity urn:ngsi-ld:Beehive:123456"

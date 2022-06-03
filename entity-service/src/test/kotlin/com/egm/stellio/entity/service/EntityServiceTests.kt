@@ -111,6 +111,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -130,6 +131,7 @@ class EntityServiceTests {
                 eq(fishContainmentUri)
             )
         }
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
 
         confirmVerified()
     }
@@ -176,6 +178,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipInstance(any(), any(), capture(datasetSetIds)) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any(), any()) } returns 1
         every { neo4jRepository.createRelationshipOfSubject(any(), capture(createdRelationships), any()) } returns true
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -198,6 +201,7 @@ class EntityServiceTests {
         verify(exactly = 2) {
             neo4jRepository.createRelationshipOfSubject(match { it.id == sensorId }, any(), any())
         }
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
 
         confirmVerified()
     }
@@ -221,13 +225,13 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
-
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
         confirmVerified()
     }
 
@@ -257,10 +261,10 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns true
         every { neo4jRepository.createPropertyOfSubject(any(), capture(updatedInstances)) } returns true
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -284,6 +288,7 @@ class EntityServiceTests {
                 any()
             )
         }
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
 
         confirmVerified()
     }
@@ -308,12 +313,13 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1".toUri()) }
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
 
         confirmVerified()
     }
@@ -343,9 +349,9 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
         every { neo4jRepository.updateGeoPropertyOfEntity(any(), any(), any()) } returns 1
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -359,6 +365,7 @@ class EntityServiceTests {
                 }
             )
         }
+        verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
 
         confirmVerified()
     }
@@ -1031,7 +1038,8 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any(), any()) } returns 1
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.deleteEntityAttribute(entityId, "https://ontology.eglobalmark.com/aquac#fishNumber")
 
@@ -1053,6 +1061,7 @@ class EntityServiceTests {
                 "https://ontology.eglobalmark.com/aquac#fishNumber", null, true
             )
         }
+        verify { neo4jRepository.updateEntityModifiedDate(entityId) }
 
         confirmVerified()
     }
@@ -1064,6 +1073,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any(), any(), any()) } returns 1
+        every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
         entityService.deleteEntityAttributeInstance(
             entityId,
@@ -1091,6 +1101,7 @@ class EntityServiceTests {
             )
         }
 
+        verify { neo4jRepository.updateEntityModifiedDate(entityId) }
         confirmVerified()
     }
 

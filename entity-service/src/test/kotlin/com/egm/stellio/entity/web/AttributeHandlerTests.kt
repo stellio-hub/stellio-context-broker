@@ -9,7 +9,6 @@ import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
@@ -87,7 +86,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
         }
-        confirmVerified()
     }
 
     @Test
@@ -107,7 +105,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
         }
-        confirmVerified()
     }
 
     @Test
@@ -135,7 +132,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
         }
-        confirmVerified()
     }
 
     @Test
@@ -152,7 +148,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
         }
-        confirmVerified()
     }
 
     @Test
@@ -172,7 +167,6 @@ class AttributeHandlerTests {
                 NGSILD_CORE_CONTEXT
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -189,7 +183,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeTypeInfo(TEMPERATURE_PROPERTY, NGSILD_CORE_CONTEXT)
         }
-        confirmVerified()
     }
 
     @Test
@@ -215,7 +208,6 @@ class AttributeHandlerTests {
         verify {
             attributeService.getAttributeTypeInfo(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXT)
         }
-        confirmVerified()
     }
 
     @Test

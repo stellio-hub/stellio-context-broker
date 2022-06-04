@@ -329,8 +329,8 @@ class NotificationServiceTests {
             .expectNextMatches { results ->
                 results.size == 2 &&
                     results.all {
-                        (it.first.id == subscription1.id && !it.third) ||
-                            (it.first.id == subscription2.id && it.third)
+                        it.first.id == subscription1.id && !it.third ||
+                            it.first.id == subscription2.id && it.third
                     }
             }
             .expectComplete()

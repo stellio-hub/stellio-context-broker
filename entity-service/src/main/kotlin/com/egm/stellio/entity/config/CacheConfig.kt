@@ -15,7 +15,6 @@ const val SUBJECT_GROUPS_CACHE = "subject-groups"
 class CacheConfig {
 
     @Bean
-    fun cacheManager(): CacheManager {
-        return ConcurrentMapCacheManager(SUBJECT_URI_CACHE, SUBJECT_ROLES_CACHE, SUBJECT_GROUPS_CACHE)
-    }
+    fun cacheManager(): CacheManager =
+        ConcurrentMapCacheManager(SUBJECT_URI_CACHE, SUBJECT_ROLES_CACHE, SUBJECT_GROUPS_CACHE)
 }

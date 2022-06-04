@@ -26,6 +26,9 @@ dependencies {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
     }
+
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.20.0")
+
     testFixturesApi("org.testcontainers:testcontainers")
     testFixturesApi("org.testcontainers:junit-jupiter")
     testFixturesApi("org.testcontainers:kafka")

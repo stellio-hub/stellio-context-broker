@@ -1,11 +1,9 @@
 build:
   maxIssues: 0
 
-formatting:
-  MultiLineIfElse:
-    active: false
-  NoWildcardImports:
-    active: false
+comments:
+  DeprecatedBlockTag:
+    active: true
 
 complexity:
   TooManyFunctions:
@@ -16,8 +14,94 @@ complexity:
     excludes: ['**/src/test/**']
   LargeClass:
     excludes: ['**/src/test/**']
+  NamedArguments:
+    active: true
+  ReplaceSafeCallChainWithRun:
+    active: true
+# not ready to be activated, but to done later
+#  StringLiteralDuplication:
+#    active: true
+
+coroutines:
+  GlobalCoroutineUsage:
+    active: true
+  SuspendFunWithCoroutineScopeReceiver:
+    active: true
+
+exceptions:
+  ObjectExtendsThrowable:
+    active: true
+
+formatting:
+  MultiLineIfElse:
+    active: false
+  NoWildcardImports:
+    active: false
+
+naming:
+  BooleanPropertyNaming:
+    active: true
+  FunctionMaxLength:
+    active: true
+    maximumFunctionNameLength: 50
+    excludes: [ '**/src/test/**' ]
+  LambdaParameterNaming:
+    active: true
+  NonBooleanPropertyPrefixedWithIs:
+    active: true
+  VariableMaxLength:
+    active: true
+
+potential-bugs:
+  CastToNullableType:
+    active: true
+  Deprecation:
+    active: true
+  DontDowncastCollectionTypes:
+    active: true
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+  ImplicitUnitReturnType:
+    active: true
+  NullCheckOnMutableProperty:
+    active: true
+  NullableToStringCall:
+    active: true
 
 style:
+  CanBeNonNullable:
+    active: true
+  CollapsibleIfStatements:
+    active: true
+# not ready to be activated, but to done later
+#  DataClassContainsFunctions:
+#    active: true
+#  DataClassShouldBeImmutable:
+#    active: true
+  ExplicitCollectionElementAccessMethod:
+    active: true
+  ExpressionBodySyntax:
+    active: true
+  NoTabs:
+    active: true
+  OptionalWhenBraces:
+    active: true
+  RedundantExplicitType:
+    active: true
+  SpacingBetweenPackageAndImports:
+    active: true
+  TrailingWhitespace:
+    active: true
+  UnnecessaryParentheses:
+    active: true
+  UnnecessaryLet:
+    active: true
+  UseDataClass:
+    active: true
+  UseEmptyCounterpart:
+    active: true
+  UseIfEmptyOrIfBlank:
+    active: true
   WildcardImport:
     active: false
   ThrowsCount:

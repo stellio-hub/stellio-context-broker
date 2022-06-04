@@ -40,7 +40,7 @@ object QueryUtils {
                 .replace("(", "")
                 .replace(")", "")
 
-            val jsonPathAttribute = if ((attribute.isCompoundAttribute())) {
+            val jsonPathAttribute = if (attribute.isCompoundAttribute()) {
                 when (getAttributeType(attribute, parsedEntity, "[").toString()) {
                     PROPERTY_TYPE -> "@.".plus(attribute).plus("[value]").addQuotesToBrackets()
                     RELATIONSHIP_TYPE -> "@.".plus(attribute).plus("[object]").addQuotesToBrackets()

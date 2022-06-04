@@ -1452,7 +1452,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
-                """ 
+                """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
                     "title": "The request tried to access an unauthorized resource", 
@@ -1493,7 +1493,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
-                """ 
+                """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
                     "title": "The request tried to access an unauthorized resource", 

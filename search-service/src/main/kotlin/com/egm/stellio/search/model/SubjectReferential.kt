@@ -24,7 +24,5 @@ data class SubjectReferential(
         return true
     }
 
-    override fun hashCode(): Int {
-        return subjectId.hashCode()
-    }
+    override fun hashCode(): Int = subjectId.hashCode()
 }

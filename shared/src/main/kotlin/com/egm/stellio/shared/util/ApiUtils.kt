@@ -45,9 +45,8 @@ val qPattern: Pattern = Pattern.compile("([^();|]+)")
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
  * JSON-LD @context.
  */
-fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): String {
-    return getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
-}
+fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): String =
+    getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
 
 fun getContextFromLinkHeader(linkHeader: List<String>): String? {
     return if (linkHeader.isNotEmpty())

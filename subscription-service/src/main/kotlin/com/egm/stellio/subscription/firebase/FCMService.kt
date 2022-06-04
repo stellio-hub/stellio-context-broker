@@ -26,9 +26,8 @@ class FCMService {
         }
     }
 
-    private fun sendAndGetResponse(message: Message): String {
-        return FirebaseMessaging.getInstance().sendAsync(message).get()
-    }
+    private fun sendAndGetResponse(message: Message): String =
+        FirebaseMessaging.getInstance().sendAsync(message).get()
 
     private fun createMessage(
         messageData: Map<String, String>,

@@ -266,7 +266,7 @@ class NgsiLdGeoPropertyInstance(
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
-            val wktValue = ((values[NGSILD_GEOPROPERTY_VALUE]!!)[0] as Map<String, String>)[JSONLD_VALUE_KW] as String
+            val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE_KW] as String
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
@@ -359,7 +359,7 @@ fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)
 
 fun Map<String, List<Any>>.getDatasetId(): URI? =
-    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?)?.get(JSONLD_ID)?.toUri()
+    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
     JSONLD_ID,

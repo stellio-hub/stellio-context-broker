@@ -186,7 +186,7 @@ class AttributeInstanceService(
     ): AttributeInstanceResult {
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
-                temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
+                temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
                 value = row["value"]!!,
                 time = row["time_bucket"]?.let {
                     ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
@@ -194,7 +194,7 @@ class AttributeInstanceService(
                     .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
         else FullAttributeInstanceResult(
-            temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
+            temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
             payload = row["payload"].let { it as String },
             sub = row["sub"] as? String
         )

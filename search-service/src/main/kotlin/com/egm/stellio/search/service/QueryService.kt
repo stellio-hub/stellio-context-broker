@@ -58,11 +58,7 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Pair<List<CompactedJsonLdEntity>, Int> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
-            temporalEntitiesQuery.limit,
-            temporalEntitiesQuery.offset,
-            temporalEntitiesQuery.ids,
-            temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            temporalEntitiesQuery.queryParams,
             accessRightFilter
         ).awaitFirstOrDefault(emptyList())
 
@@ -89,9 +85,7 @@ class QueryService(
                 .toList()
 
         val count = temporalEntityAttributeService.getCountForEntities(
-            temporalEntitiesQuery.ids,
-            temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            temporalEntitiesQuery.queryParams,
             accessRightFilter
         ).awaitFirst()
 

@@ -6,16 +6,7 @@ import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
-import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
-import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityDeleteEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
-import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.IAM_COMPACTED_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils

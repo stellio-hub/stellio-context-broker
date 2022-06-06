@@ -16,19 +16,16 @@ guidelines only, and this section may be revised to provide newer information at
 The following list of features is planned to be addressed in the short term, and incorporated in one upcoming release:
 
 - [In progress] Complete the requirements to become an approved full Generic Enabler
-- [In progress] Expose an API allowing the management of authorizations inside the information context
-- Finish implementation of some missing common cross-cutting behaviors as defined in the NGSI-LD specification [#12](https://github.com/stellio-hub/stellio-context-broker/issues/12), [#206](https://github.com/stellio-hub/stellio-context-broker/issues/206)
+- [In progress] Implement support for multi-typing (#641)
+- Align implementation of the aggregated temporal representation of entities with the version 1.4.1 of the NGSI-LD specification (#368)
 - Fix the currently [identified issues](https://github.com/stellio-hub/stellio-context-broker/issues?q=is%3Aissue+is%3Aopen+label%3Afix)
-- Implement support for the aggregated temporal representation of entities introduced in version 1.4.1 of the NGSI-LD specification
-- Set base NGSI-LD core context to v1.3+
 
 ## Medium term
 
 The following list of features are planned to be addressed in the medium term, typically within the subsequent
 release(s) generated in the next **9 months** after next planned release:
-
-- Implement full support for geospatial features (geo-queries on entities, support for all geometries, GeoJSON rendering, ...)
-- Implement support for the all the supported data types (e.g. structured property value)
+- Implement full support for geospatial features (geo-queries on entities, GeoJSON rendering, ...)
+- Improve support for NGSI-LD Query Language
 - Implement support for multi-tenants and scopes
 
 ## Long term

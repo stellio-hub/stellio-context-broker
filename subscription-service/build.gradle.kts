@@ -16,11 +16,11 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
-    implementation("io.r2dbc:r2dbc-postgresql")
+    implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.jayway.jsonpath:json-path:2.7.0")
     implementation(project(":shared"))
     // firebase SDK
-    implementation("com.google.firebase:firebase-admin:8.1.0")
+    implementation("com.google.firebase:firebase-admin:8.2.0")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")

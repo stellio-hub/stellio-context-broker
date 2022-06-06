@@ -2,12 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityDeleteEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityUpdateEvent
-import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.model.Subscription
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import org.slf4j.LoggerFactory

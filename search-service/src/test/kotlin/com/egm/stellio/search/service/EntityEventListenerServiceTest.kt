@@ -15,7 +15,7 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")

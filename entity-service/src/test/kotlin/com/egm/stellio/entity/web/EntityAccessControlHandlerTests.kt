@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
@@ -616,7 +617,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), NGSILD_CORE_CONTEXT)
         } returns Pair(3, emptyList())
 
         webClient.get()
@@ -646,7 +647,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), NGSILD_CORE_CONTEXT)
         } returns Pair(0, emptyList())
 
         webClient.get()
@@ -661,13 +662,14 @@ class EntityAccessControlHandlerTests {
         val userUri = "urn:ngsi-ld:User:01"
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), NGSILD_CORE_CONTEXT)
         } returns Pair(
             2,
             listOf(
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
+                    "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -676,9 +678,10 @@ class EntityAccessControlHandlerTests {
                     NGSILD_CORE_CONTEXT
                 ),
                 createJsonLdEntity(
-                    "urn:ngsi-ld:Beehive:TESTC",
+                    "urn:ngsi-ld:Beehive:TESTD",
                     "Beehive",
-                    AUTH_TERM_CAN_READ,
+                    "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
+                    AUTH_TERM_CAN_ADMIN,
                     AUTH_READ.toString(),
                     userUri.toUri(),
                     null,
@@ -699,13 +702,15 @@ class EntityAccessControlHandlerTests {
                     {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
+                            "datasetId": "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                             "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         },
                         {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "id": "urn:ngsi-ld:Beehive:TESTD",
                             "type": "Beehive",
-                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "datasetId": "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
+                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
                             "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
                             "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
@@ -721,13 +726,14 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return entities I have a right on with system attributes`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), true, NGSILD_AUTHORIZATION_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), NGSILD_AUTHORIZATION_CONTEXT)
         } returns Pair(
             1,
             listOf(
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
+                    null,
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -775,7 +781,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), NGSILD_CORE_CONTEXT)
         } returns Pair(-1, emptyList())
 
         webClient.get()
@@ -883,6 +889,7 @@ class EntityAccessControlHandlerTests {
     private fun createJsonLdEntity(
         id: String,
         type: String,
+        datasetId: String? = null,
         right: String,
         specificAccessPolicy: String? = null,
         rCanReadUser: URI? = null,
@@ -893,6 +900,11 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
+        datasetId?.run {
+            jsonLdEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                JsonLdUtils.JSONLD_ID to datasetId
+            )
+        }
         jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
         specificAccessPolicy?.run {
             jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)

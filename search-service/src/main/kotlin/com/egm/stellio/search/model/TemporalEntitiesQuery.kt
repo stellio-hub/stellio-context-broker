@@ -1,14 +1,10 @@
 package com.egm.stellio.search.model
 
-import java.net.URI
+import com.egm.stellio.shared.model.QueryParams
 
 data class TemporalEntitiesQuery(
-    val ids: Set<URI>,
-    val types: Set<String>,
+    val queryParams: QueryParams,
     val temporalQuery: TemporalQuery,
     val withTemporalValues: Boolean,
-    val withAudit: Boolean,
-    val limit: Int,
-    val offset: Int,
-    val count: Boolean
+    val withAudit: Boolean
 )

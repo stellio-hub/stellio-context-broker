@@ -1,38 +1,31 @@
 package com.egm.stellio.search.web
 
+import arrow.core.continuations.either
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.service.*
-import com.egm.stellio.search.util.buildTemporalQuery
+import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityAccessRightsService
+import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -54,9 +47,9 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val canWriteEntity =
-            entityAccessRightsService.canWriteEntity(sub, entityId.toUri()).awaitFirst()
-        if (!canWriteEntity)
+
+        val canWriteEntity = entityAccessRightsService.canWriteEntity(sub, entityId.toUri())
+        if (canWriteEntity.isLeft())
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -100,6 +93,9 @@ class TemporalEntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
 
         val temporalEntitiesQuery = parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink)
+        if (temporalEntitiesQuery.queryParams.types.isEmpty() &&
+            temporalEntitiesQuery.queryParams.attrs.isEmpty()
+        ) throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
         val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
@@ -108,19 +104,12 @@ class TemporalEntityHandler(
             accessRightFilter
         )
 
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
-            "/ngsi-ld/v1/temporal/entities",
-            params,
-            total,
-            temporalEntitiesQuery.offset,
-            temporalEntitiesQuery.limit
-        )
-
-        return PagingUtils.buildPaginationResponse(
+        return buildQueryResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
             total,
-            temporalEntitiesQuery.count,
-            prevAndNextLinks,
+            "/ngsi-ld/v1/temporal/entities",
+            temporalEntitiesQuery.queryParams,
+            params,
             mediaType,
             contextLink
         )
@@ -133,42 +122,61 @@ class TemporalEntityHandler(
     suspend fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam requestParams: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val sub = getSubFromSecurityContext()
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-        val mediaType = getApplicableMediaType(httpHeaders)
+        return either<APIException, ResponseEntity<*>> {
+            val sub = getSubFromSecurityContext()
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+            val mediaType = getApplicableMediaType(httpHeaders)
 
-        val withTemporalValues =
-            hasValueInOptionsParam(
-                Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)),
-                OptionsParamValue.TEMPORAL_VALUES
-            )
-        val withAudit = hasValueInOptionsParam(
-            Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
-        )
+            val temporalEntitiesQuery =
+                parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
 
-        val temporalQuery = try {
-            buildTemporalQuery(params, contextLink)
-        } catch (e: BadRequestDataException) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse(e.message))
-        }
+            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).bind()
 
-        val canReadEntity =
-            temporalEntityAttributeService.hasSpecificAccessPolicies(
+            val temporalEntity = queryService.queryTemporalEntity(
                 entityId.toUri(),
-                listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE)
-            ).awaitFirst() ||
-                entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
-        if (!canReadEntity)
-            throw AccessDeniedException("User forbidden read access to entity $entityId")
+                temporalEntitiesQuery.temporalQuery,
+                temporalEntitiesQuery.withTemporalValues,
+                temporalEntitiesQuery.withAudit,
+                contextLink
+            )
 
-        val temporalEntity = queryService.queryTemporalEntity(
-            entityId.toUri(), temporalQuery, withTemporalValues, withAudit, contextLink
+            prepareGetSuccessResponse(mediaType, contextLink)
+                .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
         )
+    }
 
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
+    /**
+     * Implements 6.22.3.2 - Delete Attribute instance from Temporal Representation of an Entity
+     */
+    @DeleteMapping("/{entityId}/attrs/{attrId}/{instanceId}")
+    suspend fun deleteAttributeInstanceTemporal(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @PathVariable instanceId: String
+    ): ResponseEntity<*> {
+        return either<APIException, ResponseEntity<*>> {
+            val sub = getSubFromSecurityContext()
+            val entityUri = entityId.toUri()
+            val instanceUri = instanceId.toUri()
+            val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)!!
+
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
+
+            entityAccessRightsService.canWriteEntity(sub, entityUri).bind()
+
+            attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttrId, instanceUri).bind()
+
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 }

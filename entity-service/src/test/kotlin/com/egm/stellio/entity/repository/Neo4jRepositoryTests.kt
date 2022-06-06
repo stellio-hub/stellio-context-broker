@@ -2,6 +2,8 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.*
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.toUri
 import org.assertj.core.api.Assertions.assertThat
@@ -783,7 +785,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertEquals(3, propertiesInformation.size, "Got the following attributes: $propertiesInformation")
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
-        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], emptyList<String>())
         assertEquals(attributesInformation["entityCount"], 2)
     }
 
@@ -815,12 +817,12 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertEquals(propertiesInformation.size, 2)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
         assertEquals(attributesInformation["relationships"], setOf("observedBy"))
-        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], emptyList<String>())
         assertEquals(attributesInformation["entityCount"], 2)
     }
 
     @Test
-    fun `it should retrieve entity type attributes information for three entities with location`() {
+    fun `it should retrieve entity type attributes information for three entities with one geo property`() {
         createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -828,7 +830,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -855,7 +857,61 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertEquals(propertiesInformation.size, 2)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
-        assertEquals(attributesInformation["geoProperties"], setOf("https://uri.etsi.org/ngsi-ld/location"))
+        assertEquals(
+            attributesInformation["geoProperties"],
+            listOf(
+                "https://uri.etsi.org/ngsi-ld/location"
+            )
+        )
+        assertEquals(attributesInformation["entityCount"], 3)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for three entities with all geo properties`() {
+        createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            ),
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)"
+        )
+        createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "humidity", value = 61)
+            )
+        )
+        createEntity(
+            "urn:ngsi-ld:Beehive:TESTD".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 25),
+                Property(name = "humidity", value = 89),
+            ),
+            observationSpace = "POINT (24.30623 60.07966)"
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 2)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
+        assertEquals(attributesInformation["relationships"], emptySet<String>())
+        assertEquals(
+            attributesInformation["geoProperties"],
+            listOf(
+                "https://uri.etsi.org/ngsi-ld/location",
+                "https://uri.etsi.org/ngsi-ld/operationSpace",
+                "https://uri.etsi.org/ngsi-ld/observationSpace"
+            )
+        )
         assertEquals(attributesInformation["entityCount"], 3)
     }
 
@@ -899,7 +955,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should retrieve a list of entity types`() {
+    fun `it should retrieve a list of entity types with all geo properties`() {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -915,7 +971,10 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "name", value = "Beehive TESTB")
             ),
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)",
+            observationSpace = "POINT (24.30623 60.07966)"
+
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Sensor:TESTC".toUri(),
@@ -936,13 +995,17 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                         "entityType" to "https://ontology.eglobalmark.com/apic#Beehive",
                         "properties" to setOf("temperature", "humidity", "name"),
                         "relationships" to setOf("observedBy"),
-                        "geoProperties" to setOf("https://uri.etsi.org/ngsi-ld/location")
+                        "geoProperties" to listOf(
+                            "https://uri.etsi.org/ngsi-ld/location",
+                            "https://uri.etsi.org/ngsi-ld/operationSpace",
+                            "https://uri.etsi.org/ngsi-ld/observationSpace"
+                        )
                     ),
                     mapOf(
                         "entityType" to "https://ontology.eglobalmark.com/apic#Sensor",
                         "properties" to setOf("deviceParameter"),
                         "relationships" to emptySet<String>(),
-                        "geoProperties" to emptySet<String>()
+                        "geoProperties" to emptyList<String>()
                     )
                 )
             )
@@ -950,7 +1013,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should retrieve attribute list`() {
+    fun `it should retrieve attribute list with all geo properties`() {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -966,7 +1029,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "deviceParameter", value = 30),
                 Property(name = "isContainedIn", value = 61)
             ),
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)",
+            operationSpace = "POINT (24.30623 60.07966)",
+            observationSpace = "POINT (24.30623 60.07966)"
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
@@ -975,17 +1040,19 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         val expectedValue = listOf(
             "deviceParameter",
             "https://uri.etsi.org/ngsi-ld/location",
+            "https://uri.etsi.org/ngsi-ld/observationSpace",
+            "https://uri.etsi.org/ngsi-ld/operationSpace",
             "humidity",
             "isContainedIn",
             "observedBy",
             "temperature"
         )
-        assertEquals(6, attributeName.size)
+        assertEquals(8, attributeName.size)
         assertArrayEquals(arrayOf(expectedValue), arrayOf(attributeName))
     }
 
     @Test
-    fun `it should retrieve details of attributes`() {
+    fun `it should retrieve details of attributes with one geo property`() {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -1002,15 +1069,12 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "isContainedIn", value = 61)
             ),
-            "POINT (24.30623 60.07966))"
+            location = "POINT (24.30623 60.07966)"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
-            mutableListOf(
-                Property(name = "humidity", value = 65)
-            ),
-            "POINT (4.30623 20.07966)"
+            mutableListOf(Property(name = "humidity", value = 65))
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
@@ -1026,10 +1090,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 ),
                 mapOf(
                     "attribute" to "https://uri.etsi.org/ngsi-ld/location",
-                    "typeNames" to setOf(
-                        "https://ontology.eglobalmark.com/apic#Beehive",
-                        "https://ontology.eglobalmark.com/apic#Sensor"
-                    )
+                    "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
                 ),
                 mapOf(
                     "attribute" to "humidity",
@@ -1166,13 +1227,99 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertEquals(relationship.type, listOf(EGM_OBSERVED_BY))
     }
 
+    @Test
+    fun `has geo property of name should return true`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor"),
+            location = "POINT (24.30623 60.07966)"
+        )
+
+        assertTrue(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `has geo property of name should return false`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor")
+        )
+
+        assertFalse(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update geo property`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor"),
+            location = "POINT (24.30623 60.07966)"
+        )
+
+        val geoProperty = NgsiLdGeoPropertyInstance(
+            coordinates = WKTCoordinates("POINT (25.30623 61.07966)"),
+            createdAt = null,
+            modifiedAt = null
+        )
+
+        assertEquals(
+            1,
+            neo4jRepository.updateGeoPropertyOfEntity("urn:ngsi-ld:Sensor:1233".toUri(), "location", geoProperty)
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should add new geo property`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor")
+        )
+
+        val geoProperty = NgsiLdGeoPropertyInstance(
+            coordinates = WKTCoordinates("POINT (24.30623 60.07966)"),
+            createdAt = null,
+            modifiedAt = null
+        )
+
+        assertFalse(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.addGeoPropertyToEntity("urn:ngsi-ld:Sensor:1233".toUri(), "location", geoProperty)
+
+        assertTrue(
+            neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode("urn:ngsi-ld:Sensor:1233".toUri()), "location")
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
     fun createEntity(
         id: URI,
         type: List<String>,
         properties: MutableList<Property> = mutableListOf(),
-        location: String? = null
+        location: String? = null,
+        operationSpace: String? = null,
+        observationSpace: String? = null
     ): Entity {
-        val entity = Entity(id = id, type = type, properties = properties, location = location)
+        val entity = Entity(
+            id = id,
+            type = type,
+            properties = properties,
+            location = location,
+            operationSpace = operationSpace,
+            observationSpace = observationSpace
+        )
         return entityRepository.save(entity)
     }
 

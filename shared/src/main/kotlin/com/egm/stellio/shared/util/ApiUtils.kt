@@ -7,14 +7,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util.*
+import java.util.Optional
 import java.util.regex.Pattern
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
@@ -164,17 +162,4 @@ fun List<MediaType>.getApplicable(): MediaType {
         MediaType.APPLICATION_JSON
     else
         JSON_LD_MEDIA_TYPE
-}
-
-fun buildGetSuccessResponse(mediaType: MediaType, contextLink: String): ResponseEntity.BodyBuilder {
-    return ResponseEntity
-        .status(HttpStatus.OK)
-        .apply {
-            if (mediaType == JSON_LD_MEDIA_TYPE) {
-                this.header(HttpHeaders.CONTENT_TYPE, JSON_LD_CONTENT_TYPE)
-            } else {
-                this.header(HttpHeaders.LINK, buildContextLinkHeader(contextLink))
-                this.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            }
-        }
 }

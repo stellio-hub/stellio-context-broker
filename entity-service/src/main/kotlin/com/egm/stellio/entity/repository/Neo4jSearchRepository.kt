@@ -19,14 +19,12 @@ class Neo4jSearchRepository(
     override fun getEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
-            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, offset, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, contexts)
         else
-            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, offset, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, contexts)
 
         val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
             .plus(neo4jAuthorizationService.getSubjectUri(sub))
@@ -37,6 +35,6 @@ class Neo4jSearchRepository(
             .bind(userAndGroupIds).to("userAndGroupIds")
             .fetch()
             .all()
-        return prepareResults(limit, result)
+        return prepareResults(queryParams.limit, result)
     }
 }

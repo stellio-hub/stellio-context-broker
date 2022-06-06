@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.toUri

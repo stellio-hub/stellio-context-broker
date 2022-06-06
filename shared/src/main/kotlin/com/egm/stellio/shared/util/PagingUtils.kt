@@ -1,8 +1,5 @@
 package com.egm.stellio.shared.util
 
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 
 object PagingUtils {
@@ -30,32 +27,6 @@ object PagingUtils {
                 "rel=\"next\";type=\"application/ld+json\""
 
         return Pair(prevLink, nextLink)
-    }
-
-    fun buildPaginationResponse(
-        body: String,
-        resourcesCount: Int,
-        count: Boolean,
-        prevAndNextLinks: Pair<String?, String?>,
-        mediaType: MediaType,
-        contextLink: String
-    ): ResponseEntity<String> {
-        val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.first)
-                .header(HttpHeaders.LINK, prevAndNextLinks.second)
-
-        else if (prevAndNextLinks.first != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.first)
-        else if (prevAndNextLinks.second != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.second)
-        else
-            buildGetSuccessResponse(mediaType, contextLink)
-
-        return if (count) responseHeaders.header(RESULTS_COUNT_HEADER, resourcesCount.toString()).body(body)
-        else responseHeaders.body(body)
     }
 
     private fun MultiValueMap<String, String>.toEncodedUrl(offset: Int, limit: Int): String {

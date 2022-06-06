@@ -1,21 +1,17 @@
 package com.egm.stellio.search.service
 
-import arrow.core.Validated
-import arrow.core.invalid
-import arrow.core.valid
+import arrow.core.*
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.spi.Row
+import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -27,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.*
+import java.util.UUID
 
 @Service
 class TemporalEntityAttributeService(
@@ -253,11 +249,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(
-        limit: Int,
-        offset: Int,
-        ids: Set<URI>,
-        types: Set<String>,
-        attrs: Set<String>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<List<TemporalEntityAttribute>> {
         val selectQuery =
@@ -267,7 +259,10 @@ class TemporalEntityAttributeService(
                 WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        )
         val finalQuery = """
             $selectQuery
             $filterQuery
@@ -277,8 +272,8 @@ class TemporalEntityAttributeService(
         """.trimIndent()
         return databaseClient
             .sql(finalQuery)
-            .bind("limit", limit)
-            .bind("offset", offset)
+            .bind("limit", queryParams.limit)
+            .bind("offset", queryParams.offset)
             .fetch()
             .all()
             .map { rowToTemporalEntityAttribute(it) }
@@ -286,9 +281,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getCountForEntities(
-        ids: Set<URI>,
-        types: Set<String>,
-        attrs: Set<String>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<Int> {
         val selectStatement =
@@ -297,7 +290,10 @@ class TemporalEntityAttributeService(
             WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        )
         return databaseClient
             .sql("$selectStatement $filterQuery")
             .map { row ->
@@ -307,22 +303,23 @@ class TemporalEntityAttributeService(
     }
 
     fun buildEntitiesQueryFilter(
-        ids: Set<URI>,
-        types: Set<String>,
-        attrs: Set<String>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?,
     ): String {
         val formattedIds =
-            if (ids.isNotEmpty())
-                ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
+            if (queryParams.ids.isNotEmpty())
+                queryParams.ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
             else null
         val formattedTypes =
-            if (types.isNotEmpty())
-                types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
+            if (queryParams.types.isNotEmpty())
+                queryParams.types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
             else null
         val formattedAttrs =
-            if (attrs.isNotEmpty())
-                attrs.joinToString(separator = ",", prefix = "attribute_name in (", postfix = ")") { "'$it'" }
+            if (queryParams.attrs.isNotEmpty())
+                queryParams.attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (", postfix = ")"
+                ) { "'$it'" }
             else null
 
         return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
@@ -404,5 +401,40 @@ class TemporalEntityAttributeService(
 
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
+    }
+
+    suspend fun checkEntityAndAttributeExistence(
+        entityId: URI,
+        entityAttributeName: String
+    ): Either<APIException, Unit> {
+        val selectQuery =
+            """
+                select 
+                    exists(
+                        select 1 
+                        from temporal_entity_attribute 
+                        where entity_id = :entity_id
+                    ) as entityExists,
+                    exists(
+                        select 1 
+                        from temporal_entity_attribute 
+                        where entity_id = :entity_id 
+                        and attribute_name = :attribute_name
+                    ) as attributeNameExists;
+            """.trimIndent()
+
+        val result = databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", entityAttributeName)
+            .fetch()
+            .one()
+            .awaitFirst()
+
+        return if ((result["entityExists"] as Boolean)) {
+            if ((result["attributeNameExists"] as Boolean))
+                Unit.right()
+            else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
+        } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
     }
 }

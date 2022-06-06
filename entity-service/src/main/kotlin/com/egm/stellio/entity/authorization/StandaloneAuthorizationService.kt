@@ -20,9 +20,6 @@ class StandaloneAuthorizationService : AuthorizationService {
     override fun getAuthorizedEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        includeSysAttrs: Boolean,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 

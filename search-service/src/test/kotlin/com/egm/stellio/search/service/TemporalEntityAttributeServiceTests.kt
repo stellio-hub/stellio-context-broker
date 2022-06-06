@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.ninjasquad.springmockk.MockkBean
@@ -11,9 +12,11 @@ import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -365,11 +368,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                0,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
@@ -399,11 +404,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                1,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 10,
+                    limit = 1,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
@@ -427,11 +434,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                0,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) {
                 """
                     (
@@ -471,11 +480,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                0,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) {
                 """
                     (
@@ -513,11 +524,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                0,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) {
                 """
                     (
@@ -549,9 +562,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntity =
             temporalEntityAttributeService.getCountForEntities(
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) { null }
 
         StepVerifier.create(temporalEntity)
@@ -571,9 +588,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityNoResult =
             temporalEntityAttributeService.getCountForEntities(
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                emptySet()
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE)
+                )
             ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
 
         StepVerifier.create(temporalEntityNoResult)
@@ -582,9 +602,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityWithResult =
             temporalEntityAttributeService.getCountForEntities(
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                emptySet()
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE)
+                )
             ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
 
         StepVerifier.create(temporalEntityWithResult)
@@ -607,11 +630,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                2,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
-                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                QueryParams(
+                    offset = 10,
+                    limit = 2,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                )
             ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
@@ -635,11 +660,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                10,
-                2,
-                setOf(beehiveTestDId, beehiveTestCId),
-                setOf(BEEHIVE_TYPE),
-                setOf("unknownAttribute")
+                QueryParams(
+                    offset = 10,
+                    limit = 2,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf("unknownAttribute")
+                )
             ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
@@ -734,5 +761,52 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectNextCount(0)
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should return a right unit if entiy and attribute exist`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY).fold(
+                { fail("The referred resource should have been found") },
+                { }
+            )
+        }
+    }
+
+    @Test
+    fun `it should return a left attribute not found if entity exists but not the attribute`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed").fold(
+                { assertEquals("Attribute speed was not found", it.message) },
+                { fail("The referred resource should have not been found") }
+            )
+        }
+    }
+
+    @Test
+    fun `it should return a left entity not found if entity does not exist`() {
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(
+                "urn:ngsi-ld:Entity:01".toUri(),
+                "speed"
+            ).fold(
+                { assertEquals("Entity urn:ngsi-ld:Entity:01 was not found", it.message) },
+                { fail("The referred resource should have not been found") }
+            )
+        }
     }
 }

@@ -24,9 +24,7 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -98,10 +96,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -129,10 +125,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         every { neo4jAuthorizationService.getSubjectGroups(sub) } returns setOf(groupUri)
 
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -148,10 +142,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -182,22 +174,19 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
         every { neo4jAuthorizationService.getSubjectUri(sub) } returns clientUri
 
-        val queryParams = QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\"")
+        val queryParams =
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit)
         var entities = searchRepository.getEntities(
             queryParams,
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
 
         entities = searchRepository.getEntities(
-            queryParams.copy(expandedAttrs = setOf(expandedNameProperty)),
+            queryParams.copy(attrs = setOf(expandedNameProperty), offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -230,10 +219,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         every { neo4jAuthorizationService.userIsAdmin(any()) } returns true
 
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -261,10 +248,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 
@@ -295,10 +280,13 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entitiesCount = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
+            QueryParams(
+                types = setOf("Beekeeper"),
+                idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$",
+                offset = offset,
+                limit = limit
+            ),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).first
 
@@ -322,10 +310,13 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
 
         val countAndEntities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
+            QueryParams(
+                types = setOf("Beekeeper"),
+                idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$",
+                offset = offset,
+                limit = 0
+            ),
             sub,
-            offset,
-            0,
             DEFAULT_CONTEXTS
         )
 
@@ -362,10 +353,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
+            QueryParams(types = setOf("Beekeeper"), idPattern = idPattern, offset = offset, limit = limit),
             sub,
-            offset,
-            limit,
             DEFAULT_CONTEXTS
         ).second
 

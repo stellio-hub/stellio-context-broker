@@ -1,7 +1,7 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.*
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -9,8 +9,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
-import org.junit.Rule
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,9 +26,6 @@ import java.time.ZonedDateTime
 @ActiveProfiles("test")
 @ExperimentalCoroutinesApi
 class QueryServiceTests {
-
-    @get:Rule
-    var coroutinesTestRule = CoroutineTestRule()
 
     @Autowired
     private lateinit var queryService: QueryService
@@ -50,7 +46,7 @@ class QueryServiceTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } answers { Flux.empty() }
 
         val exception = assertThrows<ResourceNotFoundException> {
-            coroutinesTestRule.testDispatcher.runBlockingTest {
+            runTest {
                 queryService.queryTemporalEntity(
                     entityUri,
                     TemporalQuery(
@@ -73,7 +69,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should query a temporal entity as requested by query params`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttributes =
                 listOf("incoming", "outgoing").map {
                     TemporalEntityAttribute(
@@ -135,7 +131,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should query temporal entities as requested by query params`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
                 type = BEEHIVE_COMPACT_TYPE,
@@ -143,10 +139,10 @@ class QueryServiceTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
             every {
-                temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any())
+                temporalEntityAttributeService.getForEntities(any(), any())
             } answers { Mono.just(listOf(temporalEntityAttribute)) }
             every {
-                temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+                temporalEntityAttributeService.getCountForEntities(any(), any())
             } answers { Mono.just(1) }
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
@@ -167,29 +163,21 @@ class QueryServiceTests {
 
             queryService.queryTemporalEntities(
                 TemporalEntitiesQuery(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false,
-                    2,
-                    2,
-                    count = false
+                    withAudit = false
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }
 
             verify {
                 temporalEntityAttributeService.getForEntities(
-                    2,
-                    2,
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    emptySet(),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     any()
                 )
                 attributeInstanceService.search(
@@ -201,9 +189,7 @@ class QueryServiceTests {
                     false
                 )
                 temporalEntityAttributeService.getCountForEntities(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    emptySet(),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     any()
                 )
                 temporalEntityService.buildTemporalEntities(
@@ -219,7 +205,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should return an empty list for a temporal entity attribute if it has no temporal values`() =
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
                 type = BEEHIVE_COMPACT_TYPE,
@@ -227,10 +213,10 @@ class QueryServiceTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
             every {
-                temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any())
+                temporalEntityAttributeService.getForEntities(any(), any())
             } answers { Mono.just(listOf(temporalEntityAttribute)) }
             every {
-                temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+                temporalEntityAttributeService.getCountForEntities(any(), any())
             } answers { Mono.just(1) }
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
@@ -242,18 +228,14 @@ class QueryServiceTests {
 
             val (entities, _) = queryService.queryTemporalEntities(
                 TemporalEntitiesQuery(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    QueryParams(types = setOf(BEEHIVE_TYPE, APIARY_TYPE), offset = 2, limit = 2),
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false,
-                    2,
-                    2,
-                    false
+                    withAudit = false
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }

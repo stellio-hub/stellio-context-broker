@@ -2,8 +2,9 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils
 import org.springframework.stereotype.Service
 import java.net.URI
 

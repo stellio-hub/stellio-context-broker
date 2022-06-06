@@ -1,24 +1,32 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.instanceNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class AttributeInstanceService(
@@ -190,5 +198,36 @@ class AttributeInstanceService(
             payload = row["payload"].let { it as String },
             sub = row["sub"] as? String
         )
+    }
+
+    suspend fun deleteEntityAttributeInstance(
+        entityId: URI,
+        entityAttributeName: String,
+        instanceId: URI
+    ): Either<APIException, Unit> {
+        val deleteQuery =
+            """
+                DELETE FROM attribute_instance
+                WHERE temporal_entity_attribute = ( 
+                    SELECT id 
+                    FROM temporal_entity_attribute 
+                    WHERE entity_id = :entity_id 
+                    AND attribute_name = :attribute_name
+                )
+                AND instance_id = :instance_id
+            """.trimIndent()
+
+        val result = databaseClient
+            .sql(deleteQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", entityAttributeName)
+            .bind("instance_id", instanceId)
+            .fetch()
+            .rowsUpdated()
+            .awaitFirst()
+
+        return if (result == 0)
+            ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
+        else Unit.right()
     }
 }

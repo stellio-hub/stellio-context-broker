@@ -24,7 +24,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedRelationship
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.*
@@ -259,7 +258,6 @@ class Neo4jAuthorizationServiceTest {
                 listOf(entityUri)
             )
         }
-        confirmVerified()
     }
 
     @Test

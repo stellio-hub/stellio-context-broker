@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
@@ -51,7 +50,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -72,7 +70,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -84,7 +81,6 @@ class IAMListenerTests {
         iamListener.processMessage(userDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -100,7 +96,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -121,7 +116,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -133,7 +127,6 @@ class IAMListenerTests {
         iamListener.processMessage(groupDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -153,7 +146,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -165,7 +157,6 @@ class IAMListenerTests {
         iamListener.processMessage(clientDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -201,7 +192,6 @@ class IAMListenerTests {
                 eq(userUri)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -222,7 +212,6 @@ class IAMListenerTests {
         verify {
             neo4jAuthorizationRepository.updateSubjectGroups(userUri)
         }
-        confirmVerified()
     }
 
     @Test
@@ -246,7 +235,6 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -278,7 +266,6 @@ class IAMListenerTests {
         verify {
             neo4jAuthorizationRepository.resetRolesCache()
         }
-        confirmVerified()
     }
 
     @Test
@@ -301,7 +288,6 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -320,6 +306,5 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 }

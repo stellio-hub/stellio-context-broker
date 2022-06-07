@@ -172,8 +172,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -216,8 +214,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -262,8 +258,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -308,8 +302,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -380,7 +372,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -442,7 +433,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -506,7 +496,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -552,7 +541,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -612,7 +600,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -645,7 +632,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -679,6 +665,5 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 }

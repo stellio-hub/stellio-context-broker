@@ -57,8 +57,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -101,8 +99,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -152,8 +148,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test

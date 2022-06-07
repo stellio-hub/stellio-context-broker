@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import io.mockk.confirmVerified
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -543,8 +542,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test

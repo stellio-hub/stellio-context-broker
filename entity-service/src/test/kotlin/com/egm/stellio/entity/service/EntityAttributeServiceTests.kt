@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -68,8 +67,6 @@ class EntityAttributeServiceTests {
         every { propertyRepository.save(any()) } returns property
 
         entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-
-        confirmVerified()
     }
 
     @Test
@@ -94,8 +91,6 @@ class EntityAttributeServiceTests {
         every { propertyRepository.save(any()) } returns property
 
         entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-
-        confirmVerified()
     }
 
     @Test
@@ -153,8 +148,6 @@ class EntityAttributeServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -196,7 +189,6 @@ class EntityAttributeServiceTests {
                 "urn:ngsi-ld:Sensor:789D21".toUri()
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -265,8 +257,6 @@ class EntityAttributeServiceTests {
                 fishContainmentUri
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -300,8 +290,6 @@ class EntityAttributeServiceTests {
                 "urn:ngsi-ld:Dataset:isContainedIn:1".toUri()
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -345,8 +333,6 @@ class EntityAttributeServiceTests {
                 "urn:ngsi-ld:Dataset:isContainedIn:5".toUri()
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -398,7 +384,6 @@ class EntityAttributeServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -423,7 +408,6 @@ class EntityAttributeServiceTests {
         )
         assertTrue(result.updated.isEmpty())
         assertTrue(result.notUpdated.isNotEmpty())
-        confirmVerified()
     }
 
     @Test
@@ -476,7 +460,6 @@ class EntityAttributeServiceTests {
             )
         )
         assertTrue(result.notUpdated.isEmpty())
-        confirmVerified()
     }
 
     @Test
@@ -540,8 +523,6 @@ class EntityAttributeServiceTests {
             )
         )
         assertTrue(result.notUpdated.isEmpty())
-
-        confirmVerified()
     }
 
     private fun generateRandomObjectId(): URI =

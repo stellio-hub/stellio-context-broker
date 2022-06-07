@@ -133,7 +133,6 @@ class EntityOperationHandlerTests {
                 false
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -209,7 +208,6 @@ class EntityOperationHandlerTests {
                 true
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -285,7 +283,6 @@ class EntityOperationHandlerTests {
         }
         capturedEntitiesIds.forEach { assertTrue(it in allEntitiesUris) }
         assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
-        confirmVerified()
     }
 
     @Test
@@ -341,7 +338,6 @@ class EntityOperationHandlerTests {
         verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
-        confirmVerified()
     }
 
     @Test
@@ -375,7 +371,6 @@ class EntityOperationHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified()
     }
 
     @Test
@@ -457,7 +452,6 @@ class EntityOperationHandlerTests {
                 hcmrContext
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -482,7 +476,6 @@ class EntityOperationHandlerTests {
 
         verify { entityOperationService.create(any()) wasNot Called }
         verify { entityOperationService.update(listOf(mockedTemperatureSensorEntity), false) }
-        confirmVerified()
     }
 
     @Test
@@ -535,7 +528,6 @@ class EntityOperationHandlerTests {
 
         verify { authorizationService.createAdminLinks(listOf(deviceUri), sub) }
         verify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
-        confirmVerified()
     }
 
     @Test
@@ -573,7 +565,6 @@ class EntityOperationHandlerTests {
                 eq(hcmrContext)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -609,7 +600,6 @@ class EntityOperationHandlerTests {
 
         verify { entityEventService wasNot called }
         verify { entityOperationService.replace(any()) wasNot Called }
-        confirmVerified()
     }
 
     @Test
@@ -665,7 +655,6 @@ class EntityOperationHandlerTests {
                 eq(hcmrContext)
             )
         }
-        confirmVerified()
     }
 
     @Test

@@ -531,7 +531,6 @@ class TemporalEntityHandlerTests {
                 eq(entityUri)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -554,7 +553,6 @@ class TemporalEntityHandlerTests {
                 eq(entityUri)
             )
         }
-        confirmVerified()
     }
 
     @Test

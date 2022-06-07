@@ -49,13 +49,11 @@ object ParsingUtils {
         return null
     }
 
-    fun endpointInfoToString(input: List<EndpointInfo>?): String {
-        return mapper.writeValueAsString(input)
-    }
+    fun endpointInfoToString(input: List<EndpointInfo>?): String =
+        mapper.writeValueAsString(input)
 
-    fun endpointInfoMapToString(input: List<Map<String, String>>?): String {
-        return mapper.writeValueAsString(input)
-    }
+    fun endpointInfoMapToString(input: List<Map<String, String>>?): String =
+        mapper.writeValueAsString(input)
 
     fun String.toSqlColumnName(): String =
         this.map {
@@ -91,7 +89,7 @@ object ParsingUtils {
         else subscription.right()
 
     fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Subscription> =
-        if ((subscription.timeInterval != null) && (subscription.timeInterval < 1))
+        if (subscription.timeInterval != null && subscription.timeInterval < 1)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
         else subscription.right()
 }

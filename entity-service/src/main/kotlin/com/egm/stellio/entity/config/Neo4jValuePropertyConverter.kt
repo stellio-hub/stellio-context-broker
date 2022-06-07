@@ -31,12 +31,11 @@ class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
     override fun read(source: Value): Any {
         return when (source) {
             is ListValue -> source.asList()
-            is StringValue -> {
+            is StringValue ->
                 if (source.asString().startsWith(JSON_OBJECT_PREFIX)) {
                     val sourceString = source.asString().removePrefix(JSON_OBJECT_PREFIX)
                     deserializeAs<Map<String, Any>>(sourceString)
                 } else Values.ofObject().apply(source)
-            }
             else -> Values.ofObject().apply(source)
         }
     }

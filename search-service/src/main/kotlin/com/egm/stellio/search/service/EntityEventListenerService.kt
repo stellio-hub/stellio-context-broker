@@ -356,13 +356,12 @@ class EntityEventListenerService(
         }.getOrNull() ?: return "Unsupported attribute type: $attributeTypeAsText".invalid()
         val attributeValue = when (attributeType) {
             TemporalEntityAttribute.AttributeType.Relationship -> Pair(jsonLdEntity["object"] as String, null)
-            TemporalEntityAttribute.AttributeType.Property -> {
+            TemporalEntityAttribute.AttributeType.Property ->
                 when (val rawAttributeValue = jsonLdEntity["value"]) {
                     null ->
                         return "Unable to get a value from attribute: $jsonLdEntity".invalid()
                     else -> Pair(valueToStringOrNull(rawAttributeValue), valueToDoubleOrNull(rawAttributeValue))
                 }
-            }
         }
         val attributeValueType =
             if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE

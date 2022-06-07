@@ -147,9 +147,8 @@ object JsonLdUtils {
     fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
 
-    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
-        return expandJsonLdFragment(fragment, listOf(context))
-    }
+    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> =
+        expandJsonLdFragment(fragment, listOf(context))
 
     fun expandJsonLdFragment(
         attributeName: String,
@@ -262,9 +261,8 @@ object JsonLdUtils {
                             else -> firstListEntry[JSONLD_VALUE_KW]
                         }
                     }
-                    firstListEntry[JSONLD_VALUE_KW] != null -> {
+                    firstListEntry[JSONLD_VALUE_KW] != null ->
                         firstListEntry[JSONLD_VALUE_KW]
-                    }
                     firstListEntry[JSONLD_ID] != null -> {
                         // Used to get the value of datasetId property,
                         // since it is mapped to "@id" key rather than "@value"
@@ -345,7 +343,7 @@ object JsonLdUtils {
         jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
         val expandedType = JsonLdProcessor.expand(mapOf("datasetId" to mapOf<String, Any>()), jsonLdOptions)
         return expandedType.isNotEmpty() &&
-            ((expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false)
+            (expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false
     }
 
     private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
@@ -516,9 +514,8 @@ fun String.extractShortTypeFromExpanded(): String =
      */
     this.substringAfterLast("/").substringAfterLast("#")
 
-fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
-    return this.mapValues { (_, value) -> simplifyRepresentation(value) }
-}
+fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> =
+    this.mapValues { (_, value) -> simplifyRepresentation(value) }
 
 private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
@@ -547,7 +544,7 @@ private fun simplifyValue(value: Map<*, *>): Any {
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
-            val geoAttribute = (jsonFragment[geoProperty] as MutableMap<String, Any>)
+            val geoAttribute = jsonFragment[geoProperty] as MutableMap<String, Any>
             val geoJsonAsString = geoAttribute[JSONLD_VALUE]
             val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
             geoAttribute[JSONLD_VALUE] = wktGeom
@@ -564,7 +561,7 @@ fun extractAttributeInstanceFromCompactedEntity(
 ): CompactedJsonLdAttribute {
     return if (compactedJsonLdEntity[attributeName] is List<*>) {
         val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
-        attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
+        attributePayload.first { it["datasetId"] as? String == datasetId?.toString() }
     } else if (compactedJsonLdEntity[attributeName] != null)
         compactedJsonLdEntity[attributeName] as CompactedJsonLdAttribute
     else {

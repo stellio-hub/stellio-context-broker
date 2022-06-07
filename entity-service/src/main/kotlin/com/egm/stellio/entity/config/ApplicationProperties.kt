@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConstructorBinding
 
 @ConstructorBinding
 @ConfigurationProperties("application")
-class ApplicationProperties(
+data class ApplicationProperties(
     val pagination: Pagination,
     val eventsThreadPool: EventsThreadPool = EventsThreadPool()
 ) {

@@ -22,13 +22,12 @@ class ApiGatewayApplication {
     private val subscriptionServiceUrl: String = ""
 
     @Bean
-    fun httpClient(): HttpClient {
-        return HttpClient.create().wiretap("LoggingFilter", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
-    }
+    fun httpClient(): HttpClient =
+        HttpClient.create().wiretap("LoggingFilter", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
 
     @Bean
-    fun myRoutes(builder: RouteLocatorBuilder): RouteLocator {
-        return builder.routes()
+    fun myRoutes(builder: RouteLocatorBuilder): RouteLocator =
+        builder.routes()
             .route { p ->
                 p.path(
                     "/ngsi-ld/v1/entities/**",
@@ -60,7 +59,6 @@ class ApiGatewayApplication {
                     .uri("http://$subscriptionServiceUrl:8084")
             }
             .build()
-    }
 }
 
 @Suppress("SpreadOperator")

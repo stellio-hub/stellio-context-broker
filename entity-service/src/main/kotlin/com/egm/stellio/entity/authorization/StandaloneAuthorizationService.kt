@@ -30,44 +30,27 @@ class StandaloneAuthorizationService : AuthorizationService {
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 
-    override fun userIsAdmin(sub: Option<Sub>): Boolean {
-        return true
-    }
+    override fun userIsAdmin(sub: Option<Sub>): Boolean = true
 
-    override fun userCanCreateEntities(sub: Option<Sub>): Boolean {
-        return true
-    }
+    override fun userCanCreateEntities(sub: Option<Sub>): Boolean = true
 
-    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI> {
-        return entitiesId
-    }
+    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI> = entitiesId
 
-    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, sub: Option<Sub>): List<URI> {
-        return entitiesId
-    }
+    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, sub: Option<Sub>): List<URI> = entitiesId
 
-    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, sub: Option<Sub>): List<URI> {
-        return entitiesId
-    }
+    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, sub: Option<Sub>): List<URI> = entitiesId
 
     override fun splitEntitiesByUserCanAdmin(
         entitiesId: List<URI>,
         sub: Option<Sub>
-    ): Pair<List<URI>, List<URI>> {
-        return Pair(entitiesId, emptyList())
-    }
+    ): Pair<List<URI>, List<URI>> =
+        Pair(entitiesId, emptyList())
 
-    override fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Boolean {
-        return true
-    }
+    override fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Boolean = true
 
-    override fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Boolean {
-        return true
-    }
+    override fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Boolean = true
 
-    override fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Boolean {
-        return true
-    }
+    override fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Boolean = true
 
     override fun createAdminLink(entityId: URI, sub: Option<Sub>) {}
 

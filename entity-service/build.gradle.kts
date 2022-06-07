@@ -17,6 +17,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation(project(":shared"))
 
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.20.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.testcontainers:neo4j")

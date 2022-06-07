@@ -14,24 +14,18 @@ fun splitQueryTermOnOperator(queryTerm: String): List<String> =
  */
 fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
     return when {
-        queryTerm.contains("==") -> {
+        queryTerm.contains("==") ->
             Triple(queryTerm.split("==")[0], "=", queryTerm.split("==")[1])
-        }
-        queryTerm.contains("!=") -> {
+        queryTerm.contains("!=") ->
             Triple(queryTerm.split("!=")[0], "<>", queryTerm.split("!=")[1])
-        }
-        queryTerm.contains(">=") -> {
+        queryTerm.contains(">=") ->
             Triple(queryTerm.split(">=")[0], ">=", queryTerm.split(">=")[1])
-        }
-        queryTerm.contains(">") -> {
+        queryTerm.contains(">") ->
             Triple(queryTerm.split(">")[0], ">", queryTerm.split(">")[1])
-        }
-        queryTerm.contains("<=") -> {
+        queryTerm.contains("<=") ->
             Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
-        }
-        queryTerm.contains("<") -> {
+        queryTerm.contains("<") ->
             Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
-        }
         else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
     }
 }

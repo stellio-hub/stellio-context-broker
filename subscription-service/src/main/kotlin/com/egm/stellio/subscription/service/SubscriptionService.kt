@@ -93,9 +93,8 @@ class SubscriptionService(
             }
     }
 
-    fun exists(subscriptionId: URI): Mono<Boolean> {
-        return subscriptionRepository.existsById(subscriptionId.toString())
-    }
+    fun exists(subscriptionId: URI): Mono<Boolean> =
+        subscriptionRepository.existsById(subscriptionId.toString())
 
     private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Mono<Int> =
         databaseClient.sql(
@@ -324,7 +323,7 @@ class SubscriptionService(
                         Endpoint.AcceptType.JSON.name
                     else
                         Endpoint.AcceptType.JSONLD.name
-                val endpointInfo = endpoint["info"] as List<Map<String, String>>?
+                val endpointInfo = endpoint["info"] as? List<Map<String, String>>
 
                 listOf(
                     Pair("endpoint_uri", endpoint["uri"]),
@@ -332,9 +331,7 @@ class SubscriptionService(
                     Pair("endpoint_info", Json.of(endpointInfoMapToString(endpointInfo)))
                 )
             }
-            else -> {
-                throw BadRequestDataException("Could not update attribute ${attribute.key}")
-            }
+            else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
         }
     }
 

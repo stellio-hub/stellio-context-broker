@@ -15,7 +15,6 @@ import java.util.Optional
 class Neo4jConfig {
 
     @Bean
-    fun fixedDateTimeProvider(): DateTimeProvider {
-        return DateTimeProvider { Optional.of(Instant.now().atZone(ZoneOffset.UTC)) }
-    }
+    fun fixedDateTimeProvider(): DateTimeProvider =
+        DateTimeProvider { Optional.of(Instant.now().atZone(ZoneOffset.UTC)) }
 }

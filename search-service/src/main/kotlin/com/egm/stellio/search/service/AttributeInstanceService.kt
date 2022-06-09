@@ -178,7 +178,7 @@ class AttributeInstanceService(
         }
 
         selectQuery = if (temporalQuery.aggrPeriodDuration != null)
-            selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
+            selectQuery.plus(" GROUP BY temporal_entity_attribute, aggr_period_duration ORDER BY aggr_period_duration DESC")
         else
             selectQuery.plus(" ORDER BY time DESC")
 
@@ -197,8 +197,8 @@ class AttributeInstanceService(
         temporalQuery.aggrPeriodDuration != null ->
             """
             SELECT temporal_entity_attribute,
-                time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
-                ${temporalQuery.aggrMethods}(measured_value) as value
+               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${timestamp!!}') as aggr_period_duration,
+               ${temporalQuery.aggrMethods?.first()?.aggregate}(measured_value) as value
             """.trimIndent()
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
@@ -258,7 +258,7 @@ class AttributeInstanceService(
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
                 value = row["value"] ?: "",
-                time = toOptionalZonedDateTime(row["time_bucket"]) ?: toZonedDateTime(row["time"])
+                time = toOptionalZonedDateTime(row["aggr_period_duration"]) ?: toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),

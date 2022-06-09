@@ -126,7 +126,8 @@ class QueryServiceTests {
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             ),
             APIC_COMPOUND_CONTEXT
         ).fold({
@@ -175,7 +176,8 @@ class QueryServiceTests {
                 ),
                 queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             ),
             APIC_COMPOUND_CONTEXT
         )
@@ -240,7 +242,8 @@ class QueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             )
         ) { null }
 
@@ -314,7 +317,8 @@ class QueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             )
         ) { null }
             .fold({

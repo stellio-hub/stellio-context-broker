@@ -54,7 +54,8 @@ class TemporalEntityServiceTests {
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
@@ -88,7 +89,8 @@ class TemporalEntityServiceTests {
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
-                withAudit
+                withAudit,
+                false
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -109,7 +111,8 @@ class TemporalEntityServiceTests {
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
-                withAudit
+                withAudit,
+                false
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -144,7 +147,7 @@ class TemporalEntityServiceTests {
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null,
             "1 day",
-            TemporalQuery.Aggregate.SUM
+            listOf(TemporalQuery.Aggregate.SUM)
         )
         val entityPayload = EntityPayload(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
@@ -161,7 +164,8 @@ class TemporalEntityServiceTests {
                 queryParams = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = true
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )

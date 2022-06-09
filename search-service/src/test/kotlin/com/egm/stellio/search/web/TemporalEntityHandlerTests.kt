@@ -513,7 +513,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=1 minute"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=P1DT1H&options=aggregatedValues"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -522,7 +522,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'aggrPeriodDuration' and 'aggrMethods' must be used in conjunction"
+                    "detail":"'aggrMethods' must be used in conjunction"
                 } 
                 """
             )
@@ -535,7 +535,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=1 minute&aggrMethods=unknown"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrMethods=unknown"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -545,6 +545,28 @@ class TemporalEntityHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":"Value 'unknown' is not supported for 'aggrMethods' parameter"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if aggrPeriodDuration function is not in the correct format`() {
+        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=1 day"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'aggrPeriodDuration' parameter is not a valid duration of the period"
                 } 
                 """
             )

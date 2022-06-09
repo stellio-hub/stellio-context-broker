@@ -81,7 +81,8 @@ class TemporalEntityOperationsHandlerTests {
                 ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
@@ -144,7 +145,8 @@ class TemporalEntityOperationsHandlerTests {
                 ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))

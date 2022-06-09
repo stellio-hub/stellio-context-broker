@@ -174,7 +174,7 @@ class QueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams )
 
         assertNull(temporalQuery.lastN)
     }

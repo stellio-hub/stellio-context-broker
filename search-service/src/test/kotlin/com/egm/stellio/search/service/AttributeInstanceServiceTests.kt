@@ -256,9 +256,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
             aggrPeriodDuration = "1 day",
-            aggrMethods = TemporalQuery.Aggregate.SUM
+            aggrMethods = listOf(TemporalQuery.Aggregate.SUM)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -281,9 +281,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
             aggrPeriodDuration = "1 day",
-            aggrMethods = TemporalQuery.Aggregate.SUM
+            aggrMethods = listOf(TemporalQuery.Aggregate.SUM)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -306,9 +306,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
             aggrPeriodDuration = "1 day",
-            aggrMethods = TemporalQuery.Aggregate.MIN
+            aggrMethods = listOf(TemporalQuery.Aggregate.MIN)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -331,9 +331,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
             aggrPeriodDuration = "1 day",
-            aggrMethods = TemporalQuery.Aggregate.MAX
+            aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -361,10 +361,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(12),
             aggrPeriodDuration = "2 hours",
-            aggrMethods = TemporalQuery.Aggregate.SUM,
+            aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
             lastN = 3
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {

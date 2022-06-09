@@ -106,7 +106,8 @@ fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>) {
 
 enum class OptionsParamValue(val value: String) {
     TEMPORAL_VALUES("temporalValues"),
-    AUDIT("audit")
+    AUDIT("audit"),
+    AGGREGATED_VALUES("aggregatedValues"),
 }
 
 fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamValue): Boolean =

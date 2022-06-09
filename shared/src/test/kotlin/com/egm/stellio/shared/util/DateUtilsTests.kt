@@ -23,4 +23,16 @@ class DateUtilsTests {
         val datetime = ZonedDateTime.parse("2020-12-26T10:54:00.000111Z")
         assertEquals("2020-12-26T10:54:00.000111Z", datetime.toNgsiLdFormat())
     }
+
+    @Test
+    fun `it should correctly parse period and duration`() {
+        val aggrPeriodDuration = "P1YT1M"
+        assertEquals("1 years 0 months 0 days 0 hours 1 minutes 0 seconds", periodDurationToTimeBucket(aggrPeriodDuration))
+    }
+
+    @Test
+    fun `it should correctly parse period`() {
+        val aggrPeriodDuration = "P1Y"
+        assertEquals("1 years 0 months 0 days", periodDurationToTimeBucket(aggrPeriodDuration))
+    }
 }

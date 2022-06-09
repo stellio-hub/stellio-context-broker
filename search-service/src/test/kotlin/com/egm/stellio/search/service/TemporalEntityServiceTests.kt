@@ -115,7 +115,7 @@ class TemporalEntityServiceTests {
         )
         val temporalQuery = TemporalQuery(
             emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null, "1 day", TemporalQuery.Aggregate.SUM
+            null, "1 day", listOf(TemporalQuery.Aggregate.SUM)
         )
 
         val temporalEntity = temporalEntityService.buildTemporalEntity(

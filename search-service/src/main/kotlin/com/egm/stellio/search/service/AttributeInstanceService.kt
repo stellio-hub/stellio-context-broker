@@ -107,7 +107,7 @@ class AttributeInstanceService(
     ): Mono<List<AttributeInstanceResult>> {
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
 
-        if (!withTemporalValues && temporalQuery.aggrPeriodDuration == null)
+        if (!withTemporalValues)
             selectQuery = selectQuery.plus(", payload::TEXT")
 
         val temporalEntityAttributesIds =
@@ -140,7 +140,7 @@ class AttributeInstanceService(
         }
 
         selectQuery = if (temporalQuery.aggrPeriodDuration != null)
-            selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
+            selectQuery.plus(" GROUP BY temporal_entity_attribute, aggr_period_duration ORDER BY aggr_period_duration DESC")
         else
             selectQuery.plus(" ORDER BY time DESC")
 
@@ -163,8 +163,8 @@ class AttributeInstanceService(
         temporalQuery.aggrPeriodDuration != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.aggrPeriodDuration}', time) as time_bucket,
-                   ${temporalQuery.aggrMethods}(measured_value) as value
+                   time_bucket('${temporalQuery.aggrPeriodDuration}', time) as aggr_period_duration,
+                   ${temporalQuery.aggrMethods?.first()?.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
         temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -188,7 +188,7 @@ class AttributeInstanceService(
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,
-                time = row["time_bucket"]?.let {
+                time = row["aggr_period_duration"]?.let {
                     ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
                 } ?: row["time"]
                     .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }

@@ -170,7 +170,8 @@ class QueryServiceTests {
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false
+                    withAudit = false,
+                    withAggregatedValues = true
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }
@@ -235,7 +236,8 @@ class QueryServiceTests {
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false
+                    withAudit = false,
+                    withAggregatedValues = true
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }

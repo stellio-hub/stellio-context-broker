@@ -6,5 +6,6 @@ data class TemporalEntitiesQuery(
     val queryParams: QueryParams,
     val temporalQuery: TemporalQuery,
     val withTemporalValues: Boolean,
-    val withAudit: Boolean
+    val withAudit: Boolean,
+    val withAggregatedValues: Boolean
 )

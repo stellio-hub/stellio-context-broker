@@ -22,7 +22,10 @@ fun parseAndCheckQueryParams(
     val withAudit = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(requestParams)
+    val withAggregatedValues = hasValueInOptionsParam(
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AGGREGATED_VALUES
+    )
+    val temporalQuery = buildTemporalQuery(requestParams, withAggregatedValues)
     val queryParams = parseAndCheckParams(
         Pair(pagination.limitDefault, pagination.limitMax),
         requestParams,
@@ -33,15 +36,19 @@ fun parseAndCheckQueryParams(
         queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
-        withAudit = withAudit
+        withAudit = withAudit,
+        withAggregatedValues = withAggregatedValues
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
+fun buildTemporalQuery(params: MultiValueMap<String, String>, withAggregatedValues: Boolean = false): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
-    val aggrPeriodDurationParam = params.getFirst("aggrPeriodDuration")
+    val aggrPeriodDurationParam =
+        if (withAggregatedValues) {
+            periodDurationToTimeBucket(params.getFirst("aggrPeriodDuration") ?: "PT0S")
+        } else null
     val aggrMethodsParam = params.getFirst("aggrMethods")
     val lastNParam = params.getFirst("lastN")
     val timeproperty = params.getFirst("timeproperty")?.let {
@@ -59,11 +66,10 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
     val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam).getOrHandle {
         throw BadRequestDataException(it)
     }
+    if (withAggregatedValues && aggrMethodsParam == null)
+        throw BadRequestDataException("'aggrMethods' must be used in conjunction")
 
-    if (listOf(aggrPeriodDurationParam, aggrMethodsParam).filter { it == null }.size == 1)
-        throw BadRequestDataException("'aggrPeriodDuration' and 'aggrMethods' must be used in conjunction")
-
-    val aggregate = aggrMethodsParam?.let {
+    val aggregate = aggrMethodsParam?.split(",")?.map {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
             TemporalQuery.Aggregate.valueOf(it)
         else

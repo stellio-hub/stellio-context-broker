@@ -75,7 +75,8 @@ class TemporalEntityOperationsHandlerTests {
                 queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 1, offset = 0),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
@@ -139,7 +140,8 @@ class TemporalEntityOperationsHandlerTests {
                 ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
-                withAudit = false
+                withAudit = false,
+                withAggregatedValues = false
             )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)

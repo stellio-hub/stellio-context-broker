@@ -19,11 +19,15 @@ class ObservationEventListener(
     @KafkaListener(topicPattern = "cim.observation.*", groupId = "observations")
     fun processMessage(content: String) {
         logger.debug("Received event: $content")
-        when (val observationEvent = deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> handleEntityCreate(observationEvent)
-            is AttributeUpdateEvent -> handleAttributeUpdateEvent(observationEvent)
-            is AttributeAppendEvent -> handleAttributeAppendEvent(observationEvent)
-            else -> logger.warn("Observation event ${observationEvent.operationType} not handled.")
+        kotlin.runCatching {
+            when (val observationEvent = deserializeAs<EntityEvent>(content)) {
+                is EntityCreateEvent -> handleEntityCreate(observationEvent)
+                is AttributeUpdateEvent -> handleAttributeUpdateEvent(observationEvent)
+                is AttributeAppendEvent -> handleAttributeAppendEvent(observationEvent)
+                else -> logger.warn("Observation event ${observationEvent.operationType} not handled.")
+            }
+        }.onFailure {
+            logger.warn("Observation event processing has failed: ${it.message}", it)
         }
     }
 

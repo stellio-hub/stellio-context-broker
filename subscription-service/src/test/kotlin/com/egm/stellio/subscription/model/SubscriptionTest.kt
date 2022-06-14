@@ -42,11 +42,38 @@ class SubscriptionTest {
     )
 
     @Test
+    fun `it should expand a subscription`() {
+        val subscription = subscription.copy(
+            geoQ = GeoQuery(
+                georel = "within",
+                geometry = "Polygon",
+                coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
+                pgisGeometry = "100000101000101010100010100054300",
+                geoproperty = "operationSpace"
+            )
+        )
+        assertTrue(subscription.geoQ?.geoproperty == "operationSpace")
+        subscription.expandTypes(listOf(NGSILD_CORE_CONTEXT))
+        assertTrue(subscription.geoQ?.geoproperty == "https://uri.etsi.org/ngsi-ld/operationSpace")
+    }
+
+    @Test
     fun `it should compact a subscription when serializing as JSON`() {
+        val subscription = subscription.copy(
+            geoQ = GeoQuery(
+                georel = "within",
+                geometry = "Polygon",
+                coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
+                pgisGeometry = "100000101000101010100010100054300",
+                geoproperty = "https://uri.etsi.org/ngsi-ld/operationSpace"
+            )
+        )
         val serializedSub = subscription.toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
         assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/type"))
         assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/incoming"))
         assertTrue(serializedSub.contains("incoming"))
+        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/operationSpace"))
+        assertTrue(serializedSub.contains("operationSpace"))
     }
 
     @Test

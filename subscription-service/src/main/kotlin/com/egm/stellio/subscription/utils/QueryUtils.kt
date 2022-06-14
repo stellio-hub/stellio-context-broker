@@ -70,8 +70,8 @@ object QueryUtils {
     fun String.addQuotesToBrackets(): String =
         this.replace("[", "['").replace("]", "']")
 
-    fun createGeoQueryStatement(geoQuery: GeoQuery?, location: NgsiLdGeoProperty): String {
-        val targetWKTCoordinates = location.instances[0].coordinates.value
+    fun createGeoQueryStatement(geoQuery: GeoQuery?, geoProperty: NgsiLdGeoProperty): String {
+        val targetWKTCoordinates = geoProperty.instances[0].coordinates.value
         val georelParams = extractGeorelParams(geoQuery!!.georel)
 
         return if (georelParams.first == DISTANCE_QUERY_CLAUSE)

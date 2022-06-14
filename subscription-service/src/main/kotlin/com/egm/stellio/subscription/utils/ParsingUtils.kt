@@ -56,9 +56,8 @@ object ParsingUtils {
         return geoQuery
     }
 
-    fun endpointInfoToString(input: List<EndpointInfo>?): String {
-        return mapper.writeValueAsString(input)
-    }
+    fun endpointInfoToString(input: List<EndpointInfo>?): String =
+        mapper.writeValueAsString(input)
 
     fun endpointInfoMapToString(input: List<Map<String, String>>?): String =
         mapper.writeValueAsString(input)

@@ -129,8 +129,6 @@ class EntityHandlerTests {
                 eq(hcmrContext)
             )
         }
-
-        confirmVerified(entityService, authorizationService)
     }
 
     @Test
@@ -1263,7 +1261,6 @@ class EntityHandlerTests {
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1318,7 +1315,6 @@ class EntityHandlerTests {
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1457,7 +1453,6 @@ class EntityHandlerTests {
         verify {
             entityService.appendEntityTypes(eq(entityId), listOf(breedingServiceType))
         }
-        confirmVerified()
     }
 
     @Test
@@ -1523,7 +1518,6 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         verify { entityService.checkExistence(eq(entityId)) }
-        confirmVerified(entityService)
     }
 
     @Test
@@ -1745,7 +1739,6 @@ class EntityHandlerTests {
             entityService.appendEntityTypes(eq(entityId), eq(listOf(breedingServiceType)))
             entityService.updateEntityAttributes(eq(entityId), emptyList())
         }
-        confirmVerified()
     }
 
     @Test
@@ -2090,7 +2083,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test
@@ -2113,7 +2105,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test
@@ -2134,7 +2125,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test

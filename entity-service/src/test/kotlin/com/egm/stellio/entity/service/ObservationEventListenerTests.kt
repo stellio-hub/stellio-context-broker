@@ -160,8 +160,6 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 
     @Test
@@ -178,8 +176,6 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 
     @Test
@@ -196,7 +192,5 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 }

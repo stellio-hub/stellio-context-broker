@@ -96,7 +96,6 @@ class EntityEventServiceTests {
             kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
             kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any())
         }
-        confirmVerified()
     }
 
     @Test
@@ -116,7 +115,6 @@ class EntityEventServiceTests {
         verify {
             kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
         }
-        confirmVerified()
     }
 
     @Test
@@ -128,7 +126,6 @@ class EntityEventServiceTests {
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
-        confirmVerified()
     }
 
     @Test
@@ -143,7 +140,6 @@ class EntityEventServiceTests {
             kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
             kafkaTemplate.send("cim.entity.FeedingService", breedingServiceUri.toString(), any())
         }
-        confirmVerified()
     }
 
     @Test
@@ -180,7 +176,6 @@ class EntityEventServiceTests {
             kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
             kafkaTemplate.send("cim.entity.FeedingService", breedingServiceUri.toString(), any())
         }
-        confirmVerified()
     }
 
     @Test

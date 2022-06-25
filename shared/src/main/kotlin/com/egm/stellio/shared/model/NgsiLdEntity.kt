@@ -43,7 +43,7 @@ class NgsiLdEntity private constructor(
 
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
-            val types = (parsedKeys[JSONLD_TYPE]!! as List<String>)
+            val types = parsedKeys[JSONLD_TYPE]!! as List<String>
             if (types.any { !it.extractShortTypeFromExpanded().isNgsiLdSupportedName() })
                 throw BadRequestDataException("The provided NGSI-LD entity has a type with invalid characters")
 

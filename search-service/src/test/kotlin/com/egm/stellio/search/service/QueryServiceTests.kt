@@ -5,7 +5,6 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -126,7 +125,6 @@ class QueryServiceTests {
                     false
                 )
             }
-            confirmVerified(temporalEntityAttributeService, attributeInstanceService, temporalEntityService)
         }
 
     @Test
@@ -200,7 +198,6 @@ class QueryServiceTests {
                     false
                 )
             }
-            confirmVerified(temporalEntityAttributeService, attributeInstanceService, temporalEntityService)
         }
 
     @Test
@@ -256,6 +253,5 @@ class QueryServiceTests {
                     withAudit = false
                 )
             }
-            confirmVerified(temporalEntityService)
         }
 }

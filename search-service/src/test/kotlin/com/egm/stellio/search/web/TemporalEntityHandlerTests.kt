@@ -112,7 +112,6 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -153,7 +152,6 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -194,7 +192,6 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -235,7 +232,6 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -276,7 +272,6 @@ class TemporalEntityHandlerTests {
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
         verify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test

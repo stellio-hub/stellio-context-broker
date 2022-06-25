@@ -22,7 +22,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.slot
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -485,7 +488,6 @@ class EntityServiceTests {
             entityRepository.getEntityCoreById(entityId.toString())
             neo4jRepository.addTypesToEntity(entityId, listOf(BEEHIVE_TYPE))
         }
-        confirmVerified()
     }
 
     @Test
@@ -504,7 +506,6 @@ class EntityServiceTests {
         verify {
             entityRepository.getEntityCoreById(entityId.toString())
         }
-        confirmVerified()
     }
 
     @Test
@@ -525,7 +526,6 @@ class EntityServiceTests {
             }
 
         verify { entityRepository.getEntityCoreById(entityId.toString()) }
-        confirmVerified()
     }
 
     @Test
@@ -550,7 +550,6 @@ class EntityServiceTests {
             entityRepository.getEntityCoreById(entityId.toString())
             neo4jRepository.addTypesToEntity(entityId, listOf(BEEHIVE_TYPE))
         }
-        confirmVerified()
     }
 
     @Test

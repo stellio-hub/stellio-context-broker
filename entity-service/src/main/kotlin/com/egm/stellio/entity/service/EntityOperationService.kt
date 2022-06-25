@@ -157,7 +157,8 @@ class EntityOperationService(
         neo4jRepository.deleteEntityAttributes(entity.id)
         val (_, notUpdated) = entityService.appendEntityTypes(
             entity.id,
-            entity.types
+            entity.types,
+            false
         ).mergeWith(
             entityService.appendEntityAttributes(
                 entity.id,
@@ -181,7 +182,8 @@ class EntityOperationService(
     fun updateEntity(entity: NgsiLdEntity, disallowOverwrite: Boolean): Either<BatchEntityError, BatchEntitySuccess> {
         val updateResult = entityService.appendEntityTypes(
             entity.id,
-            entity.types
+            entity.types,
+            false
         ).mergeWith(
             entityService.appendEntityAttributes(
                 entity.id,

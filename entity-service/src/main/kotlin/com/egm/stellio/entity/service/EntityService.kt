@@ -271,10 +271,12 @@ class EntityService(
     @Transactional
     fun appendEntityTypes(
         entityId: URI,
-        types: List<ExpandedTerm>
+        types: List<ExpandedTerm>,
+        allowEmptyListOfTypes: Boolean = true
     ): UpdateResult {
         val currentTypes = getEntityTypes(entityId)
-        if (currentTypes.sorted() == types.sorted())
+        // when dealing with an entity update, list of types can be empty if no change of type is requested
+        if (currentTypes.sorted() == types.sorted() || types.isEmpty() && allowEmptyListOfTypes)
             return UpdateResult(emptyList(), emptyList())
         if (!types.containsAll(currentTypes)) {
             val removedTypes = currentTypes.minus(types)

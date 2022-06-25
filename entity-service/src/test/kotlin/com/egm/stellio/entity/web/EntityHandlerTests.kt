@@ -1439,7 +1439,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
         mockkDefaultBehaviorForPartialUpdateAttribute()
-        every { entityService.appendEntityTypes(any(), any()) } returns updateResult
+        every { entityService.appendEntityTypes(any(), any(), any()) } returns updateResult
         every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
@@ -1451,7 +1451,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            entityService.appendEntityTypes(eq(entityId), listOf(breedingServiceType))
+            entityService.appendEntityTypes(eq(entityId), listOf(breedingServiceType), false)
         }
     }
 

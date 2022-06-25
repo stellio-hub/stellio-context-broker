@@ -365,7 +365,8 @@ class EntityHandler(
                     JSONLD_TYPE ->
                         entityService.appendEntityTypes(
                             entityUri,
-                            expandedPayload[JSONLD_TYPE] as List<ExpandedTerm>
+                            expandedPayload[JSONLD_TYPE] as List<ExpandedTerm>,
+                            false
                         )
                     else ->
                         entityAttributeService.partialUpdateEntityAttribute(

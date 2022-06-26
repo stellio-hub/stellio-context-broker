@@ -220,6 +220,37 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should update the types of a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.updateTemporalEntityTypes(
+                    beehiveTestCId,
+                    listOf(BEEHIVE_TYPE, APIARY_TYPE)
+                )
+            )
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet()))
+            .expectNextMatches {
+                it.types.size == 2 &&
+                    it.types.containsAll(listOf(BEEHIVE_TYPE, APIARY_TYPE))
+            }
+            .expectNextCount(2)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should set a specific access policy for a temporal entity`() {
         val rawEntity = loadSampleData()
 

@@ -96,7 +96,7 @@ object JsonLdUtils {
     private fun addCoreContext(contexts: List<String>): List<Any> =
         contexts.plus(BASE_CONTEXT)
 
-    private fun addCoreContextIfMissing(contexts: List<String>): List<Any> =
+    internal fun addCoreContextIfMissing(contexts: List<String>): List<String> =
         when {
             contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
             // to ensure core @context comes last

@@ -301,11 +301,12 @@ class EntityOperationHandler(
     ) {
         updateBatchOperationResult.success.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 sub,
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,
+                true,
                 jsonLdEntity.contexts
             )
         }

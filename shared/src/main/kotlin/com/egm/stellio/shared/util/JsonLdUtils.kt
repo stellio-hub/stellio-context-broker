@@ -96,6 +96,17 @@ object JsonLdUtils {
     private fun addCoreContext(contexts: List<String>): List<Any> =
         contexts.plus(BASE_CONTEXT)
 
+    private fun addCoreContextIfMissing(contexts: List<String>): List<Any> =
+        when {
+            contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
+            // to ensure core @context comes last
+            contexts.contains(NGSILD_CORE_CONTEXT) ->
+                contexts.filter { it != NGSILD_CORE_CONTEXT }.plus(NGSILD_CORE_CONTEXT)
+            // to check if the core @context is included / embedded in one of the link
+            canExpandJsonLdKeyFromCore(contexts) -> contexts
+            else -> contexts.plus(NGSILD_CORE_CONTEXT)
+        }
+
     private fun defaultJsonLdOptions(contexts: List<String>): JsonLdOptions =
         JsonLdOptions()
             .apply {
@@ -319,34 +330,6 @@ object JsonLdUtils {
             }
     }
 
-    fun compactTerms(terms: List<ExpandedTerm>, contexts: List<String>): List<String> =
-        terms.map {
-            compactTerm(it, contexts)
-        }
-
-    /**
-     * Compact a term (type, attribute name, ...) using the provided context.
-     */
-    fun compactTerm(term: String, contexts: List<String>): String {
-        val compactedFragment =
-            JsonLdProcessor.compact(
-                mapOf(term to emptyMap<String, Any>()),
-                mapOf(JSONLD_CONTEXT to contexts),
-                JsonLdOptions()
-            )
-        return compactedFragment.keys.first()
-    }
-
-    fun compactFragment(value: Map<String, Any>, context: List<String>): Map<String, Any> =
-        JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
-
-    fun compactAndSerialize(
-        jsonLdEntity: JsonLdEntity,
-        contexts: List<String>,
-        mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): String =
-        serializeObject(compact(jsonLdEntity, contexts, mediaType))
-
     /**
      * Utility but basic method to find if given contexts can resolve a known term from the core context.
      */
@@ -371,14 +354,7 @@ object JsonLdUtils {
         context: String? = null,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
     ): CompactedJsonLdEntity {
-        val contexts =
-            if (context == null || context == NGSILD_CORE_CONTEXT)
-                listOf(NGSILD_CORE_CONTEXT)
-            // to check if the core @context is included / embedded in one of the link
-            else if (canExpandJsonLdKeyFromCore(listOfNotNull(context)))
-                listOf(context)
-            else
-                listOf(context, NGSILD_CORE_CONTEXT)
+        val contexts = addCoreContextIfMissing(listOfNotNull(context))
 
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
@@ -396,16 +372,7 @@ object JsonLdUtils {
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
     ): CompactedJsonLdEntity {
-        val allContexts =
-            when {
-                contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
-                // to ensure core @context comes last
-                contexts.contains(NGSILD_CORE_CONTEXT) ->
-                    contexts.filter { it != NGSILD_CORE_CONTEXT }.plus(NGSILD_CORE_CONTEXT)
-                // to check if the core @context is included / embedded in one of the link
-                canExpandJsonLdKeyFromCore(contexts) -> contexts
-                else -> contexts.plus(NGSILD_CORE_CONTEXT)
-            }
+        val allContexts = addCoreContextIfMissing(contexts)
 
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
@@ -430,6 +397,34 @@ object JsonLdUtils {
             else
                 compact(it, context, mediaType)
         }
+
+    fun compactTerms(terms: List<ExpandedTerm>, contexts: List<String>): List<String> =
+        terms.map {
+            compactTerm(it, contexts)
+        }
+
+    /**
+     * Compact a term (type, attribute name, ...) using the provided context.
+     */
+    fun compactTerm(term: String, contexts: List<String>): String {
+        val compactedFragment =
+            JsonLdProcessor.compact(
+                mapOf(term to emptyMap<String, Any>()),
+                mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)),
+                JsonLdOptions()
+            )
+        return compactedFragment.keys.first()
+    }
+
+    fun compactFragment(value: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+        JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
+
+    fun compactAndSerialize(
+        jsonLdEntity: JsonLdEntity,
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE
+    ): String =
+        serializeObject(compact(jsonLdEntity, contexts, mediaType))
 
     fun compactedGeoPropertyKey(geoPropertyName: ExpandedTerm): String =
         NGSILD_GEO_PROPERTIES_PROPERTIES

@@ -1112,7 +1112,7 @@ class EntityHandlerTests {
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), sub)
         } returns Unit.right()
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
     }
 
     @Test
@@ -1156,11 +1156,12 @@ class EntityHandlerTests {
                 any(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1209,11 +1210,12 @@ class EntityHandlerTests {
                 any(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1253,11 +1255,12 @@ class EntityHandlerTests {
                 emptyList(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendTypeResult,
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1307,11 +1310,12 @@ class EntityHandlerTests {
                 any(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendTypeResult.mergeWith(appendResult),
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1398,7 +1402,7 @@ class EntityHandlerTests {
         )
         mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1418,11 +1422,12 @@ class EntityHandlerTests {
                 eq(sub)
             )
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
-                eq(updateResult.updated),
+                eq(updateResult),
+                eq(false),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1440,7 +1445,7 @@ class EntityHandlerTests {
         )
         mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityService.appendEntityTypes(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$JSONLD_TYPE_TERM")
@@ -1478,7 +1483,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1489,11 +1494,12 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
-                eq(updateResult.updated),
+                eq(updateResult),
+                eq(false),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1650,7 +1656,7 @@ class EntityHandlerTests {
         mockkDefaultBehaviorForUpdateAttribute()
         every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.updateEntityAttributes(any(), any()) } returns updateResult
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1671,11 +1677,12 @@ class EntityHandlerTests {
             )
             entityService.appendEntityTypes(eq(entityId), eq(emptyList()))
             entityService.updateEntityAttributes(eq(entityId), any())
-            entityEventService.publishAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 eq(updateResult),
+                true,
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1699,7 +1706,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1725,7 +1732,7 @@ class EntityHandlerTests {
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
         )
         every { entityService.updateEntityAttributes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

@@ -12,7 +12,7 @@ import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_TERM
@@ -479,7 +479,7 @@ class EntityServiceTests {
         assertTrue(updateResult.isSuccessful())
         assertThat(updateResult.updated)
             .allMatch {
-                it.attributeName == JSONLD_TYPE_TERM &&
+                it.attributeName == JSONLD_TYPE &&
                     it.datasetId == null &&
                     it.updateOperationResult == UpdateOperationResult.APPENDED
             }
@@ -521,7 +521,7 @@ class EntityServiceTests {
         assertFalse(updateResult.isSuccessful())
         assertThat(updateResult.notUpdated)
             .allMatch {
-                it.attributeName == JSONLD_TYPE_TERM &&
+                it.attributeName == JSONLD_TYPE &&
                     it.reason == "A type cannot be removed from an entity: [$APIARY_TYPE] have been removed"
             }
 
@@ -542,7 +542,7 @@ class EntityServiceTests {
         assertFalse(updateResult.isSuccessful())
         assertThat(updateResult.notUpdated)
             .allMatch {
-                it.attributeName == JSONLD_TYPE_TERM &&
+                it.attributeName == JSONLD_TYPE &&
                     it.reason == "Append operation has unexpectedly failed"
             }
 

@@ -54,6 +54,20 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
+    @Transactional
+    fun updateTemporalEntityTypes(entityId: URI, types: List<ExpandedTerm>): Mono<Int> =
+        databaseClient.sql(
+            """
+            UPDATE temporal_entity_attribute
+            SET types = :types
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("types", types.toTypedArray())
+            .fetch()
+            .rowsUpdated()
+
     fun createEntityTemporalReferences(payload: String, contexts: List<String>, sub: String? = null): Mono<Int> {
         val ngsiLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         val parsedPayload = JsonUtils.deserializeObject(payload)

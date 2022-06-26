@@ -424,7 +424,7 @@ class EntityOperationHandlerTests {
 
         every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.update(any(), any()) } returns updatedBatchResult
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -444,11 +444,12 @@ class EntityOperationHandlerTests {
             )
         }
         verify(timeout = 1000, exactly = 2) {
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq(sub.value),
                 match { it in updatedEntitiesIds },
                 any(),
                 match { it in updatedBatchResult.success.map { it.updateResult } },
+                true,
                 hcmrContext
             )
         }

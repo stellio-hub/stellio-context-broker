@@ -193,14 +193,15 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeAppendEvent(
+        entityEventService.publishAttributeChangeEvents(
             "sub",
             breedingServiceUri,
-            "fishNumber",
-            null,
+            expandJsonLdFragment("fishNumber", fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT)),
+            UpdateResult(
+                listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+                emptyList()
+            ),
             true,
-            fishNumberAttributeFragment,
-            UpdateOperationResult.APPENDED,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -235,14 +236,15 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeAppendEvent(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            "fishNumber",
-            null,
+            expandJsonLdFragment("fishNumber", fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT)),
+            UpdateResult(
+                listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)),
+                emptyList()
+            ),
             true,
-            fishNumberAttributeFragment,
-            UpdateOperationResult.REPLACED,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -263,51 +265,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish an ATTRIBUTE_APPEND event if an attribute was appended`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
-        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
-        val expectedOperationPayload =
-            """
-                { "type": "Property", "value": 120 }
-            """.trimIndent()
-        val fishNumberAttributeFragment =
-            """
-                { "fishNumber": $expectedOperationPayload }            
-            """.trimIndent()
-        val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
-        val appendResult = UpdateResult(
-            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
-            emptyList()
-        )
-
-        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
-        every { jsonLdEntity.types } returns listOf(breedingServiceType)
-
-        entityEventService.publishAttributeAppendEvents(
-            null,
-            breedingServiceUri,
-            jsonLdAttributes,
-            appendResult,
-            listOf(AQUAC_COMPOUND_CONTEXT)
-        )
-
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeAppendEvent> {
-                    it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                        it.entityId == breedingServiceUri &&
-                        it.entityTypes == listOf("BreedingService") &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == null &&
-                        it.operationPayload.matchContent(expectedOperationPayload) &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                }
-            )
-        }
-    }
-
-    @Test
-    fun `it should publish a ATTRIBUTE_REPLACE event if an attribute was updated`() {
+    fun `it should publish a ATTRIBUTE_REPLACE event if an attribute was replaced`() {
         val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
         val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val expectedOperationPayload =
@@ -320,18 +278,19 @@ class EntityEventServiceTests {
             """.trimIndent()
         val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         val appendResult = UpdateResult(
-            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)),
             emptyList()
         )
 
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeUpdateEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
             appendResult,
+            true,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -383,11 +342,12 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeAppendEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
             appendResult,
+            true,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -453,11 +413,12 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeAppendEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
+            true,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -516,11 +477,12 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeAppendEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
+            true,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -566,11 +528,12 @@ class EntityEventServiceTests {
         every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
         every { jsonLdEntity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishPartialAttributeUpdateEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
-            updatedDetails,
+            UpdateResult(updatedDetails, emptyList()),
+            false,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -618,11 +581,12 @@ class EntityEventServiceTests {
             UpdatedDetails(attributeName, null, UpdateOperationResult.UPDATED)
         )
 
-        entityEventService.publishPartialAttributeUpdateEvents(
+        entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
             jsonLdAttributes,
-            updatedDetails,
+            UpdateResult(updatedDetails, emptyList()),
+            false,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 

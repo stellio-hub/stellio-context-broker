@@ -7,7 +7,7 @@ import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
@@ -283,7 +283,7 @@ class EntityService(
             return updateResultFromDetailedResult(
                 listOf(
                     UpdateAttributeResult(
-                        attributeName = JSONLD_TYPE_TERM,
+                        attributeName = JSONLD_TYPE,
                         updateOperationResult = UpdateOperationResult.FAILED,
                         errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
                     )
@@ -297,7 +297,7 @@ class EntityService(
             return updateResultFromDetailedResult(
                 listOf(
                     UpdateAttributeResult(
-                        attributeName = JSONLD_TYPE_TERM,
+                        attributeName = JSONLD_TYPE,
                         updateOperationResult = UpdateOperationResult.APPENDED
                     )
                 )
@@ -306,7 +306,7 @@ class EntityService(
             return updateResultFromDetailedResult(
                 listOf(
                     UpdateAttributeResult(
-                        attributeName = JSONLD_TYPE_TERM,
+                        attributeName = JSONLD_TYPE,
                         updateOperationResult = UpdateOperationResult.FAILED,
                         errorMessage = "Append operation has unexpectedly failed"
                     )

@@ -95,7 +95,7 @@ class EntityAccessControlHandlerTests {
         every {
             entityService.appendEntityRelationship(any(), any(), any(), any())
         } returns UpdateAttributeResult(AUTH_REL_CAN_READ, null, UpdateOperationResult.APPENDED)
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -112,11 +112,12 @@ class EntityAccessControlHandlerTests {
                 match { it.objectId == entityUri1 },
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(subjectId),
                 any(),
                 match { it.updated.size == 1 && it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED },
+                true,
                 eq(listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
             )
         }
@@ -405,10 +406,10 @@ class EntityAccessControlHandlerTests {
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns
             UpdateResult(
                 notUpdated = emptyList(),
-                updated = listOf(UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED))
+                updated = listOf(UpdatedDetails(AUTH_PROP_SAP, entityUri1, UpdateOperationResult.REPLACED))
             )
         every {
-            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } just Runs
 
         webClient.post()
@@ -426,17 +427,19 @@ class EntityAccessControlHandlerTests {
                 match { it.size == 1 && it[0].name == AUTH_PROP_SAP },
                 false
             )
-            entityEventService.publishAttributeAppendEvent(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityUri1),
-                eq(AUTH_TERM_SAP),
-                null,
-                eq(true),
                 match {
-                    val jsonNode = mapper.readTree(it)
-                    jsonNode["type"].textValue() == "Property" && jsonNode["value"].textValue() == "AUTH_READ"
+                    it.containsKey(AUTH_PROP_SAP)
                 },
-                eq(UpdateOperationResult.REPLACED),
+                match {
+                    it.updated.size == 1 &&
+                        it.updated[0].updateOperationResult == UpdateOperationResult.REPLACED &&
+                        it.updated[0].attributeName == AUTH_PROP_SAP &&
+                        it.updated[0].datasetId == entityUri1
+                },
+                eq(true),
                 eq(COMPOUND_AUTHZ_CONTEXT)
             )
         }
@@ -488,7 +491,7 @@ class EntityAccessControlHandlerTests {
                 updated = listOf(UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED))
             )
         every {
-            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } just Runs
 
         webClient.post()

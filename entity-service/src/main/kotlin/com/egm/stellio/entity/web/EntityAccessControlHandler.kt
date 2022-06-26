@@ -188,11 +188,12 @@ class EntityAccessControlHandler(
         val appendResult = updateResultFromDetailedResult(results)
 
         if (appendResult.updated.isNotEmpty())
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),
                 subjectId.toUri(),
                 jsonLdAttributes,
                 appendResult,
+                true,
                 contexts
             )
 
@@ -260,14 +261,12 @@ class EntityAccessControlHandler(
                 }
 
                 if (updateResult.updated.isNotEmpty()) {
-                    entityEventService.publishAttributeAppendEvent(
+                    entityEventService.publishAttributeChangeEvents(
                         sub.orNull(),
                         entityUri,
-                        AUTH_TERM_SAP,
-                        null,
+                        expandedPayload,
+                        updateResult,
                         true,
-                        body,
-                        updateResult.updated[0].updateOperationResult,
                         COMPOUND_AUTHZ_CONTEXT
                     )
 

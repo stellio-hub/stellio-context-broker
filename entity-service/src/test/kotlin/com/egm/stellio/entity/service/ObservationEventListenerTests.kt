@@ -76,7 +76,7 @@ class ObservationEventListenerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -88,16 +88,17 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
                 match { it.containsKey(TEMPERATURE_PROPERTY) },
                 match {
-                    it.size == 1 &&
-                        it[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it[0].datasetId == expectedTemperatureDatasetId &&
-                        it[0].updateOperationResult == UpdateOperationResult.UPDATED
+                    it.updated.size == 1 &&
+                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it.updated[0].datasetId == expectedTemperatureDatasetId &&
+                        it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
+                eq(false),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -120,9 +121,7 @@ class ObservationEventListenerTests {
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
         every {
-            entityEventService.publishAttributeAppendEvent(
-                any(), any(), any(), any(), any(), any(), any(), any()
-            )
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } just Runs
 
         observationEventListener.processMessage(observationEvent)
@@ -139,14 +138,19 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishAttributeAppendEvent(
+            entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
-                eq(TEMPERATURE_COMPACT_PROPERTY),
-                eq(expectedTemperatureDatasetId),
+                match {
+                    it.containsKey(TEMPERATURE_PROPERTY)
+                },
+                match {
+                    it.updated.size == 1 &&
+                        it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED &&
+                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it.updated[0].datasetId == expectedTemperatureDatasetId
+                },
                 eq(true),
-                any(),
-                eq(UpdateOperationResult.APPENDED),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }

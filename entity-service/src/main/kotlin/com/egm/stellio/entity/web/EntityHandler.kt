@@ -250,11 +250,12 @@ class EntityHandler(
             }
 
             if (updateResult.updated.isNotEmpty()) {
-                entityEventService.publishAttributeAppendEvents(
+                entityEventService.publishAttributeChangeEvents(
                     sub.orNull(),
                     entityUri,
                     jsonLdAttributes,
                     updateResult,
+                    true,
                     contexts
                 )
             }
@@ -309,11 +310,12 @@ class EntityHandler(
             }
 
             if (updateResult.updated.isNotEmpty()) {
-                entityEventService.publishAttributeUpdateEvents(
+                entityEventService.publishAttributeChangeEvents(
                     sub.orNull(),
                     entityUri,
                     jsonLdAttributes,
                     updateResult,
+                    true,
                     contexts
                 )
             }
@@ -379,11 +381,12 @@ class EntityHandler(
                 if (it.updated.isEmpty())
                     ResourceNotFoundException("Unknown attribute in entity $entityId").left()
                 else {
-                    entityEventService.publishPartialAttributeUpdateEvents(
+                    entityEventService.publishAttributeChangeEvents(
                         sub.orNull(),
                         entityUri,
                         expandedPayload,
-                        it.updated,
+                        it,
+                        false,
                         contexts
                     )
 

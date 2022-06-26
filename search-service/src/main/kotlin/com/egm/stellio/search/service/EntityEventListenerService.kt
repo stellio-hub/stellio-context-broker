@@ -8,6 +8,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -36,14 +37,18 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topicPattern = "cim.entity._CatchAll", groupId = "context_search")
+    @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_search")
     fun processMessage(content: String) {
         logger.debug("Processing message: $content")
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
             is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
             is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
-            is AttributeAppendEvent -> handleAttributeAppendEvent(entityEvent)
+            is AttributeAppendEvent ->
+                when (entityEvent.attributeName) {
+                    JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
+                    else -> handleAttributeAppendEvent(entityEvent)
+                }
             is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
             is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
@@ -173,6 +178,19 @@ class EntityEventListenerService(
             }
 
         )
+    }
+
+    private fun handleEntityTypeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
+        val (_, entityId, entityTypes, _, _, _, _, _, contexts) = attributeAppendEvent
+        temporalEntityAttributeService.updateTemporalEntityTypes(entityId, expandJsonLdTerms(entityTypes, contexts))
+            .subscribe(
+                {
+                    logger.debug("Updated types of entity $entityId to $entityTypes")
+                },
+                {
+                    logger.warn("Failed to update entity types of entity $entityId: ${it.message}")
+                }
+            )
     }
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {

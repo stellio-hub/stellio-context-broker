@@ -164,6 +164,7 @@ class IAMListenerTests {
         val groupMembershipAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
         val mockUpdateResult = mockkClass(UpdateResult::class)
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every {
             entityService.appendEntityAttributes(any(), any(), any())
         } returns mockUpdateResult
@@ -172,6 +173,8 @@ class IAMListenerTests {
         iamListener.processMessage(groupMembershipAppendEvent)
 
         verify {
+            neo4jAuthorizationRepository.getSubjectUri(userUri)
+
             entityService.appendEntityAttributes(
                 userUri,
                 match {
@@ -185,9 +188,7 @@ class IAMListenerTests {
                 },
                 false
             )
-        }
 
-        verify {
             neo4jAuthorizationRepository.updateSubjectGroups(
                 eq(userUri)
             )

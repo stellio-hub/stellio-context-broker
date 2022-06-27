@@ -1,0 +1,12 @@
+{
+  "entityId": "urn:ngsi-ld:BeeHive:01",
+  "entityTypes": ["BeeHive", "Apiary"],
+  "attributeName": "type",
+  "overwrite": true,
+  "operationPayload": "[\"BeeHive\",\"Apiary\"]",
+  "updatedEntity": "{\"id\":\"urn:ngsi-ld:BeeHive:01\",\"type\":[\"BeeHive\",\"Apiary\"],\"createdAt\":\"2022-02-13T08:02:49.359316Z\",\"location\":{\"type\":\"GeoProperty\",\"value\":{\"type\":\"Point\",\"coordinates\":[24.30623,60.07966]}},\"modifiedAt\":\"2022-02-13T08:07:08.524818Z\"}",
+  "contexts": [
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  ],
+  "operationType": "ATTRIBUTE_APPEND"
+}

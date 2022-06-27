@@ -181,8 +181,13 @@ class EntityEventListenerService(
     }
 
     private fun handleEntityTypeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
-        val (_, entityId, entityTypes, _, _, _, _, _, contexts) = attributeAppendEvent
+        val (_, entityId, entityTypes, _, _, _, _, updatedEntity, contexts) = attributeAppendEvent
+        val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
+
         temporalEntityAttributeService.updateTemporalEntityTypes(entityId, expandJsonLdTerms(entityTypes, contexts))
+            .then(
+                entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
+            )
             .subscribe(
                 {
                     logger.debug("Updated types of entity $entityId to $entityTypes")

@@ -400,6 +400,30 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should handle an ATTRIBUTE_APPEND event for a type`() {
+        val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendTypeEvent.json")
+
+        every { temporalEntityAttributeService.updateTemporalEntityTypes(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        entityEventListenerService.processMessage(attributeAppendEventPayload)
+
+        verify {
+            temporalEntityAttributeService.updateTemporalEntityTypes(
+                eq(expectedEntityId.toUri()),
+                match {
+                    it.containsAll(listOf(BEEHIVE_TYPE, APIARY_TYPE))
+                }
+            )
+            entityPayloadService.upsertEntityPayload(
+                eq(expectedEntityId.toUri()),
+                match { it.contains(expectedEntityId) }
+            )
+        }
+        confirmVerified(temporalEntityAttributeService, entityPayloadService)
+    }
+
+    @Test
     fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()

@@ -164,6 +164,7 @@ class IAMListenerTests {
         val groupMembershipAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
         val mockUpdateResult = mockkClass(UpdateResult::class)
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every {
             entityService.appendEntityAttributes(any(), any(), any())
         } returns mockUpdateResult
@@ -172,6 +173,8 @@ class IAMListenerTests {
         iamListener.processMessage(groupMembershipAppendEvent)
 
         verify {
+            neo4jAuthorizationRepository.getSubjectUri(userUri)
+
             entityService.appendEntityAttributes(
                 userUri,
                 match {
@@ -185,9 +188,7 @@ class IAMListenerTests {
                 },
                 false
             )
-        }
 
-        verify {
             neo4jAuthorizationRepository.updateSubjectGroups(
                 eq(userUri)
             )
@@ -198,18 +199,20 @@ class IAMListenerTests {
     fun `it should parse and transmit group membership deletion event`() {
         val groupMembershipDeleteEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
 
         iamListener.processMessage(groupMembershipDeleteEvent)
 
         verify {
+            neo4jAuthorizationRepository.getSubjectUri(userUri)
+
             entityService.deleteEntityAttributeInstance(
                 userUri,
                 "https://ontology.eglobalmark.com/authorization#isMemberOf",
                 "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
             )
-        }
-        verify {
+
             neo4jAuthorizationRepository.updateSubjectGroups(userUri)
         }
     }

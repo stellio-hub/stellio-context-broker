@@ -216,7 +216,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return an entity if given name regex matches the value of the name attrbute of the entity`() {
+    fun `it should return an entity if given name regex matches the value of the name attrbute`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -232,7 +232,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should not return an entity if given name regex does not match the value of the name attrbute of the entity`() {
+    fun `it should not return an entity if given name regex does not match the value of the name attrbute`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),

@@ -26,6 +26,8 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
             Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
         queryTerm.contains("<") ->
             Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
+        queryTerm.contains("=~") ->
+            Triple(queryTerm.split("=~")[0], "=~", queryTerm.split("=~")[1])
         else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
     }
 }

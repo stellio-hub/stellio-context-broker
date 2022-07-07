@@ -1163,7 +1163,6 @@ class EntityHandlerTests {
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1216,7 +1215,6 @@ class EntityHandlerTests {
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1244,7 +1242,6 @@ class EntityHandlerTests {
             entityService.checkExistence(eq(entityId))
             entityEventService wasNot called
         }
-        confirmVerified()
     }
 
     @Test
@@ -1329,7 +1326,6 @@ class EntityHandlerTests {
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1374,7 +1370,6 @@ class EntityHandlerTests {
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1429,7 +1424,6 @@ class EntityHandlerTests {
             authorizationService.isUpdateAuthorized(entityId, deadFishesType, any<ExpandedTerm>(), sub)
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
-        confirmVerified()
     }
 
     @Test
@@ -1452,7 +1446,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
-                """ 
+                """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
                     "title": "The request tried to access an unauthorized resource", 
@@ -1471,7 +1465,6 @@ class EntityHandlerTests {
                 sub
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1493,7 +1486,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
-                """ 
+                """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
                     "title": "The request tried to access an unauthorized resource", 
@@ -1503,7 +1496,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified()
     }
 
     private fun mockkDefaultBehaviorForUpdateAttribute() {
@@ -1559,7 +1551,6 @@ class EntityHandlerTests {
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1625,7 +1616,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified()
     }
 
     @Test
@@ -1716,7 +1706,6 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1837,7 +1826,6 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1875,7 +1863,6 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -1915,7 +1902,6 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-        confirmVerified()
     }
 
     @Test

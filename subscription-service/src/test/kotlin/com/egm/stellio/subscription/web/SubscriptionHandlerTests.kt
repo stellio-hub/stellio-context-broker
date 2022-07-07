@@ -76,7 +76,6 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, sub) }
         verify { subscriptionService.getById(subscription.id) }
-        confirmVerified()
     }
 
     @Test
@@ -479,7 +478,7 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { subscriptionService.exists(eq((subscriptionId))) }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
         coVerify {

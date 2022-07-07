@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
@@ -51,7 +50,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -72,7 +70,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -84,7 +81,6 @@ class IAMListenerTests {
         iamListener.processMessage(userDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -100,7 +96,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -121,7 +116,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -133,7 +127,6 @@ class IAMListenerTests {
         iamListener.processMessage(groupDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -153,7 +146,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -165,7 +157,6 @@ class IAMListenerTests {
         iamListener.processMessage(clientDeleteEvent)
 
         verify { entityService.deleteEntity("urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri()) }
-        confirmVerified()
     }
 
     @Test
@@ -173,6 +164,7 @@ class IAMListenerTests {
         val groupMembershipAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
         val mockUpdateResult = mockkClass(UpdateResult::class)
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every {
             entityService.appendEntityAttributes(any(), any(), any())
         } returns mockUpdateResult
@@ -181,6 +173,8 @@ class IAMListenerTests {
         iamListener.processMessage(groupMembershipAppendEvent)
 
         verify {
+            neo4jAuthorizationRepository.getSubjectUri(userUri)
+
             entityService.appendEntityAttributes(
                 userUri,
                 match {
@@ -194,35 +188,33 @@ class IAMListenerTests {
                 },
                 false
             )
-        }
 
-        verify {
             neo4jAuthorizationRepository.updateSubjectGroups(
                 eq(userUri)
             )
         }
-        confirmVerified()
     }
 
     @Test
     fun `it should parse and transmit group membership deletion event`() {
         val groupMembershipDeleteEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
 
         iamListener.processMessage(groupMembershipDeleteEvent)
 
         verify {
+            neo4jAuthorizationRepository.getSubjectUri(userUri)
+
             entityService.deleteEntityAttributeInstance(
                 userUri,
                 "https://ontology.eglobalmark.com/authorization#isMemberOf",
                 "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
             )
-        }
-        verify {
+
             neo4jAuthorizationRepository.updateSubjectGroups(userUri)
         }
-        confirmVerified()
     }
 
     @Test
@@ -246,7 +238,6 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -278,7 +269,6 @@ class IAMListenerTests {
         verify {
             neo4jAuthorizationRepository.resetRolesCache()
         }
-        confirmVerified()
     }
 
     @Test
@@ -301,7 +291,6 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -320,6 +309,5 @@ class IAMListenerTests {
                 false
             )
         }
-        confirmVerified()
     }
 }

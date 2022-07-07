@@ -43,7 +43,7 @@ class EntityOperationHandler(
             checkBatchRequestBody(body)
             checkContext(httpHeaders, body)
             val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
-            val (extractedEntities, _, ngsiLdEntities) =
+            val (_, _, ngsiLdEntities) =
                 expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
             val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
@@ -54,7 +54,7 @@ class EntityOperationHandler(
                 addEntitiesToErrors(unauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
             }
 
-            doBatchCreation(authorizedEntities, ngsiLdEntities, extractedEntities, batchOperationResult, sub)
+            doBatchCreation(authorizedEntities, ngsiLdEntities, batchOperationResult, sub)
 
             if (batchOperationResult.errors.isEmpty())
                 ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
@@ -94,7 +94,7 @@ class EntityOperationHandler(
                 addEntitiesToErrors(newUnauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
             }
 
-            doBatchCreation(newAuthorizedEntities, ngsiLdEntities, extractedEntities, batchOperationResult, sub)
+            doBatchCreation(newAuthorizedEntities, ngsiLdEntities, batchOperationResult, sub)
 
             val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
                 existingEntities.partition { authorizationService.isUpdateAuthorized(it, sub).isLeft() }
@@ -257,7 +257,6 @@ class EntityOperationHandler(
     private fun doBatchCreation(
         entitiesToCreate: List<NgsiLdEntity>,
         ngsiLdEntities: List<NgsiLdEntity>,
-        extractedEntities: List<Map<String, Any>>,
         batchOperationResult: BatchOperationResult,
         sub: Option<Sub>
     ) {
@@ -267,12 +266,11 @@ class EntityOperationHandler(
             ngsiLdEntities
                 .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
                 .forEach {
-                    val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
                     entityEventService.publishEntityCreateEvent(
                         sub.orNull(),
                         it.id,
                         it.type,
-                        extractContextFromInput(entityPayload)
+                        it.contexts
                     )
                 }
             batchOperationResult.errors.addAll(createOperationResult.errors)

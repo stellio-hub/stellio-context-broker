@@ -602,8 +602,8 @@ class Neo4jRepository(
 
         val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
-            val names = (rowResult["property"] as List<String>)
-            val labels = (rowResult["relation"] as List<String>)
+            val names = rowResult["property"] as List<String>
+            val labels = rowResult["relation"] as List<String>
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
             val entityWithOperationSpaceCount = (rowResult["entityWithOperationSpaceCount"] as Long).toInt()
             val entityWithObservationSpaceCount = (rowResult["entityWithObservationSpaceCount"] as Long).toInt()
@@ -701,7 +701,7 @@ class Neo4jRepository(
         val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
         return neo4jClient.query(query).bind(entitiesIds.toListOfString()).to("entitiesIds")
-            .mappedBy { _, record -> (record["id"].asString()).toUri() }
+            .mappedBy { _, record -> record["id"].asString().toUri() }
             .all()
             .toList()
     }

@@ -100,9 +100,8 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
-    fun replace(entities: List<NgsiLdEntity>): BatchOperationResult {
-        return processEntities(entities, false, ::replaceEntity)
-    }
+    fun replace(entities: List<NgsiLdEntity>): BatchOperationResult =
+        processEntities(entities, false, ::replaceEntity)
 
     /**
      * Updates a batch of [entities]
@@ -111,9 +110,8 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
-    fun update(entities: List<NgsiLdEntity>, disallowOverwrite: Boolean = false): BatchOperationResult {
-        return processEntities(entities, disallowOverwrite, ::updateEntity)
-    }
+    fun update(entities: List<NgsiLdEntity>, disallowOverwrite: Boolean = false): BatchOperationResult =
+        processEntities(entities, disallowOverwrite, ::updateEntity)
 
     private fun processEntities(
         entities: List<NgsiLdEntity>,

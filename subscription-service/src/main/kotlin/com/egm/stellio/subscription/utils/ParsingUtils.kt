@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 
@@ -49,13 +50,17 @@ object ParsingUtils {
         return null
     }
 
-    fun endpointInfoToString(input: List<EndpointInfo>?): String {
-        return mapper.writeValueAsString(input)
+    fun parseGeoQuery(input: Map<String, Any>, contexts: List<String>): GeoQuery {
+        val geoQuery = mapper.convertValue(input, GeoQuery::class.java)
+        geoQuery?.geoproperty = geoQuery.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts!!) }
+        return geoQuery
     }
 
-    fun endpointInfoMapToString(input: List<Map<String, String>>?): String {
-        return mapper.writeValueAsString(input)
-    }
+    fun endpointInfoToString(input: List<EndpointInfo>?): String =
+        mapper.writeValueAsString(input)
+
+    fun endpointInfoMapToString(input: List<Map<String, String>>?): String =
+        mapper.writeValueAsString(input)
 
     fun String.toSqlColumnName(): String =
         this.map {
@@ -91,7 +96,7 @@ object ParsingUtils {
         else subscription.right()
 
     fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Subscription> =
-        if ((subscription.timeInterval != null) && (subscription.timeInterval < 1))
+        if (subscription.timeInterval != null && subscription.timeInterval < 1)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
         else subscription.right()
 }

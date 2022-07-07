@@ -7,7 +7,6 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -71,7 +70,6 @@ class SubscriptionEventServiceTests {
 
         verify { subscriptionService.getById(eq(subscriptionUri)) }
         verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
-        confirmVerified()
     }
 
     @Test
@@ -87,7 +85,6 @@ class SubscriptionEventServiceTests {
         )
 
         verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
-        confirmVerified()
     }
 
     @Test

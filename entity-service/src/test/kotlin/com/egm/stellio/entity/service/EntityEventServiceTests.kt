@@ -172,8 +172,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -216,8 +214,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -262,8 +258,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -308,8 +302,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -357,7 +349,7 @@ class EntityEventServiceTests {
             entityEventService["publishEntityEvent"](
                 match<EntityEvent> { entityEvent ->
                     when (entityEvent) {
-                        is AttributeAppendEvent -> {
+                        is AttributeAppendEvent ->
                             listOf(entityEvent).any {
                                 it.entityId == breedingServiceUri &&
                                     it.entityType == "BreedingService" &&
@@ -366,8 +358,7 @@ class EntityEventServiceTests {
                                     it.operationPayload.matchContent(expectedFishNumberOperationPayload) &&
                                     it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                             }
-                        }
-                        is AttributeReplaceEvent -> {
+                        is AttributeReplaceEvent ->
                             listOf(entityEvent).any {
                                 it.entityId == breedingServiceUri &&
                                     it.entityType == "BreedingService" &&
@@ -376,13 +367,11 @@ class EntityEventServiceTests {
                                     it.operationPayload.matchContent(expectedFishNameOperationPayload) &&
                                     it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                             }
-                        }
                         else -> false
                     }
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -444,7 +433,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -508,7 +496,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -554,7 +541,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -614,7 +600,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -647,7 +632,6 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -681,6 +665,5 @@ class EntityEventServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 }

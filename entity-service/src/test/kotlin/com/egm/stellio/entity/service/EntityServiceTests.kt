@@ -76,8 +76,6 @@ class EntityServiceTests {
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
         entityService.createEntity(sampleDataWithContext)
-
-        confirmVerified()
     }
 
     @Test
@@ -132,8 +130,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -202,8 +198,6 @@ class EntityServiceTests {
             neo4jRepository.createRelationshipOfSubject(match { it.id == sensorId }, any(), any())
         }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -232,7 +226,6 @@ class EntityServiceTests {
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-        confirmVerified()
     }
 
     @Test
@@ -289,8 +282,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -320,8 +311,6 @@ class EntityServiceTests {
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1".toUri()) }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -366,8 +355,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(sensorId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -392,7 +379,6 @@ class EntityServiceTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -424,8 +410,6 @@ class EntityServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -474,8 +458,6 @@ class EntityServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -527,8 +509,6 @@ class EntityServiceTests {
                 any(), eq(targetEntityId)
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -593,7 +573,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
-        confirmVerified()
     }
 
     @Test
@@ -626,8 +605,6 @@ class EntityServiceTests {
                 null
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -681,8 +658,6 @@ class EntityServiceTests {
                 "connectsTo", "urn:ngsi-ld:Dataset:connectsTo:1".toUri(), false
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -734,8 +709,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
-
-        confirmVerified()
     }
 
     @Test
@@ -812,8 +785,6 @@ class EntityServiceTests {
         }
 
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
-
-        confirmVerified()
     }
 
     @Test
@@ -866,8 +837,6 @@ class EntityServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -915,7 +884,6 @@ class EntityServiceTests {
                 any()
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -961,8 +929,6 @@ class EntityServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -1003,8 +969,6 @@ class EntityServiceTests {
                 }
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -1017,7 +981,6 @@ class EntityServiceTests {
 
         assertTrue(checkResult.isRight())
         verify { entityRepository.existsById(entityId) }
-        confirmVerified()
     }
 
     @Test
@@ -1030,7 +993,6 @@ class EntityServiceTests {
 
         assertTrue(checkResult.isLeft())
         verify { entityRepository.existsById(entityId) }
-        confirmVerified()
     }
 
     @Test
@@ -1062,8 +1024,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(entityId) }
-
-        confirmVerified()
     }
 
     @Test
@@ -1102,7 +1062,6 @@ class EntityServiceTests {
         }
 
         verify { neo4jRepository.updateEntityModifiedDate(entityId) }
-        confirmVerified()
     }
 
     @Test
@@ -1124,7 +1083,6 @@ class EntityServiceTests {
                 "in entity urn:ngsi-ld:Beehive:123456",
             exception.message
         )
-        confirmVerified()
     }
 
     @Test
@@ -1146,6 +1104,5 @@ class EntityServiceTests {
                 "in entity urn:ngsi-ld:Beehive:123456",
             exception.message
         )
-        confirmVerified()
     }
 }

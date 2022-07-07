@@ -371,7 +371,7 @@ class Neo4jAuthorizationRepository(
         else
             Pair(
                 (result.first()["count"] as Long).toInt(),
-                toEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
+                toEntityAccessControl(result.firstOrNull()?.get("entities") as List<Map<String, Any>>)
             )
 
     fun toEntityAccessControl(entities: List<Map<String, Any>>): Set<EntityAccessControl> =
@@ -381,7 +381,7 @@ class Neo4jAuthorizationRepository(
                 if (it["right"] is org.neo4j.driver.types.Relationship)
                     (it["right"] as org.neo4j.driver.types.Relationship).type()
                 else it["right"] as String
-            val specificAccessPolicy = it["specificAccessPolicy"] as String?
+            val specificAccessPolicy = it["specificAccessPolicy"] as? String
             val entityId = (entityNode.get("id") as StringValue).asString().toUri()
             val userRightOnEntity = AccessRight.forAttributeName(rightOnEntity).orNull()!!
             val datasetId =

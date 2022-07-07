@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.springframework.data.relational.core.mapping.Table
 
@@ -10,5 +11,5 @@ data class GeoQuery(
     val coordinates: Any,
     @JsonIgnore
     val pgisGeometry: String?,
-    val geoproperty: String? = null
+    var geoproperty: String? = NGSILD_LOCATION_PROPERTY
 )

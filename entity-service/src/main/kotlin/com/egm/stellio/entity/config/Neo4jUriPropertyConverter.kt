@@ -8,11 +8,9 @@ import java.net.URI
 
 class Neo4jUriPropertyConverter : Neo4jPersistentPropertyConverter<URI> {
 
-    override fun write(source: URI?): Value {
-        return StringValue(source.toString())
-    }
+    override fun write(source: URI?): Value =
+        StringValue(source.toString())
 
-    override fun read(source: Value): URI {
-        return source.asString().toUri()
-    }
+    override fun read(source: Value): URI =
+        source.asString().toUri()
 }

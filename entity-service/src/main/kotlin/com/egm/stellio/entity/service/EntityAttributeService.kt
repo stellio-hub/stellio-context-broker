@@ -192,7 +192,7 @@ class EntityAttributeService(
                         it.value
                     )
                 }
-                else -> {
+                else ->
                     if (isAttributeOfType(it.value, JsonLdUtils.NGSILD_RELATIONSHIP_TYPE)) {
                         val ngsiLdRelationship = NgsiLdRelationship(
                             attributeOfAttributeName,
@@ -206,7 +206,6 @@ class EntityAttributeService(
                         )
                         entityService.createAttributeProperties(attribute.id(), listOf(ngsiLdProperty))
                     } else false
-                }
             }
         }.all { it }
     }

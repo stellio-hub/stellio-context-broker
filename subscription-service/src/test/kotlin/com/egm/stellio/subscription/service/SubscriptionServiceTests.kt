@@ -245,8 +245,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             databaseClient.sql(
                 match<String> {
                     """
-                    INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, subscription_id)
-                    VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :subscription_id)
+                    INSERT INTO geometry_query (
+                        georel, geometry, coordinates, pgis_geometry, geoproperty, subscription_id
+                    )
+                    VALUES (
+                        :georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :geoproperty, 
+                        :subscription_id
+                    )
                     """.matchContent(it)
                 }
             )
@@ -325,6 +330,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.geoQ != null &&
                     it.geoQ!!.georel == "within" &&
                     it.geoQ!!.geometry == "Polygon" &&
+                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/location" &&
                     it.geoQ!!.coordinates == "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
             }
             .verifyComplete()
@@ -656,7 +662,12 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
-            "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
+            "geoQ" to mapOf(
+                "georel" to "equals",
+                "geometry" to "Point",
+                "coordinates" to "[100.0, 0.0]",
+                "geoproperty" to "https://uri.etsi.org/ngsi-ld/observationSpace"
+            )
         )
 
         subscriptionService.update(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).block()
@@ -669,7 +680,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.q == "foodQuantity>=150" &&
                     it.geoQ!!.georel == "equals" &&
                     it.geoQ!!.geometry == "Point" &&
-                    it.geoQ!!.coordinates == "[100.0, 0.0]"
+                    it.geoQ!!.coordinates == "[100.0, 0.0]" &&
+                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace"
             }
             .verifyComplete()
     }

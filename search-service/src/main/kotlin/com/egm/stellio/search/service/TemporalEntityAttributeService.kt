@@ -396,7 +396,7 @@ class TemporalEntityAttributeService(
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),
-            datasetId = (row["dataset_id"] as String?)?.toUri()
+            datasetId = (row["dataset_id"] as? String)?.toUri()
         )
 
     private var rowToId: ((Row) -> UUID) = { row ->
@@ -431,8 +431,8 @@ class TemporalEntityAttributeService(
             .one()
             .awaitFirst()
 
-        return if ((result["entityExists"] as Boolean)) {
-            if ((result["attributeNameExists"] as Boolean))
+        return if (result["entityExists"] as Boolean) {
+            if (result["attributeNameExists"] as Boolean)
                 Unit.right()
             else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
         } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()

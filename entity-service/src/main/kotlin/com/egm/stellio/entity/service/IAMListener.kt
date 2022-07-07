@@ -49,8 +49,15 @@ class IAMListener(
                 authorizationEvent.contexts
             )
 
+        // events received when adding a service account to a group are using the service account id as subject
+        // so get first the eventual client id in case this is such an event
+        val subjectEntityId =
+            if (authorizationEvent.attributeName == AUTH_TERM_IS_MEMBER_OF)
+                neo4jAuthorizationRepository.getSubjectUri(authorizationEvent.entityId)
+            else authorizationEvent.entityId
+
         entityService.appendEntityAttributes(
-            authorizationEvent.entityId,
+            subjectEntityId,
             parseToNgsiLdAttributes(expandedJsonLdFragment),
             false
         ).also {
@@ -59,7 +66,7 @@ class IAMListener(
                     AUTH_TERM_ROLES ->
                         neo4jAuthorizationRepository.resetRolesCache()
                     AUTH_TERM_IS_MEMBER_OF ->
-                        neo4jAuthorizationRepository.updateSubjectGroups(authorizationEvent.entityId)
+                        neo4jAuthorizationRepository.updateSubjectGroups(subjectEntityId)
                 }
             }
         }
@@ -87,9 +94,16 @@ class IAMListener(
             }
     }
 
-    private fun deleteAttribute(authorizationEvent: AttributeDeleteEvent) =
+    private fun deleteAttribute(authorizationEvent: AttributeDeleteEvent) {
+        // events received when removing a service account from a group are using the service account id as subject
+        // so get first the eventual client id in case this is such an event
+        val subjectEntityId =
+            if (authorizationEvent.attributeName == AUTH_TERM_IS_MEMBER_OF)
+                neo4jAuthorizationRepository.getSubjectUri(authorizationEvent.entityId)
+            else authorizationEvent.entityId
+
         entityService.deleteEntityAttributeInstance(
-            authorizationEvent.entityId,
+            subjectEntityId,
             expandJsonLdTerm(
                 authorizationEvent.attributeName,
                 authorizationEvent.contexts
@@ -99,8 +113,9 @@ class IAMListener(
             if (it) {
                 when (authorizationEvent.attributeName) {
                     AUTH_TERM_IS_MEMBER_OF ->
-                        neo4jAuthorizationRepository.updateSubjectGroups(authorizationEvent.entityId)
+                        neo4jAuthorizationRepository.updateSubjectGroups(subjectEntityId)
                 }
             }
         }
+    }
 }

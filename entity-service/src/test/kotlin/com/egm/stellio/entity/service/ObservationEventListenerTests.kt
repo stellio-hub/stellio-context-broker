@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -57,8 +58,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -101,8 +100,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -152,8 +149,6 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified()
     }
 
     @Test
@@ -161,6 +156,42 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/invalid/humidityAppendEvent.jsonld")
 
         observationEventListener.processMessage(observationEvent)
+
+        verify { entityService wasNot called }
+        verify { entityEventService wasNot called }
+
+        confirmVerified(entityService, entityEventService)
+    }
+
+    @Test
+    fun `it should catch and drop any non compliant NGSI-LD payload`() {
+        val invalidObservationEvent = """
+            {
+                "id": "urn:ngsi-ld:Entity:01"
+            }
+        """.trimIndent()
+
+        assertDoesNotThrow {
+            observationEventListener.processMessage(invalidObservationEvent)
+        }
+
+        verify { entityService wasNot called }
+        verify { entityEventService wasNot called }
+
+        confirmVerified(entityService, entityEventService)
+    }
+
+    @Test
+    fun `it should catch and drop any non compliant JSON-LD payload`() {
+        val invalidObservationEvent = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",,
+            }
+        """.trimIndent()
+
+        assertDoesNotThrow {
+            observationEventListener.processMessage(invalidObservationEvent)
+        }
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }

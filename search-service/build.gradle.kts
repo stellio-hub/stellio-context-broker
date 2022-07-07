@@ -21,6 +21,8 @@ dependencies {
     implementation("org.postgresql:r2dbc-postgresql")
     implementation(project(":shared"))
 
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.20.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("org.postgresql:postgresql")

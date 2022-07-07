@@ -2,7 +2,6 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,7 +39,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -58,7 +56,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -74,7 +71,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -91,7 +87,6 @@ class IAMListenerTests {
                 eq(listOf(GlobalRole.STELLIO_ADMIN))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -108,7 +103,6 @@ class IAMListenerTests {
                 eq(listOf(GlobalRole.STELLIO_ADMIN))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -125,7 +119,6 @@ class IAMListenerTests {
                 eq(listOf(GlobalRole.STELLIO_ADMIN, GlobalRole.STELLIO_CREATOR))
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -141,7 +134,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -160,7 +152,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -179,7 +170,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -198,7 +188,6 @@ class IAMListenerTests {
                 }
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -214,7 +203,6 @@ class IAMListenerTests {
                 eq(AccessRight.R_CAN_READ)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -229,7 +217,6 @@ class IAMListenerTests {
                 eq(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -244,7 +231,6 @@ class IAMListenerTests {
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }
-        confirmVerified()
     }
 
     @Test
@@ -258,6 +244,5 @@ class IAMListenerTests {
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }
-        confirmVerified()
     }
 }

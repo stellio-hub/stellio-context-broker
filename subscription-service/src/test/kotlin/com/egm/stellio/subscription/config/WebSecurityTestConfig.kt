@@ -17,7 +17,6 @@ class WebSecurityTestConfig : WebSecurityConfig() {
     val issuerUri: String? = null
 
     @Bean
-    fun jwtDecoder(): ReactiveJwtDecoder {
-        return ReactiveJwtDecoders.fromOidcIssuerLocation(issuerUri)
-    }
+    fun jwtDecoder(): ReactiveJwtDecoder =
+        ReactiveJwtDecoders.fromOidcIssuerLocation(issuerUri)
 }

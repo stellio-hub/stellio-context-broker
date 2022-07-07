@@ -43,7 +43,7 @@ class NotificationService(
                 subscriptionService.isMatchingQuery(it.q?.decode(), rawEntity)
             }
             .filterWhen {
-                subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
+                subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getGeoProperty(it.geoQ?.geoproperty))
             }
             .flatMap {
                 callSubscriber(it, id, expandJsonLdEntity(rawEntity, ngsiLdEntity.contexts))

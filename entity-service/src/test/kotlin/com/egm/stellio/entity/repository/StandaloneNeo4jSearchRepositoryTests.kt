@@ -216,6 +216,38 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should return an entity if given name regex matches the value of the name attrbute`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val entities = searchRepository.getEntities(
+            QueryParams(types = setOf("Beekeeper"), q = "name=~\"Scal.*\"", offset = offset, limit = limit),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.contains(entity.id))
+    }
+
+    @Test
+    fun `it should not return an entity if given name regex does not match the value of the name attrbute`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val entities = searchRepository.getEntities(
+            QueryParams(types = setOf("Beekeeper"), q = "name=~\"Scap.*\"", offset = offset, limit = limit),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertFalse(entities.contains(entity.id))
+    }
+
+    @Test
     fun `it should return an entity if observedAt of property is correct`() {
         val entity = createEntity(
             beekeeperUri,

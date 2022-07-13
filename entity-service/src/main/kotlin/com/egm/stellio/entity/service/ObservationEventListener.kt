@@ -47,7 +47,7 @@ class ObservationEventListener(
         entityEventService.publishEntityCreateEvent(
             observationEvent.sub,
             ngsiLdEntity.id,
-            ngsiLdEntity.type,
+            ngsiLdEntity.types,
             observationEvent.contexts
         )
     }
@@ -75,11 +75,12 @@ class ObservationEventListener(
                 return
             }
 
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 observationEvent.sub,
                 observationEvent.entityId,
                 expandedPayload,
-                updateResult.updated,
+                updateResult,
+                false,
                 observationEvent.contexts
             )
         } catch (e: ResourceNotFoundException) {
@@ -107,14 +108,12 @@ class ObservationEventListener(
                 return
             }
 
-            entityEventService.publishAttributeAppendEvent(
+            entityEventService.publishAttributeChangeEvents(
                 observationEvent.sub,
                 observationEvent.entityId,
-                observationEvent.attributeName,
-                observationEvent.datasetId,
+                expandedPayload,
+                updateResult,
                 observationEvent.overwrite,
-                observationEvent.operationPayload,
-                updateResult.updated[0].updateOperationResult,
                 observationEvent.contexts
             )
         } catch (e: BadRequestDataException) {

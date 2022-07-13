@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -86,6 +87,7 @@ class EntityHandlerTests {
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
+    private val fishSizeAttribute = "https://ontology.eglobalmark.com/aquac#fishSize"
     private val hcmrContext = listOf(
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/shared-jsonld-contexts/egm.jsonld",
@@ -123,12 +125,10 @@ class EntityHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
-                eq(breedingServiceType),
+                eq(listOf(breedingServiceType)),
                 eq(hcmrContext)
             )
         }
-
-        confirmVerified(entityService, authorizationService)
     }
 
     @Test
@@ -276,8 +276,8 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForGetEntityById() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
-        every { authorizationService.isReadAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
+        every { authorizationService.isReadAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
     }
 
     @Test
@@ -1110,9 +1110,9 @@ class EntityHandlerTests {
     @Test
     fun `it should not authorize user without read rights on entity to get it`() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
-            authorizationService.isReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), BEEHIVE_TYPE, sub)
+            authorizationService.isReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), listOf(BEEHIVE_TYPE), sub)
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
 
         webClient.get()
@@ -1151,11 +1151,11 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForAppendAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns breedingServiceType
+        every { entityService.getEntityTypes(any()) } returns listOf(breedingServiceType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), sub)
         } returns Unit.right()
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
     }
 
     @Test
@@ -1174,6 +1174,7 @@ class EntityHandlerTests {
         )
 
         mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
 
         webClient.post()
@@ -1186,10 +1187,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(breedingServiceType),
+                eq(listOf(breedingServiceType)),
                 any<List<NgsiLdAttribute>>(),
                 eq(sub)
             )
@@ -1198,11 +1199,12 @@ class EntityHandlerTests {
                 any(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1210,7 +1212,7 @@ class EntityHandlerTests {
 
     @Test
     fun `append entity attribute should return a 207 if some attributes could not be appended`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_twoNewProperties.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendResult = UpdateResult(
             listOf(
@@ -1220,10 +1222,11 @@ class EntityHandlerTests {
                     UpdateOperationResult.APPENDED
                 )
             ),
-            listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
+            listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
         )
 
         mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
 
         webClient.post()
@@ -1237,24 +1240,125 @@ class EntityHandlerTests {
                 """
                 {
                     "updated":["$fishNumberAttribute"],
-                    "notUpdated":[{"attributeName":"wrongAttribute","reason":"overwrite disallowed"}]
+                    "notUpdated":[{"attributeName":"$fishSizeAttribute","reason":"overwrite disallowed"}]
                 } 
                 """.trimIndent()
             )
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             entityService.appendEntityAttributes(
                 eq(entityId),
                 any(),
                 eq(false)
             )
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
+                true,
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `append entity attribute should return a 204 when adding a new type to an entity`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val appendTypeResult = UpdateResult(
+            listOf(UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        )
+        val appendResult = UpdateResult(emptyList(), emptyList())
+
+        mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns appendTypeResult
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NO_CONTENT)
+
+        verify {
+            entityService.checkExistence(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
+            entityService.appendEntityTypes(
+                eq(entityId),
+                listOf(breedingServiceType, deadFishesType)
+            )
+            entityService.appendEntityAttributes(
+                eq(entityId),
+                emptyList(),
+                eq(false)
+            )
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                appendTypeResult,
+                true,
+                listOf(AQUAC_COMPOUND_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `append entity attribute should return a 207 if types or attributes could not be appended`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newInvalidTypeAndAttribute.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val appendTypeResult = UpdateResult(
+            emptyList(),
+            listOf(NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"))
+        )
+        val appendResult = UpdateResult(
+            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+            listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
+        )
+
+        mockkDefaultBehaviorForAppendAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns appendTypeResult
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                {
+                    "updated":["$fishNumberAttribute"],
+                    "notUpdated":[
+                      {"attributeName":"$fishSizeAttribute","reason":"overwrite disallowed"},
+                      {"attributeName":"$JSONLD_TYPE","reason":"Append operation has unexpectedly failed"}
+                    ]
+                } 
+                """.trimIndent()
+            )
+
+        verify {
+            entityService.checkExistence(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
+            entityService.appendEntityAttributes(
+                eq(entityId),
+                any(),
+                eq(false)
+            )
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                appendTypeResult.mergeWith(appendResult),
+                true,
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1322,7 +1426,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForPartialUpdateAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
@@ -1341,7 +1445,7 @@ class EntityHandlerTests {
         )
         mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1353,21 +1457,49 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 eq(fishNumberAttribute),
                 eq(sub)
             )
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
-                eq(updateResult.updated),
+                eq(updateResult),
+                eq(false),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
+        }
+    }
+
+    @Test
+    fun `partial attribute update should return a 204 if type could be appended`() {
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialTypeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.UPDATED)
+            ),
+            notUpdated = arrayListOf()
+        )
+        mockkDefaultBehaviorForPartialUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any(), any()) } returns updateResult
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$JSONLD_TYPE_TERM")
+            .header("Link", aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            entityService.appendEntityTypes(eq(entityId), listOf(breedingServiceType), false)
         }
     }
 
@@ -1394,7 +1526,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1405,11 +1537,12 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
-                eq(updateResult.updated),
+                eq(updateResult),
+                eq(false),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1434,7 +1567,6 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         verify { entityService.checkExistence(eq(entityId)) }
-        confirmVerified(entityService)
     }
 
     @Test
@@ -1464,7 +1596,7 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(entityId)
-            authorizationService.isUpdateAuthorized(entityId, deadFishesType, any<ExpandedTerm>(), sub)
+            authorizationService.isUpdateAuthorized(entityId, listOf(deadFishesType), any<ExpandedTerm>(), sub)
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
     }
@@ -1476,7 +1608,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
@@ -1500,10 +1632,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 eq(fishNumberAttribute),
                 sub
             )
@@ -1516,7 +1648,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns breedingServiceType
+        every { entityService.getEntityTypes(any()) } returns listOf(breedingServiceType)
         every {
             authorizationService.isUpdateAuthorized(entityId, any(), any<List<NgsiLdAttribute>>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:BreedingService:0214").left()
@@ -1543,7 +1675,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForUpdateAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
         } returns Unit.right()
@@ -1565,8 +1697,9 @@ class EntityHandlerTests {
         )
 
         mockkDefaultBehaviorForUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every { entityService.updateEntityAttributes(any(), any()) } returns updateResult
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1578,19 +1711,21 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 any<List<NgsiLdAttribute>>(),
                 eq(sub)
             )
+            entityService.appendEntityTypes(eq(entityId), eq(emptyList()))
             entityService.updateEntityAttributes(eq(entityId), any())
-            entityEventService.publishAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 eq(updateResult),
+                true,
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1605,6 +1740,7 @@ class EntityHandlerTests {
         val notUpdatedAttribute = NotUpdatedDetails("removedFrom", "Property is not valid")
 
         mockkDefaultBehaviorForUpdateAttribute()
+        every { entityService.appendEntityTypes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
         every {
             entityService.updateEntityAttributes(any(), any())
         } returns UpdateResult(
@@ -1613,7 +1749,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1622,6 +1758,37 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+    }
+
+    @Test
+    fun `entity attributes update should return a 207 if types could not be updated`() {
+        val jsonLdFile = ClassPathResource(
+            "/ngsild/aquac/fragments/DeadFishes_updateEntityAttributes_invalidType.json"
+        )
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        mockkDefaultBehaviorForUpdateAttribute()
+        every {
+            entityService.appendEntityTypes(any(), any())
+        } returns UpdateResult(
+            updated = emptyList(),
+            notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
+        )
+        every { entityService.updateEntityAttributes(any(), any()) } returns UpdateResult(emptyList(), emptyList())
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+
+        verify {
+            entityService.appendEntityTypes(eq(entityId), eq(listOf(breedingServiceType)))
+            entityService.updateEntityAttributes(eq(entityId), emptyList())
+        }
     }
 
     @Test
@@ -1693,7 +1860,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC").left()
@@ -1721,9 +1888,9 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
-        every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { authorizationService.isAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
 
@@ -1738,14 +1905,14 @@ class EntityHandlerTests {
             entityService.getEntityCoreProperties(eq(beehiveId))
             authorizationService.isAdminAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(sub)
             )
             entityService.deleteEntity(eq(beehiveId))
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -1779,8 +1946,8 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
-        every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
+        every { authorizationService.isAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1803,7 +1970,7 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(beehiveId) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isAdminAuthorized(beehiveId, any(), sub)
         } returns AccessDeniedException("User forbidden admin access to entity $beehiveId").left()
@@ -1826,7 +1993,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns Unit.right()
@@ -1848,10 +2015,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1886,10 +2053,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1924,10 +2091,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1966,7 +2133,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test
@@ -1989,7 +2155,6 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test
@@ -2010,13 +2175,12 @@ class EntityHandlerTests {
             )
 
         verify { entityEventService wasNot called }
-        confirmVerified(entityEventService)
     }
 
     @Test
     fun `it should not authorize user without write rights on entity to delete attributes`() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $beehiveId").left()

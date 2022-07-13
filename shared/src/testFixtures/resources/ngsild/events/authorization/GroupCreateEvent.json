@@ -1,7 +1,7 @@
 {
   "operationType": "ENTITY_CREATE",
   "entityId": "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
-  "entityType": "Group",
+  "entityTypes": ["Group"],
   "operationPayload": "{\"id\":\"urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb\",\"type\":\"Group\",\"name\":{\"type\":\"Property\",\"value\":\"EGM\"}}",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",

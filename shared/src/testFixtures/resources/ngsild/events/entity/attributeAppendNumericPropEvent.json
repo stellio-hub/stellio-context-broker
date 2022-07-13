@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "attributeName": "luminosity",
   "overwrite": true,
   "operationPayload": "{\"type\":\"Property\",\"observedBy\":{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Sensor:02\"},\"value\":120,\"observedAt\":\"2022-02-02T21:32:52.98601Z\",\"unitCode\":\"LUX\"}",

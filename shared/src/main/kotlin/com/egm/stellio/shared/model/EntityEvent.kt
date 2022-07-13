@@ -24,7 +24,7 @@ open class EntityEvent(
     val operationType: EventsType,
     open val sub: String?,
     open val entityId: URI,
-    open val entityType: String,
+    open val entityTypes: List<String>,
     open val contexts: List<String>
 ) {
     @JsonIgnore
@@ -38,10 +38,10 @@ open class EntityEvent(
 data class EntityCreateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val operationPayload: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_CREATE, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ENTITY_CREATE, sub, entityId, entityTypes, contexts) {
     override fun getEntity() = this.operationPayload
 }
 
@@ -49,10 +49,10 @@ data class EntityCreateEvent(
 data class EntityReplaceEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val operationPayload: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_REPLACE, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ENTITY_REPLACE, sub, entityId, entityTypes, contexts) {
     override fun getEntity() = this.operationPayload
 }
 
@@ -60,32 +60,32 @@ data class EntityReplaceEvent(
 data class EntityUpdateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_UPDATE, sub, entityId, entityType, contexts)
+) : EntityEvent(EventsType.ENTITY_UPDATE, sub, entityId, entityTypes, contexts)
 
 @JsonTypeName("ENTITY_DELETE")
 data class EntityDeleteEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_DELETE, sub, entityId, entityType, contexts)
+) : EntityEvent(EventsType.ENTITY_DELETE, sub, entityId, entityTypes, contexts)
 
 @JsonTypeName("ATTRIBUTE_APPEND")
 data class AttributeAppendEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val attributeName: String,
     val datasetId: URI?,
     val overwrite: Boolean = true,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, entityId, entityTypes, contexts) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -94,13 +94,13 @@ data class AttributeAppendEvent(
 data class AttributeReplaceEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val attributeName: String,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, entityId, entityTypes, contexts) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -109,13 +109,13 @@ data class AttributeReplaceEvent(
 data class AttributeUpdateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val attributeName: String,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, entityId, entityTypes, contexts) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -124,12 +124,12 @@ data class AttributeUpdateEvent(
 data class AttributeDeleteEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val attributeName: String,
     val datasetId: URI?,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, entityId, entityTypes, contexts) {
     override fun getAttribute() = this.attributeName
 }
 
@@ -137,11 +137,11 @@ data class AttributeDeleteEvent(
 data class AttributeDeleteAllInstancesEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityType: String,
+    override val entityTypes: List<String>,
     val attributeName: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, entityId, entityType, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, entityId, entityTypes, contexts) {
     override fun getAttribute() = this.attributeName
 }
 

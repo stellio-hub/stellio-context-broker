@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.model
 
 import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -36,7 +37,7 @@ data class Entity(
 
     @DynamicLabels
     @JsonProperty("@type")
-    val type: List<String>,
+    val types: List<ExpandedTerm>,
 
     @JsonIgnore
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
@@ -67,7 +68,7 @@ data class Entity(
     fun serializeCoreProperties(includeSysAttrs: Boolean): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = id.toString()
-        resultEntity[JSONLD_TYPE] = type
+        resultEntity[JSONLD_TYPE] = types
 
         if (includeSysAttrs) {
             resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(

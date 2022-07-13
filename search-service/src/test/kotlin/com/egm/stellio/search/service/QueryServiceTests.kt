@@ -5,7 +5,6 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -74,7 +73,7 @@ class QueryServiceTests {
                 listOf("incoming", "outgoing").map {
                     TemporalEntityAttribute(
                         entityId = entityUri,
-                        type = BEEHIVE_COMPACT_TYPE,
+                        types = listOf(BEEHIVE_TYPE),
                         attributeName = it,
                         attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                     )
@@ -126,7 +125,6 @@ class QueryServiceTests {
                     false
                 )
             }
-            confirmVerified(temporalEntityAttributeService, attributeInstanceService, temporalEntityService)
         }
 
     @Test
@@ -134,7 +132,7 @@ class QueryServiceTests {
         runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
-                type = BEEHIVE_COMPACT_TYPE,
+                types = listOf(BEEHIVE_TYPE),
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
@@ -200,7 +198,6 @@ class QueryServiceTests {
                     false
                 )
             }
-            confirmVerified(temporalEntityAttributeService, attributeInstanceService, temporalEntityService)
         }
 
     @Test
@@ -208,7 +205,7 @@ class QueryServiceTests {
         runTest {
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityUri,
-                type = BEEHIVE_COMPACT_TYPE,
+                types = listOf(BEEHIVE_TYPE),
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
@@ -256,6 +253,5 @@ class QueryServiceTests {
                     withAudit = false
                 )
             }
-            confirmVerified(temporalEntityService)
         }
 }

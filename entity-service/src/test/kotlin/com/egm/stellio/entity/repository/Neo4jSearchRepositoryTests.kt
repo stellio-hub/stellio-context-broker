@@ -34,7 +34,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -59,7 +59,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     private val userUri = (AuthContextModel.USER_PREFIX + sub.value).toUri()
     private val clientUri = "urn:ngsi-ld:Client:01".toUri()
     private val serviceAccountUri = userUri
-    private val expandedNameProperty = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
+    private val expandedNameProperty = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
     private val offset = 0
     private val limit = 20
 
@@ -402,7 +402,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         properties: MutableList<Property> = mutableListOf(),
         location: String? = null
     ): Entity {
-        val entity = Entity(id = id, type = type, properties = properties, location = location)
+        val entity = Entity(id = id, types = type, properties = properties, location = location)
         return entityRepository.save(entity)
     }
 

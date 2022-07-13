@@ -148,7 +148,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                "https://ontology.eglobalmark.com/apic#Apiary",
+                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
                 "name"
             )
         }
@@ -235,7 +235,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                "https://ontology.eglobalmark.com/apic#Apiary",
+                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
                 "name"
             )
         }
@@ -277,7 +277,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                "https://ontology.eglobalmark.com/apic#Apiary",
+                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
                 "name"
             )
         }
@@ -339,7 +339,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                "https://ontology.eglobalmark.com/apic#Apiary",
+                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
                 "name"
             )
         }
@@ -383,7 +383,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                "https://ontology.eglobalmark.com/apic#Apiary",
+                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
                 "name"
             )
         }

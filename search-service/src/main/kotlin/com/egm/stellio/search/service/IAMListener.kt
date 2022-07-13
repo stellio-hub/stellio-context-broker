@@ -79,7 +79,7 @@ class IAMListener(
         val groupsMemberships = extractGroupsMemberships(operationPayloadNode)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
-            subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase()),
+            subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase()),
             globalRoles = roles,
             serviceAccountId = serviceAccountId?.extractSub(),
             groupsMemberships = groupsMemberships
@@ -93,7 +93,7 @@ class IAMListener(
         val roles = extractRoles(operationPayloadNode)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
-            subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase()),
+            subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase()),
             globalRoles = roles
         )
 

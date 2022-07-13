@@ -10,6 +10,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -19,7 +20,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.withContext
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -61,7 +64,7 @@ class EntityHandler(
             entityEventService.publishEntityCreateEvent(
                 sub.orNull(),
                 ngsiLdEntity.id,
-                ngsiLdEntity.type,
+                ngsiLdEntity.types,
                 contexts
             )
 
@@ -156,7 +159,7 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             entityService.checkExistence(entityUri).bind()
-            authorizationService.isReadAuthorized(entityUri, entityService.getEntityType(entityUri), sub).bind()
+            authorizationService.isReadAuthorized(entityUri, entityService.getEntityTypes(entityUri), sub).bind()
 
             val jsonLdEntity = entityService.getFullEntityById(entityUri, queryParams.includeSysAttrs)
 
@@ -195,11 +198,11 @@ class EntityHandler(
             entityService.checkExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityService.getEntityCoreProperties(entityId.toUri())
-            authorizationService.isAdminAuthorized(entityUri, entity.type[0], sub).bind()
+            authorizationService.isAdminAuthorized(entityUri, entity.types, sub).bind()
 
             entityService.deleteEntity(entityUri)
 
-            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.type[0], entity.contexts)
+            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(
@@ -229,26 +232,35 @@ class EntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JSONLD_TYPE }
+            val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 ngsiLdAttributes,
                 sub
             ).bind()
 
-            val updateResult = entityService.appendEntityAttributes(
-                entityUri,
-                ngsiLdAttributes,
-                disallowOverwrite
-            )
+            val updateResult = withContext(Dispatchers.IO) {
+                entityService.appendEntityTypes(
+                    entityUri,
+                    typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+                ).mergeWith(
+                    entityService.appendEntityAttributes(
+                        entityUri,
+                        ngsiLdAttributes,
+                        disallowOverwrite
+                    )
+                )
+            }
 
             if (updateResult.updated.isNotEmpty()) {
-                entityEventService.publishAttributeAppendEvents(
+                entityEventService.publishAttributeChangeEvents(
                     sub.orNull(),
                     entityUri,
                     jsonLdAttributes,
                     updateResult,
+                    true,
                     contexts
                 )
             }
@@ -284,22 +296,31 @@ class EntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JSONLD_TYPE }
+            val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 ngsiLdAttributes,
                 sub
             ).bind()
 
-            val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
+            val updateResult = withContext(Dispatchers.IO) {
+                entityService.appendEntityTypes(
+                    entityUri,
+                    typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+                ).mergeWith(
+                    entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
+                )
+            }
 
             if (updateResult.updated.isNotEmpty()) {
-                entityEventService.publishAttributeUpdateEvents(
+                entityEventService.publishAttributeChangeEvents(
                     sub.orNull(),
                     entityUri,
                     jsonLdAttributes,
                     updateResult,
+                    true,
                     contexts
                 )
             }
@@ -336,36 +357,47 @@ class EntityHandler(
 
             val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
             val contexts = checkAndGetContext(httpHeaders, body)
-            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            val expandedPayload = expandJsonLdFragment(body, contexts)
+            val expandedAttrId = expandedPayload.keys.first()
+
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 expandedAttrId,
                 sub
             ).bind()
 
-            val expandedPayload = expandJsonLdFragment(body, contexts)
-
-            entityAttributeService.partialUpdateEntityAttribute(
-                entityUri,
-                expandedPayload as Map<String, List<Map<String, List<Any>>>>,
-                contexts
-            )
-                .let {
-                    if (it.updated.isEmpty())
-                        ResourceNotFoundException("Unknown attribute in entity $entityId").left()
-                    else {
-                        entityEventService.publishPartialAttributeUpdateEvents(
-                            sub.orNull(),
+            withContext(Dispatchers.IO) {
+                when (expandedAttrId) {
+                    JSONLD_TYPE ->
+                        entityService.appendEntityTypes(
                             entityUri,
-                            expandedPayload,
-                            it.updated,
+                            expandedPayload[JSONLD_TYPE] as List<ExpandedTerm>,
+                            false
+                        )
+                    else ->
+                        entityAttributeService.partialUpdateEntityAttribute(
+                            entityUri,
+                            expandedPayload as Map<String, List<Map<String, List<Any>>>>,
                             contexts
                         )
-
-                        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
-                    }.bind()
                 }
+            }.let {
+                if (it.updated.isEmpty())
+                    ResourceNotFoundException("Unknown attribute in entity $entityId").left()
+                else {
+                    entityEventService.publishAttributeChangeEvents(
+                        sub.orNull(),
+                        entityUri,
+                        expandedPayload,
+                        it,
+                        false,
+                        contexts
+                    )
+
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
+                }.bind()
+            }
         }.fold(
             { it.toErrorResponse() },
             { it }
@@ -391,10 +423,10 @@ class EntityHandler(
             entityService.checkExistence(entityUri).bind()
 
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            val expandedAttrId = expandJsonLdTerm(attrId, contexts)
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 expandedAttrId,
                 sub
             ).bind()

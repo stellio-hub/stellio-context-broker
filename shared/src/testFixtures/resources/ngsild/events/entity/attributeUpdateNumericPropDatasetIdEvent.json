@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "attributeName": "temperature",
   "datasetId": "urn:ngsi-ld:Dataset:WeatherApi",
   "operationPayload": "{\"datasetId\":\"urn:ngsi-ld:Dataset:WeatherApi\",\"value\":2,\"observedAt\":\"2021-12-08T10:20:30.98601Z\"}",

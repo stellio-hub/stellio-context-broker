@@ -18,7 +18,7 @@ class EntityTest {
 
     private val entity = Entity(
         id = "urn:ngsi-ld:beehive:01".toUri(),
-        type = listOf("Beehive"),
+        types = listOf("Beehive"),
         createdAt = Instant.now().atZone(ZoneOffset.UTC),
         modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
     )

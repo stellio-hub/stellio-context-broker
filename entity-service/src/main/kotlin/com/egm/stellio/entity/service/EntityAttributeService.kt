@@ -104,12 +104,12 @@ class EntityAttributeService(
         )
         return if (relationshipUpdates && attributesOfRelationshipUpdates)
             UpdateAttributeResult(
-                expandJsonLdTerm(relationshipType, contexts)!!,
+                expandJsonLdTerm(relationshipType, contexts),
                 datasetId,
                 UpdateOperationResult.UPDATED,
                 null
             ) else UpdateAttributeResult(
-            expandJsonLdTerm(relationshipType, contexts)!!,
+            expandJsonLdTerm(relationshipType, contexts),
             datasetId,
             UpdateOperationResult.FAILED,
             "Partial update operation failed to perform the whole update"
@@ -181,11 +181,11 @@ class EntityAttributeService(
                 }
                 neo4jRepository.hasPropertyInstance(
                     AttributeSubjectNode(attribute.id()),
-                    expandJsonLdTerm(attributeOfAttributeName, contexts)!!
+                    expandJsonLdTerm(attributeOfAttributeName, contexts)
                 ) -> {
                     val propertyOfAttribute = propertyRepository.getPropertyOfSubject(
                         attribute.id(),
-                        expandJsonLdTerm(attributeOfAttributeName, contexts)!!
+                        expandJsonLdTerm(attributeOfAttributeName, contexts)
                     )
                     partialUpdatePropertyOfAttribute(
                         propertyOfAttribute,
@@ -201,7 +201,7 @@ class EntityAttributeService(
                         entityService.createAttributeRelationships(attribute.id(), listOf(ngsiLdRelationship))
                     } else if (isAttributeOfType(it.value, JsonLdUtils.NGSILD_PROPERTY_TYPE)) {
                         val ngsiLdProperty = NgsiLdProperty(
-                            expandJsonLdTerm(attributeOfAttributeName, contexts)!!,
+                            expandJsonLdTerm(attributeOfAttributeName, contexts),
                             listOf(it.value)
                         )
                         entityService.createAttributeProperties(attribute.id(), listOf(ngsiLdProperty))

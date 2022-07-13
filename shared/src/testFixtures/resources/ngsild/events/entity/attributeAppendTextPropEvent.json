@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "attributeName": "name",
   "overwrite": true,
   "operationPayload": "{\"type\":\"Property\",\"value\":\"BeeHiveSophia\"}",

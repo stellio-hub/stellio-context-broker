@@ -1,7 +1,7 @@
 {
    "operationType":"ATTRIBUTE_APPEND",
    "entityId":"urn:ngsi-ld:BeeHive:TESTC",
-   "entityType": "BeeHive",
+   "entityTypes": ["BeeHive"],
    "attributeName":"humidity",
    "operationPayload":"{ \"value\":62, \"unitCode\": \"P1\", \"observedAt\": \"2019-11-26T22:35:52.98601Z\" }",
    "updatedEntity":"",

@@ -81,7 +81,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
                 it.entityId == beehiveTestDId &&
-                    it.type == BEEHIVE_TYPE &&
+                    it.types == listOf(BEEHIVE_TYPE) &&
                     it.attributeName == INCOMING_PROPERTY
             }
             .expectNextMatches {
@@ -217,6 +217,37 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             )
         }
         confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should update the types of a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.updateTemporalEntityTypes(
+                    beehiveTestCId,
+                    listOf(BEEHIVE_TYPE, APIARY_TYPE)
+                )
+            )
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet()))
+            .expectNextMatches {
+                it.types.size == 2 &&
+                    it.types.containsAll(listOf(BEEHIVE_TYPE, APIARY_TYPE))
+            }
+            .expectNextCount(2)
+            .expectComplete()
+            .verify()
     }
 
     @Test
@@ -381,7 +412,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.size == 3 &&
                     it.all { tea ->
-                        tea.type == BEEHIVE_TYPE &&
+                        tea.types == listOf(BEEHIVE_TYPE) &&
                             tea.attributeName in setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
                     }
             }
@@ -455,7 +486,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.size == 2 &&
                     it.all { tea ->
-                        tea.type == BEEHIVE_TYPE &&
+                        tea.types == listOf(BEEHIVE_TYPE) &&
                             tea.entityId == beehiveTestDId
                     }
             }
@@ -500,7 +531,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
                 it.size == 1 &&
-                    it[0].type == BEEHIVE_TYPE &&
+                    it[0].types == listOf(BEEHIVE_TYPE) &&
                     it[0].entityId == beehiveTestCId
             }
             .expectComplete()

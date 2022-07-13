@@ -36,7 +36,7 @@ object ParsingUtils {
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        entityInfo.type = JsonLdUtils.expandJsonLdTerm(entityInfo.type, contexts!!)!!
+        entityInfo.type = JsonLdUtils.expandJsonLdTerm(entityInfo.type, contexts!!)
         return entityInfo
     }
 

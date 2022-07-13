@@ -3,6 +3,7 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -40,6 +41,20 @@ class Neo4jRepository(
         """
 
         return neo4jClient.query(query).bind(id.toString()).to("id").run().counters().nodesDeleted()
+    }
+
+    fun addTypesToEntity(entityId: URI, types: List<ExpandedTerm>): Boolean {
+        val query =
+            """
+            MATCH (subject:Entity { id: ${'$'}subjectId })
+            CALL apoc.create.addLabels([id(subject)], [${types.joinToString { "'$it'" } }])
+            YIELD node
+            RETURN node
+        """
+
+        return neo4jClient.query(query)
+            .bind(entityId.toString()).to("subjectId")
+            .fetch().first().isPresent
     }
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): Boolean {

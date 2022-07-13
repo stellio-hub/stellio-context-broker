@@ -27,10 +27,8 @@ data class JsonLdEntity(
         (properties[JSONLD_ID] ?: InternalErrorException("Could not extract id from JSON-LD entity")) as String
     }
 
-    val type by lazy {
-        val types =
-            (properties[JSONLD_TYPE] ?: InternalErrorException("Could not extract type from JSON-LD entity"))
-                as List<String>
-        types.firstOrNull() ?: ""
+    val types by lazy {
+        (properties[JSONLD_TYPE] ?: InternalErrorException("Could not extract type from JSON-LD entity"))
+            as List<ExpandedTerm>
     }
 }

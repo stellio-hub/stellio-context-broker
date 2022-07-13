@@ -308,7 +308,7 @@ class SubscriptionService(
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)!!
+                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }
@@ -406,7 +406,7 @@ class SubscriptionService(
             .first()
     }
 
-    fun getMatchingSubscriptions(id: URI, type: String, updatedAttributes: String): Flux<Subscription> {
+    fun getMatchingSubscriptions(id: URI, types: List<String>, updatedAttributes: String): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
@@ -420,14 +420,14 @@ class SubscriptionService(
             AND id IN (
                 SELECT subscription_id
                 FROM entity_info
-                WHERE entity_info.type = :type
+                WHERE entity_info.type IN (:types)
                 AND (entity_info.id IS NULL OR entity_info.id = :id)
                 AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
             )
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("id", id)
-            .bind("type", type)
+            .bind("types", types)
             .bind("updatedAttributes", updatedAttributes)
             .bind("date", Instant.now().atZone(ZoneOffset.UTC))
             .map(rowToRawSubscription)

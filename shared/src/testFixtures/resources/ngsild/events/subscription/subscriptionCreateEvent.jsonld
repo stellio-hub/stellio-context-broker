@@ -1,6 +1,6 @@
 {
    "entityId":"urn:ngsi-ld:Subscription:04",
-   "entityType": "Subscription",
+   "entityTypes": ["Subscription"],
    "operationPayload":"{\"id\": \"urn:ngsi-ld:Subscription:04\",\"type\": \"Subscription\",\"q\": \"foodQuantity<150;foodName=='dietary fibres'\"}",
    "operationType":"ENTITY_CREATE",
    "contexts":[

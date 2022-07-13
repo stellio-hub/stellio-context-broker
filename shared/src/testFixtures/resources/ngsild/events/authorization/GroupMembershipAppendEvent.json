@@ -1,7 +1,7 @@
 {
   "operationType": "ATTRIBUTE_APPEND",
   "entityId": "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",
-  "entityType": "User",
+  "entityTypes": ["User"],
   "attributeName": "isMemberOf",
   "datasetId": "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435",
   "operationPayload": "{\"type\":\"Relationship\",\"datasetId\":\"urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435\",\"object\":\"urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435\"}",

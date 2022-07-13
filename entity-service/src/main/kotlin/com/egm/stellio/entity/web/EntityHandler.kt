@@ -92,11 +92,16 @@ class EntityHandler(
             contextLink
         )
 
-        if (queryParams.q.isNullOrEmpty() && queryParams.types.isNullOrEmpty() && queryParams.attrs.isNullOrEmpty())
+        if (
+            queryParams.ids.isNullOrEmpty() &&
+            queryParams.q.isNullOrEmpty() &&
+            queryParams.types.isNullOrEmpty() &&
+            queryParams.attrs.isNullOrEmpty()
+        )
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
-                        "one of 'q', 'type' and 'attrs' request parameters have to be specified"
+                        "one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
                     )
                 )
 

@@ -637,6 +637,49 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities with request parameter id should return 200`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.searchEntities(
+                QueryParams(
+                    ids = setOf(beehiveId),
+                    offset = 0,
+                    limit = 30
+                ),
+                any(),
+                any<String>()
+            )
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to beehiveId.toString(),
+                        "@type" to listOf("Beehive")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?id=$beehiveId")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """[
+                        {
+                            "id": "$beehiveId",
+                            "type": "Beehive",
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+    }
+
+    @Test
     fun `get entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
         every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
@@ -1100,7 +1143,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"one of 'q', 'type' and 'attrs' request parameters have to be specified"
+                    "detail":"one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
                 }
                 """.trimIndent()
             )

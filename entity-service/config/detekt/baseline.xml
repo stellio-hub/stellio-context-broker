@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>ComplexCondition:EntityHandler.kt$EntityHandler$queryParams.ids.isNullOrEmpty() &amp;&amp; queryParams.q.isNullOrEmpty() &amp;&amp; queryParams.types.isNullOrEmpty() &amp;&amp; queryParams.attrs.isNullOrEmpty()</ID>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LongMethod:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$@Test fun `get authorized entities should return entities I have a right on`()</ID>
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`()</ID>

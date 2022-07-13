@@ -361,6 +361,41 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         assertTrue(entities.containsAll(expectedEntitiesIds))
     }
 
+    @Test
+    fun `it should return matching entities requested by ids`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:03432".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(
+                ids = setOf("urn:ngsi-ld:Beekeeper:01232".toUri(), "urn:ngsi-ld:Beekeeper:03432".toUri()),
+                offset = offset,
+                limit = limit
+            ),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.containsAll(listOf(secondEntity.id, thirdEntity.id)))
+    }
+
     fun createEntity(
         id: URI,
         type: List<String>,

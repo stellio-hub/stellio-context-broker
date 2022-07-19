@@ -37,8 +37,8 @@ class NotificationService(
         updatedAttributes: Set<String>
     ): Mono<List<Triple<Subscription, Notification, Boolean>>> {
         val id = ngsiLdEntity.id
-        val type = ngsiLdEntity.type
-        return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
+        val types = ngsiLdEntity.types
+        return subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes.joinToString(separator = ","))
             .filter {
                 subscriptionService.isMatchingQuery(it.q?.decode(), rawEntity)
             }

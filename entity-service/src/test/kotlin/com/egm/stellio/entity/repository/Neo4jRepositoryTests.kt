@@ -58,7 +58,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertFalse(partialEntityRepository.existsById(beekeeperUri))
         assertTrue(entityRepository.existsById(beekeeperUri))
         val beekeeper = entityRepository.findById(beekeeperUri)
-        assertEquals(listOf("Beekeeper"), beekeeper.get().type)
+        assertEquals(listOf("Beekeeper"), beekeeper.get().types)
     }
 
     @Test
@@ -109,6 +109,22 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertTrue(persistedEntity.isPresent)
         val persistedProperty = persistedEntity.get().properties[0]
         assertEquals(mapOf("length" to 2, "height" to 12, "comment" to "none"), persistedProperty.value)
+    }
+
+    @Test
+    fun `it should add labels to an entity`() {
+        createEntity(beekeeperUri, listOf("Beekeeper"))
+
+        val updated = neo4jRepository.addTypesToEntity(
+            beekeeperUri,
+            listOf("Person", "https://ontology.eglobalmark.com/apic#Farmer")
+        )
+
+        assertTrue(updated)
+        val entityTypes = entityRepository.getEntityCoreById(beekeeperUri.toString())!!.types
+        assertEquals(3, entityTypes.size)
+        assertThat(listOf("Beekeeper", "Person", "https://ontology.eglobalmark.com/apic#Farmer"))
+            .containsAll(entityTypes)
     }
 
     @Test
@@ -1306,7 +1322,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
     fun createEntity(
         id: URI,
-        type: List<String>,
+        types: List<String>,
         properties: MutableList<Property> = mutableListOf(),
         location: String? = null,
         operationSpace: String? = null,
@@ -1314,7 +1330,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     ): Entity {
         val entity = Entity(
             id = id,
-            type = type,
+            types = types,
             properties = properties,
             location = location,
             operationSpace = operationSpace,

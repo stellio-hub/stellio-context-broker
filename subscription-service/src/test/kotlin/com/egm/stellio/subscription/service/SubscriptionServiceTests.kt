@@ -168,7 +168,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:88".toUri(),
-                "smartDoor",
+                listOf("smartDoor"),
                 "incoming"
             )
 
@@ -182,7 +182,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:77".toUri(),
-                "smartDoor",
+                listOf("smartDoor"),
                 "incoming"
             )
         StepVerifier.create(persistedSubscription)
@@ -195,7 +195,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "Beehive",
+                listOf("Beehive"),
                 "incoming"
             )
         StepVerifier.create(persistedSubscription)
@@ -460,7 +460,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:12345678".toUri(),
-                "Beekeeper",
+                listOf("Beekeeper"),
                 "incoming"
             )
 
@@ -474,7 +474,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:9876543".toUri(),
-                "Beekeeper",
+                listOf("Beekeeper"),
                 "incoming"
             )
 
@@ -490,7 +490,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:ABCD".toUri(),
-                "Beehive",
+                listOf("Beehive"),
                 "incoming"
             )
 
@@ -511,7 +511,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "Beehive",
+                listOf("Beehive"),
                 "incoming"
             )
 
@@ -525,7 +525,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "Beehive",
+                listOf("Beehive"),
                 "incoming"
             )
 
@@ -539,7 +539,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Sensor:1234567890".toUri(),
-                "Sensor",
+                listOf("Sensor"),
                 "incoming"
             )
 
@@ -553,7 +553,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:77".toUri(),
-                "smartDoor",
+                listOf("smartDoor"),
                 "incoming"
             )
 
@@ -569,7 +569,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:88".toUri(),
-                "smartDoor",
+                listOf("smartDoor"),
                 "incoming"
             )
 
@@ -593,7 +593,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "BeeHive",
+                listOf("BeeHive"),
                 "incoming"
             )
 
@@ -619,7 +619,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "BeeHive",
+                listOf("BeeHive"),
                 "incoming"
             )
 
@@ -645,7 +645,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                "BeeHive",
+                listOf("BeeHive"),
                 "incoming"
             )
 

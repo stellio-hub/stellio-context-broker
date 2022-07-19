@@ -4,7 +4,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.addCoreContextIfMissing
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -272,6 +274,36 @@ class JsonLdUtilsTests {
     }
 
     @Test
+    fun `it should return the core context if the list of contexts is empty`() {
+        val contexts = addCoreContextIfMissing(emptyList())
+        assertEquals(1, contexts.size)
+        assertEquals(listOf(NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should move the core context at last position if it is not last in the list of contexts`() {
+        val contexts = addCoreContextIfMissing(listOf(NGSILD_CORE_CONTEXT, APIC_COMPOUND_CONTEXT))
+        assertEquals(2, contexts.size)
+        assertEquals(listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should add the core context at last position if it is not in the list of contexts`() {
+        val contexts = addCoreContextIfMissing(listOf(NGSILD_EGM_CONTEXT))
+        assertEquals(2, contexts.size)
+        assertEquals(listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should not add the core context if it resolvable from the provided contexts`() {
+        val contexts = addCoreContextIfMissing(
+            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld")
+        )
+        assertEquals(1, contexts.size)
+        assertEquals(listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"), contexts)
+    }
+
+    @Test
     fun `it should compact and return a JSON entity`() {
         val entity =
             """
@@ -345,7 +377,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNull(
@@ -375,8 +407,8 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
-        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
+        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNotNull(

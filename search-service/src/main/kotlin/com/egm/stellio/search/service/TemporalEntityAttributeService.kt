@@ -40,17 +40,31 @@ class TemporalEntityAttributeService(
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id)
-            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_type, :attribute_value_type, :dataset_id)
+                (id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id)
+            VALUES (:id, :entity_id, :types, :attribute_name, :attribute_type, :attribute_value_type, :dataset_id)
             """.trimIndent()
         )
             .bind("id", temporalEntityAttribute.id)
             .bind("entity_id", temporalEntityAttribute.entityId)
-            .bind("type", temporalEntityAttribute.type)
+            .bind("types", temporalEntityAttribute.types.toTypedArray())
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
+            .fetch()
+            .rowsUpdated()
+
+    @Transactional
+    fun updateTemporalEntityTypes(entityId: URI, types: List<ExpandedTerm>): Mono<Int> =
+        databaseClient.sql(
+            """
+            UPDATE temporal_entity_attribute
+            SET types = :types
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("types", types.toTypedArray())
             .fetch()
             .rowsUpdated()
 
@@ -71,7 +85,7 @@ class TemporalEntityAttributeService(
                 val (expandedAttributeName, attributeMetadata) = it
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = ngsiLdEntity.id,
-                    type = ngsiLdEntity.type,
+                    types = ngsiLdEntity.types,
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,
@@ -254,7 +268,7 @@ class TemporalEntityAttributeService(
     ): Mono<List<TemporalEntityAttribute>> {
         val selectQuery =
             """
-                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE
             """.trimIndent()
@@ -312,7 +326,7 @@ class TemporalEntityAttributeService(
             else null
         val formattedTypes =
             if (queryParams.types.isNotEmpty())
-                queryParams.types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
+                queryParams.types.joinToString(separator = ",", prefix = "types && ARRAY[", postfix = "]") { "'$it'" }
             else null
         val formattedAttrs =
             if (queryParams.attrs.isNotEmpty())
@@ -329,7 +343,7 @@ class TemporalEntityAttributeService(
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
-                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
@@ -390,8 +404,8 @@ class TemporalEntityAttributeService(
         TemporalEntityAttribute(
             id = row["id"] as UUID,
             entityId = (row["entity_id"] as String).toUri(),
-            type = row["type"] as String,
-            attributeName = row["attribute_name"] as String,
+            types = (row["types"] as Array<ExpandedTerm>).toList(),
+            attributeName = row["attribute_name"] as ExpandedTerm,
             attributeType = TemporalEntityAttribute.AttributeType.valueOf(row["attribute_type"] as String),
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String

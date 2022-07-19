@@ -157,7 +157,7 @@ object QueryUtils {
                     """
                        EXISTS {
                            MATCH (entity)-[:HAS_VALUE]->(p:Property)
-                           WHERE p.name = '${expandJsonLdTerm(comparablePropertyPath[0], contexts)!!}'
+                           WHERE p.name = '${expandJsonLdTerm(comparablePropertyPath[0], contexts)}'
                            AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                        }
                     """.trimIndent()

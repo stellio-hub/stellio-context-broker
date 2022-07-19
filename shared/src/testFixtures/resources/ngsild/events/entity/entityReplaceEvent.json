@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "operationPayload": "{\"id\":\"urn:ngsi-ld:BeeHive:01\",\"type\":\"BeeHive\",\"humidity\":{\"type\":\"Property\",\"observedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-14T07:27:15.031664Z\",\"object\":\"urn:ngsi-ld:Sensor:02\"},\"createdAt\":\"2022-02-14T07:27:15.018709Z\",\"value\":60,\"observedAt\":\"2019-10-26T21:32:52.986010Z\",\"unitCode\":\"P1\"},\"temperature\":{\"type\":\"Property\",\"observedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-14T07:27:15.083398Z\",\"object\":\"urn:ngsi-ld:Sensor:01\"},\"createdAt\":\"2022-02-14T07:27:15.067964Z\",\"value\":22.2,\"observedAt\":\"2019-10-26T21:32:52.986010Z\",\"unitCode\":\"CEL\"},\"managedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-14T07:27:15.109131Z\",\"object\":\"urn:ngsi-ld:Beekeeper:01\"},\"createdAt\":\"2022-02-13T08:02:49.359316Z\",\"location\":{\"type\":\"GeoProperty\",\"value\":{\"type\":\"Point\",\"coordinates\":[24.30623,60.07966]}},\"modifiedAt\":\"2022-02-14T07:27:15.141078Z\"}",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"

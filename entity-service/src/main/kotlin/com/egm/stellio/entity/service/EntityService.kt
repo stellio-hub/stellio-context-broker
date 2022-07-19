@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactedGeoPropertyKey
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
@@ -31,7 +32,7 @@ class EntityService(
             throw AlreadyExistsException("Already Exists")
 
         val rawEntity =
-            Entity(id = ngsiLdEntity.id, type = listOf(ngsiLdEntity.type), contexts = ngsiLdEntity.contexts)
+            Entity(id = ngsiLdEntity.id, types = ngsiLdEntity.types, contexts = ngsiLdEntity.contexts)
         entityRepository.save(rawEntity)
         if (existsAsPartial(ngsiLdEntity.id))
             neo4jRepository.mergePartialWithNormalEntity(ngsiLdEntity.id)
@@ -230,9 +231,9 @@ class EntityService(
         )
     }
 
-    fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
+    fun getEntityCoreProperties(entityId: URI): Entity = entityRepository.getEntityCoreById(entityId.toString())!!
 
-    fun getEntityType(entityId: URI): ExpandedTerm = getEntityCoreProperties(entityId).type[0]
+    fun getEntityTypes(entityId: URI): List<ExpandedTerm> = getEntityCoreProperties(entityId).types
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
@@ -265,6 +266,52 @@ class EntityService(
         )
 
         return Pair(result.first, getFullEntitiesById(result.second, queryParams.includeSysAttrs))
+    }
+
+    @Transactional
+    fun appendEntityTypes(
+        entityId: URI,
+        types: List<ExpandedTerm>,
+        allowEmptyListOfTypes: Boolean = true
+    ): UpdateResult {
+        val currentTypes = getEntityTypes(entityId)
+        // when dealing with an entity update, list of types can be empty if no change of type is requested
+        if (currentTypes.sorted() == types.sorted() || types.isEmpty() && allowEmptyListOfTypes)
+            return UpdateResult(emptyList(), emptyList())
+        if (!types.containsAll(currentTypes)) {
+            val removedTypes = currentTypes.minus(types)
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE,
+                        updateOperationResult = UpdateOperationResult.FAILED,
+                        errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
+                    )
+                )
+            )
+        }
+
+        val newTypes = types.partition { currentTypes.contains(it) }.second
+        val result = neo4jRepository.addTypesToEntity(entityId, newTypes)
+        if (result)
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE,
+                        updateOperationResult = UpdateOperationResult.APPENDED
+                    )
+                )
+            )
+        else
+            return updateResultFromDetailedResult(
+                listOf(
+                    UpdateAttributeResult(
+                        attributeName = JSONLD_TYPE,
+                        updateOperationResult = UpdateOperationResult.FAILED,
+                        errorMessage = "Append operation has unexpectedly failed"
+                    )
+                )
+            )
     }
 
     @Transactional

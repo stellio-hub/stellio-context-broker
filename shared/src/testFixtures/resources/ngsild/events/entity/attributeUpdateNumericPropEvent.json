@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:BeeHive:01",
-  "entityType": "BeeHive",
+  "entityTypes": ["BeeHive"],
   "attributeName": "temperature",
   "operationPayload": "{\"value\":2,\"observedAt\":\"2021-12-08T10:20:30.98601Z\"}",
   "updatedEntity": "{\"id\":\"urn:ngsi-ld:BeeHive:01\",\"type\":\"BeeHive\",\"humidity\":{\"type\":\"Property\",\"observedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-12T08:36:59.455870Z\",\"object\":\"urn:ngsi-ld:Sensor:02\"},\"createdAt\":\"2022-02-12T08:36:59.448205Z\",\"value\":60,\"observedAt\":\"2019-10-26T21:32:52.986010Z\",\"unitCode\":\"P1\"},\"temperature\":{\"type\":\"Property\",\"observedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-12T08:38:17.094923Z\",\"object\":\"urn:ngsi-ld:Sensor:01\"},\"createdAt\":\"2022-02-12T08:38:17.045041Z\",\"value\":2,\"modifiedAt\":\"2022-02-12T08:39:39.923329Z\",\"observedAt\":\"2021-12-08T10:20:30.986010Z\",\"unitCode\":\"CEL\"},\"belongs\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-12T08:36:59.389815Z\",\"object\":\"urn:ngsi-ld:Apiary:01\"},\"managedBy\":{\"type\":\"Relationship\",\"createdAt\":\"2022-02-12T08:36:59.417938Z\",\"object\":\"urn:ngsi-ld:Beekeeper:01\"},\"createdAt\":\"2022-02-12T08:36:59.179446Z\",\"location\":{\"type\":\"GeoProperty\",\"value\":{\"type\":\"Point\",\"coordinates\":[24.30623,60.07966]}},\"modifiedAt\":\"2022-02-12T08:39:39.974642Z\"}",

@@ -33,7 +33,7 @@ class SubscriptionEventService(
         val event = EntityCreateEvent(
             sub,
             subscription.id,
-            subscription.type,
+            listOf(subscription.type),
             subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
             contexts
         )
@@ -52,7 +52,7 @@ class SubscriptionEventService(
         val event = EntityUpdateEvent(
             sub,
             subscriptionId,
-            subscription.type,
+            listOf(subscription.type),
             operationPayload,
             subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
             contexts
@@ -66,7 +66,7 @@ class SubscriptionEventService(
         val event = EntityDeleteEvent(
             sub,
             subscriptionId,
-            "Subscription",
+            listOf("Subscription"),
             contexts
         )
 
@@ -78,7 +78,7 @@ class SubscriptionEventService(
         val event = EntityCreateEvent(
             sub,
             notification.id,
-            notification.type,
+            listOf(notification.type),
             serializeObject(notification),
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
         )

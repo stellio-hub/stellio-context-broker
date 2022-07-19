@@ -3,6 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
@@ -11,6 +12,7 @@ import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_TERM
@@ -20,9 +22,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.slot
+import io.mockk.verify
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -100,7 +105,7 @@ class EntityServiceTests {
         val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
@@ -164,7 +169,7 @@ class EntityServiceTests {
         val createdRelationships = mutableListOf<Relationship>()
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
@@ -218,7 +223,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
@@ -253,7 +258,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns true
         every { neo4jRepository.createPropertyOfSubject(any(), capture(updatedInstances)) } returns true
@@ -303,7 +308,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
@@ -337,7 +342,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
         every { neo4jRepository.updateGeoPropertyOfEntity(any(), any(), any()) } returns 1
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
@@ -457,6 +462,93 @@ class EntityServiceTests {
                         it.observedAt?.toNgsiLdFormat() == "2019-12-18T10:45:44.248755Z"
                 }
             )
+        }
+    }
+
+    @Test
+    fun `it should append a type if the provided list does not remove an existing type`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedEntity
+        every { mockkedEntity.types } returns listOf(APIARY_TYPE)
+        every { neo4jRepository.addTypesToEntity(any(), any()) } returns true
+
+        val updateResult = entityService.appendEntityTypes(entityId, listOf(APIARY_TYPE, BEEHIVE_TYPE))
+
+        assertTrue(updateResult.isSuccessful())
+        assertThat(updateResult.updated)
+            .allMatch {
+                it.attributeName == JSONLD_TYPE &&
+                    it.datasetId == null &&
+                    it.updateOperationResult == UpdateOperationResult.APPENDED
+            }
+
+        verify {
+            entityRepository.getEntityCoreById(entityId.toString())
+            neo4jRepository.addTypesToEntity(entityId, listOf(BEEHIVE_TYPE))
+        }
+    }
+
+    @Test
+    fun `it should not try to append a type if the provided list is equal to existing types`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedEntity
+        every { mockkedEntity.types } returns listOf(APIARY_TYPE)
+
+        val updateResult = entityService.appendEntityTypes(entityId, listOf(APIARY_TYPE))
+
+        assertThat(updateResult.updated).isEmpty()
+        assertThat(updateResult.notUpdated).isEmpty()
+
+        verify {
+            entityRepository.getEntityCoreById(entityId.toString())
+        }
+    }
+
+    @Test
+    fun `it should not append a type if the provided list removes an existing type`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedEntity
+        every { mockkedEntity.types } returns listOf(APIARY_TYPE)
+
+        val updateResult = entityService.appendEntityTypes(entityId, listOf(BEEHIVE_TYPE))
+
+        assertFalse(updateResult.isSuccessful())
+        assertThat(updateResult.notUpdated)
+            .allMatch {
+                it.attributeName == JSONLD_TYPE &&
+                    it.reason == "A type cannot be removed from an entity: [$APIARY_TYPE] have been removed"
+            }
+
+        verify { entityRepository.getEntityCoreById(entityId.toString()) }
+    }
+
+    @Test
+    fun `it should return a failed status if appending a type has unexpectedly failed`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedEntity
+        every { mockkedEntity.types } returns listOf(APIARY_TYPE)
+        every { neo4jRepository.addTypesToEntity(any(), any()) } returns false
+
+        val updateResult = entityService.appendEntityTypes(entityId, listOf(APIARY_TYPE, BEEHIVE_TYPE))
+
+        assertFalse(updateResult.isSuccessful())
+        assertThat(updateResult.notUpdated)
+            .allMatch {
+                it.attributeName == JSONLD_TYPE &&
+                    it.reason == "Append operation has unexpectedly failed"
+            }
+
+        verify {
+            entityRepository.getEntityCoreById(entityId.toString())
+            neo4jRepository.addTypesToEntity(entityId, listOf(BEEHIVE_TYPE))
         }
     }
 

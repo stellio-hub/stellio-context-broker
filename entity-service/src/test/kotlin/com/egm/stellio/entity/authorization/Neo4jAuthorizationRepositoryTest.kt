@@ -798,7 +798,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {
-        val entity = Entity(id = id, type = type, properties = properties)
+        val entity = Entity(id = id, types = type, properties = properties)
         return entityRepository.save(entity)
     }
 

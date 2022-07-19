@@ -5,7 +5,6 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -49,12 +48,11 @@ class SubscriptionEventListenerServiceTest {
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri() &&
-                        entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
+                        entityTemporalProperty.types == listOf("https://uri.etsi.org/ngsi-ld/Subscription")
                 }
             )
             entityAccessRightsService.setAdminRoleOnEntity(null, "urn:ngsi-ld:Subscription:04".toUri())
         }
-        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test
@@ -88,7 +86,6 @@ class SubscriptionEventListenerServiceTest {
                 }
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -104,7 +101,5 @@ class SubscriptionEventListenerServiceTest {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))
             entityAccessRightsService.removeRolesOnEntity(eq("urn:ngsi-ld:Subscription:04".toUri()))
         }
-
-        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 }

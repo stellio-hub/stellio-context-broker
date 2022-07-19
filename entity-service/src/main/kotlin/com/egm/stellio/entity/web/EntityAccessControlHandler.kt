@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -192,11 +193,12 @@ class EntityAccessControlHandler(
         val appendResult = updateResultFromDetailedResult(results)
 
         if (appendResult.updated.isNotEmpty())
-            entityEventService.publishAttributeAppendEvents(
+            entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),
                 subjectId.toUri(),
                 jsonLdAttributes,
                 appendResult,
+                true,
                 contexts
             )
 
@@ -264,14 +266,12 @@ class EntityAccessControlHandler(
                 }
 
                 if (updateResult.updated.isNotEmpty()) {
-                    entityEventService.publishAttributeAppendEvent(
+                    entityEventService.publishAttributeChangeEvents(
                         sub.orNull(),
                         entityUri,
-                        AUTH_TERM_SAP,
-                        null,
+                        expandedPayload,
+                        updateResult,
                         true,
-                        body,
-                        updateResult.updated[0].updateOperationResult,
                         COMPOUND_AUTHZ_CONTEXT
                     )
 
@@ -364,7 +364,7 @@ class EntityAccessControlHandler(
             .map { it.second }
             .flatten()
             .forEach { jsonLdEntity ->
-                logger.debug("Preparing events for subject: ${jsonLdEntity.id} (${jsonLdEntity.type}")
+                logger.debug("Preparing events for subject: ${jsonLdEntity.id} (${jsonLdEntity.types}")
                 // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
                     listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
@@ -386,7 +386,7 @@ class EntityAccessControlHandler(
                 val iamEvent = EntityCreateEvent(
                     sub.orNull(),
                     jsonLdEntity.id.toUri(),
-                    jsonLdEntity.type.toCompactTerm(),
+                    compactTerms(jsonLdEntity.types, COMPOUND_AUTHZ_CONTEXT),
                     updatedEntity,
                     COMPOUND_AUTHZ_CONTEXT
                 )
@@ -441,7 +441,7 @@ class EntityAccessControlHandler(
         return AttributeAppendEvent(
             sub,
             jsonLdEntity.id.toUri(),
-            jsonLdEntity.type.toCompactTerm(),
+            compactTerms(jsonLdEntity.types, COMPOUND_AUTHZ_CONTEXT),
             attribute.toCompactTerm(),
             datasetId,
             true,

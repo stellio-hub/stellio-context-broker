@@ -116,8 +116,6 @@ class TemporalEntityOperationsHandlerTests {
                 any()
             )
         }
-
-        confirmVerified(queryService)
     }
 
     @Test

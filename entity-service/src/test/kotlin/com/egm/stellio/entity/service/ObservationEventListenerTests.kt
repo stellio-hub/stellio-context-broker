@@ -42,7 +42,8 @@ class ObservationEventListenerTests {
             entityService.createEntity(
                 match {
                     it.id == expectedEntityId &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types.size == 1 &&
+                        it.types[0] == BEEHIVE_TYPE &&
                         it.relationships.size == 2 &&
                         it.properties.size == 2 &&
                         it.geoProperties.size == 1
@@ -54,7 +55,7 @@ class ObservationEventListenerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -75,7 +76,7 @@ class ObservationEventListenerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -87,16 +88,17 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishPartialAttributeUpdateEvents(
+            entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
                 match { it.containsKey(TEMPERATURE_PROPERTY) },
                 match {
-                    it.size == 1 &&
-                        it[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it[0].datasetId == expectedTemperatureDatasetId &&
-                        it[0].updateOperationResult == UpdateOperationResult.UPDATED
+                    it.updated.size == 1 &&
+                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it.updated[0].datasetId == expectedTemperatureDatasetId &&
+                        it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
+                eq(false),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -117,11 +119,9 @@ class ObservationEventListenerTests {
             emptyList()
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        every { mockedJsonLdEntity.type } returns BEEHIVE_TYPE
+        every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
         every {
-            entityEventService.publishAttributeAppendEvent(
-                any(), any(), any(), any(), any(), any(), any(), any()
-            )
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } just Runs
 
         observationEventListener.processMessage(observationEvent)
@@ -138,14 +138,19 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishAttributeAppendEvent(
+            entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
-                eq(TEMPERATURE_COMPACT_PROPERTY),
-                eq(expectedTemperatureDatasetId),
+                match {
+                    it.containsKey(TEMPERATURE_PROPERTY)
+                },
+                match {
+                    it.updated.size == 1 &&
+                        it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED &&
+                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it.updated[0].datasetId == expectedTemperatureDatasetId
+                },
                 eq(true),
-                any(),
-                eq(UpdateOperationResult.APPENDED),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -159,8 +164,6 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 
     @Test
@@ -177,8 +180,6 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 
     @Test
@@ -195,7 +196,5 @@ class ObservationEventListenerTests {
 
         verify { entityService wasNot called }
         verify { entityEventService wasNot called }
-
-        confirmVerified(entityService, entityEventService)
     }
 }

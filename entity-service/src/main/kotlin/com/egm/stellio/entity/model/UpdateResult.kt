@@ -13,6 +13,13 @@ data class UpdateResult(
     fun isSuccessful(): Boolean =
         notUpdated.isEmpty() &&
             updated.all { it.updateOperationResult.isSuccessResult() }
+
+    @JsonIgnore
+    fun mergeWith(other: UpdateResult): UpdateResult =
+        UpdateResult(
+            updated = this.updated.plus(other.updated),
+            notUpdated = this.notUpdated.plus(other.notUpdated)
+        )
 }
 
 data class NotUpdatedDetails(
@@ -31,7 +38,7 @@ data class UpdatedDetails(
 
 data class UpdateAttributeResult(
     val attributeName: String,
-    val datasetId: URI?,
+    val datasetId: URI? = null,
     val updateOperationResult: UpdateOperationResult,
     val errorMessage: String? = null
 ) {

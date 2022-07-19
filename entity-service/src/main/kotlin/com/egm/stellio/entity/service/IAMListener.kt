@@ -107,7 +107,7 @@ class IAMListener(
             expandJsonLdTerm(
                 authorizationEvent.attributeName,
                 authorizationEvent.contexts
-            )!!,
+            ),
             authorizationEvent.datasetId
         ).also {
             if (it) {

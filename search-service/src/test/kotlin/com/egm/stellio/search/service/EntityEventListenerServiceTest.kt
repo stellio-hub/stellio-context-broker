@@ -241,7 +241,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == NAME_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -279,7 +279,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == LUMINOSITY_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
@@ -328,7 +328,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == TEMPERATURE_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
@@ -375,7 +375,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == CREATED_BY_RELATIONSHIP &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Relationship &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
@@ -397,6 +397,30 @@ class EntityEventListenerServiceTest {
             )
         }
         confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
+    }
+
+    @Test
+    fun `it should handle an ATTRIBUTE_APPEND event for a type`() {
+        val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendTypeEvent.json")
+
+        every { temporalEntityAttributeService.updateTemporalEntityTypes(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        entityEventListenerService.processMessage(attributeAppendEventPayload)
+
+        verify {
+            temporalEntityAttributeService.updateTemporalEntityTypes(
+                eq(expectedEntityId.toUri()),
+                match {
+                    it.containsAll(listOf(BEEHIVE_TYPE, APIARY_TYPE))
+                }
+            )
+            entityPayloadService.upsertEntityPayload(
+                eq(expectedEntityId.toUri()),
+                match { it.contains(expectedEntityId) }
+            )
+        }
+        confirmVerified(temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -443,7 +467,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types == listOf(BEEHIVE_TYPE) &&
                         it.attributeName == TEMPERATURE_PROPERTY &&
                         it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&

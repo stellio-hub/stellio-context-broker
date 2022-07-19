@@ -306,7 +306,7 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(3, countAndAuthorizedEntities.second.size)
         assertTrue(
             countAndAuthorizedEntities.second.all {
-                it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
+                it.types == listOf("Beekeeper") && it.properties.containsKey(AUTH_PROP_RIGHT)
             }
         )
         assertTrue {

@@ -31,7 +31,7 @@ class ApiTestsBootstrapper(
         if (apiTestsUser == null) {
             val entity = Entity(
                 id = ngsiLdUserId,
-                type = listOf(USER_TYPE),
+                types = listOf(USER_TYPE),
                 contexts = COMPOUND_AUTHZ_CONTEXT,
                 properties = mutableListOf(
                     Property(

@@ -401,7 +401,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
                     offset = 0,
-                    limit = 30,
+                    limit = 2,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)

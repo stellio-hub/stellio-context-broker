@@ -268,21 +268,27 @@ class TemporalEntityAttributeService(
     ): Mono<List<TemporalEntityAttribute>> {
         val selectQuery =
             """
+                WITH entities AS (
+                    SELECT distinct(entity_id)
+                    FROM temporal_entity_attribute
+                    GROUP BY entity_id
+                    limit :limit
+                    offset :offset
+                )
                 SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
-                WHERE
+                WHERE entity_id IN (SELECT entity_id FROM entities)
             """.trimIndent()
 
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
-            accessRightFilter
+            accessRightFilter,
+            " AND "
         )
         val finalQuery = """
             $selectQuery
             $filterQuery
             ORDER BY entity_id
-            limit :limit
-            offset :offset
         """.trimIndent()
         return databaseClient
             .sql(finalQuery)
@@ -306,7 +312,8 @@ class TemporalEntityAttributeService(
 
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
-            accessRightFilter
+            accessRightFilter,
+            ""
         )
         return databaseClient
             .sql("$selectStatement $filterQuery")
@@ -319,6 +326,7 @@ class TemporalEntityAttributeService(
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,
         accessRightFilter: () -> String?,
+        prefix: String
     ): String {
         val formattedIds =
             if (queryParams.ids.isNotEmpty())
@@ -337,7 +345,7 @@ class TemporalEntityAttributeService(
             else null
 
         return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
-            .joinToString(" AND ")
+            .joinToString(separator = " AND ", prefix = prefix)
     }
 
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {

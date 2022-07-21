@@ -266,32 +266,36 @@ class TemporalEntityAttributeService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<List<TemporalEntityAttribute>> {
-        val selectQuery =
-            """
-                WITH entities AS (
-                    SELECT distinct(entity_id)
-                    FROM temporal_entity_attribute
-                    GROUP BY entity_id
-                    limit :limit
-                    offset :offset
-                )
-                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
-                FROM temporal_entity_attribute            
-                WHERE entity_id IN (SELECT entity_id FROM entities)
-            """.trimIndent()
-
         val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        )
+
+        val filterQueryWithPrefix = buildEntitiesQueryFilter(
             queryParams,
             accessRightFilter,
             " AND "
         )
-        val finalQuery = """
-            $selectQuery
-            $filterQuery
-            ORDER BY entity_id
-        """.trimIndent()
+
+        val selectQuery =
+            """
+                WITH entities AS (
+                    SELECT entity_id
+                    FROM temporal_entity_attribute
+                    WHERE $filterQuery
+                    ORDER BY entity_id
+                    limit :limit
+                    offset :offset
+                    
+                )
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
+                FROM temporal_entity_attribute            
+                WHERE entity_id IN (SELECT entity_id FROM entities) $filterQueryWithPrefix
+                ORDER BY entity_id
+            """.trimIndent()
+
         return databaseClient
-            .sql(finalQuery)
+            .sql(selectQuery)
             .bind("limit", queryParams.limit)
             .bind("offset", queryParams.offset)
             .fetch()
@@ -312,8 +316,7 @@ class TemporalEntityAttributeService(
 
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
-            accessRightFilter,
-            ""
+            accessRightFilter
         )
         return databaseClient
             .sql("$selectStatement $filterQuery")
@@ -326,7 +329,7 @@ class TemporalEntityAttributeService(
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,
         accessRightFilter: () -> String?,
-        prefix: String
+        prefix: String = ""
     ): String {
         val formattedIds =
             if (queryParams.ids.isNotEmpty())

@@ -266,26 +266,35 @@ class TemporalEntityAttributeService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<List<TemporalEntityAttribute>> {
-        val selectQuery =
-            """
-                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
-                FROM temporal_entity_attribute            
-                WHERE
-            """.trimIndent()
-
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
             accessRightFilter
         )
-        val finalQuery = """
-            $selectQuery
-            $filterQuery
-            ORDER BY entity_id
-            limit :limit
-            offset :offset
-        """.trimIndent()
+
+        val filterOnAttributesQuery = buildEntitiesQueryFilter(
+            queryParams.copy(ids = emptySet(), types = emptySet()),
+            accessRightFilter,
+            " AND "
+        )
+
+        val selectQuery =
+            """
+                WITH entities AS (
+                    SELECT DISTINCT(entity_id)
+                    FROM temporal_entity_attribute
+                    WHERE $filterQuery
+                    ORDER BY entity_id
+                    LIMIT :limit
+                    OFFSET :offset   
+                )
+                SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
+                FROM temporal_entity_attribute            
+                WHERE entity_id IN (SELECT entity_id FROM entities) $filterOnAttributesQuery
+                ORDER BY entity_id
+            """.trimIndent()
+
         return databaseClient
-            .sql(finalQuery)
+            .sql(selectQuery)
             .bind("limit", queryParams.limit)
             .bind("offset", queryParams.offset)
             .fetch()
@@ -319,6 +328,7 @@ class TemporalEntityAttributeService(
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,
         accessRightFilter: () -> String?,
+        prefix: String = ""
     ): String {
         val formattedIds =
             if (queryParams.ids.isNotEmpty())
@@ -337,7 +347,7 @@ class TemporalEntityAttributeService(
             else null
 
         return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
-            .joinToString(" AND ")
+            .joinToString(separator = " AND ", prefix = prefix)
     }
 
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {

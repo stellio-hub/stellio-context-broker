@@ -271,7 +271,7 @@ class TemporalEntityAttributeService(
             accessRightFilter
         )
 
-        val filterQueryWithPrefix = buildEntitiesQueryFilter(
+        val filterOnAttributesQuery = buildEntitiesQueryFilter(
             queryParams.copy(ids = emptySet(), types = emptySet()),
             accessRightFilter,
             " AND "
@@ -280,17 +280,16 @@ class TemporalEntityAttributeService(
         val selectQuery =
             """
                 WITH entities AS (
-                    SELECT entity_id, types, attribute_name
+                    SELECT DISTINCT(entity_id)
                     FROM temporal_entity_attribute
                     WHERE $filterQuery
                     ORDER BY entity_id
-                    limit :limit
-                    offset :offset
-                    
+                    LIMIT :limit
+                    OFFSET :offset   
                 )
                 SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
-                WHERE entity_id IN (SELECT entity_id FROM entities) $filterQueryWithPrefix
+                WHERE entity_id IN (SELECT entity_id FROM entities) $filterOnAttributesQuery
                 ORDER BY entity_id
             """.trimIndent()
 

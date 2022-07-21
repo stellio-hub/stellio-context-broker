@@ -451,6 +451,43 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve the temporal attributes of entities with respect to idPattern`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 1,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    idPattern = ".*urn:ngsi-ld:BeeHive:TESTD.*"
+                )
+            ) { null }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 2 &&
+                    it.all { tea ->
+                        tea.types == listOf(BEEHIVE_TYPE) &&
+                            tea.entityId == beehiveTestDId
+                    }
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should retrieve the temporal attributes of entities according to access rights`() {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")

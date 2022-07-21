@@ -272,7 +272,7 @@ class TemporalEntityAttributeService(
         )
 
         val filterOnAttributesQuery = buildEntitiesQueryFilter(
-            queryParams.copy(ids = emptySet(), types = emptySet()),
+            queryParams.copy(ids = emptySet(), idPattern = null, types = emptySet()),
             accessRightFilter,
             " AND "
         )
@@ -334,6 +334,10 @@ class TemporalEntityAttributeService(
             if (queryParams.ids.isNotEmpty())
                 queryParams.ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
             else null
+        val formattedIdPattern =
+            if (!queryParams.idPattern.isNullOrEmpty())
+                "entity_id ~ '${queryParams.idPattern}'"
+            else null
         val formattedTypes =
             if (queryParams.types.isNotEmpty())
                 queryParams.types.joinToString(separator = ",", prefix = "types && ARRAY[", postfix = "]") { "'$it'" }
@@ -346,7 +350,7 @@ class TemporalEntityAttributeService(
                 ) { "'$it'" }
             else null
 
-        return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
+        return listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
             .joinToString(separator = " AND ", prefix = prefix)
     }
 

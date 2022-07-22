@@ -40,19 +40,24 @@ class EntityEventListenerService(
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_search")
     fun processMessage(content: String) {
         logger.debug("Processing message: $content")
-        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
-            is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
-            is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
-            is AttributeAppendEvent ->
-                when (entityEvent.attributeName) {
-                    JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
-                    else -> handleAttributeAppendEvent(entityEvent)
-                }
-            is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
-            is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
-            is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
-            is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
+        kotlin.runCatching {
+            when (val entityEvent = deserializeAs<EntityEvent>(content)) {
+                is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
+                is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
+                is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
+                is AttributeAppendEvent ->
+                    when (entityEvent.attributeName) {
+                        JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
+                        else -> handleAttributeAppendEvent(entityEvent)
+                    }
+                is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
+                is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
+                is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
+                is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
+                else -> logger.warn("Entity event ${entityEvent.operationType} not handled.")
+            }
+        }.onFailure {
+            logger.warn("Entity event processing has failed: ${it.message}", it)
         }
     }
 

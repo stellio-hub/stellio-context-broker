@@ -83,6 +83,9 @@ class QueryService(
                     it.value.toMap()
                 }
                 .toList()
+                // the ordering made when searching matching temporal entity attributes is lost
+                // since we are now iterating over the map of TEAs with their instances
+                .sortedBy { it.first }
 
         val count = temporalEntityAttributeService.getCountForEntities(
             temporalEntitiesQuery.queryParams,

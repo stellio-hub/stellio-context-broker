@@ -346,12 +346,18 @@ class TemporalEntityAttributeService(
             if (queryParams.attrs.isNotEmpty())
                 queryParams.attrs.joinToString(
                     separator = ",",
-                    prefix = "attribute_name in (", postfix = ")"
+                    prefix = "attribute_name in (", 
+                    postfix = ")"
                 ) { "'$it'" }
             else null
 
-        return listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
-            .joinToString(separator = " AND ", prefix = prefix)
+        val queryFilter =
+            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
+
+        return if (queryFilter.isNullOrEmpty())
+            queryFilter.joinToString(separator = " AND ")
+        else
+            queryFilter.joinToString(separator = " AND ", prefix = prefix)
     }
 
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {

@@ -421,6 +421,45 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve the temporal attributes of entities without queryParams attrs`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 1,
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE)
+                )
+            ) { null }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 3 &&
+                    it.all { tea ->
+                        tea.types == listOf(BEEHIVE_TYPE) &&
+                            tea.attributeName in setOf(
+                            INCOMING_PROPERTY,
+                            "https://ontology.eglobalmark.com/egm#connectsTo",
+                            "https://schema.org/name"
+                        )
+                    }
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should retrieve the temporal attributes of entities with respect to limit and offset`() {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")

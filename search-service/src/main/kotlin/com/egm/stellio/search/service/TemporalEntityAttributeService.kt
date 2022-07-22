@@ -346,7 +346,7 @@ class TemporalEntityAttributeService(
             if (queryParams.attrs.isNotEmpty())
                 queryParams.attrs.joinToString(
                     separator = ",",
-                    prefix = "attribute_name in (", 
+                    prefix = "attribute_name in (",
                     postfix = ")"
                 ) { "'$it'" }
             else null

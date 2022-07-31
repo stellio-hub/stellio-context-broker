@@ -1,8 +1,8 @@
 package com.egm.stellio.search.service
 
-import arrow.core.None
-import arrow.core.Some
-import arrow.core.flattenOption
+import arrow.core.*
+import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -31,31 +31,53 @@ class IAMListener(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @KafkaListener(topics = ["cim.iam"], groupId = "search-iam")
-    fun processIam(content: String) {
+    suspend fun processIam(content: String) {
         logger.debug("Received IAM event: $content")
-        when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
+        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
+        when (authorizationEvent) {
             is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
             is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
             is AttributeAppendEvent -> updateSubjectProfile(authorizationEvent)
-            is AttributeReplaceEvent -> logger.debug("Not interested in attribute replace events for IAM events")
+            is AttributeReplaceEvent -> "Not interested in attribute replace events for IAM events".right()
             is AttributeDeleteEvent -> removeSubjectFromGroup(authorizationEvent)
-            else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
-        }
+            else -> "Authorization event ${authorizationEvent.operationType} not handled.".right()
+        }.fold({
+            logger.error(
+                "Error while handling event ${authorizationEvent.operationType}" +
+                    " for entity ${authorizationEvent.entityId}: $it"
+            )
+        }, {
+            logger.debug(
+                "Successfully handled event ${authorizationEvent.operationType}" +
+                    " for entity ${authorizationEvent.entityId}"
+            )
+        })
     }
 
     @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
-    fun processIamRights(content: String) {
+    suspend fun processIamRights(content: String) {
         logger.debug("Received IAM rights event: $content")
-        when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
+        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
+        when (authorizationEvent) {
             is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
             is AttributeReplaceEvent -> handleAttributeReplaceOnRights(authorizationEvent)
             is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
-            else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
-        }
+            else -> "Authorization event ${authorizationEvent.operationType} not handled.".right()
+        }.fold({
+            logger.error(
+                "Error while handling event ${authorizationEvent.operationType}" +
+                    " for entity ${authorizationEvent.entityId}: $it"
+            )
+        }, {
+            logger.debug(
+                "Successfully handled event ${authorizationEvent.operationType}" +
+                    " for entity ${authorizationEvent.entityId}"
+            )
+        })
     }
 
     @KafkaListener(topics = ["cim.iam.replay"], groupId = "search-iam-replay")
-    fun processIamReplay(content: String) {
+    suspend fun processIamReplay(content: String) {
         logger.debug("Received IAM replay event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
@@ -69,7 +91,7 @@ class IAMListener(
         }
     }
 
-    private fun createFullSubjectReferential(entityCreateEvent: EntityCreateEvent) {
+    private suspend fun createFullSubjectReferential(entityCreateEvent: EntityCreateEvent) {
         val operationPayloadNode = mapper.readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val serviceAccountId =
@@ -85,10 +107,15 @@ class IAMListener(
             groupsMemberships = groupsMemberships
         )
 
-        subjectReferentialService.create(subjectReferential).subscribe()
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                logger.warn("Error while creating full subject referential for ${entityCreateEvent.entityId} ($it)")
+            }, {
+                logger.debug("Created full subject referential for ${entityCreateEvent.entityId}")
+            })
     }
 
-    private fun createSubjectReferential(entityCreateEvent: EntityCreateEvent) {
+    private suspend fun createSubjectReferential(entityCreateEvent: EntityCreateEvent): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val subjectReferential = SubjectReferential(
@@ -97,7 +124,7 @@ class IAMListener(
             globalRoles = roles
         )
 
-        subjectReferentialService.create(subjectReferential).subscribe()
+        return subjectReferentialService.create(subjectReferential)
     }
 
     private fun extractGroupsMemberships(operationPayloadNode: JsonNode): List<Sub>? =
@@ -124,49 +151,49 @@ class IAMListener(
             }
         } else null
 
-    private fun deleteSubjectReferential(entityDeleteEvent: EntityDeleteEvent) {
+    private suspend fun deleteSubjectReferential(entityDeleteEvent: EntityDeleteEvent): Either<APIException, Unit> =
         subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
-            .subscribe {
-                logger.debug("Deleted subject ${entityDeleteEvent.entityId}")
-            }
-    }
 
-    private fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent) {
+    private suspend fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
         val subjectUuid = attributeAppendEvent.entityId.extractSub()
-        if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
-            val newRoles = (operationPayloadNode[JSONLD_VALUE] as ArrayNode).map {
-                GlobalRole.forKey(it.asText())
-            }.flattenOption()
-            if (newRoles.isNotEmpty())
-                subjectReferentialService.setGlobalRoles(subjectUuid, newRoles).subscribe()
-            else
-                subjectReferentialService.resetGlobalRoles(subjectUuid).subscribe()
-        } else if (attributeAppendEvent.attributeName == AUTH_TERM_SID) {
-            val serviceAccountId = operationPayloadNode[JSONLD_VALUE].asText()
-            subjectReferentialService.addServiceAccountIdToClient(
-                subjectUuid,
-                serviceAccountId.extractSub()
-            ).subscribe()
-        } else if (attributeAppendEvent.attributeName == AUTH_TERM_IS_MEMBER_OF) {
-            val groupId = operationPayloadNode["object"].asText()
-            subjectReferentialService.addGroupMembershipToUser(
-                subjectUuid,
-                groupId.extractSub()
-            ).subscribe()
-        } else {
-            logger.info("Received unknown attribute name: ${attributeAppendEvent.attributeName}")
-        }
+        val updateResult =
+            if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
+                val newRoles = (operationPayloadNode[JSONLD_VALUE] as ArrayNode).map {
+                    GlobalRole.forKey(it.asText())
+                }.flattenOption()
+                if (newRoles.isNotEmpty())
+                    subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
+                else
+                    subjectReferentialService.resetGlobalRoles(subjectUuid)
+            } else if (attributeAppendEvent.attributeName == AUTH_TERM_SID) {
+                val serviceAccountId = operationPayloadNode[JSONLD_VALUE].asText()
+                subjectReferentialService.addServiceAccountIdToClient(
+                    subjectUuid,
+                    serviceAccountId.extractSub()
+                )
+            } else if (attributeAppendEvent.attributeName == AUTH_TERM_IS_MEMBER_OF) {
+                val groupId = operationPayloadNode["object"].asText()
+                subjectReferentialService.addGroupMembershipToUser(
+                    subjectUuid,
+                    groupId.extractSub()
+                )
+            } else {
+                BadRequestDataException("Received unknown attribute name: ${attributeAppendEvent.attributeName}").left()
+            }
+
+        return updateResult
     }
 
-    private fun removeSubjectFromGroup(attributeDeleteEvent: AttributeDeleteEvent) {
+    private suspend fun removeSubjectFromGroup(attributeDeleteEvent: AttributeDeleteEvent): Either<APIException, Unit> =
         subjectReferentialService.removeGroupMembershipToUser(
             attributeDeleteEvent.entityId.extractSub(),
             attributeDeleteEvent.datasetId!!.extractSub()
-        ).subscribe()
-    }
+        )
 
-    private fun handleAttributeReplaceOnRights(attributeReplaceEvent: AttributeReplaceEvent) {
+    private suspend fun handleAttributeReplaceOnRights(
+        attributeReplaceEvent: AttributeReplaceEvent
+    ): Either<APIException, Unit> =
         if (attributeReplaceEvent.attributeName == AUTH_TERM_SAP) {
             updateSpecificAccessPolicy(attributeReplaceEvent.operationPayload, attributeReplaceEvent.entityId)
         } else {
@@ -176,9 +203,10 @@ class IAMListener(
                 attributeReplaceEvent.entityId
             )
         }
-    }
 
-    private fun handleAttributeAppendOnRights(attributeAppendEvent: AttributeAppendEvent) {
+    private suspend fun handleAttributeAppendOnRights(
+        attributeAppendEvent: AttributeAppendEvent
+    ): Either<APIException, Unit> =
         if (attributeAppendEvent.attributeName == AUTH_TERM_SAP) {
             updateSpecificAccessPolicy(attributeAppendEvent.operationPayload, attributeAppendEvent.entityId)
         } else {
@@ -188,51 +216,53 @@ class IAMListener(
                 attributeAppendEvent.entityId
             )
         }
-    }
 
-    private fun updateSpecificAccessPolicy(operationPayload: String, entityId: URI) {
+    private suspend fun updateSpecificAccessPolicy(
+        operationPayload: String,
+        entityId: URI
+    ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(operationPayload)
         val policy = SpecificAccessPolicy.valueOf(operationPayloadNode["value"].asText())
-        temporalEntityAttributeService.updateSpecificAccessPolicy(entityId, policy)
-            .subscribe {
-                logger.debug("Updated specific access policy for entity $entityId ($it records updated)")
-            }
+        return temporalEntityAttributeService.updateSpecificAccessPolicy(entityId, policy)
     }
 
-    private fun addEntityToSubject(operationPayload: String, attributeName: String, subjectId: URI) {
+    private suspend fun addEntityToSubject(
+        operationPayload: String,
+        attributeName: String,
+        subjectId: URI
+    ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(operationPayload)
         val entityId = operationPayloadNode["object"].asText()
-        when (val accessRight = AccessRight.forAttributeName(attributeName)) {
+        return when (val accessRight = AccessRight.forAttributeName(attributeName)) {
             is Some ->
                 entityAccessRightsService.setRoleOnEntity(
                     subjectId.extractSub(),
                     entityId.toUri(),
                     accessRight.value
-                ).subscribe()
-            is None -> logger.warn("Unable to extract a known access right from $attributeName")
+                )
+            is None -> BadRequestDataException("Unable to extract a known access right from $attributeName").left()
         }
     }
 
-    private fun handleAttributeDeleteOnRights(attributeDeleteEvent: AttributeDeleteEvent) {
+    private suspend fun handleAttributeDeleteOnRights(
+        attributeDeleteEvent: AttributeDeleteEvent
+    ): Either<APIException, Unit> =
         if (attributeDeleteEvent.attributeName == AUTH_TERM_SAP) {
             removeSpecificAccessPolicy(attributeDeleteEvent)
         } else {
             removeEntityFromSubject(attributeDeleteEvent)
         }
-    }
 
-    private fun removeSpecificAccessPolicy(attributeDeleteEvent: AttributeDeleteEvent) {
-        val entityId = attributeDeleteEvent.entityId
-        temporalEntityAttributeService.removeSpecificAccessPolicy(entityId)
-            .subscribe {
-                logger.debug("Removed specific access policy for entity $entityId ($it records updated)")
-            }
-    }
+    private suspend fun removeSpecificAccessPolicy(
+        attributeDeleteEvent: AttributeDeleteEvent
+    ): Either<APIException, Unit> =
+        temporalEntityAttributeService.removeSpecificAccessPolicy(attributeDeleteEvent.entityId)
 
-    private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
+    private suspend fun removeEntityFromSubject(
+        attributeDeleteEvent: AttributeDeleteEvent
+    ): Either<APIException, Unit> =
         entityAccessRightsService.removeRoleOnEntity(
             attributeDeleteEvent.entityId.extractSub(),
             attributeDeleteEvent.attributeName.toUri()
-        ).subscribe()
-    }
+        )
 }

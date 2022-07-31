@@ -1,17 +1,21 @@
 package com.egm.stellio.search.service
 
 import arrow.core.*
+import arrow.core.continuations.either
+import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.util.valueToDoubleOrNull
-import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import io.r2dbc.spi.Row
-import kotlinx.coroutines.reactive.awaitFirst
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -20,8 +24,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.net.URI
 import java.util.UUID
 
@@ -36,7 +38,7 @@ class TemporalEntityAttributeService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
+    suspend fun create(temporalEntityAttribute: TemporalEntityAttribute): Either<APIException, Unit> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
@@ -51,11 +53,10 @@ class TemporalEntityAttributeService(
             .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
     @Transactional
-    fun updateTemporalEntityTypes(entityId: URI, types: List<ExpandedTerm>): Mono<Int> =
+    suspend fun updateTemporalEntityTypes(entityId: URI, types: List<ExpandedTerm>): Either<APIException, Unit> =
         databaseClient.sql(
             """
             UPDATE temporal_entity_attribute
@@ -65,23 +66,35 @@ class TemporalEntityAttributeService(
         )
             .bind("entity_id", entityId)
             .bind("types", types.toTypedArray())
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
-    fun createEntityTemporalReferences(payload: String, contexts: List<String>, sub: String? = null): Mono<Int> {
-        val ngsiLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
-        val parsedPayload = JsonUtils.deserializeObject(payload)
+    @Transactional
+    suspend fun createEntityTemporalReferences(
+        payload: String,
+        contexts: List<String>,
+        sub: String? = null
+    ): Either<APIException, Unit> =
+        createEntityTemporalReferences(
+            expandJsonLdEntity(payload, contexts).toNgsiLdEntity(),
+            deserializeObject(payload),
+            contexts,
+            sub
+        )
 
-        logger.debug("Analyzing create event for entity ${ngsiLdEntity.id}")
+    @Transactional
+    suspend fun createEntityTemporalReferences(
+        ngsiLdEntity: NgsiLdEntity,
+        deserializedPayload: Map<String, Any>,
+        contexts: List<String>,
+        sub: String? = null
+    ): Either<APIException, Unit> {
+        logger.debug("Creating entity ${ngsiLdEntity.id}")
 
-        val temporalAttributes = prepareTemporalAttributes(ngsiLdEntity).ifEmpty {
-            return Mono.just(0)
-        }
-
+        val temporalAttributes = prepareTemporalAttributes(ngsiLdEntity).ifEmpty { return Unit.right() }
         logger.debug("Found ${temporalAttributes.size} supported attributes in entity: ${ngsiLdEntity.id}")
 
-        return Flux.fromIterable(temporalAttributes.asIterable())
-            .map {
+        return temporalAttributes.parTraverseEither {
+            either<APIException, Unit> {
                 val (expandedAttributeName, attributeMetadata) = it
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = ngsiLdEntity.id,
@@ -91,6 +104,7 @@ class TemporalEntityAttributeService(
                     attributeValueType = attributeMetadata.valueType,
                     datasetId = attributeMetadata.datasetId
                 )
+                create(temporalEntityAttribute).bind()
 
                 val attributeCreatedAtInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
@@ -99,35 +113,31 @@ class TemporalEntityAttributeService(
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
                     payload = extractAttributeInstanceFromCompactedEntity(
-                        parsedPayload,
+                        deserializedPayload,
                         compactTerm(expandedAttributeName, contexts),
                         attributeMetadata.datasetId
                     ),
                     sub = sub
                 )
+                attributeInstanceService.create(attributeCreatedAtInstance).bind()
 
-                val attributeObservedAtInstance =
-                    if (attributeMetadata.observedAt != null)
-                        attributeCreatedAtInstance.copy(
-                            time = attributeMetadata.observedAt,
-                            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
-                        )
-                    else null
-
-                Pair(temporalEntityAttribute, listOfNotNull(attributeCreatedAtInstance, attributeObservedAtInstance))
+                if (attributeMetadata.observedAt != null) {
+                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
+                        time = attributeMetadata.observedAt,
+                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    )
+                    attributeInstanceService.create(attributeObservedAtInstance).bind()
+                }
             }
-            .flatMap {
-                val attributeObservedAtMono =
-                    if (it.second.size == 2) attributeInstanceService.create(it.second[1])
-                    else Mono.just(1)
-
-                create(it.first)
-                    .then(attributeInstanceService.create(it.second.first()))
-                    .then(attributeObservedAtMono)
-            }.then(entityPayloadService.createEntityPayload(ngsiLdEntity.id, payload))
+        }.map {
+            entityPayloadService.createEntityPayload(ngsiLdEntity.id, deserializedPayload)
+        }
     }
 
-    fun updateSpecificAccessPolicy(entityId: URI, specificAccessPolicy: SpecificAccessPolicy): Mono<Int> =
+    suspend fun updateSpecificAccessPolicy(
+        entityId: URI,
+        specificAccessPolicy: SpecificAccessPolicy
+    ): Either<APIException, Unit> =
         databaseClient.sql(
             """
             UPDATE temporal_entity_attribute
@@ -137,10 +147,9 @@ class TemporalEntityAttributeService(
         )
             .bind("entity_id", entityId)
             .bind("specific_access_policy", specificAccessPolicy.toString())
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
-    fun removeSpecificAccessPolicy(entityId: URI): Mono<Int> =
+    suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             UPDATE temporal_entity_attribute
@@ -149,10 +158,12 @@ class TemporalEntityAttributeService(
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
-    fun hasSpecificAccessPolicies(entityId: URI, specificAccessPolicies: List<SpecificAccessPolicy>): Mono<Boolean> =
+    suspend fun hasSpecificAccessPolicies(
+        entityId: URI,
+        specificAccessPolicies: List<SpecificAccessPolicy>
+    ): Either<APIException, Boolean> =
         databaseClient.sql(
             """
             SELECT count(id) as count
@@ -163,22 +174,24 @@ class TemporalEntityAttributeService(
         )
             .bind("entity_id", entityId)
             .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
-            .map { row ->
-                row.get("count", Integer::class.java)!!.toInt()
-            }
-            .one()
-            .map { it > 0 }
+            .oneToResult { it["count"] as Long > 0 }
 
-    fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
-        entityPayloadService.deleteEntityPayload(entityId)
-            .then(deleteTemporalAttributesOfEntity(entityId))
+    suspend fun deleteTemporalEntityReferences(entityId: URI): Either<APIException, Unit> =
+        either {
+            entityPayloadService.deleteEntityPayload(entityId).bind()
+            deleteTemporalAttributesOfEntity(entityId).bind()
+        }
 
-    fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
+    suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
             .matching(query(where("entity_id").`is`(entityId)))
-            .all()
+            .execute()
 
-    fun deleteTemporalAttributeReferences(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
+    suspend fun deleteTemporalAttributeReferences(
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI?
+    ): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM temporal_entity_attribute WHERE 
@@ -193,10 +206,12 @@ class TemporalEntityAttributeService(
                 if (datasetId != null) it.bind("dataset_id", datasetId)
                 else it
             }
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
-    fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
+    suspend fun deleteTemporalAttributeAllInstancesReferences(
+        entityId: URI,
+        attributeName: String
+    ): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM temporal_entity_attribute
@@ -206,11 +221,10 @@ class TemporalEntityAttributeService(
         )
             .bind("entity_id", entityId)
             .bind("attribute_name", attributeName)
-            .fetch()
-            .rowsUpdated()
+            .execute()
 
-    private fun prepareTemporalAttributes(ngsiLdEntity: NgsiLdEntity): List<Pair<String, AttributeMetadata>> {
-        val temporalAttributes = ngsiLdEntity.attributes
+    private fun prepareTemporalAttributes(ngsiLdEntity: NgsiLdEntity): List<Pair<String, AttributeMetadata>> =
+        ngsiLdEntity.attributes
             .flatMapTo(
                 arrayListOf()
             ) {
@@ -222,9 +236,6 @@ class TemporalEntityAttributeService(
             }.map {
                 Pair(it.first, it.second.toEither().orNull()!!)
             }
-
-        return temporalAttributes
-    }
 
     internal fun toTemporalAttributeMetadata(
         ngsiLdAttributeInstance: NgsiLdAttributeInstance
@@ -262,10 +273,10 @@ class TemporalEntityAttributeService(
         ).valid()
     }
 
-    fun getForEntities(
+    suspend fun getForEntities(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
-    ): Mono<List<TemporalEntityAttribute>> {
+    ): List<TemporalEntityAttribute> {
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
             accessRightFilter
@@ -297,16 +308,13 @@ class TemporalEntityAttributeService(
             .sql(selectQuery)
             .bind("limit", queryParams.limit)
             .bind("offset", queryParams.offset)
-            .fetch()
-            .all()
-            .map { rowToTemporalEntityAttribute(it) }
-            .collectList()
+            .allToMappedList { rowToTemporalEntityAttribute(it) }
     }
 
-    fun getCountForEntities(
+    suspend fun getCountForEntities(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
-    ): Mono<Int> {
+    ): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(distinct(entity_id)) as count_entity from temporal_entity_attribute
@@ -319,10 +327,8 @@ class TemporalEntityAttributeService(
         )
         return databaseClient
             .sql("$selectStatement $filterQuery")
-            .map { row ->
-                row.get("count_entity", Integer::class.java)!!.toInt()
-            }
-            .one()
+            .oneToResult { it["count_entity"] as Long }
+            .map { it.toInt() }
     }
 
     fun buildEntitiesQueryFilter(
@@ -360,7 +366,7 @@ class TemporalEntityAttributeService(
             queryFilter.joinToString(separator = " AND ", prefix = prefix)
     }
 
-    fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
+    suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {
         val selectQuery =
             """
                 SELECT id, entity_id, types, attribute_name, attribute_type, attribute_value_type, dataset_id
@@ -378,12 +384,10 @@ class TemporalEntityAttributeService(
         return databaseClient
             .sql(finalQuery)
             .bind("entity_id", id)
-            .fetch()
-            .all()
-            .map { rowToTemporalEntityAttribute(it) }
+            .allToMappedList { rowToTemporalEntityAttribute(it) }
     }
 
-    fun getFirstForEntity(id: URI): Mono<UUID> {
+    suspend fun getFirstForEntity(id: URI): Either<APIException, UUID> {
         val selectQuery =
             """
             SELECT id
@@ -394,11 +398,14 @@ class TemporalEntityAttributeService(
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", id)
-            .map(rowToId)
-            .first()
+            .oneToResult { it["id"] as UUID }
     }
 
-    fun getForEntityAndAttribute(id: URI, attributeName: String, datasetId: URI? = null): Mono<UUID> {
+    suspend fun getForEntityAndAttribute(
+        id: URI,
+        attributeName: String,
+        datasetId: URI? = null
+    ): Either<APIException, UUID> {
         val selectQuery =
             """
             SELECT id
@@ -416,8 +423,7 @@ class TemporalEntityAttributeService(
                 if (datasetId != null) it.bind("dataset_id", datasetId)
                 else it
             }
-            .map(rowToId)
-            .one()
+            .oneToResult { it["id"] as UUID }
     }
 
     private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =
@@ -432,10 +438,6 @@ class TemporalEntityAttributeService(
             ),
             datasetId = (row["dataset_id"] as? String)?.toUri()
         )
-
-    private var rowToId: ((Row) -> UUID) = { row ->
-        row.get("id", UUID::class.java)!!
-    }
 
     suspend fun checkEntityAndAttributeExistence(
         entityId: URI,
@@ -457,18 +459,17 @@ class TemporalEntityAttributeService(
                     ) as attributeNameExists;
             """.trimIndent()
 
-        val result = databaseClient
+        return databaseClient
             .sql(selectQuery)
             .bind("entity_id", entityId)
             .bind("attribute_name", entityAttributeName)
-            .fetch()
-            .one()
-            .awaitFirst()
-
-        return if (result["entityExists"] as Boolean) {
-            if (result["attributeNameExists"] as Boolean)
-                Unit.right()
-            else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
-        } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+            .oneToResult { Pair(it["entityExists"] as Boolean, it["attributeNameExists"] as Boolean) }
+            .flatMap {
+                if (it.first) {
+                    if (it.second)
+                        Unit.right()
+                    else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
+                } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+            }
     }
 }

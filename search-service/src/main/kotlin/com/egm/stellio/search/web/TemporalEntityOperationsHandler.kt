@@ -1,7 +1,7 @@
 package com.egm.stellio.search.web
 
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.util.*

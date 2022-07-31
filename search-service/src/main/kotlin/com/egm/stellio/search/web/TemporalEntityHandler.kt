@@ -1,14 +1,13 @@
 package com.egm.stellio.search.web
 
 import arrow.core.continuations.either
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
@@ -46,38 +45,42 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val sub = getSubFromSecurityContext()
+        return either<APIException, ResponseEntity<*>> {
 
-        val canWriteEntity = entityAccessRightsService.canWriteEntity(sub, entityId.toUri())
-        if (canWriteEntity.isLeft())
-            throw AccessDeniedException("User forbidden write access to entity $entityId")
+            val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body)
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+            entityAccessRightsService.canWriteEntity(sub, entityId.toUri()).bind()
 
-        jsonLdAttributes
-            .forEach { attributeEntry ->
-                val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
-                attributeInstances.forEach { attributeInstance ->
-                    val datasetId = attributeInstance.getDatasetId()
-                    val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
-                        entityId.toUri(),
-                        attributeEntry.key,
-                        datasetId
-                    ).awaitFirst()
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val contexts = checkAndGetContext(httpHeaders, body)
+            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
 
-                    val compactedAttributeName = compactTerm(attributeEntry.key, contexts)
-                    attributeInstanceService.addAttributeInstance(
-                        temporalEntityAttributeUuid,
-                        compactedAttributeName,
-                        attributeInstance,
-                        contexts
-                    ).awaitFirst()
+            jsonLdAttributes
+                .forEach { attributeEntry ->
+                    val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
+                    attributeInstances.forEach { attributeInstance ->
+                        val datasetId = attributeInstance.getDatasetId()
+                        val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
+                            entityId.toUri(),
+                            attributeEntry.key,
+                            datasetId
+                        ).bind()
+
+                        val compactedAttributeName = compactTerm(attributeEntry.key, contexts)
+                        attributeInstanceService.addAttributeInstance(
+                            temporalEntityAttributeUuid,
+                            compactedAttributeName,
+                            attributeInstance,
+                            contexts
+                        ).bind()
+                    }
                 }
-            }
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**
@@ -140,7 +143,7 @@ class TemporalEntityHandler(
                 temporalEntitiesQuery.withTemporalValues,
                 temporalEntitiesQuery.withAudit,
                 contextLink
-            )
+            ).bind()
 
             prepareGetSuccessResponse(mediaType, contextLink)
                 .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))

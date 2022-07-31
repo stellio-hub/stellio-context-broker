@@ -3,11 +3,11 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.Mono
 import java.net.URI
 
 @Component
@@ -25,11 +25,12 @@ class EntityService(
             .build()
     }
 
-    fun getEntityById(entityId: URI, bearerToken: String): Mono<JsonLdEntity> =
+    suspend fun getEntityById(entityId: URI, bearerToken: String): JsonLdEntity =
         webClient.get()
             .uri("/entities/$entityId")
             .header("Authorization", bearerToken)
             .retrieve()
             .bodyToMono(String::class.java)
             .map { JsonLdUtils.expandJsonLdEntity(it) }
+            .awaitFirst()
 }

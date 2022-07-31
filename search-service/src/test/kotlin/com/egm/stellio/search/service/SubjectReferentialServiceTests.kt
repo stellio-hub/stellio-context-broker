@@ -1,20 +1,29 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Some
+import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedWith
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
-import reactor.test.StepVerifier
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class SubjectReferentialServiceTests : WithTimescaleContainer {
@@ -37,43 +46,39 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should persist a subject referential`() {
+    fun `it should persist a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
-        StepVerifier
-            .create(subjectReferentialService.create(subjectReferential))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                fail("it should have created a subject referential")
+            }, {})
     }
 
     @Test
-    fun `it should retrieve a subject referential`() {
+    fun `it should retrieve a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.subjectId == subjectUuid &&
-                    it.subjectType == SubjectType.USER &&
-                    it.globalRoles == listOf(STELLIO_ADMIN)
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertEquals(subjectUuid, it.subjectId)
+                assertEquals(SubjectType.USER, it.subjectType)
+                assertEquals(listOf(STELLIO_ADMIN), it.globalRoles)
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should retrieve UUIDs from user and groups memberships`() {
+    fun `it should retrieve UUIDs from user and groups memberships`() = runTest {
         val groupsUuids = List(3) { UUID.randomUUID().toString() }
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
@@ -81,56 +86,50 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             groupsMemberships = groupsUuids
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
-            .expectNextMatches {
-                it.size == 4 &&
-                    it.containsAll(groupsUuids.plus(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertEquals(4, it.size)
+                assertTrue(it.containsAll(groupsUuids.plus(subjectUuid)))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should retrieve UUIDs from user when it has no groups memberships`() {
+    fun `it should retrieve UUIDs from user when it has no groups memberships`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
-            .expectNextMatches {
-                it.size == 1 &&
-                    it.contains(subjectUuid)
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                assertTrue(it.contains(subjectUuid))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should retrieve UUIDs from client and service account`() {
+    fun `it should retrieve UUIDs from client and service account`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.CLIENT,
             serviceAccountId = serviceAccountUuid
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
-            .expectNextMatches {
-                it.size == 2 &&
-                    it.containsAll(listOf(serviceAccountUuid, subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertEquals(2, it.size)
+                assertTrue(it.containsAll(listOf(serviceAccountUuid, subjectUuid)))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should retrieve UUIDs from client, service account and groups memberships`() {
+    fun `it should retrieve UUIDs from client, service account and groups memberships`() = runTest {
         val groupsUuids = List(2) { UUID.randomUUID().toString() }
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
@@ -139,213 +138,163 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             groupsMemberships = groupsUuids
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
-            .expectNextMatches {
-                it.size == 4 &&
-                    it.containsAll(groupsUuids.plus(serviceAccountUuid).plus(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertEquals(4, it.size)
+                assertTrue(it.containsAll(groupsUuids.plus(serviceAccountUuid).plus(subjectUuid)))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should update the global role of a subject`() {
+    fun `it should update the global role of a subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier
-            .create(subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN)))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.globalRoles == listOf(STELLIO_ADMIN)
+        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN))
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertEquals(listOf(STELLIO_ADMIN), it.globalRoles)
             }
-            .expectComplete()
-            .verify()
 
-        StepVerifier
-            .create(subjectReferentialService.resetGlobalRoles(subjectUuid))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.globalRoles == null
+        subjectReferentialService.resetGlobalRoles(subjectUuid)
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertNull(it.globalRoles)
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should find if an user is a stellio admin or not`() {
+    fun `it should find if an user is a stellio admin or not`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
-        subjectReferentialService.create(subjectReferential).block()
+        subjectReferentialService.create(subjectReferential)
 
-        StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
-            .expectNextMatches {
-                it
+        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertTrue(it)
             }
-            .expectComplete()
-            .verify()
 
-        subjectReferentialService.resetGlobalRoles(subjectUuid).block()
+        subjectReferentialService.resetGlobalRoles(subjectUuid)
 
-        StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
-            .expectNextMatches {
-                !it
+        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertFalse(it)
             }
-            .expectComplete()
-            .verify()
 
-        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR)).block()
+        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR))
 
-        StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
-            .expectNextMatches {
-                it
+        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            .shouldSucceedWith {
+                assertTrue(it)
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should add a group membership to an user`() {
+    fun `it should add a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(userAccessRights).block()
+        subjectReferentialService.create(userAccessRights)
 
-        StepVerifier
-            .create(subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
+            .shouldSucceed()
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.groupsMemberships == listOf(groupUuid)
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertThat(it.groupsMemberships).containsAll(listOf(groupUuid))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should add a group membership to an user inside an existing list`() {
+    fun `it should add a group membership to an user inside an existing list`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(userAccessRights).block()
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid).block()
+        subjectReferentialService.create(userAccessRights)
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
 
         val newGroupUuid = UUID.randomUUID().toString()
-        StepVerifier
-            .create(subjectReferentialService.addGroupMembershipToUser(subjectUuid, newGroupUuid))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.groupsMemberships == listOf(groupUuid, newGroupUuid)
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, newGroupUuid)
+            .shouldSucceed()
+
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertThat(it.groupsMemberships).containsAll(listOf(groupUuid, newGroupUuid))
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should remove a group membership to an user`() {
+    fun `it should remove a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(userAccessRights).block()
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid).block()
+        subjectReferentialService.create(userAccessRights)
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
 
-        StepVerifier
-            .create(subjectReferentialService.removeGroupMembershipToUser(subjectUuid, groupUuid))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
+        subjectReferentialService.removeGroupMembershipToUser(subjectUuid, groupUuid)
+            .shouldSucceed()
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.groupsMemberships?.isEmpty() ?: false
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertTrue(it.groupsMemberships?.isEmpty() ?: false)
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should add a service account id to a client`() {
+    fun `it should add a service account id to a client`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER
         )
 
-        subjectReferentialService.create(userAccessRights).block()
+        subjectReferentialService.create(userAccessRights)
 
         val serviceAccountId = UUID.randomUUID().toString()
-        StepVerifier
-            .create(subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectNextMatches {
-                it.serviceAccountId == serviceAccountId
+        subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId)
+            .shouldSucceed()
+
+        subjectReferentialService.retrieve(subjectUuid)
+            .shouldSucceedWith {
+                assertEquals(serviceAccountId, it.serviceAccountId)
             }
-            .expectComplete()
-            .verify()
     }
 
     @Test
-    fun `it should delete a subject referential`() {
+    fun `it should delete a subject referential`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
-        subjectReferentialService.create(userAccessRights).block()
+        subjectReferentialService.create(userAccessRights)
 
-        StepVerifier
-            .create(subjectReferentialService.delete(subjectUuid))
-            .expectNextMatches { it == 1 }
-            .expectComplete()
-            .verify()
+        subjectReferentialService.delete(subjectUuid)
+            .shouldSucceed()
 
-        StepVerifier
-            .create(subjectReferentialService.retrieve(subjectUuid))
-            .expectComplete()
-            .verify()
+        subjectReferentialService.retrieve(subjectUuid)
+            .fold({
+                assertInstanceOf(ResourceNotFoundException::class.java, it)
+            }, {
+                fail("it should have returned a ResourceNotFoundException exception")
+            })
     }
 }

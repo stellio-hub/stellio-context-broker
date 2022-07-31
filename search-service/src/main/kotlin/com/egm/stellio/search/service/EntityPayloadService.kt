@@ -1,11 +1,15 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Either
+import arrow.core.right
 import com.egm.stellio.search.config.ApplicationProperties
+import com.egm.stellio.search.util.execute
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 import java.net.URI
 
 @Service
@@ -13,7 +17,10 @@ class EntityPayloadService(
     private val databaseClient: DatabaseClient,
     private val applicationProperties: ApplicationProperties
 ) {
-    fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
+    suspend fun createEntityPayload(entityId: URI, deserializedPayload: Map<String, Any>): Either<APIException, Unit> =
+        createEntityPayload(entityId, serializeObject(deserializedPayload))
+
+    suspend fun createEntityPayload(entityId: URI, entityPayload: String?): Either<APIException, Unit> =
         if (applicationProperties.entity.storePayloads)
             databaseClient.sql(
                 """
@@ -23,12 +30,10 @@ class EntityPayloadService(
             )
                 .bind("entity_id", entityId)
                 .bind("payload", entityPayload?.let { Json.of(entityPayload) })
-                .fetch()
-                .rowsUpdated()
-        else
-            Mono.just(1)
+                .execute()
+        else Unit.right()
 
-    fun upsertEntityPayload(entityId: URI, payload: String): Mono<Int> =
+    suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
         if (applicationProperties.entity.storePayloads)
             databaseClient.sql(
                 """
@@ -40,18 +45,15 @@ class EntityPayloadService(
             )
                 .bind("payload", Json.of(payload))
                 .bind("entity_id", entityId)
-                .fetch()
-                .rowsUpdated()
-        else
-            Mono.just(1)
+                .execute()
+        else Unit.right()
 
-    fun deleteEntityPayload(entityId: URI): Mono<Int> =
+    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM entity_payload WHERE entity_id = :entity_id
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
+            .execute()
 }

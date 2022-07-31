@@ -1,26 +1,23 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.authorization
 
 import arrow.core.*
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.EntityAccessRights
+import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.util.execute
+import com.egm.stellio.search.util.oneToResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
-import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
-import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.Sub
-import kotlinx.coroutines.reactive.awaitFirst
-import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
 
 @Service
@@ -31,24 +28,23 @@ class EntityAccessRightsService(
     private val subjectReferentialService: SubjectReferentialService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     @Transactional
-    fun setReadRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
+    suspend fun setReadRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
         setRoleOnEntity(sub, entityId, R_CAN_READ)
 
     @Transactional
-    fun setWriteRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
+    suspend fun setWriteRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
-    fun setAdminRoleOnEntity(sub: Sub?, entityId: URI): Mono<Int> =
+    suspend fun setAdminRoleOnEntity(sub: Sub?, entityId: URI): Either<APIException, Unit> =
+        // FIXME OK or error if no sub?
         sub?.let {
             setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
-        } ?: Mono.just(-1)
+        } ?: Unit.right()
 
     @Transactional
-    fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Mono<Int> =
+    suspend fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Either<APIException, Unit> =
         databaseClient
             .sql(
                 """
@@ -61,15 +57,10 @@ class EntityAccessRightsService(
             .bind("subject_id", sub)
             .bind("entity_id", entityId)
             .bind("access_right", accessRight.attributeName)
-            .fetch()
-            .rowsUpdated()
-            .onErrorResume {
-                logger.error("Error while setting access right on entity: $it")
-                Mono.just(-1)
-            }
+            .execute()
 
     @Transactional
-    fun removeRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
+    suspend fun removeRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(
                 Query.query(
@@ -77,84 +68,70 @@ class EntityAccessRightsService(
                         .and(Criteria.where("entity_id").`is`(entityId))
                 )
             )
-            .all()
-            .onErrorResume {
-                logger.error("Error while removing access right on entity: $it")
-                Mono.just(-1)
-            }
+            .execute()
 
     @Transactional
-    fun removeRolesOnEntity(entityId: URI): Mono<Int> =
+    suspend fun removeRolesOnEntity(entityId: URI): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(
                 Query.query(
                     Criteria.where("entity_id").`is`(entityId)
                 )
             )
-            .all()
-            .onErrorResume {
-                logger.error("Error while removing access right on entity: $it")
-                Mono.just(-1)
-            }
+            .execute()
 
-    suspend fun canReadEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> {
-        val result = checkHasRightOnEntity(
+    suspend fun canReadEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> =
+        checkHasRightOnEntity(
             sub,
             entityId,
             listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN)
-        ).awaitFirst()
+        ).flatMap {
+            if (!it)
+                AccessDeniedException("User forbidden read access to entity $entityId").left()
+            else Unit.right()
+        }
 
-        return if (!result)
-            AccessDeniedException("User forbidden read access to entity $entityId").left()
-        else Unit.right()
-    }
-
-    suspend fun canWriteEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> {
-        val result = checkHasRightOnEntity(
+    suspend fun canWriteEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> =
+        checkHasRightOnEntity(
             sub,
             entityId,
             listOf(AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_WRITE, R_CAN_ADMIN)
-        ).awaitFirst()
+        ).flatMap {
+            if (!it)
+                AccessDeniedException("User forbidden write access to entity $entityId").left()
+            else Unit.right()
+        }
 
-        return if (!result)
-            AccessDeniedException("User forbidden write access to entity $entityId").left()
-        else Unit.right()
-    }
-
-    internal fun checkHasRightOnEntity(
+    internal suspend fun checkHasRightOnEntity(
         sub: Option<Sub>,
         entityId: URI,
         specificAccessPolicies: List<AuthContextModel.SpecificAccessPolicy>,
         accessRights: List<AccessRight>
-    ): Mono<Boolean> =
-        Mono.just(!applicationProperties.authentication.enabled)
-            .flatMap {
-                if (it) Mono.just(true)
-                else subjectReferentialService.hasStellioAdminRole(sub)
-            }
-            .flatMap {
-                if (it) Mono.just(true)
-                else temporalEntityAttributeService.hasSpecificAccessPolicies(
-                    entityId,
-                    specificAccessPolicies
-                )
-            }
-            .flatMap {
-                if (it) Mono.just(true)
-                else subjectReferentialService.getSubjectAndGroupsUUID(sub).flatMap { uuids ->
-                    // ... and check if it has the required role with at least one of them
-                    hasDirectAccessRightOnEntity(uuids, entityId, accessRights)
-                }
-                    .switchIfEmpty { Mono.just(false) }
-            }
+    ): Either<APIException, Boolean> {
+        if (!applicationProperties.authentication.enabled)
+            return true.right()
 
-    private fun hasDirectAccessRightOnEntity(
+        return subjectReferentialService.hasStellioAdminRole(sub)
+            .flatMap {
+                if (!it)
+                    temporalEntityAttributeService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
+                else true.right()
+            }
+            .flatMap {
+                if (!it)
+                    subjectReferentialService.getSubjectAndGroupsUUID(sub)
+                        .flatMap { uuids -> hasDirectAccessRightOnEntity(uuids, entityId, accessRights) }
+                else true.right()
+            }
+    }
+
+    private suspend fun hasDirectAccessRightOnEntity(
         uuids: List<Sub>,
         entityId: URI,
         accessRights: List<AccessRight>
-    ): Mono<Boolean> =
+    ): Either<APIException, Boolean> =
         databaseClient
             .sql(
                 """
@@ -168,26 +145,21 @@ class EntityAccessRightsService(
             .bind("uuids", uuids)
             .bind("entity_id", entityId)
             .bind("access_rights", accessRights.map { it.attributeName })
-            .fetch()
-            .one()
-            .map {
-                it["count"] as Long >= 1L
-            }
-            .onErrorResume {
-                logger.error("Error while checking role on entity: $it")
-                Mono.just(false)
-            }
+            .oneToResult { it["count"] as Long >= 1L }
 
     suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
         if (!applicationProperties.authentication.enabled ||
-            subjectReferentialService.hasStellioAdminRole(sub).awaitFirst()
+            subjectReferentialService.hasStellioAdminRole(sub).getOrElse { false }
         )
             return { null }
         else {
             return subjectReferentialService.getSubjectAndGroupsUUID(sub)
                 .map {
-                    {
-                        """
+                    if (it.isEmpty()) {
+                        { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
+                    } else {
+                        {
+                            """
                         ( 
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
@@ -197,21 +169,18 @@ class EntityAccessRightsService(
                                 WHERE subject_id IN (${it.toListOfString()})
                             ))
                         )
-                        """.trimIndent()
+                            """.trimIndent()
+                        }
                     }
-                }.switchIfEmpty {
-                    Mono.just {
-                        "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')"
-                    }
-                }.awaitFirst()
+                }.getOrElse { { null } }
         }
     }
 
     private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
 
     @Transactional
-    fun delete(sub: Sub): Mono<Int> =
+    suspend fun delete(sub: Sub): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
-            .all()
+            .execute()
 }

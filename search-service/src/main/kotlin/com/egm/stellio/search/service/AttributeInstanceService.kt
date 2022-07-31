@@ -4,8 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.valueToDoubleOrNull
-import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -17,12 +16,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.instanceNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -34,7 +31,7 @@ class AttributeInstanceService(
 ) {
 
     @Transactional
-    fun create(attributeInstance: AttributeInstance): Mono<Int> {
+    suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
         val insertStatement =
             if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -66,17 +63,16 @@ class AttributeInstanceService(
                         .bind("sub", attributeInstance.sub)
                 else it
             }
-            .fetch()
-            .rowsUpdated()
+            .execute()
     }
 
     @Transactional
-    fun addAttributeInstance(
+    suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
         attributeValues: Map<String, List<Any>>,
         contexts: List<String>
-    ): Mono<Int> {
+    ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
@@ -93,18 +89,18 @@ class AttributeInstanceService(
         return create(attributeInstance)
     }
 
-    fun search(
+    suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttribute: TemporalEntityAttribute,
         withTemporalValues: Boolean
-    ): Mono<List<AttributeInstanceResult>> =
+    ): List<AttributeInstanceResult> =
         search(temporalQuery, listOf(temporalEntityAttribute), withTemporalValues)
 
-    fun search(
+    suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         withTemporalValues: Boolean
-    ): Mono<List<AttributeInstanceResult>> {
+    ): List<AttributeInstanceResult> {
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)
@@ -148,12 +144,7 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .fetch()
-            .all()
-            .map {
-                rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues)
-            }
-            .collectList()
+            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues) }
     }
 
     private fun composeSearchSelectStatement(
@@ -217,17 +208,15 @@ class AttributeInstanceService(
                 AND instance_id = :instance_id
             """.trimIndent()
 
-        val result = databaseClient
+        return databaseClient
             .sql(deleteQuery)
             .bind("entity_id", entityId)
             .bind("attribute_name", entityAttributeName)
             .bind("instance_id", instanceId)
-            .fetch()
-            .rowsUpdated()
-            .awaitFirst()
-
-        return if (result == 0)
-            ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
-        else Unit.right()
+            .executeExpected {
+                if (it == 0)
+                    ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
+                else Unit.right()
+            }
     }
 }

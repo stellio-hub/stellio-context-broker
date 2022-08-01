@@ -7,7 +7,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -30,6 +29,7 @@ suspend fun <R> DatabaseClient.GenericExecuteSpec.allToMappedList(f: (value: Map
     this.allToFlow().map { f(it) }.toList()
 
 suspend fun <R> DatabaseClient.GenericExecuteSpec.oneToResult(
+    ifEmpty: APIException = ResourceNotFoundException("Operation did not return any result"),
     f: (value: Map<String, Any>) -> R
 ): Either<APIException, R> =
     this.fetch()
@@ -38,7 +38,7 @@ suspend fun <R> DatabaseClient.GenericExecuteSpec.oneToResult(
             f(it).right() as Either<APIException, R>
         }
         .switchIfEmpty {
-            Mono.just(ResourceNotFoundException(entityNotFoundMessage("")).left())
+            Mono.just(ifEmpty.left())
         }
         .onErrorResume {
             logger.error(dbOperationErrorMessage(it))

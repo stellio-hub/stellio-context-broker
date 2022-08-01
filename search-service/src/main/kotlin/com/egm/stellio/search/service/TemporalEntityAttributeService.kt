@@ -398,7 +398,7 @@ class TemporalEntityAttributeService(
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", id)
-            .oneToResult { it["id"] as UUID }
+            .oneToResult(ResourceNotFoundException(entityNotFoundMessage(id.toString()))) { it["id"] as UUID }
     }
 
     suspend fun getForEntityAndAttribute(
@@ -423,7 +423,7 @@ class TemporalEntityAttributeService(
                 if (datasetId != null) it.bind("dataset_id", datasetId)
                 else it
             }
-            .oneToResult { it["id"] as UUID }
+            .oneToResult(ResourceNotFoundException(entityNotFoundMessage(id.toString()))) { it["id"] as UUID }
     }
 
     private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =

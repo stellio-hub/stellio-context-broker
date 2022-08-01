@@ -9,6 +9,7 @@ import com.egm.stellio.search.util.allToMappedList
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.oneToResult
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -57,7 +58,9 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", sub)
-            .oneToResult { rowToSubjectReferential(it) }
+            .oneToResult(ResourceNotFoundException("No subject information found for $sub")) {
+                rowToSubjectReferential(it)
+            }
 
     suspend fun getSubjectAndGroupsUUID(sub: Option<Sub>): Either<APIException, List<Sub>> =
         databaseClient
@@ -69,7 +72,7 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
-            .oneToResult {
+            .oneToResult(ResourceNotFoundException("No subject information found for $sub")) {
                 val subs = ((it["groups_memberships"] as? Array<Sub>)?.toList() ?: emptyList())
                     .plus(it["subject_id"] as Sub)
                 if (it["service_account_id"] != null)

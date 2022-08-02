@@ -100,7 +100,7 @@ class AttributeInstanceService(
     suspend fun selectOldestDate(
         temporalQuery: TemporalQuery,
         temporalEntityAttributesIds: String
-    ):ZonedDateTime{
+    ): ZonedDateTime {
         var selectQuery =
             """
                 SELECT temporal_entity_attribute,min(time) as first
@@ -138,7 +138,10 @@ class AttributeInstanceService(
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
-        val timeStamp = temporalQuery.timeAt ?: selectOldestDate(temporalQuery,temporalEntityAttributesIds)
+        val timeStamp =
+            if (temporalQuery.timeBucket != null)
+                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
+            else null
 
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timeStamp)
 
@@ -186,12 +189,12 @@ class AttributeInstanceService(
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        timeStamp: ZonedDateTime
+        timeStamp: ZonedDateTime?
     ) = when {
         temporalQuery.timeBucket != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '$timeStamp') as time_bucket,
+                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timeStamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services

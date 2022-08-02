@@ -30,7 +30,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.insert
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -341,7 +340,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
@@ -363,23 +362,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should return max value of all instances for 30 day with timerel before`() = runTest {
-
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-06-0${index+1}T00:00:00Z")
-                    )
-            attributeInstanceService.create(attributeInstance)
-        }
-
-        (1..9).forEachIndexed { index, _ ->
-            val attributeInstance =
-                gimmeAttributeInstance()
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
@@ -406,7 +394,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }
@@ -434,7 +422,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
                     )
             attributeInstanceService.create(attributeInstance)
         }

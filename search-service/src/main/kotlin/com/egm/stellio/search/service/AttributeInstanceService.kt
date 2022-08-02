@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
+import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
@@ -96,18 +97,53 @@ class AttributeInstanceService(
     ): List<AttributeInstanceResult> =
         search(temporalQuery, listOf(temporalEntityAttribute), withTemporalValues)
 
+    suspend fun selectOldestDate(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttributesIds: String
+    ):ZonedDateTime{
+        var selectQuery =
+            """
+                SELECT temporal_entity_attribute,min(time) as first
+            """.trimIndent()
+
+        selectQuery =
+            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    GROUP BY temporal_entity_attribute
+                    """
+                )
+            else
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance_audit
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    AND time_property = '${temporalQuery.timeproperty.name}'
+                    GROUP BY temporal_entity_attribute
+                    """
+                )
+
+        return databaseClient
+            .sql(selectQuery)
+            .oneToResult { ZonedDateTime.parse(it["first"].toString()).toInstant().atZone(ZoneOffset.UTC) }
+            .bind()
+    }
     suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         withTemporalValues: Boolean
     ): List<AttributeInstanceResult> {
-        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
+        val temporalEntityAttributesIds =
+            temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
+
+        val timeStamp = temporalQuery.timeAt ?: selectOldestDate(temporalQuery,temporalEntityAttributesIds)
+
+        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timeStamp)
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)
             selectQuery = selectQuery.plus(", payload::TEXT")
-
-        val temporalEntityAttributesIds =
-            temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
@@ -149,12 +185,13 @@ class AttributeInstanceService(
 
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
-        temporalEntityAttributes: List<TemporalEntityAttribute>
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        timeStamp: ZonedDateTime
     ) = when {
         temporalQuery.timeBucket != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
+                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '$timeStamp') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services

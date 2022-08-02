@@ -100,6 +100,10 @@ class TemporalEntityHandler(
             temporalEntitiesQuery.queryParams.attrs.isEmpty()
         ) throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
+        if (temporalEntitiesQuery.temporalQuery.timeAt == null &&
+            temporalEntitiesQuery.temporalQuery.timerel == null
+        ) throw BadRequestDataException("Either timerel and timeAt need to be present in request parameters")
+
         val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,

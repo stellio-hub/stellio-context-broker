@@ -30,8 +30,10 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.insert
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -330,6 +332,124 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         assertThat(enrichedEntity)
             .hasSize(3)
+    }
+
+    @Test
+    fun `it should return min value of all instances for 30 day`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MIN
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .hasSize(1)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 3.0)
+    }
+
+    @Test
+    fun `it should return max value of all instances for 30 day with timerel before`() = runTest {
+
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-06-0${index+1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BEFORE,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .hasSize(1)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-06-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 1.0)
+    }
+
+    @Test
+    fun `it should return max value of all instances for 30 day with timerel between`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BETWEEN,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .hasSize(1)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 4.0)
+    }
+
+    @Test
+    fun `it should return max value of all instances for 30 day without timerel and timeAt`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index+1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .hasSize(1)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-01T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 8.0)
     }
 
     @Test

@@ -14,20 +14,24 @@ import java.util.Optional
 fun parseAndCheckQueryParams(
     pagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String
+    contextLink: String,
+    inQueryEntities: Boolean = false
 ): TemporalEntitiesQuery {
+    val queryParams = parseAndCheckParams(
+        Pair(pagination.limitDefault, pagination.limitMax),
+        requestParams,
+        contextLink
+    )
+    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
+        throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(requestParams)
-    val queryParams = parseAndCheckParams(
-        Pair(pagination.limitDefault, pagination.limitMax),
-        requestParams,
-        contextLink
-    )
+    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities)
 
     return TemporalEntitiesQuery(
         queryParams = queryParams,
@@ -37,7 +41,7 @@ fun parseAndCheckQueryParams(
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
+fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: Boolean = false): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
@@ -56,7 +60,7 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
             throw BadRequestDataException(it)
         }
 
-    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam).getOrHandle {
+    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrHandle {
         throw BadRequestDataException(it)
     }
 
@@ -87,9 +91,10 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
 
 fun buildTimerelAndTime(
     timerelParam: String?,
-    timeAtParam: String?
+    timeAtParam: String?,
+    inQueryEntities: Boolean
 ): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
-    if (timerelParam == null && timeAtParam == null) {
+    if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {

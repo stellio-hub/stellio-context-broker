@@ -663,7 +663,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
+            .uri("/ngsi-ld/v1/temporal/entities?type=Beehive&timerel=before")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

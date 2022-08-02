@@ -99,15 +99,25 @@ class AttributeInstanceService(
     suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        withTemporalValues: Boolean
+        inQueryEntities: Boolean
     ): List<AttributeInstanceResult> {
-        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
-
-        if (!withTemporalValues && temporalQuery.timeBucket == null)
-            selectQuery = selectQuery.plus(", payload::TEXT")
-
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
+
+        // time_bucket has a default origin set to 2000-01-03
+        // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
+        // so we force the default origin to:
+        // - timeAt if it is provided
+        // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
+        val timestamp =
+            if (temporalQuery.timeBucket != null)
+                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
+            else null
+
+        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
+
+        if (!inQueryEntities && temporalQuery.timeBucket == null)
+            selectQuery = selectQuery.plus(", payload::TEXT")
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
@@ -144,17 +154,18 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues) }
+            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, inQueryEntities) }
     }
 
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
-        temporalEntityAttributes: List<TemporalEntityAttribute>
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        timestamp: ZonedDateTime?
     ) = when {
         temporalQuery.timeBucket != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
+                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
@@ -168,6 +179,38 @@ class AttributeInstanceService(
             "SELECT temporal_entity_attribute, time, measured_value as value, sub "
         else ->
             "SELECT temporal_entity_attribute, time, measured_value as value "
+    }
+
+    suspend fun selectOldestDate(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttributesIds: String
+    ): ZonedDateTime? {
+        var selectQuery =
+            """
+                SELECT min(time) as first
+            """.trimIndent()
+
+        selectQuery =
+            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    """
+                )
+            else
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance_audit
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    AND time_property = '${temporalQuery.timeproperty.name}'
+                    """
+                )
+
+        return databaseClient
+            .sql(selectQuery)
+            .oneToResult { ZonedDateTime.parse(it["first"].toString()).toInstant().atZone(ZoneOffset.UTC) }
+            .orNull()
     }
 
     private fun rowToAttributeInstanceResult(

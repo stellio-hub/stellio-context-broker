@@ -1,6 +1,6 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
 class TemporalEntityOperationsHandler(
     private val queryService: QueryService,
-    private val entityAccessRightsService: EntityAccessRightsService,
+    private val authorizationService: AuthorizationService,
     private val applicationProperties: ApplicationProperties
 ) {
 
@@ -48,7 +48,7 @@ class TemporalEntityOperationsHandler(
         val temporalEntitiesQuery =
             parseAndCheckQueryParams(applicationProperties.pagination, queryParams, contextLink)
 
-        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
+        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             contextLink,

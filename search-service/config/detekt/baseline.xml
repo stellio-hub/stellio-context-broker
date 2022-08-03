@@ -12,6 +12,7 @@
     <ID>TooManyFunctions:IAMListener.kt$IAMListener</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
+    <ID>UnusedPrivateMember:EnabledAuthorizationServiceTest.kt$EnabledAuthorizationServiceTest$@MockkBean private lateinit var entityAccessRightsService: EntityAccessRightsService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>
   </CurrentIssues>

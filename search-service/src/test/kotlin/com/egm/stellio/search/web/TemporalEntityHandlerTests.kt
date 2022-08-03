@@ -3,7 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -12,9 +12,7 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -57,7 +55,7 @@ class TemporalEntityHandlerTests {
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
+    private lateinit var authorizationService: AuthorizationService
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val temporalEntityAttributeName = "speed"
@@ -75,13 +73,21 @@ class TemporalEntityHandlerTests {
             .build()
     }
 
+    private fun buildDefaultMockResponsesForAddAttributes() {
+        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
+        } returns Unit.right()
+    }
+
     @Test
     fun `it should correctly handle an attribute with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             temporalEntityAttributeUuid.right()
         }
@@ -119,7 +125,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             temporalEntityAttributeUuid.right()
         }
@@ -157,7 +163,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             temporalEntityAttributeUuid.right()
         }
@@ -195,7 +201,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             temporalEntityAttributeUuid.right()
         }
@@ -229,7 +235,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForAddAttributes()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -251,15 +257,20 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 403 is user is not authorized to write on the entity`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
+
+        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
-            entityAccessRightsService.canWriteEntity(any(), any())
-        } answers { AccessDeniedException("User forbidden write access to entity $entityUri").left() }
+            authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
+        } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(""))
+            .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
             .expectStatus().isForbidden
 
@@ -267,9 +278,17 @@ class TemporalEntityHandlerTests {
         coVerify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
     }
 
+    private fun buildDefaultMockResponsesForGetEntity() {
+        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.checkReadAuthorized(any(), any(), any())
+        } returns Unit.right()
+    }
+
     @Test
     fun `it should raise a 400 if timerel is present without time query param`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before")
@@ -288,7 +307,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is present without timerel query param`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timeAt=2020-10-29T18:00:00Z")
@@ -307,26 +326,29 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
+        buildDefaultMockResponsesForGetEntity()
+
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } returns emptyMap<String, Any>().right()
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
             .exchange()
             .expectStatus().isOk
 
         coVerify {
-            entityAccessRightsService.canReadEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
-                eq(entityUri)
+            authorizationService.checkReadAuthorized(
+                eq(entityUri),
+                any(),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
     }
 
     @Test
     fun `it should raise a 400 if timerel is between and no endTimeAt provided`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=startTime")
@@ -345,7 +367,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is not parsable`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&timeAt=badTime")
@@ -364,7 +386,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is not a valid value`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&timeAt=badTime")
@@ -383,7 +405,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is between and endTimeAt is not parseable`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri(
@@ -405,7 +427,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if one of time bucket or aggregate is missing`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri(
@@ -427,7 +449,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if aggregate function is unknown`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
             .uri(
@@ -449,7 +471,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
@@ -474,7 +497,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } returns emptyMap<String, Any>().right()
@@ -505,7 +529,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } returns emptyMap<String, Any>().right()
@@ -520,16 +545,14 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            entityAccessRightsService.canReadEntity(
-                any(),
-                eq(entityUri)
-            )
+            authorizationService.checkReadAuthorized(eq(entityUri), any(), any())
         }
     }
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } returns emptyMap<String, Any>().right()
@@ -544,16 +567,18 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            entityAccessRightsService.canReadEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
-                eq(entityUri)
+            authorizationService.checkReadAuthorized(
+                eq(entityUri),
+                any(),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
     }
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         mockWithIncomingAndOutgoingTemporalProperties(false)
 
         webClient.get()
@@ -574,7 +599,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a json entity with two temporal properties evolution`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         mockWithIncomingAndOutgoingTemporalProperties(false)
 
         webClient.get()
@@ -597,7 +623,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        buildDefaultMockResponsesForGetEntity()
+
         mockWithIncomingAndOutgoingTemporalProperties(true)
 
         webClient.get()
@@ -660,7 +687,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 and return an error response`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?type=Beehive&timerel=before")
@@ -685,7 +712,7 @@ class TemporalEntityHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(emptyList(), 2)
@@ -724,7 +751,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
@@ -752,7 +779,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
@@ -791,7 +818,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
@@ -815,7 +842,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         webClient.get()
@@ -831,7 +858,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         webClient.get()
@@ -853,7 +880,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
@@ -882,7 +909,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3)
@@ -909,7 +936,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
@@ -937,7 +964,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
@@ -965,7 +992,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
@@ -994,9 +1021,14 @@ class TemporalEntityHandlerTests {
     @Test
     fun `delete attribute instance temporal should return 204`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+        } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.getEntityTypes(any())
+        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
@@ -1015,21 +1047,19 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
-            entityAccessRightsService.canWriteEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
-                eq(entityUri)
+            authorizationService.checkUpdateAuthorized(
+                eq(entityUri),
+                any(),
+                any<ExpandedTerm>(),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService, entityAccessRightsService)
     }
 
     @Test
     fun `delete attribute instance temporal should return 404 if entityId is not found`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
-        coEvery {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } returns UUID.randomUUID().right()
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
@@ -1061,9 +1091,6 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } returns UUID.randomUUID().right()
-        coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns ResourceNotFoundException(attributeNotFoundMessage(expandedAttr)).left()
 
@@ -1093,9 +1120,14 @@ class TemporalEntityHandlerTests {
     fun `delete attribute instance temporal should return 404 if attributeInstanceId is not found`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+        } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.getEntityTypes(any())
+        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
@@ -1122,12 +1154,13 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
-            entityAccessRightsService.canWriteEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
-                eq(entityUri)
+            authorizationService.checkUpdateAuthorized(
+                eq(entityUri),
+                any(),
+                any<ExpandedTerm>(),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
-        confirmVerified(temporalEntityAttributeService, attributeInstanceService, entityAccessRightsService)
     }
 
     @Test
@@ -1135,11 +1168,14 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            entityAccessRightsService.canWriteEntity(any(), any())
-        } answers { AccessDeniedException("User forbidden write access to entity $entityUri").left() }
-        coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.getEntityTypes(any())
+        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
+        } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient
             .method(HttpMethod.DELETE)
@@ -1159,12 +1195,13 @@ class TemporalEntityHandlerTests {
 
         coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
         coVerify {
-            entityAccessRightsService.canWriteEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
-                eq(entityUri)
+            authorizationService.checkUpdateAuthorized(
+                eq(entityUri),
+                any(),
+                any<ExpandedTerm>(),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
-        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test

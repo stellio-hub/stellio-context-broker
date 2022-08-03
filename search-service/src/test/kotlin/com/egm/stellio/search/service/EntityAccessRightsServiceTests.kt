@@ -19,7 +19,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -178,38 +177,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called
         }
         confirmVerified(subjectReferentialService)
-    }
-
-    @Test
-    fun `it should return a null filter is user has the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
-
-        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(Some(subjectUuid))
-        assertNull(accessRightFilter())
-    }
-
-    @Test
-    fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns false.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) } answers {
-            listOf(subjectUuid, groupUuid).right()
-        }
-
-        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(Some(subjectUuid))
-        assertEquals(
-            """
-            ( 
-                (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                OR
-                (entity_id IN (
-                    SELECT entity_id
-                    FROM entity_access_rights
-                    WHERE subject_id IN ('$subjectUuid','$groupUuid')
-                ))
-            )
-            """.trimIndent(),
-            accessRightFilter()
-        )
     }
 
     @Test

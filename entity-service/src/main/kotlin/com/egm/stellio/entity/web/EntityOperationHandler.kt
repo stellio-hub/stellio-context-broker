@@ -8,7 +8,6 @@ import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -17,7 +16,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.util.Optional
 
 @RestController
@@ -43,8 +41,7 @@ class EntityOperationHandler(
             checkBatchRequestBody(body)
             checkContext(httpHeaders, body)
             val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
-            val (_, _, ngsiLdEntities) =
-                expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+            val (_, ngsiLdEntities) = expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
             val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
                 authorizationService.isCreationAuthorized(it, sub).isLeft()
@@ -83,7 +80,7 @@ class EntityOperationHandler(
             checkContext(httpHeaders, body)
             val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
 
-            val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
+            val (jsonLdEntities, ngsiLdEntities) =
                 expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
@@ -106,8 +103,10 @@ class EntityOperationHandler(
                     else -> entityOperationService.replace(existingEntitiesAuthorized)
                 }
 
-                if (options == "update") publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities)
-                else publishReplaceEvents(sub.orNull(), updateOperationResult, extractedEntities, ngsiLdEntities)
+                if (options == "update")
+                    publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities, ngsiLdEntities)
+                else
+                    publishReplaceEvents(sub.orNull(), updateOperationResult, ngsiLdEntities)
 
                 batchOperationResult.errors.addAll(updateOperationResult.errors)
                 batchOperationResult.success.addAll(updateOperationResult.success)
@@ -143,7 +142,7 @@ class EntityOperationHandler(
             val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
             val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-            val (_, jsonLdEntities, ngsiLdEntities) =
+            val (jsonLdEntities, ngsiLdEntities) =
                 expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
@@ -159,7 +158,7 @@ class EntityOperationHandler(
                 val updateOperationResult =
                     entityOperationService.update(existingEntitiesAuthorized, disallowOverwrite)
 
-                publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities)
+                publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities, ngsiLdEntities)
 
                 batchOperationResult.errors.addAll(updateOperationResult.errors)
                 batchOperationResult.success.addAll(updateOperationResult.success)
@@ -240,19 +239,14 @@ class EntityOperationHandler(
         payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?
-    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
+    ): Pair<List<JsonLdEntity>, List<NgsiLdEntity>> =
         payload.let {
             if (contentType == JSON_LD_MEDIA_TYPE)
-                Pair(it, expandJsonLdEntities(it))
+                expandJsonLdEntities(it)
             else
-                Pair(it, expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT)))
+                expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT))
         }
-            .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
-
-    private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> =
-        entitiesPayload.first {
-            it["id"] == entityId.toString()
-        }
+            .let { Pair(it, it.map { it.toNgsiLdEntity() }) }
 
     private fun doBatchCreation(
         entitiesToCreate: List<NgsiLdEntity>,
@@ -281,33 +275,33 @@ class EntityOperationHandler(
     private fun publishReplaceEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
-        extractedEntities: List<Map<String, Any>>,
         ngsiLdEntities: List<NgsiLdEntity>
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
-            val contexts = extractContextFromInput(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityReplaceEvent(
                 sub,
                 it.id,
                 it.types,
-                contexts
+                it.contexts
             )
         }
 
     private fun publishUpdateEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
-        jsonLdEntities: List<JsonLdEntity>
+        jsonLdEntities: List<JsonLdEntity>,
+        ngsiLdEntities: List<NgsiLdEntity>
     ) {
         updateBatchOperationResult.success.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
+            val ngsiLdEntity = ngsiLdEntities.find { ngsiLdEntity -> ngsiLdEntity.id == it.entityId }!!
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,
                 true,
-                jsonLdEntity.contexts
+                ngsiLdEntity.contexts
             )
         }
     }

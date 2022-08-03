@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.qPattern
 import java.net.URI
+import java.util.regex.Pattern
 
 object QueryUtils {
 
@@ -126,9 +127,28 @@ object QueryUtils {
             " entity.id =~ '$idPattern' "
         else ""
 
-    private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
-        rawQuery.replace(qPattern.toRegex()) { matchResult ->
-            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
+    private val innerRegexPattern: Pattern = Pattern.compile(".*(=~\"\\(\\?i\\)).*")
+
+    private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String {
+        // Quick hack to allow inline options for regex expressions
+        // (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
+        // When matched, parenthesis are replaced by special characters that are later restored after the main
+        // qPattern regex has been processed
+        val rawQueryWithPatternEscaped =
+            if (rawQuery.matches(innerRegexPattern.toRegex())) {
+                rawQuery.replace(innerRegexPattern.toRegex()) { matchResult ->
+                    matchResult.value
+                        .replace("(", "##")
+                        .replace(")", "//")
+                }
+            } else rawQuery
+
+        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
+            // restoring the eventual inline options for regex expressions (replaced above)
+            val fixedValue = matchResult.value
+                .replace("##", "(")
+                .replace("//", ")")
+            val parsedQueryTerm = extractComparisonParametersFromQuery(fixedValue)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
@@ -165,6 +185,7 @@ object QueryUtils {
         }
             .replace(";", " AND ")
             .replace("|", " OR ")
+    }
 
     private fun buildInnerAttrFilterQuery(attrs: Set<ExpandedTerm>): String =
         attrs.joinToString(

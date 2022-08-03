@@ -334,7 +334,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return min value of all instances for 30 day`() = runTest {
+    fun `it should return min value of all instances for 30 day with timerel after`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()
@@ -354,7 +354,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         assertThat(enrichedEntity)
-            .hasSize(1)
             .singleElement()
             .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
             .hasFieldOrPropertyWithValue("value", 3.0)
@@ -381,7 +380,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         assertThat(enrichedEntity)
-            .hasSize(1)
             .singleElement()
             .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-06-03T00:00:00Z"))
             .hasFieldOrPropertyWithValue("value", 1.0)
@@ -409,7 +407,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         assertThat(enrichedEntity)
-            .hasSize(1)
             .singleElement()
             .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
             .hasFieldOrPropertyWithValue("value", 4.0)
@@ -434,7 +431,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         assertThat(enrichedEntity)
-            .hasSize(1)
             .singleElement()
             .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-01T00:00:00Z"))
             .hasFieldOrPropertyWithValue("value", 8.0)

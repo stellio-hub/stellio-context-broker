@@ -8,7 +8,6 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -95,15 +94,8 @@ class TemporalEntityHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val temporalEntitiesQuery = parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink)
-        if (temporalEntitiesQuery.queryParams.types.isEmpty() &&
-            temporalEntitiesQuery.queryParams.attrs.isEmpty()
-        ) throw BadRequestDataException("Either type or attrs need to be present in request parameters")
-
-        if (temporalEntitiesQuery.temporalQuery.timeAt == null &&
-            temporalEntitiesQuery.temporalQuery.timerel == null
-        ) throw BadRequestDataException("Either timerel and timeAt need to be present in request parameters")
-
+        val temporalEntitiesQuery =
+            parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink, true)
         val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,

@@ -1,7 +1,7 @@
 package com.egm.stellio.search.web
 
 import arrow.core.continuations.either
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.QueryService
@@ -31,7 +31,7 @@ class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
-    private val entityAccessRightsService: EntityAccessRightsService,
+    private val authorizationService: AuthorizationService,
     private val applicationProperties: ApplicationProperties
 ) {
 
@@ -45,14 +45,22 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         return either<APIException, ResponseEntity<*>> {
-
             val sub = getSubFromSecurityContext()
+            val entityUri = entityId.toUri()
 
-            entityAccessRightsService.canWriteEntity(sub, entityId.toUri()).bind()
+            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
 
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+
+            authorizationService.checkUpdateAuthorized(
+                entityUri,
+                entityTypes,
+                jsonLdAttributes,
+                sub
+            ).bind()
 
             jsonLdAttributes
                 .forEach { attributeEntry ->
@@ -96,7 +104,7 @@ class TemporalEntityHandler(
 
         val temporalEntitiesQuery =
             parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink, true)
-        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
+        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             contextLink,
@@ -125,13 +133,18 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         return either<APIException, ResponseEntity<*>> {
             val sub = getSubFromSecurityContext()
+            val entityUri = entityId.toUri()
+
+            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)
+            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+
+            authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
 
             val temporalEntitiesQuery =
                 parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
-
-            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).bind()
 
             val temporalEntity = queryService.queryTemporalEntity(
                 entityId.toUri(),
@@ -166,7 +179,9 @@ class TemporalEntityHandler(
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
 
-            entityAccessRightsService.canWriteEntity(sub, entityUri).bind()
+            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+
+            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
 
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttrId, instanceUri).bind()
 

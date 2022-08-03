@@ -1,6 +1,6 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
@@ -40,7 +40,7 @@ class TemporalEntityOperationsHandlerTests {
     private lateinit var queryService: QueryService
 
     @MockkBean
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
+    private lateinit var authorizationService: AuthorizationService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -80,7 +80,7 @@ class TemporalEntityOperationsHandlerTests {
                 withTemporalValues = true,
                 withAudit = false
             )
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         val queryParams = LinkedMultiValueMap<String, String>()
@@ -143,7 +143,7 @@ class TemporalEntityOperationsHandlerTests {
                 withTemporalValues = true,
                 withAudit = false
             )
-        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         val queryParams = LinkedMultiValueMap<String, String>()

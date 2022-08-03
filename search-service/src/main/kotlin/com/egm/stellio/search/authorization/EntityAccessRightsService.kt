@@ -147,37 +147,6 @@ class EntityAccessRightsService(
             .bind("access_rights", accessRights.map { it.attributeName })
             .oneToResult { it["count"] as Long >= 1L }
 
-    suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
-        if (!applicationProperties.authentication.enabled ||
-            subjectReferentialService.hasStellioAdminRole(sub).getOrElse { false }
-        )
-            return { null }
-        else {
-            return subjectReferentialService.getSubjectAndGroupsUUID(sub)
-                .map {
-                    if (it.isEmpty()) {
-                        { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
-                    } else {
-                        {
-                            """
-                        ( 
-                            (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                            OR
-                            (entity_id IN (
-                                SELECT entity_id
-                                FROM entity_access_rights
-                                WHERE subject_id IN (${it.toListOfString()})
-                            ))
-                        )
-                            """.trimIndent()
-                        }
-                    }
-                }.getOrElse { { null } }
-        }
-    }
-
-    private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
-
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)

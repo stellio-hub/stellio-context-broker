@@ -426,6 +426,23 @@ class TemporalEntityAttributeService(
             .oneToResult(ResourceNotFoundException(entityNotFoundMessage(id.toString()))) { it["id"] as UUID }
     }
 
+    suspend fun getEntityTypes(id: URI): Either<APIException, List<ExpandedTerm>> {
+        val selectQuery =
+            """
+            SELECT types
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            LIMIT 1
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", id)
+            .oneToResult(ResourceNotFoundException(entityNotFoundMessage(id.toString()))) {
+                (it["types"] as Array<ExpandedTerm>).toList()
+            }
+    }
+
     private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =
         TemporalEntityAttribute(
             id = row["id"] as UUID,
@@ -470,6 +487,29 @@ class TemporalEntityAttributeService(
                         Unit.right()
                     else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
                 } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+            }
+    }
+
+    suspend fun checkEntityExistence(
+        entityId: URI
+    ): Either<APIException, Unit> {
+        val selectQuery =
+            """
+                select 
+                    exists(
+                        select 1 
+                        from temporal_entity_attribute 
+                        where entity_id = :entity_id
+                    ) as entityExists;
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", entityId)
+            .oneToResult { it["entityExists"] as Boolean }
+            .flatMap {
+                if (it) Unit.right()
+                else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
 }

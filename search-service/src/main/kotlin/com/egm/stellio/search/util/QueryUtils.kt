@@ -17,6 +17,14 @@ fun parseAndCheckQueryParams(
     contextLink: String,
     pointOfTimeIsNeeded: Boolean = false
 ): TemporalEntitiesQuery {
+    val queryParams = parseAndCheckParams(
+        Pair(pagination.limitDefault, pagination.limitMax),
+        requestParams,
+        contextLink
+    )
+    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && pointOfTimeIsNeeded)
+        throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
     )
@@ -24,14 +32,6 @@ fun parseAndCheckQueryParams(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
     val temporalQuery = buildTemporalQuery(requestParams, pointOfTimeIsNeeded)
-    val queryParams = parseAndCheckParams(
-        Pair(pagination.limitDefault, pagination.limitMax),
-        requestParams,
-        contextLink
-    )
-
-    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && pointOfTimeIsNeeded)
-        throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     return TemporalEntitiesQuery(
         queryParams = queryParams,

@@ -407,9 +407,7 @@ class Neo4jAuthorizationRepository(
                 rCanReadUsers = usersRightsOnEntity.valuesForRight(AccessRight.R_CAN_READ),
                 createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
                 modifiedAt = (entityNode.get("modifiedAt") as? DateTimeValue)?.asZonedDateTime(),
-                specificAccessPolicy = specificAccessPolicy?.let { it ->
-                    AuthContextModel.SpecificAccessPolicy.valueOf(it)
-                }
+                specificAccessPolicy = specificAccessPolicy?.let { AuthContextModel.SpecificAccessPolicy.valueOf(it) }
             )
         }.toSet()
 

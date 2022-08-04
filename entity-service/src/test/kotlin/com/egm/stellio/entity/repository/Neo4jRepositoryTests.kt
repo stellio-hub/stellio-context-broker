@@ -203,27 +203,6 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should update the target relationship of a relationship`() {
-        val property = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
-        propertyRepository.save(property)
-        val relationship = createRelationship(
-            AttributeSubjectNode(property.id),
-            EGM_OBSERVED_BY,
-            "urn:ngsi-ld:Entity:123".toUri()
-        )
-
-        neo4jRepository.updateTargetOfRelationship(
-            relationship.id,
-            EGM_OBSERVED_BY.toRelationshipTypeName(),
-            "urn:ngsi-ld:Entity:123".toUri(),
-            "urn:ngsi-ld:Entity:456".toUri()
-        )
-
-        val updatedRelationship = relationshipRepository.findById(relationship.id)
-        assertEquals("urn:ngsi-ld:Entity:456".toUri(), updatedRelationship.get().objectId)
-    }
-
-    @Test
     fun `it should add modifiedAt value when creating a new property`() {
         val property = Property(name = "name", value = "Scalpa")
         propertyRepository.save(property)
@@ -506,7 +485,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should delete incoming relationships when deleting an entity`() {
+    fun `it should move incoming relationships to a partial entity when deleting an entity`() {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(device.id), EGM_OBSERVED_BY, sensor.id)
@@ -514,7 +493,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         neo4jRepository.deleteEntity(sensor.id)
 
         val entity = entityRepository.findById(device.id).get()
-        assertEquals(0, entity.relationships.size)
+        assertEquals(1, entity.relationships.size)
+        assertEquals("urn:ngsi-ld:Sensor:1233", entity.relationships[0].objectId.toString())
+        assertEquals(EGM_OBSERVED_BY, entity.relationships[0].type[0])
 
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)

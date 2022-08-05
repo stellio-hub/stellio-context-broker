@@ -15,14 +15,14 @@ fun parseAndCheckQueryParams(
     pagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contextLink: String,
-    pointOfTimeIsNeeded: Boolean = false
+    inQueryEntities: Boolean = false
 ): TemporalEntitiesQuery {
     val queryParams = parseAndCheckParams(
         Pair(pagination.limitDefault, pagination.limitMax),
         requestParams,
         contextLink
     )
-    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && pointOfTimeIsNeeded)
+    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
         throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     val withTemporalValues = hasValueInOptionsParam(
@@ -31,7 +31,7 @@ fun parseAndCheckQueryParams(
     val withAudit = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(requestParams, pointOfTimeIsNeeded)
+    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities)
 
     return TemporalEntitiesQuery(
         queryParams = queryParams,
@@ -41,7 +41,7 @@ fun parseAndCheckQueryParams(
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>, pointOfTimeIsNeeded: Boolean = false): TemporalQuery {
+fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: Boolean = false): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
@@ -60,7 +60,7 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, pointOfTimeIsNeede
             throw BadRequestDataException(it)
         }
 
-    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, pointOfTimeIsNeeded).getOrHandle {
+    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrHandle {
         throw BadRequestDataException(it)
     }
 

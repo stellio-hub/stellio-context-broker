@@ -18,7 +18,7 @@ import java.time.ZonedDateTime
 class QueryUtilsTests {
 
     @Test
-    fun `it should throw a BadRequestData exception if type or attrs are not present when it's mandatory`() {
+    fun `it should throw a BadRequestData exception if type or attrs are not present when querying entites`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
@@ -62,7 +62,7 @@ class QueryUtilsTests {
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if timerel and time is not present when it's mandatory`() {
+    fun `it should throw a BadRequestData exception if timerel and time is not present when querying entites`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("type", "Beehive")
 

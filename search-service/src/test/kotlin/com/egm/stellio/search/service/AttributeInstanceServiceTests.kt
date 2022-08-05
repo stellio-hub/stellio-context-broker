@@ -334,7 +334,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return min value of all instances for 30 day with timerel after`() = runTest {
+    fun `it should set the start time to the timeAt value if asking for an after timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()
@@ -360,7 +360,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return max value of all instances for 30 day with timerel before`() = runTest {
+    fun `it should set the start time to the timeAt value if asking for a before timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()
@@ -386,7 +386,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return max value of all instances for 30 day with timerel between`() = runTest {
+    fun `it should set the start time to the timeAt value if asking for a between timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()
@@ -413,7 +413,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return max value of all instances for 30 day without timerel and timeAt`() = runTest {
+    fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeAttributeInstance()

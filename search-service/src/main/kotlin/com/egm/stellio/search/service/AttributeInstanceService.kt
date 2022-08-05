@@ -99,14 +99,16 @@ class AttributeInstanceService(
     suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        withTemporalValues: Boolean
+        inQueryEntities: Boolean
     ): List<AttributeInstanceResult> {
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
-        // when we want to make aggregations
-        // we want to retrieve the time to define it as origin in the function time_bucket
-        // or retrieve the date of the oldest value
+        // time_bucket has a default origin set to 2000-01-03
+        // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
+        // so we force the default origin to:
+        // - timeAt if it is provided
+        // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
         val timestamp =
             if (temporalQuery.timeBucket != null)
                 temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
@@ -114,7 +116,7 @@ class AttributeInstanceService(
 
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
-        if (!withTemporalValues && temporalQuery.timeBucket == null)
+        if (!inQueryEntities && temporalQuery.timeBucket == null)
             selectQuery = selectQuery.plus(", payload::TEXT")
 
         selectQuery =
@@ -152,18 +154,18 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues) }
+            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, inQueryEntities) }
     }
 
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        timeStamp: ZonedDateTime?
+        timestamp: ZonedDateTime?
     ) = when {
         temporalQuery.timeBucket != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timeStamp!!}') as time_bucket,
+                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services

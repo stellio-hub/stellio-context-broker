@@ -92,9 +92,9 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
 fun buildTimerelAndTime(
     timerelParam: String?,
     timeAtParam: String?,
-    pointOfTimeIsNeeded: Boolean
+    inQueryEntities: Boolean
 ): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
-    if (timerelParam == null && timeAtParam == null && !pointOfTimeIsNeeded) {
+    if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {

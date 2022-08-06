@@ -411,7 +411,7 @@ class TemporalEntityAttributeService(
             SELECT id
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-            ${if (datasetId != null) "AND dataset_id = :dataset_id" else ""}
+            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
             AND attribute_name = :attribute_name
             """.trimIndent()
 

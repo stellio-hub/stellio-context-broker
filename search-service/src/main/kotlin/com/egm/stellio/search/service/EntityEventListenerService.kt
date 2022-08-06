@@ -21,6 +21,9 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -37,35 +40,45 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_search")
-    suspend fun processMessage(content: String) {
+    fun processMessage(content: String) {
         logger.debug("Processing message: $content")
+        coroutineScope.launch {
+            dispatchMessage(content)
+        }
+    }
+
+    internal suspend fun dispatchMessage(content: String) {
         val entityEvent = deserializeAs<EntityEvent>(content)
-        when (entityEvent) {
-            is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
-            is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
-            is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
-            is AttributeAppendEvent ->
-                when (entityEvent.attributeName) {
-                    JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
-                    else -> handleAttributeAppendEvent(entityEvent)
-                }
-            is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
-            is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
-            is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
-            is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
-            else -> "Entity event ${entityEvent.operationType} not handled.".right()
-        }.fold({
-            logger.error(
-                "Error while handling event ${entityEvent.operationType}" +
-                    " for entity ${entityEvent.entityId}: $it"
-            )
-        }, {
-            logger.debug(
-                "Successfully handled event ${entityEvent.operationType}" +
-                    " for entity ${entityEvent.entityId}"
-            )
-        })
+        kotlin.runCatching {
+            when (entityEvent) {
+                is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
+                is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
+                is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
+                is AttributeAppendEvent ->
+                    when (entityEvent.attributeName) {
+                        JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
+                        else -> handleAttributeAppendEvent(entityEvent)
+                    }
+                is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
+                is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
+                is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
+                is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(entityEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(entityEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(entityEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(entityEvent.failedHandlingMessage(it))
+        }
     }
 
     private suspend fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent): Either<APIException, Unit> {

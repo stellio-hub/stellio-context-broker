@@ -1,12 +1,17 @@
 package com.egm.stellio.search.service
 
-import arrow.core.flatMap
+import arrow.core.Either
+import arrow.core.continuations.either
+import arrow.core.left
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.toNgsiLdFormat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -20,27 +25,72 @@ class SubscriptionEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
     @KafkaListener(topics = ["cim.subscription"], groupId = "search_service_subscription")
-    suspend fun processSubscription(content: String) {
-        when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
-            is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
-            is EntityDeleteEvent -> handleSubscriptionDeleteEvent(subscriptionEvent)
+    fun processSubscription(content: String) {
+        logger.debug("Processing message: $content")
+        coroutineScope.launch {
+            dispatchSubscriptionMessage(content)
+        }
+    }
+
+    internal suspend fun dispatchSubscriptionMessage(content: String) {
+        val subscriptionEvent = deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (subscriptionEvent) {
+                is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
+                is EntityDeleteEvent -> handleSubscriptionDeleteEvent(subscriptionEvent)
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(subscriptionEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(subscriptionEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(subscriptionEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(subscriptionEvent.failedHandlingMessage(it))
         }
     }
 
     @KafkaListener(topics = ["cim.notification"], groupId = "search_service_notification")
-    suspend fun processNotification(content: String) {
-        when (val notificationEvent = deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)
-            else -> logger.warn(
-                "Received unexpected event type ${notificationEvent.operationType}" +
-                    "for notification ${notificationEvent.entityId}"
-            )
+    fun processNotification(content: String) {
+        coroutineScope.launch {
+            logger.debug("Processing message: $content")
+            coroutineScope.launch {
+                dispatchNotificationMessage(content)
+            }
         }
     }
 
-    private suspend fun handleSubscriptionCreateEvent(subscriptionCreateEvent: EntityCreateEvent) {
+    internal suspend fun dispatchNotificationMessage(content: String) {
+        val notificationEvent = deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (notificationEvent) {
+                is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)
+                else ->
+                    OperationNotSupportedException(
+                        unhandledOperationType(notificationEvent.operationType)
+                    ).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(notificationEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(notificationEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(notificationEvent.failedHandlingMessage(it))
+        }
+    }
+
+    private suspend fun handleSubscriptionCreateEvent(
+        subscriptionCreateEvent: EntityCreateEvent
+    ): Either<APIException, Unit> {
         val subscription = deserializeAs<Subscription>(subscriptionCreateEvent.operationPayload)
         val entityTemporalProperty = TemporalEntityAttribute(
             entityId = subscription.id,
@@ -49,60 +99,46 @@ class SubscriptionEventListenerService(
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
 
-        temporalEntityAttributeService.create(entityTemporalProperty)
-            .map {
-                entityAccessRightsService.setAdminRoleOnEntity(
-                    subscriptionCreateEvent.sub,
-                    subscriptionCreateEvent.entityId
-                )
-            }.fold({
-                logger.warn("Error while creating reference for subscription ${subscription.id} ($it)")
-            }, {
-                logger.debug("Created reference for subscription ${subscription.id}")
-            })
+        return either {
+            temporalEntityAttributeService.create(entityTemporalProperty).bind()
+            entityAccessRightsService.setAdminRoleOnEntity(
+                subscriptionCreateEvent.sub,
+                subscriptionCreateEvent.entityId
+            ).bind()
+        }
     }
 
-    private suspend fun handleSubscriptionDeleteEvent(subscriptionDeleteEvent: EntityDeleteEvent) {
-        temporalEntityAttributeService.deleteTemporalEntityReferences(subscriptionDeleteEvent.entityId)
-            .map {
-                entityAccessRightsService.removeRolesOnEntity(subscriptionDeleteEvent.entityId)
-            }.fold({
-                logger.warn(
-                    "Error while deleting reference for subscription ${subscriptionDeleteEvent.entityId} ($it)"
-                )
-            }, {
-                logger.debug("Deleted subscription ${subscriptionDeleteEvent.entityId} (records deleted: $it)")
-            })
-    }
+    private suspend fun handleSubscriptionDeleteEvent(
+        subscriptionDeleteEvent: EntityDeleteEvent
+    ): Either<APIException, Unit> =
+        either {
+            temporalEntityAttributeService.deleteTemporalEntityReferences(subscriptionDeleteEvent.entityId).bind()
+            entityAccessRightsService.removeRolesOnEntity(subscriptionDeleteEvent.entityId).bind()
+        }
 
-    private suspend fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
+    private suspend fun handleNotificationCreateEvent(
+        notificationCreateEvent: EntityCreateEvent
+    ): Either<APIException, Unit> {
         logger.debug("Received notification event payload: ${notificationCreateEvent.operationPayload}")
         val notification = deserializeAs<Notification>(notificationCreateEvent.operationPayload)
         val entitiesIds = mergeEntitiesIdsFromNotificationData(notification.data)
-        temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
-            .flatMap {
-                val attributeInstance = AttributeInstance(
-                    temporalEntityAttribute = it,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                    time = notification.notifiedAt,
-                    value = entitiesIds,
-                    instanceId = notification.id,
-                    payload = mapOf(
-                        "type" to "Notification",
-                        "value" to entitiesIds,
-                        "observedAt" to notification.notifiedAt.toNgsiLdFormat()
-                    )
+
+        return either {
+            val teaUuid = temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId).bind()
+            val attributeInstance = AttributeInstance(
+                temporalEntityAttribute = teaUuid,
+                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                time = notification.notifiedAt,
+                value = entitiesIds,
+                instanceId = notification.id,
+                payload = mapOf(
+                    "type" to "Notification",
+                    "value" to entitiesIds,
+                    "observedAt" to notification.notifiedAt.toNgsiLdFormat()
                 )
-                attributeInstanceService.create(attributeInstance)
-            }
-            .fold({
-                logger.error(
-                    "Failed to persist new notification instance ${notification.id} " +
-                        "for subscription ${notification.subscriptionId}, ignoring it (${it.message})"
-                )
-            }, {
-                logger.debug("Created new notification instance ${notification.id} for ${notification.subscriptionId}")
-            })
+            )
+            attributeInstanceService.create(attributeInstance).bind()
+        }
     }
 
     fun mergeEntitiesIdsFromNotificationData(data: List<Map<String, Any>>): String =

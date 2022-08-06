@@ -126,7 +126,7 @@ class EntityEventListenerServiceTest {
         } returns Unit.right()
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityCreateEventPayload)
+        entityEventListenerService.dispatchMessage(entityCreateEventPayload)
 
         coVerify {
             temporalEntityAttributeService.createEntityTemporalReferences(
@@ -154,7 +154,7 @@ class EntityEventListenerServiceTest {
         } returns Unit.right()
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityCreateEventPayload)
+        entityEventListenerService.dispatchMessage(entityCreateEventPayload)
 
         coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(expectedEntityId.toUri())
@@ -176,7 +176,7 @@ class EntityEventListenerServiceTest {
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityDeleteEventPayload)
+        entityEventListenerService.dispatchMessage(entityDeleteEventPayload)
 
         coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(expectedEntityId.toUri()))
@@ -194,7 +194,7 @@ class EntityEventListenerServiceTest {
         } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeDeleteEventPayload)
+        entityEventListenerService.dispatchMessage(attributeDeleteEventPayload)
 
         coVerify {
             temporalEntityAttributeService.deleteTemporalAttributeReferences(
@@ -219,7 +219,7 @@ class EntityEventListenerServiceTest {
         } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeDeleteAllInstancesEvent)
+        entityEventListenerService.dispatchMessage(attributeDeleteAllInstancesEvent)
 
         coVerify {
             temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
@@ -242,7 +242,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
         coVerify {
             temporalEntityAttributeService.create(
@@ -280,7 +280,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
         coVerify {
             temporalEntityAttributeService.create(
@@ -329,7 +329,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
         coVerify {
             temporalEntityAttributeService.create(
@@ -376,7 +376,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
         coVerify {
             temporalEntityAttributeService.create(
@@ -413,7 +413,7 @@ class EntityEventListenerServiceTest {
         coEvery { temporalEntityAttributeService.updateTemporalEntityTypes(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
         coVerify {
             temporalEntityAttributeService.updateTemporalEntityTypes(
@@ -441,7 +441,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY
@@ -471,7 +471,7 @@ class EntityEventListenerServiceTest {
             coEvery { attributeInstanceService.create(any()) } returns Unit.right()
             coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-            entityEventListenerService.processMessage(attributeReplaceEventPayload)
+            entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
             coVerify {
                 temporalEntityAttributeService.create(
@@ -511,7 +511,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             NAME_PROPERTY
@@ -540,7 +540,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             MANAGED_BY_RELATIONSHIP
@@ -568,7 +568,7 @@ class EntityEventListenerServiceTest {
         } returns temporalEntityAttributeUuid.right()
         coEvery { attributeInstanceService.create(any()) } returns InternalErrorException("DB is down").left()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         coVerify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) }
         coVerify { entityPayloadService.upsertEntityPayload(any(), any()) wasNot Called }
@@ -586,7 +586,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY
@@ -616,7 +616,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY,
@@ -646,7 +646,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             MANAGED_BY_RELATIONSHIP
@@ -675,7 +675,7 @@ class EntityEventListenerServiceTest {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             NAME_PROPERTY,

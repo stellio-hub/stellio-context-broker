@@ -44,9 +44,9 @@ class SubscriptionEventListenerServiceTest {
         coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processSubscription(subscriptionEvent)
+        subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
-        coEvery {
+        coVerify {
             temporalEntityAttributeService.create(
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
@@ -67,7 +67,7 @@ class SubscriptionEventListenerServiceTest {
         coEvery { temporalEntityAttributeService.getFirstForEntity(any()) } returns temporalEntityAttributeUuid.right()
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processNotification(notificationEvent)
+        subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
 
         coVerify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
         coVerify {
@@ -97,7 +97,7 @@ class SubscriptionEventListenerServiceTest {
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processSubscription(subscriptionEvent)
+        subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
         coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))

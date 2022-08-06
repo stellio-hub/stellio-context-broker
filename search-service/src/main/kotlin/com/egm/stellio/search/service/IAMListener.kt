@@ -16,6 +16,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -30,68 +33,106 @@ class IAMListener(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
     @KafkaListener(topics = ["cim.iam"], groupId = "search-iam")
-    suspend fun processIam(content: String) {
+    fun processIam(content: String) {
         logger.debug("Received IAM event: $content")
-        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
-        when (authorizationEvent) {
-            is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
-            is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
-            is AttributeAppendEvent -> updateSubjectProfile(authorizationEvent)
-            is AttributeReplaceEvent -> "Not interested in attribute replace events for IAM events".right()
-            is AttributeDeleteEvent -> removeSubjectFromGroup(authorizationEvent)
-            else -> "Authorization event ${authorizationEvent.operationType} not handled.".right()
-        }.fold({
-            logger.error(
-                "Error while handling event ${authorizationEvent.operationType}" +
-                    " for entity ${authorizationEvent.entityId}: $it"
-            )
-        }, {
-            logger.debug(
-                "Successfully handled event ${authorizationEvent.operationType}" +
-                    " for entity ${authorizationEvent.entityId}"
-            )
-        })
-    }
-
-    @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
-    suspend fun processIamRights(content: String) {
-        logger.debug("Received IAM rights event: $content")
-        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
-        when (authorizationEvent) {
-            is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
-            is AttributeReplaceEvent -> handleAttributeReplaceOnRights(authorizationEvent)
-            is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
-            else -> "Authorization event ${authorizationEvent.operationType} not handled.".right()
-        }.fold({
-            logger.error(
-                "Error while handling event ${authorizationEvent.operationType}" +
-                    " for entity ${authorizationEvent.entityId}: $it"
-            )
-        }, {
-            logger.debug(
-                "Successfully handled event ${authorizationEvent.operationType}" +
-                    " for entity ${authorizationEvent.entityId}"
-            )
-        })
-    }
-
-    @KafkaListener(topics = ["cim.iam.replay"], groupId = "search-iam-replay")
-    suspend fun processIamReplay(content: String) {
-        logger.debug("Received IAM replay event: $content")
-        when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
-            is AttributeAppendEvent ->
-                addEntityToSubject(
-                    authorizationEvent.operationPayload,
-                    authorizationEvent.attributeName,
-                    authorizationEvent.entityId
-                )
-            else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
+        coroutineScope.launch {
+            dispatchIamMessage(content)
         }
     }
 
-    private suspend fun createFullSubjectReferential(entityCreateEvent: EntityCreateEvent) {
+    internal suspend fun dispatchIamMessage(content: String) {
+        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (authorizationEvent) {
+                is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
+                is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
+                is AttributeAppendEvent -> updateSubjectProfile(authorizationEvent)
+                is AttributeDeleteEvent -> removeSubjectFromGroup(authorizationEvent)
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(authorizationEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(authorizationEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(authorizationEvent.failedHandlingMessage(it))
+        }
+    }
+
+    @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
+    fun processIamRights(content: String) {
+        logger.debug("Received IAM rights event: $content")
+        coroutineScope.launch {
+            dispatchIamRightsMessage(content)
+        }
+    }
+
+    internal suspend fun dispatchIamRightsMessage(content: String) {
+        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (authorizationEvent) {
+                is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
+                is AttributeReplaceEvent -> handleAttributeReplaceOnRights(authorizationEvent)
+                is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(authorizationEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(authorizationEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(authorizationEvent.failedHandlingMessage(it))
+        }
+    }
+
+    @KafkaListener(topics = ["cim.iam.replay"], groupId = "search-iam-replay")
+    fun processIamReplay(content: String) {
+        logger.debug("Received IAM replay event: $content")
+        coroutineScope.launch {
+            dispatchIamReplayMessage(content)
+        }
+    }
+
+    internal suspend fun dispatchIamReplayMessage(content: String) {
+        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (authorizationEvent) {
+                is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
+                is AttributeAppendEvent ->
+                    addEntityToSubject(
+                        authorizationEvent.operationPayload,
+                        authorizationEvent.attributeName,
+                        authorizationEvent.entityId
+                    )
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(authorizationEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(authorizationEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(authorizationEvent.failedHandlingMessage(it))
+        }
+    }
+
+    private suspend fun createFullSubjectReferential(
+        entityCreateEvent: EntityCreateEvent
+    ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val serviceAccountId =
@@ -107,12 +148,7 @@ class IAMListener(
             groupsMemberships = groupsMemberships
         )
 
-        subjectReferentialService.create(subjectReferential)
-            .fold({
-                logger.warn("Error while creating full subject referential for ${entityCreateEvent.entityId} ($it)")
-            }, {
-                logger.debug("Created full subject referential for ${entityCreateEvent.entityId}")
-            })
+        return subjectReferentialService.create(subjectReferential)
     }
 
     private suspend fun createSubjectReferential(entityCreateEvent: EntityCreateEvent): Either<APIException, Unit> {

@@ -37,7 +37,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
-        iamListener.processIam(subjectCreateEvent)
+        iamListener.dispatchIamMessage(subjectCreateEvent)
 
         coVerify {
             subjectReferentialService.create(
@@ -56,7 +56,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
-        iamListener.processIam(subjectCreateEvent)
+        iamListener.dispatchIamMessage(subjectCreateEvent)
 
         coVerify {
             subjectReferentialService.create(
@@ -75,7 +75,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
 
-        iamListener.processIam(subjectDeleteEvent)
+        iamListener.dispatchIamMessage(subjectDeleteEvent)
 
         coVerify {
             subjectReferentialService.delete(
@@ -92,7 +92,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.setGlobalRoles(
@@ -110,7 +110,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.setGlobalRoles(
@@ -128,7 +128,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.setGlobalRoles(
@@ -146,7 +146,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.resetGlobalRoles(any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.resetGlobalRoles(
@@ -163,7 +163,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.addGroupMembershipToUser(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.addGroupMembershipToUser(
@@ -183,7 +183,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.removeGroupMembershipToUser(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.removeGroupMembershipToUser(
@@ -203,7 +203,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.addServiceAccountIdToClient(any(), any()) } returns Unit.right()
 
-        iamListener.processIam(roleAppendEvent)
+        iamListener.dispatchIamMessage(roleAppendEvent)
 
         coVerify {
             subjectReferentialService.addServiceAccountIdToClient(
@@ -223,7 +223,7 @@ class IAMListenerTests {
 
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
-        iamListener.processIamRights(rightAppendEvent)
+        iamListener.dispatchIamRightsMessage(rightAppendEvent)
 
         coVerify {
             entityAccessRightsService.setRoleOnEntity(
@@ -240,7 +240,7 @@ class IAMListenerTests {
 
         coEvery { temporalEntityAttributeService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
-        iamListener.processIamRights(rightAppendEvent)
+        iamListener.dispatchIamRightsMessage(rightAppendEvent)
 
         coVerify {
             temporalEntityAttributeService.updateSpecificAccessPolicy(
@@ -256,7 +256,7 @@ class IAMListenerTests {
 
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
 
-        iamListener.processIamRights(rightRemoveEvent)
+        iamListener.dispatchIamRightsMessage(rightRemoveEvent)
 
         coVerify {
             entityAccessRightsService.removeRoleOnEntity(
@@ -272,7 +272,7 @@ class IAMListenerTests {
 
         coEvery { temporalEntityAttributeService.removeSpecificAccessPolicy(any()) } returns Unit.right()
 
-        iamListener.processIamRights(rightRemoveEvent)
+        iamListener.dispatchIamRightsMessage(rightRemoveEvent)
 
         coVerify {
             temporalEntityAttributeService.removeSpecificAccessPolicy(

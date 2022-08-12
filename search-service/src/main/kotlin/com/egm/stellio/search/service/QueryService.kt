@@ -1,14 +1,17 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Either
+import arrow.core.getOrElse
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
-import kotlinx.coroutines.reactive.awaitFirst
-import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.stereotype.Service
 import java.net.URI
 
@@ -24,17 +27,15 @@ class QueryService(
         withTemporalValues: Boolean,
         withAudit: Boolean,
         contextLink: String
-    ): CompactedJsonLdEntity {
+    ): Either<APIException, CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId,
             temporalQuery.expandedAttrs
-        ).collectList()
-            .awaitFirst()
-            .ifEmpty {
-                throw ResourceNotFoundException(
-                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
-                )
-            }
+        ).ifEmpty {
+            return ResourceNotFoundException(
+                entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
+            ).left()
+        }
 
         val temporalEntityAttributesWithMatchingInstances =
             searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
@@ -49,7 +50,7 @@ class QueryService(
             listOf(contextLink),
             withTemporalValues,
             withAudit
-        )
+        ).right()
     }
 
     suspend fun queryTemporalEntities(
@@ -60,7 +61,7 @@ class QueryService(
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             temporalEntitiesQuery.queryParams,
             accessRightFilter
-        ).awaitFirstOrDefault(emptyList())
+        )
 
         val temporalEntityAttributesWithMatchingInstances =
             searchInstancesForTemporalEntityAttributes(
@@ -90,7 +91,7 @@ class QueryService(
         val count = temporalEntityAttributeService.getCountForEntities(
             temporalEntitiesQuery.queryParams,
             accessRightFilter
-        ).awaitFirst()
+        ).getOrElse { 0 }
 
         return Pair(
             temporalEntityService.buildTemporalEntities(
@@ -115,7 +116,7 @@ class QueryService(
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
+                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues)
             }
             .values
             .flatten()

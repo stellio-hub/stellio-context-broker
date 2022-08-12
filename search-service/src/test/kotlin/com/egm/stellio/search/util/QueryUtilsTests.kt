@@ -18,15 +18,64 @@ import java.time.ZonedDateTime
 class QueryUtilsTests {
 
     @Test
+    fun `it should throw a BadRequestData exception if type or attrs are not present when querying entites`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+
+        val exception = assertThrows<BadRequestDataException> {
+            parseAndCheckQueryParams(
+                pagination,
+                queryParams,
+                APIC_COMPOUND_CONTEXT,
+                true
+            )
+        }
+        assertEquals(
+            "Either type or attrs need to be present in request parameters",
+            exception.message
+        )
+    }
+
+    @Test
     fun `it should throw a BadRequestData exception if timerel is present without time`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "before")
 
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+
         val exception = assertThrows<BadRequestDataException> {
             parseAndCheckQueryParams(
-                mockkClass(ApplicationProperties.Pagination::class),
+                pagination,
                 queryParams,
                 APIC_COMPOUND_CONTEXT
+            )
+        }
+        assertEquals(
+            "'timerel' and 'time' must be used in conjunction",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception if timerel and time is not present when querying entites`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("type", "Beehive")
+
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+
+        val exception = assertThrows<BadRequestDataException> {
+            parseAndCheckQueryParams(
+                pagination,
+                queryParams,
+                APIC_COMPOUND_CONTEXT,
+                true
             )
         }
         assertEquals(

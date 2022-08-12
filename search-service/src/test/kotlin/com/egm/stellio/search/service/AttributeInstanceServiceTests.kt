@@ -32,6 +32,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -330,6 +331,109 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         assertThat(enrichedEntity)
             .hasSize(3)
+    }
+
+    @Test
+    fun `it should set the start time to the timeAt value if asking for an after timerel`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MIN
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 3.0)
+    }
+
+    @Test
+    fun `it should set the start time to the timeAt value if asking for a before timerel`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BEFORE,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-06-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 1.0)
+    }
+
+    @Test
+    fun `it should set the start time to the timeAt value if asking for a between timerel`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BETWEEN,
+            timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
+            endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 4.0)
+    }
+
+    @Test
+    fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
+        (1..9).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalQuery = TemporalQuery(
+            timeBucket = "30 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        assertThat(enrichedEntity)
+            .singleElement()
+            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-01T00:00:00Z"))
+            .hasFieldOrPropertyWithValue("value", 8.0)
     }
 
     @Test

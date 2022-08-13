@@ -4,6 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -19,6 +20,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -29,7 +31,7 @@ import java.time.ZonedDateTime
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
-class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
+class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     @SpykBean
@@ -38,7 +40,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
-    @MockkBean
+    @Autowired
     private lateinit var entityPayloadService: EntityPayloadService
 
     @Autowired
@@ -67,7 +69,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -81,7 +82,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             )
 
         assertEquals(2, temporalEntityAttributes.size)
-        assertEquals(listOf(BEEHIVE_TYPE), temporalEntityAttributes[0].types)
         assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(temporalEntityAttributes[0].attributeName))
 
         coVerify(exactly = 6) { attributeInstanceService.create(any()) }
@@ -92,7 +92,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -104,13 +103,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(3, teas.size)
 
         coVerify {
-            entityPayloadService.createEntityPayload(beehiveTestCId, any<Map<String, Any>>())
             attributeInstanceService.create(
                 match {
                     it.value == null &&
                         it.measuredValue == 1543.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2020-01-24T13:01:22.066Z") &&
+                        it.time.isAfter(ZonedDateTime.now().minusMinutes(1)) &&
                         it.sub == "0123456789-1234-5678-987654321"
                 }
             )
@@ -127,7 +125,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     it.value == "ParisBeehive12" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2020-01-24T13:01:22.066Z")
+                        it.time.isAfter(ZonedDateTime.now().minusMinutes(1))
                 }
             )
             attributeInstanceService.create(
@@ -135,7 +133,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     it.value == "urn:ngsi-ld:Beekeeper:Pascal" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2010-10-26T21:32:52.986010Z")
+                        it.time.isAfter(ZonedDateTime.now().minusMinutes(1))
                 }
             )
         }
@@ -146,7 +144,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -162,7 +159,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     it.value == null &&
                         it.measuredValue == 1543.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2020-01-24T13:01:21.938Z")
+                        it.time.isAfter(ZonedDateTime.now().minusMinutes(1))
                 }
             )
             attributeInstanceService.create(
@@ -178,7 +175,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     it.value == null &&
                         it.measuredValue == 1618.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2020-01-24T13:01:21.942Z")
+                        it.time.isAfter(ZonedDateTime.now().minusMinutes(1))
                 }
             )
             attributeInstanceService.create(
@@ -193,23 +190,25 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should update the types of a temporal entity`() = runTest {
+    fun `it should rollback the whole operation if one DB update fails`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.create(
+                match { it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT }
+            )
+        } throws RuntimeException("Unexpected DB error!")
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertThrows<RuntimeException>("it should have thrown a RuntimeException") {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                rawEntity,
+                listOf(APIC_COMPOUND_CONTEXT)
+            ).shouldSucceed()
+        }
 
-        temporalEntityAttributeService.updateTemporalEntityTypes(
-            beehiveTestCId,
-            listOf(BEEHIVE_TYPE, APIARY_TYPE)
-        ).shouldSucceed()
-
-        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
-
-        assertEquals(3, teas.size)
-        assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), teas[0].types)
+        val teas = temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri(), emptySet())
+        assertTrue(teas.isEmpty())
     }
 
     @Test
@@ -217,7 +216,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -242,7 +240,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
@@ -260,7 +257,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -275,7 +271,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -291,7 +286,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -310,7 +304,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -329,8 +322,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(3, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.types == listOf(BEEHIVE_TYPE) &&
-                    it.attributeName in setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                it.attributeName in setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             }
     }
 
@@ -340,7 +332,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -358,8 +349,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(3, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.types == listOf(BEEHIVE_TYPE) &&
-                    it.attributeName in setOf(
+                it.attributeName in setOf(
                     INCOMING_PROPERTY,
                     "https://ontology.eglobalmark.com/egm#connectsTo",
                     "https://schema.org/name"
@@ -373,7 +363,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -398,7 +387,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -418,8 +406,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(2, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.types == listOf(BEEHIVE_TYPE) &&
-                    it.entityId == beehiveTestDId
+                it.entityId == beehiveTestDId
             }
     }
 
@@ -429,7 +416,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -448,7 +434,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                        (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                     )
                 """.trimIndent()
             }
@@ -456,8 +442,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(2, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.types == listOf(BEEHIVE_TYPE) &&
-                    it.entityId == beehiveTestDId
+                it.entityId == beehiveTestDId
             }
     }
 
@@ -467,7 +452,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -487,7 +471,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                        (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
                     )
                 """.trimIndent()
             }
@@ -495,8 +479,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         assertEquals(1, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.types == listOf(BEEHIVE_TYPE) &&
-                    it.entityId == beehiveTestCId
+                it.entityId == beehiveTestCId
             }
     }
 
@@ -507,7 +490,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             val secondRawEntity = loadSampleData("beehive.jsonld")
 
             coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-            coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
             temporalEntityAttributeService.createEntityTemporalReferences(
                 firstRawEntity,
@@ -533,7 +515,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                         (
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                            (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                         )
                     """.trimIndent()
                 }
@@ -550,7 +532,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -570,7 +551,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -581,7 +561,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 ids = setOf(beehiveTestDId, beehiveTestCId),
                 types = setOf(BEEHIVE_TYPE)
             )
-        ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
+        ) { "temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
             .shouldSucceedWith { assertEquals(0, it) }
 
         temporalEntityAttributeService.getCountForEntities(
@@ -591,7 +571,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 ids = setOf(beehiveTestDId, beehiveTestCId),
                 types = setOf(BEEHIVE_TYPE)
             )
-        ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+        ) { "temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
             .shouldSucceedWith { assertEquals(1, it) }
     }
 
@@ -601,7 +581,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
@@ -627,7 +606,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             val secondRawEntity = loadSampleData("beehive.jsonld")
 
             coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-            coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
             temporalEntityAttributeService.createEntityTemporalReferences(
                 firstRawEntity,
@@ -656,7 +634,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     fun `it should delete temporal entity references`() = runTest {
         val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
 
-        coEvery { entityPayloadService.deleteEntityPayload(entityId) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } returns Unit.right()
 
         temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).shouldSucceed()
@@ -667,7 +644,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -683,7 +659,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -703,7 +678,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -721,7 +695,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
@@ -734,7 +707,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { entityPayloadService.createEntityPayload(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 

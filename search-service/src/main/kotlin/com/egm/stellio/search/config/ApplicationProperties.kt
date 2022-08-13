@@ -16,8 +16,7 @@ data class ApplicationProperties(
     )
 
     data class Entity(
-        val serviceUrl: URI,
-        val storePayloads: Boolean
+        val serviceUrl: URI
     )
     data class Pagination(
         val limitDefault: Int,

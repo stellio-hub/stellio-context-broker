@@ -5,6 +5,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import org.springframework.core.io.ClassPathResource
 
+const val EMPTY_PAYLOAD = "{}"
+
 fun parseSampleDataToNgsiLd(filename: String = "beehive.jsonld"): NgsiLdEntity =
     parseSampleDataToJsonLd(filename).toNgsiLdEntity()
 

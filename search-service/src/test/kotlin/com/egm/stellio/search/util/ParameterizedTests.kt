@@ -3,10 +3,12 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.Stream
@@ -15,6 +17,8 @@ import java.util.stream.Stream
 class ParameterizedTests {
 
     companion object {
+        private val now = Instant.now().atZone(ZoneOffset.UTC)
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -22,9 +26,10 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -57,10 +62,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -95,10 +101,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            datasetId = "urn:ngsi-ld:Dataset:01234".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -124,10 +131,11 @@ class ParameterizedTests {
                             ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -160,10 +168,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -196,10 +205,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -232,9 +242,10 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -269,9 +280,10 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -296,10 +308,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            datasetId = "urn:ngsi-ld:Dataset:01234".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -315,10 +328,11 @@ class ParameterizedTests {
                             ),
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -341,10 +355,11 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -367,9 +382,10 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -394,11 +410,12 @@ class ParameterizedTests {
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                            types = listOf(BEEHIVE_TYPE),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
-                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri()
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
+                            payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(

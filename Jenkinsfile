@@ -33,17 +33,6 @@ pipeline {
                 sh './gradlew build -p api-gateway'
             }
         }
-        stage('Build Entity Service') {
-            when {
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew build -p entity-service'
-            }
-        }
         stage('Build Search Service') {
             when {
                 anyOf {
@@ -96,7 +85,6 @@ pipeline {
                         for (int i = 0; i < currentTags.size(); ++i) {
                             env.CURRENT_TAG = currentTags[i]
                             sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-                            sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
                             sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
                             sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
                         }
@@ -119,6 +107,8 @@ pipeline {
                     build job: '../DataHub.Int.Launcher'
                 else if (env.BRANCH_NAME == 'develop')
                     build job: '../DataHub.Api-Tests.Launcher'
+                else if (env.BRANCH_NAME == "feature/core-api-migration")
+                    build job: '../DataHub.NGSI-LD-Test-Suite.Launcher'
             }
             slackSend (color: '#36b37e', message: "Success: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }

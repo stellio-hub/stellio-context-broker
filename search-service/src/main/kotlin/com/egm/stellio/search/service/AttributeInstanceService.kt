@@ -21,7 +21,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -33,28 +32,59 @@ class AttributeInstanceService(
     @Transactional
     suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
         val insertStatement =
-            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                attributeInstance.geoValue != null
+            )
                 """
                 INSERT INTO attribute_instance 
-                    (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
-                VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                    (time, measured_value, value, geo_value, temporal_entity_attribute, 
+                        instance_id, payload)
+                VALUES 
+                    (:time, :measured_value, :value, ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
+                        :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
                               instance_id = :instance_id
                 """.trimIndent()
+            else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                """
+                INSERT INTO attribute_instance 
+                    (time, measured_value, value, temporal_entity_attribute, 
+                        instance_id, payload)
+                VALUES 
+                    (:time, :measured_value, :value, :temporal_entity_attribute, 
+                        :instance_id, :payload)
+                ON CONFLICT (time, temporal_entity_attribute)
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                """.trimIndent()
+            else if (attributeInstance.geoValue != null)
+                """
+                INSERT INTO attribute_instance_audit
+                    (time, time_property, measured_value, value, geo_value, 
+                        temporal_entity_attribute, instance_id, payload, sub)
+                VALUES
+                    (:time, :time_property, :measured_value, :value, ST_GeomFromText(:geo_value), 
+                        :temporal_entity_attribute, :instance_id, :payload, :sub)
+                """.trimIndent()
             else
                 """
                 INSERT INTO attribute_instance_audit
-                    (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload, sub)
+                    (time, time_property, measured_value, value,
+                        temporal_entity_attribute, instance_id, payload, sub)
                 VALUES
-                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, 
-                        :instance_id, :payload, :sub)
+                    (:time, :time_property, :measured_value, :value, 
+                        :temporal_entity_attribute, :instance_id, :payload, :sub)
                 """.trimIndent()
 
         return databaseClient.sql(insertStatement)
             .bind("time", attributeInstance.time)
             .bind("measured_value", attributeInstance.measuredValue)
             .bind("value", attributeInstance.value)
+            .let {
+                if (attributeInstance.geoValue != null)
+                    it.bind("geo_value", attributeInstance.geoValue.value)
+                else it
+            }
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
             .bind("instance_id", attributeInstance.instanceId)
             .bind("payload", Json.of(attributeInstance.payload))
@@ -118,7 +148,7 @@ class AttributeInstanceService(
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
         if (!inQueryEntities && temporalQuery.timeBucket == null)
-            selectQuery = selectQuery.plus(", payload::TEXT")
+            selectQuery = selectQuery.plus(", payload")
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
@@ -170,10 +200,10 @@ class AttributeInstanceService(
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
-        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
             temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value "
-        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
             temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value, sub "
         temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
@@ -210,7 +240,7 @@ class AttributeInstanceService(
 
         return databaseClient
             .sql(selectQuery)
-            .oneToResult { ZonedDateTime.parse(it["first"].toString()).toInstant().atZone(ZoneOffset.UTC) }
+            .oneToResult { toZonedDateTime(it["first"]) }
             .orNull()
     }
 
@@ -221,20 +251,18 @@ class AttributeInstanceService(
     ): AttributeInstanceResult {
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
-                temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
+                temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
                 value = row["value"]!!,
-                time = row["time_bucket"]?.let {
-                    ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
-                } ?: row["time"]
-                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                time = toOptionalZonedDateTime(row["time_bucket"]) ?: toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(
-            temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
-            payload = row["payload"].let { it as String },
+            temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
+            payload = toJsonString(row["payload"]),
             sub = row["sub"] as? String
         )
     }
 
+    @Transactional
     suspend fun deleteEntityAttributeInstance(
         entityId: URI,
         entityAttributeName: String,

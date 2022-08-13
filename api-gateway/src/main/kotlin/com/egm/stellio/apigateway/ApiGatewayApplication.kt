@@ -12,9 +12,6 @@ import reactor.netty.transport.logging.AdvancedByteBufFormat
 
 @SpringBootApplication
 class ApiGatewayApplication {
-    @Value("\${application.entity-service.url:entity-service}")
-    private val entityServiceUrl: String = ""
-
     @Value("\${application.search-service.url:search-service}")
     private val searchServiceUrl: String = ""
 
@@ -39,7 +36,7 @@ class ApiGatewayApplication {
                     .filters {
                         it.tokenRelay()
                     }
-                    .uri("http://$entityServiceUrl:8082")
+                    .uri("http://$searchServiceUrl:8083")
             }
             .route { p ->
                 p.path(

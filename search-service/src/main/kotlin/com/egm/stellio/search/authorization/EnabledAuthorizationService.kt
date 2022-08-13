@@ -1,10 +1,14 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.*
+import arrow.core.continuations.either
 import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -83,8 +87,49 @@ class EnabledAuthorizationService(
 
     override suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
         entitiesId.parTraverseEither {
-            entityAccessRightsService.setAdminRoleOnEntity(sub.orNull(), it)
+            entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it)
         }.map { it.first() }
+
+    override suspend fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        contextLink: String,
+        sub: Option<Sub>
+    ): Pair<Int, List<JsonLdEntity>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getGroupsMemberships(
+        offset: Int,
+        limit: Int,
+        sub: Option<Sub>
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> {
+
+        return either {
+            val groups =
+                when (userIsAdmin(sub)) {
+                    is Either.Left -> {
+                        val groups = subjectReferentialService.getGroups(sub, offset, limit)
+                        val groupsCount = subjectReferentialService.getCountGroups(sub).bind()
+                        Pair(groupsCount, groups)
+                    }
+
+                    is Either.Right -> {
+                        val groups = subjectReferentialService.getAllGroups(sub, offset, limit)
+                        val groupsCount = subjectReferentialService.getCountAllGroups().bind()
+                        Pair(groupsCount, groups)
+                    }
+                }
+
+            val jsonLdEntities = groups.second.map {
+                JsonLdEntity(
+                    it.serializeProperties(),
+                    listOf(NGSILD_AUTHORIZATION_CONTEXT)
+                )
+            }
+
+            Pair(groups.first, jsonLdEntities)
+        }
+    }
 
     override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
         if (subjectReferentialService.hasStellioAdminRole(sub).getOrElse { false })
@@ -100,7 +145,7 @@ class EnabledAuthorizationService(
                         ( 
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (entity_id IN (
+                            (tea1.entity_id IN (
                                 SELECT entity_id
                                 FROM entity_access_rights
                                 WHERE subject_id IN (${it.toListOfString()})

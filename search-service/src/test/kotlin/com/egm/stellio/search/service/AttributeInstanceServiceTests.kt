@@ -1,10 +1,14 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Either
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.execute
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -16,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
@@ -27,7 +32,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.core.insert
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
@@ -39,7 +43,7 @@ import kotlin.random.Random
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : WithTimescaleContainer {
+class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -60,15 +64,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun createTemporalEntityAttribute() {
         temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
-            types = listOf(BEEHIVE_TYPE),
             attributeName = INCOMING_COMPACT_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            createdAt = now,
+            payload = EMPTY_PAYLOAD
         )
 
-        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
-            .using(temporalEntityAttribute)
-            .then()
-            .block()
+        createTemporalEntityAttribute(temporalEntityAttribute)
     }
 
     @AfterEach
@@ -193,14 +195,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun `it should retrieve instances of a temporal entity attribute whose value type is Any`() = runTest {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
-            types = listOf(BEEHIVE_TYPE),
             attributeName = "propWithStringValue",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+            createdAt = now,
+            payload = EMPTY_PAYLOAD
         )
-        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
-            .using(temporalEntityAttribute2)
-            .then()
-            .block()
+
+        createTemporalEntityAttribute(temporalEntityAttribute2)
 
         (1..10).forEach { _ ->
             val observedAt = Instant.now().atZone(ZoneOffset.UTC)
@@ -458,15 +459,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
-            types = listOf(BEEHIVE_TYPE),
             attributeName = OUTGOING_COMPACT_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            createdAt = now,
+            payload = EMPTY_PAYLOAD
         )
 
-        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
-            .using(temporalEntityAttribute2)
-            .then()
-            .block()
+        createTemporalEntityAttribute(temporalEntityAttribute2)
 
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()) }
         (1..5).forEach { _ ->
@@ -679,7 +678,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     @Test
     fun `it should delete attribute instance`() = runTest {
         val attributeInstance = gimmeAttributeInstance()
-        attributeInstanceService.create(attributeInstance)
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
 
         attributeInstanceService.deleteEntityAttributeInstance(
             temporalEntityAttribute.entityId,
@@ -722,4 +721,25 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             )
         )
     }
+
+    private fun createTemporalEntityAttribute(
+        temporalEntityAttribute: TemporalEntityAttribute
+    ): Either<APIException, Unit> =
+        runBlocking {
+            databaseClient.sql(
+                """
+                INSERT INTO temporal_entity_attribute 
+                    (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at)
+                VALUES 
+                    (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at)
+                """.trimIndent()
+            )
+                .bind("id", temporalEntityAttribute.id)
+                .bind("entity_id", temporalEntityAttribute.entityId)
+                .bind("attribute_name", temporalEntityAttribute.attributeName)
+                .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
+                .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
+                .bind("created_at", temporalEntityAttribute.createdAt)
+                .execute()
+        }
 }

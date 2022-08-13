@@ -3,11 +3,13 @@ package com.egm.stellio.search.service
 import arrow.core.Either
 import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,9 +17,12 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @Component
 class SubscriptionEventListenerService(
+    private val entityPayloadService: EntityPayloadService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val attributeInstanceService: AttributeInstanceService,
     private val entityAccessRightsService: EntityAccessRightsService
@@ -94,17 +99,24 @@ class SubscriptionEventListenerService(
         val subscription = deserializeAs<Subscription>(subscriptionCreateEvent.operationPayload)
         val entityTemporalProperty = TemporalEntityAttribute(
             entityId = subscription.id,
-            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+            createdAt = subscription.createdAt,
+            payload = "{}"
         )
 
         return either {
+            entityPayloadService.createEntityPayload(
+                subscription.id,
+                listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+                subscription.createdAt,
+                subscriptionCreateEvent.operationPayload,
+                subscriptionCreateEvent.contexts
+            )
             temporalEntityAttributeService.create(entityTemporalProperty).bind()
-            entityAccessRightsService.setAdminRoleOnEntity(
-                subscriptionCreateEvent.sub,
-                subscriptionCreateEvent.entityId
-            ).bind()
+            subscriptionCreateEvent.sub?.let {
+                entityAccessRightsService.setAdminRoleOnEntity(it, subscriptionCreateEvent.entityId).bind()
+            }
         }
     }
 
@@ -124,20 +136,31 @@ class SubscriptionEventListenerService(
         val entitiesIds = mergeEntitiesIdsFromNotificationData(notification.data)
 
         return either {
-            val teaUuid = temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId).bind()
+            val subscriptionId = notification.subscriptionId
+            val tea =
+                temporalEntityAttributeService.getForEntity(subscriptionId, emptySet())
+                    .firstOrNull()
+                    .right()
+                    .bind() ?: ResourceNotFoundException(entityNotFoundMessage(subscriptionId.toString()))
+                    .left()
+                    .bind<TemporalEntityAttribute>()
+            val payload = mapOf(
+                "type" to "Notification",
+                "value" to entitiesIds,
+                "observedAt" to notification.notifiedAt.toNgsiLdFormat()
+            )
             val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = teaUuid,
+                temporalEntityAttribute = tea.id,
                 timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
                 time = notification.notifiedAt,
                 value = entitiesIds,
                 instanceId = notification.id,
-                payload = mapOf(
-                    "type" to "Notification",
-                    "value" to entitiesIds,
-                    "observedAt" to notification.notifiedAt.toNgsiLdFormat()
-                )
+                payload = payload
             )
             attributeInstanceService.create(attributeInstance).bind()
+            temporalEntityAttributeService.updateStatus(
+                tea.id, ZonedDateTime.now(ZoneOffset.UTC), payload
+            ).bind()
         }
     }
 

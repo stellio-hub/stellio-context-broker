@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.support
 
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.utility.DockerImageName
 
 interface WithTimescaleContainer {
@@ -14,19 +14,21 @@ interface WithTimescaleContainer {
         private const val DB_PASSWORD = "stellio_subscription_db_password"
 
         private val timescaleImage: DockerImageName =
-            DockerImageName.parse("stellio/stellio-timescale-postgis:2.3.0-pg13")
+            DockerImageName.parse("stellio/stellio-timescale-postgis:2.8.1-pg14")
                 .asCompatibleSubstituteFor("postgres")
 
-        private val timescaleContainer = PostgreSQLContainer<Nothing>(timescaleImage).apply {
-            withEnv("POSTGRES_PASSWORD", "password")
-            withEnv("POSTGRES_MULTIPLE_DATABASES", "$DB_NAME,$DB_USER,$DB_PASSWORD")
+        private val timescaleContainer = GenericContainer<Nothing>(timescaleImage).apply {
+            withEnv("POSTGRES_USER", DB_USER)
+            withEnv("POSTGRES_PASS", DB_PASSWORD)
+            withEnv("POSTGRES_DBNAME", DB_NAME)
+            withExposedPorts(5432)
             withReuse(true)
         }
 
         @JvmStatic
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
-            val containerAddress = "${timescaleContainer.containerIpAddress}:${timescaleContainer.firstMappedPort}"
+            val containerAddress = "${timescaleContainer.host}:${timescaleContainer.firstMappedPort}"
             registry.add("spring.r2dbc.url") { "r2dbc:postgresql://$containerAddress/$DB_NAME" }
             registry.add("spring.r2dbc.username") { DB_USER }
             registry.add("spring.r2dbc.password") { DB_PASSWORD }

@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
@@ -297,7 +298,7 @@ class Neo4jAuthorizationServiceTest {
         )
 
         val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
-            queryParams = QueryParams(offset = offset, limit = limit),
+            queryParams = QueryParams(offset = offset, limit = limit, context = NGSILD_AUTHORIZATION_CONTEXT),
             sub = mockUserSub,
             NGSILD_CORE_CONTEXT
         )
@@ -357,7 +358,7 @@ class Neo4jAuthorizationServiceTest {
         )
 
         val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
-            queryParams = QueryParams(offset = offset, limit = limit, includeSysAttrs = true),
+            queryParams = QueryParams(offset = offset, limit = limit, includeSysAttrs = true, context = NGSILD_AUTHORIZATION_CONTEXT),
             sub = Some(userUri.toString()),
             NGSILD_CORE_CONTEXT
         )
@@ -367,7 +368,8 @@ class Neo4jAuthorizationServiceTest {
                 QueryParams(
                     offset = offset,
                     limit = limit,
-                    includeSysAttrs = true
+                    includeSysAttrs = true,
+                    context = NGSILD_AUTHORIZATION_CONTEXT
                 )
             )
         }

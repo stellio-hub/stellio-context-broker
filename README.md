@@ -31,13 +31,12 @@ The NGSI-LD Specification is regularly updated published by ETSI. The latest spe
 -  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.6.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
-| ------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
+|---------------------------------------------------|------------------------------------------------------------------------|-------------------------------------|
 
 ## Overview
 
-Stellio is composed of 3 business services:
-* Entity service is in charge of managing the information context, it is backed by a [neo4j](https://neo4j.com) database
-* Search service is in charge of handling the temporal (and geospatial) queries, it is backed by a [TimescaleDB](https://www.timescale.com/) database
+Stellio is composed of 2 business services:
+* Search service is in charge of managing the information context and handling the temporal (and geospatial) queries, it is backed by a [TimescaleDB](https://www.timescale.com/) database
 * Subscription service is in charge of managing subscriptions and subsequent notifications, it is backed by a [TimescaleDB](https://www.timescale.com/) database
 
 It is completed with:
@@ -58,11 +57,10 @@ docker-compose up -d && docker-compose logs -f
 
 It will start all the services composing the Stellio context broker platform and expose them on the following ports:
 * API Gateway: 8080
-* Entity service: 8082
 * Search service: 8083
 * Subscription service: 8084
 
-Please note that the environment and scripts are validated on Ubuntu 19.10 and MacOS. Some errors may occur on other platforms.
+Please note that the environment and scripts are validated on Ubuntu and macOS. Some errors may occur on other platforms.
 
 We also provide an experimental configuration to deploy Stellio in a k8s cluster (only tested in Minikube as of now). For more information, please look at [the README](kubernetes/README.md)
 
@@ -76,14 +74,14 @@ Requirements:
 To develop on a specific service, you can use the provided `docker-compose.yml` file inside each service's directory, for instance:
 
 ```shell script
-cd entity-service
+cd search-service
 docker-compose up -d && docker-compose logs -f
 ```
 
 Then, from the root directory, launch the service:
 
 ```shell script
-./gradlew entity-service:bootRun
+./gradlew search-service:bootRun
 ```
 
 ### Running the tests
@@ -94,7 +92,7 @@ to Spring Boot embedded test support and to the great [TestContainers](https://w
 For instance, you can launch the test suite for entity service with the following command:
  
 ```shell script
-./gradlew entity-service:test
+./gradlew search-service:test
 ```
 
 ### Building the project
@@ -113,7 +111,7 @@ For each service, a self executable jar is produced in the `build/libs` director
 If you want to build only one of the services, you can launch:
 
 ```shell script
-./gradlew entity-service:build
+./gradlew search-service:build
 ```
 
 ### Code quality
@@ -142,19 +140,19 @@ To work locally with a Docker image of a service without publishing it to Docker
 * Build a tar image:
 
 ```shell script
-./gradlew entity-service:jibBuildTar
+./gradlew search-service:jibBuildTar
 ```
 
 * Load the tar image into Docker:
 
 ```shell script
-docker load --input entity-service/build/jib-image.tar
+docker load --input search-service/build/jib-image.tar
 ```
 
 * Run the image:
 
 ```shell script
-docker run stellio/stellio-entity-service:latest
+docker run stellio/stellio-search-service:latest
 ```
 
 ## Usage
@@ -176,17 +174,16 @@ Stellio is licensed under [APL-2.0](https://spdx.org/licenses/Apache-2.0.html).
 
 It mainly makes use of the following libraries and frameworks (dependencies of dependencies have been omitted):
 
-| Library / Framework |	Licence         |
-| ------------------- | --------------- |
-| Spring              | APL v2          |
-| JSON-LD Java        | BSD-3 Clause    |
-| Reactor             | APL v2          |
-| Jackson             |	APL v2          |
-| JUnit               | EPL v2          |
-| Mockk               |	APL v2          |
-| JsonPath            |	APL v2          |
-| WireMock            | APL v2          |
-| Testcontainers      |	MIT             |
-| Neo4j OGM           |	APL v2          |
+| Library / Framework | 	Licence     |
+|---------------------|--------------|
+| Spring              | APL v2       |
+| JSON-LD Java        | BSD-3 Clause |
+| Reactor             | APL v2       |
+| Jackson             | 	APL v2      |
+| JUnit               | EPL v2       |
+| Mockk               | 	APL v2      |
+| JsonPath            | 	APL v2      |
+| WireMock            | APL v2       |
+| Testcontainers      | 	MIT         |
 
 © 2020 - 2022 EGM

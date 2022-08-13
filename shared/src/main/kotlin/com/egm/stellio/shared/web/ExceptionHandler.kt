@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
+import org.slf4j.LoggerFactory
 import org.springframework.core.codec.CodecException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class ExceptionHandler {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @ExceptionHandler
     fun transformErrorResponse(throwable: Throwable): ResponseEntity<String> =
@@ -59,8 +62,10 @@ class ExceptionHandler {
             )
         }
 
-    private fun generateErrorResponse(status: HttpStatus, exception: Any) =
-        ResponseEntity.status(status)
+    private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<String> {
+        logger.error("Returning error ${exception.type} (${exception.detail})")
+        return ResponseEntity.status(status)
             .contentType(MediaType.APPLICATION_JSON)
             .body(serializeObject(exception))
+    }
 }

@@ -508,7 +508,8 @@ class EntityHandlerTests {
                     types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
                     includeSysAttrs = true,
                     offset = 0,
-                    limit = 30
+                    limit = 30,
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 any(),
                 any<String>()
@@ -712,7 +713,8 @@ class EntityHandlerTests {
                 QueryParams(
                     ids = setOf(beehiveId),
                     offset = 0,
-                    limit = 30
+                    limit = 30,
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 any(),
                 any<String>()

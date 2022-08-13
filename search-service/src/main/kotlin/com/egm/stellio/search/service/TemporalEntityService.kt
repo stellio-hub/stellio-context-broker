@@ -6,7 +6,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import org.springframework.stereotype.Service
-import java.net.URI
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
@@ -15,7 +14,7 @@ typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, 
 class TemporalEntityService {
 
     fun buildTemporalEntities(
-        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
+        queryResult: List<Pair<EntityPayload, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean,
@@ -27,7 +26,7 @@ class TemporalEntityService {
     }
 
     fun buildTemporalEntity(
-        entityId: URI,
+        entityPayload: EntityPayload,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
@@ -41,15 +40,8 @@ class TemporalEntityService {
             withTemporalValues,
             withAudit
         )
-
-        // as we are "manually" compacting the type, handle the case where there is just one of it
-        // and convey it as a string (instead of a list of 1)
-        return mapOf(
-            "id" to entityId,
-            "type" to attributeAndResultsMap.keys.first().types
-                .map { JsonLdUtils.compactTerm(it, contexts) }
-                .let { if (it.size > 1) it else it.first() }
-        ).plus(temporalAttributes)
+        return entityPayload.serializeProperties(false, true, contexts)
+            .plus(temporalAttributes)
     }
 
     private fun buildTemporalAttributes(

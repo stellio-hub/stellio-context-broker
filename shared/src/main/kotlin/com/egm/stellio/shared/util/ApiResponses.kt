@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -8,6 +10,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
+
+fun typeNotFoundMessage(type: String) = "Type $type was not found"
 
 fun attributeNotFoundMessage(attributeName: String) = "Attribute $attributeName was not found"
 
@@ -18,6 +22,8 @@ fun entityOrAttrsNotFoundMessage(
     attrs: Set<String>
 ) = "Entity $entityId does not exist or it has none of the requested attributes : $attrs"
 
+fun entityAlreadyExistsMessage(entityId: String) = "Entity $entityId already exists"
+
 const val ENTITIY_CREATION_FORBIDDEN_MESSAGE = "User forbidden to create entity"
 const val ENTITIY_READ_FORBIDDEN_MESSAGE = "User forbidden to read entity"
 const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"
@@ -25,6 +31,8 @@ const val ENTITY_DELETE_FORBIDDEN_MESSAGE = "User forbidden to delete entity"
 const val ENTITY_ADMIN_FORBIDDEN_MESSAGE = "User forbidden to admin entity"
 const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
+
+private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiResponses")
 
 /**
  * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
@@ -49,10 +57,12 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseEntity<*> =
-    ResponseEntity.status(status)
+private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
+    logger.error("Returning error ${exception.type} (${exception.detail})")
+    return ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
-        .body(JsonUtils.serializeObject(exception))
+        .body(serializeObject(exception))
+}
 
 fun buildQueryResponse(
     entities: List<CompactedJsonLdEntity>,
@@ -64,7 +74,7 @@ fun buildQueryResponse(
     contextLink: String
 ): ResponseEntity<String> =
     buildQueryResponse(
-        JsonUtils.serializeObject(entities),
+        serializeObject(entities),
         count,
         resourceUrl,
         queryParams,

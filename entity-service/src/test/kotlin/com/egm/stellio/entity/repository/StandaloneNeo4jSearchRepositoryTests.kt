@@ -7,6 +7,7 @@ import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -60,7 +61,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -124,7 +128,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name==\"ScalpaXYZ\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name==\"ScalpaXYZ\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -141,7 +148,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishNumber==500", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishNumber==500", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -158,7 +168,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishNumber==499", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishNumber==499", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -175,7 +188,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishWeight==120.50", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishWeight==120.50", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -192,7 +208,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishWeight==-120", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishWeight==-120", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -208,7 +227,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = 180.9))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishWeight>180.9", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishWeight>180.9", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -224,7 +246,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandJsonLdTerm("fishWeight", DEFAULT_CONTEXTS), value = 255))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "fishWeight>=255", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "fishWeight>=255", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -240,7 +265,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "ScalpaXYZ"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("DeadFishes"), q = "name!=\"ScalpaXYZ\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("DeadFishes"), q = "name!=\"ScalpaXYZ\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -256,7 +284,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name!=\"ScalpaXYZ\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name!=\"ScalpaXYZ\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -272,7 +303,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name=~\"Scal.*\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name=~\"Scal.*\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -288,7 +322,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name=~\"(?i)scalpa.*$\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name=~\"(?i)scalpa.*$\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -304,7 +341,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "name=~\"Scap.*\"", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "name=~\"Scap.*\"", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -330,7 +370,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -355,7 +396,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt==2018-12-04T12:00:00Z",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -377,7 +419,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             )
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "testedAt==2018-12-04", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "testedAt==2018-12-04", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -398,7 +443,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             )
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "testedAt==2018-12-07", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "testedAt==2018-12-07", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -419,7 +467,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             )
         )
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), q = "testedAt==12:00:00", offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), q = "testedAt==12:00:00", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -445,7 +496,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt==12:00:00;name==\"beekeeper\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -473,7 +525,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt==13:00:00;name==\"beekeeper\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -486,7 +539,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt==12:00:00;name==\"beekeeperx\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -514,7 +568,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -526,7 +581,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -538,7 +594,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -550,7 +607,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 q = "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -576,7 +634,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 ids = setOf("urn:ngsi-ld:Beekeeper:1231".toUri()),
                 types = setOf("Beekeeper"),
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -597,7 +656,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper")
         )
         val entities = searchRepository.getEntities(
-            QueryParams(ids = setOf("urn:ngsi-ld:Beekeeper:1231".toUri()), offset = offset, limit = limit),
+            QueryParams(
+                ids = setOf("urn:ngsi-ld:Beekeeper:1231".toUri()), offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -624,7 +686,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 ids = setOf("urn:ngsi-ld:Beekeeper:1231".toUri()),
                 q = "createdAt>2021-07-10T00:00:00Z",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -648,7 +711,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper")
         )
         val entitiesCount = searchRepository.getEntities(
-            QueryParams(q = "createdAt>$now", offset = offset, limit = limit),
+            QueryParams(
+                q = "createdAt>$now", offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).first
@@ -681,7 +747,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 ids = listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232").toListOfUri().toSet(),
                 types = setOf("Beekeeper"),
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -714,7 +781,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -747,7 +815,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 idPattern = "^urn:ngsi-ld:BeeHive:*",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -769,7 +838,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandJsonLdTerm("description", DEFAULT_CONTEXTS), value = "Scalpa2"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(attrs = setOf(expandedNameProperty), offset = offset, limit = limit),
+            QueryParams(
+                attrs = setOf(expandedNameProperty), offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -787,7 +859,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
 
         val entities = searchRepository.getEntities(
-            QueryParams(attrs = setOf("observedBy"), offset = offset, limit = limit),
+            QueryParams(
+                attrs = setOf("observedBy"), offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -805,7 +880,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
 
         val entities = searchRepository.getEntities(
-            QueryParams(q = "name==\"Scalpa\"", attrs = setOf("observedBy"), offset = offset, limit = limit),
+            QueryParams(
+                q = "name==\"Scalpa\"", attrs = setOf("observedBy"), offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
@@ -827,7 +905,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 attrs = setOf("observedBy"),
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -858,7 +937,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 types = setOf("Beekeeper"),
                 idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$",
                 offset = offset,
-                limit = limit
+                limit = limit,
+                context = APIC_COMPOUND_CONTEXT
             ),
             sub,
             DEFAULT_CONTEXTS
@@ -892,7 +972,10 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         val entities = searchRepository.getEntities(
-            QueryParams(types = setOf("Beekeeper"), idPattern = idPattern, offset = offset, limit = limit),
+            QueryParams(
+                types = setOf("Beekeeper"), idPattern = idPattern, offset = offset, limit = limit,
+                context = APIC_COMPOUND_CONTEXT
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second

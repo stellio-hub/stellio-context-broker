@@ -1,15 +1,11 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import org.springframework.core.io.ClassPathResource
 
-fun parseSampleDataToNgsiLd(filename: String = "beehive.jsonld"): NgsiLdEntity =
-    parseSampleDataToJsonLd(filename).toNgsiLdEntity()
-
-fun parseSampleDataToJsonLd(filename: String = "beehive.jsonld"): JsonLdEntity =
-    expandJsonLdEntity(loadSampleData(filename))
+const val EMPTY_PAYLOAD = "{}"
 
 fun loadSampleData(filename: String = "beehive.jsonld"): String {
     val sampleData = ClassPathResource("/ngsild/$filename")
@@ -38,26 +34,6 @@ fun parseGeoFragmentToPointGeoProperty(
                             $longitude,
                             $latitude
                         ]
-                    }
-                }
-            }
-        """.trimIndent()
-
-    return parseToNgsiLdAttributes(expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS))[0] as NgsiLdGeoProperty
-}
-
-fun parseGeoFragmentToPolygonGeoProperty(
-    propertyKey: String,
-    coordinates: List<List<List<Double>>>
-): NgsiLdGeoProperty {
-    val locationFragment =
-        """
-            {
-                "$propertyKey": {
-                    "type": "GeoProperty",
-                    "value": {
-                        "type": "Polygon",
-                        "coordinates": $coordinates
                     }
                 }
             }

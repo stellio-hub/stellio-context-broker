@@ -1,9 +1,10 @@
 package com.egm.stellio.search.service
 
 import arrow.core.right
-import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferentialService
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.loadSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -24,12 +25,6 @@ class IAMListenerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
-
-    @MockkBean(relaxed = true)
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
-
-    @MockkBean(relaxed = true)
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Test
     fun `it should handle a create event for a subject`() = runTest {
@@ -213,70 +208,6 @@ class IAMListenerTests {
                 match {
                     it == "7cdad168-96ee-4649-b768-a060ac2ef435"
                 }
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle an append event adding a right on an entity`() = runTest {
-        val rightAppendEvent = loadSampleData("events/authorization/RightAddOnEntity.json")
-
-        coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
-
-        iamListener.dispatchIamRightsMessage(rightAppendEvent)
-
-        coVerify {
-            entityAccessRightsService.setRoleOnEntity(
-                eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d"),
-                eq("urn:ngsi-ld:Beekeeper:01".toUri()),
-                eq(AccessRight.R_CAN_READ)
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle an append event adding a specific access policy on an entity`() = runTest {
-        val rightAppendEvent = loadSampleData("events/authorization/SpecificAccessPolicyAddOnEntity.json")
-
-        coEvery { temporalEntityAttributeService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
-
-        iamListener.dispatchIamRightsMessage(rightAppendEvent)
-
-        coVerify {
-            temporalEntityAttributeService.updateSpecificAccessPolicy(
-                eq("urn:ngsi-ld:Beekeeper:01".toUri()),
-                eq(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle a delete event removing a right on an entity`() = runTest {
-        val rightRemoveEvent = loadSampleData("events/authorization/RightRemoveOnEntity.json")
-
-        coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
-
-        iamListener.dispatchIamRightsMessage(rightRemoveEvent)
-
-        coVerify {
-            entityAccessRightsService.removeRoleOnEntity(
-                eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d"),
-                eq("urn:ngsi-ld:Beekeeper:01".toUri())
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle a delete event removing a specific access policy on an entity`() = runTest {
-        val rightRemoveEvent = loadSampleData("events/authorization/SpecificAccessPolicyRemoveOnEntity.json")
-
-        coEvery { temporalEntityAttributeService.removeSpecificAccessPolicy(any()) } returns Unit.right()
-
-        iamListener.dispatchIamRightsMessage(rightRemoveEvent)
-
-        coVerify {
-            temporalEntityAttributeService.removeSpecificAccessPolicy(
-                eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }
     }

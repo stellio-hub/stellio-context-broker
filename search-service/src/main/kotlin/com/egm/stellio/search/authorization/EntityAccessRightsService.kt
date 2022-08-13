@@ -2,8 +2,7 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.*
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.model.EntityAccessRights
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.oneToResult
 import com.egm.stellio.shared.model.APIException
@@ -26,7 +25,7 @@ class EntityAccessRightsService(
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val subjectReferentialService: SubjectReferentialService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService
+    private val entityPayloadService: EntityPayloadService
 ) {
     @Transactional
     suspend fun setReadRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
@@ -37,11 +36,8 @@ class EntityAccessRightsService(
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
-    suspend fun setAdminRoleOnEntity(sub: Sub?, entityId: URI): Either<APIException, Unit> =
-        // FIXME OK or error if no sub?
-        sub?.let {
-            setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
-        } ?: Unit.right()
+    suspend fun setAdminRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
+        setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
 
     @Transactional
     suspend fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Either<APIException, Unit> =
@@ -116,7 +112,7 @@ class EntityAccessRightsService(
         return subjectReferentialService.hasStellioAdminRole(sub)
             .flatMap {
                 if (!it)
-                    temporalEntityAttributeService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
+                    entityPayloadService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
                 else true.right()
             }
             .flatMap {

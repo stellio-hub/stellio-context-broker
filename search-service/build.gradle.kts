@@ -19,6 +19,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
+    implementation("com.savvasdalkitsis:json-merge:0.0.6")
     implementation(project(":shared"))
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
@@ -27,8 +28,8 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("com.github.tomakehurst:wiremock-standalone:2.27.2")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
 }

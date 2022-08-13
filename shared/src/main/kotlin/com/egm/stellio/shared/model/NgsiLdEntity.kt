@@ -27,7 +27,7 @@ import java.time.ZonedDateTime
 
 class NgsiLdEntity private constructor(
     val id: URI,
-    val types: List<String>,
+    val types: List<ExpandedTerm>,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
     // TODO by 5.2.4, it is at most one location, one observationSpace and one operationSpace (to be enforced)
@@ -165,7 +165,7 @@ class NgsiLdGeoProperty private constructor(
 }
 
 sealed class NgsiLdAttributeInstance(
-    val createdAt: ZonedDateTime?,
+    val createdAt: ZonedDateTime? = ZonedDateTime.now(),
     val modifiedAt: ZonedDateTime?,
     val observedAt: ZonedDateTime?,
     val datasetId: URI?,
@@ -214,6 +214,8 @@ class NgsiLdPropertyInstance private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
 
 class NgsiLdRelationshipInstance private constructor(
@@ -247,6 +249,8 @@ class NgsiLdRelationshipInstance private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }.plus(objectId)
+
+    override fun toString(): String = "NgsiLdRelationshipInstance(objectId=$objectId)"
 }
 
 class NgsiLdGeoPropertyInstance(
@@ -280,6 +284,8 @@ class NgsiLdGeoPropertyInstance(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun toString(): String = "NgsiLdGeoPropertyInstance(coordinates=$coordinates)"
 }
 
 @JvmInline

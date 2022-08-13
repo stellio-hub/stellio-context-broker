@@ -37,11 +37,8 @@ class EntityAccessRightsService(
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
-    suspend fun setAdminRoleOnEntity(sub: Sub?, entityId: URI): Either<APIException, Unit> =
-        // FIXME OK or error if no sub?
-        sub?.let {
-            setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
-        } ?: Unit.right()
+    suspend fun setAdminRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
+        setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
 
     @Transactional
     suspend fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Either<APIException, Unit> =

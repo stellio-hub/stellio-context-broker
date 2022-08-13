@@ -112,10 +112,9 @@ class SubscriptionEventListenerService(
                 subscriptionCreateEvent.contexts
             )
             temporalEntityAttributeService.create(entityTemporalProperty).bind()
-            entityAccessRightsService.setAdminRoleOnEntity(
-                subscriptionCreateEvent.sub,
-                subscriptionCreateEvent.entityId
-            ).bind()
+            subscriptionCreateEvent.sub?.let {
+                entityAccessRightsService.setAdminRoleOnEntity(it, subscriptionCreateEvent.entityId).bind()
+            }
         }
     }
 

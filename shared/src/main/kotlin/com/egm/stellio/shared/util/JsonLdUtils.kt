@@ -560,6 +560,7 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     return jsonFragment
 }
 
+// TODO to be removed once the migration to PG is finished
 fun extractAttributeInstanceFromCompactedEntity(
     compactedJsonLdEntity: CompactedJsonLdEntity,
     attributeName: String,

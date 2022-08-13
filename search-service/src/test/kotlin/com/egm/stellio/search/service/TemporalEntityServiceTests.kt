@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -14,7 +11,6 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -31,16 +27,20 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            payload = EMPTY_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to emptyList<AttributeInstanceResult>()
         )
-
+        val entityPayload = EntityPayload(
+            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
+            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+            contexts = listOf(NGSILD_CORE_CONTEXT)
+        )
         val temporalEntity = temporalEntityService.buildTemporalEntity(
-            "urn:ngsi-ld:Subscription:1234".toUri(),
+            entityPayload,
             attributeAndResultsMap,
             TemporalQuery(),
             listOf(NGSILD_CORE_CONTEXT),
@@ -62,8 +62,14 @@ class TemporalEntityServiceTests {
         withAudit: Boolean,
         expectation: String
     ) {
+        val entityPayload = EntityPayload(
+            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            types = listOf(BEEHIVE_TYPE),
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
+        )
+
         val temporalEntity = temporalEntityService.buildTemporalEntity(
-            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            entityPayload,
             attributeAndResultsMap,
             TemporalQuery(),
             listOf(APIC_COMPOUND_CONTEXT),
@@ -76,7 +82,7 @@ class TemporalEntityServiceTests {
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
     fun `it should correctly build temporal entities`(
-        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
+        queryResult: List<Pair<EntityPayload, TemporalEntityAttributeInstancesResult>>,
         withTemporalValues: Boolean,
         withAudit: Boolean,
         expectation: String
@@ -95,9 +101,9 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with values aggregated`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            payload = EMPTY_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
@@ -117,9 +123,14 @@ class TemporalEntityServiceTests {
             emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, "1 day", TemporalQuery.Aggregate.SUM
         )
+        val entityPayload = EntityPayload(
+            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
+            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+            contexts = listOf(NGSILD_CORE_CONTEXT)
+        )
 
         val temporalEntity = temporalEntityService.buildTemporalEntity(
-            "urn:ngsi-ld:Subscription:1234".toUri(),
+            entityPayload,
             attributeAndResultsMap,
             temporalQuery,
             listOf(NGSILD_CORE_CONTEXT),

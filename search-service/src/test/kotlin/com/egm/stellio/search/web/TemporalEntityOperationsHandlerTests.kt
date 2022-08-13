@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import arrow.core.Either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntitiesQuery
@@ -78,7 +79,7 @@ class TemporalEntityOperationsHandlerTests {
                 withAudit = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -140,7 +141,7 @@ class TemporalEntityOperationsHandlerTests {
                 withAudit = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")

@@ -6,12 +6,10 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +24,9 @@ class QueryServiceTests {
 
     @Autowired
     private lateinit var queryService: QueryService
+
+    @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -70,9 +71,9 @@ class QueryServiceTests {
             listOf("incoming", "outgoing").map {
                 TemporalEntityAttribute(
                     entityId = entityUri,
-                    types = listOf(BEEHIVE_TYPE),
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    payload = EMPTY_PAYLOAD
                 )
             }
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns temporalEntityAttributes
@@ -83,6 +84,9 @@ class QueryServiceTests {
                 FullAttributeInstanceResult(temporalEntityAttributes[0].id, "", null),
                 FullAttributeInstanceResult(temporalEntityAttributes[1].id, "", null)
             )
+        coEvery {
+            entityPayloadService.retrieve(any())
+        } returns mockkClass(EntityPayload::class).right()
         every {
             temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any(), any())
         } returns emptyMap()
@@ -109,7 +113,7 @@ class QueryServiceTests {
                 false
             )
             temporalEntityService.buildTemporalEntity(
-                entityUri,
+                any(),
                 match { teaInstanceResult -> teaInstanceResult.size == 2 },
                 any(),
                 listOf(APIC_COMPOUND_CONTEXT),
@@ -123,14 +127,15 @@ class QueryServiceTests {
     fun `it should query temporal entities as requested by query params`() = runTest {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
-            types = listOf(BEEHIVE_TYPE),
             attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            payload = EMPTY_PAYLOAD
         )
         coEvery {
             temporalEntityAttributeService.getForEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
+        coEvery { entityPayloadService.retrieve(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
         } returns
@@ -177,7 +182,7 @@ class QueryServiceTests {
                 any()
             )
             temporalEntityService.buildTemporalEntities(
-                match { it.first().first == entityUri },
+                any(),
                 any(),
                 listOf(APIC_COMPOUND_CONTEXT),
                 withTemporalValues = false,
@@ -190,23 +195,24 @@ class QueryServiceTests {
     fun `it should return an empty list for a temporal entity attribute if it has no temporal values`() = runTest {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
-            types = listOf(BEEHIVE_TYPE),
             attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            payload = EMPTY_PAYLOAD
         )
+
         coEvery {
             temporalEntityAttributeService.getForEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
+        coEvery { entityPayloadService.retrieve(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
         } returns emptyList()
-
         every {
             temporalEntityService.buildTemporalEntities(any(), any(), any(), any(), any())
         } returns emptyList()
 
-        val (entities, _) = queryService.queryTemporalEntities(
+        queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 QueryParams(types = setOf(BEEHIVE_TYPE, APIARY_TYPE), offset = 2, limit = 2),
                 TemporalQuery(
@@ -219,14 +225,16 @@ class QueryServiceTests {
             ),
             APIC_COMPOUND_CONTEXT
         ) { null }
-
-        assertTrue(entities.isEmpty())
+            .fold({
+                fail("it should have returned an empty list")
+            }, {
+                assertThat(it.first).isEmpty()
+            })
 
         verify {
             temporalEntityService.buildTemporalEntities(
                 match {
                     it.size == 1 &&
-                        it.first().first == entityUri &&
                         it.first().second.size == 1 &&
                         it.first().second.values.first().isEmpty()
                 },

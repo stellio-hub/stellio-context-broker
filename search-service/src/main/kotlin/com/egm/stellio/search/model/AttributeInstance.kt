@@ -1,5 +1,6 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
@@ -15,6 +16,7 @@ data class AttributeInstance private constructor(
     val time: ZonedDateTime,
     val value: String? = null,
     val measuredValue: Double? = null,
+    val geoValue: WKTCoordinates? = null,
     val payload: String,
     val sub: String? = null
 ) {
@@ -27,6 +29,7 @@ data class AttributeInstance private constructor(
             time: ZonedDateTime,
             value: String? = null,
             measuredValue: Double? = null,
+            geoValue: WKTCoordinates? = null,
             payload: Map<String, Any>,
             sub: String? = null
         ): AttributeInstance {
@@ -41,6 +44,7 @@ data class AttributeInstance private constructor(
                 time = time,
                 value = value,
                 measuredValue = measuredValue,
+                geoValue = geoValue,
                 payload = serializeObject(parsedPayload),
                 sub = sub
             )
@@ -53,6 +57,7 @@ data class AttributeInstance private constructor(
             time: ZonedDateTime,
             value: String? = null,
             measuredValue: Double? = null,
+            geoValue: WKTCoordinates? = null,
             jsonNode: JsonNode,
             sub: String? = null
         ): AttributeInstance {
@@ -66,6 +71,7 @@ data class AttributeInstance private constructor(
                 time = time,
                 value = value,
                 measuredValue = measuredValue,
+                geoValue = geoValue,
                 payload = serializeObject(jsonNode),
                 sub = sub
             )

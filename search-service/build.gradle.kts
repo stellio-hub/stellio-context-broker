@@ -29,6 +29,7 @@ dependencies {
 
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.27.2")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
 }

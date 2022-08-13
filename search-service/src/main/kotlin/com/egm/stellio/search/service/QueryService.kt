@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
+import arrow.core.continuations.either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
@@ -10,100 +11,133 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import org.springframework.stereotype.Service
 import java.net.URI
 
 @Service
 class QueryService(
+    private val entityPayloadService: EntityPayloadService,
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val temporalEntityService: TemporalEntityService
 ) {
+    // TODO sysattrs
+    suspend fun queryEntity(
+        entityId: URI,
+        contexts: List<String>
+    ): Either<APIException, JsonLdEntity> =
+        either {
+            val entityPayload = entityPayloadService.retrieve(entityId).bind()
+            val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+
+            val entityMap = mapOf(
+                JSONLD_ID to entityId,
+                JSONLD_TYPE to entityPayload.types
+            ).plus(
+                temporalEntityAttributes.map {
+                    it.attributeName to deserializeObject(it.payload)
+                }
+            )
+
+            JsonLdEntity(entityMap, contexts)
+        }
+
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean,
         withAudit: Boolean,
         contextLink: String
-    ): Either<APIException, CompactedJsonLdEntity> {
-        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
-            entityId,
-            temporalQuery.expandedAttrs
-        ).ifEmpty {
-            return ResourceNotFoundException(
-                entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
-            ).left()
+    ): Either<APIException, CompactedJsonLdEntity> =
+        either {
+            val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
+                entityId,
+                temporalQuery.expandedAttrs
+            ).let {
+                if (it.isEmpty())
+                    ResourceNotFoundException(
+                        entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
+                    ).left()
+                else it.right()
+            }.bind()
+
+            val entityPayload = entityPayloadService.retrieve(entityId).bind()
+            val temporalEntityAttributesWithMatchingInstances =
+                searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
+
+            val temporalEntityAttributesWithInstances =
+                fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
+
+            temporalEntityService.buildTemporalEntity(
+                entityPayload,
+                temporalEntityAttributesWithInstances,
+                temporalQuery,
+                listOf(contextLink),
+                withTemporalValues,
+                withAudit
+            )
         }
-
-        val temporalEntityAttributesWithMatchingInstances =
-            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
-
-        val temporalEntityAttributesWithInstances =
-            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
-
-        return temporalEntityService.buildTemporalEntity(
-            entityId,
-            temporalEntityAttributesWithInstances,
-            temporalQuery,
-            listOf(contextLink),
-            withTemporalValues,
-            withAudit
-        ).right()
-    }
 
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contextLink: String,
         accessRightFilter: () -> String?
-    ): Pair<List<CompactedJsonLdEntity>, Int> {
-        val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
-            temporalEntitiesQuery.queryParams,
-            accessRightFilter
-        )
-
-        val temporalEntityAttributesWithMatchingInstances =
-            searchInstancesForTemporalEntityAttributes(
-                temporalEntityAttributes,
-                temporalEntitiesQuery.temporalQuery,
-                temporalEntitiesQuery.withTemporalValues
+    ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
+        either {
+            val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+                temporalEntitiesQuery.queryParams,
+                accessRightFilter
             )
 
-        val temporalEntityAttributesWithInstances =
-            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
+            val temporalEntityAttributesWithMatchingInstances =
+                searchInstancesForTemporalEntityAttributes(
+                    temporalEntityAttributes,
+                    temporalEntitiesQuery.temporalQuery,
+                    temporalEntitiesQuery.withTemporalValues
+                )
 
-        val attributeInstancesPerEntityAndAttribute =
-            temporalEntityAttributesWithInstances
-                .toList()
-                .groupBy {
-                    // then, group them by entity
-                    it.first.entityId
-                }
-                .mapValues {
-                    it.value.toMap()
-                }
-                .toList()
-                // the ordering made when searching matching temporal entity attributes is lost
-                // since we are now iterating over the map of TEAs with their instances
-                .sortedBy { it.first }
+            val temporalEntityAttributesWithInstances =
+                fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
 
-        val count = temporalEntityAttributeService.getCountForEntities(
-            temporalEntitiesQuery.queryParams,
-            accessRightFilter
-        ).getOrElse { 0 }
+            val attributeInstancesPerEntityAndAttribute =
+                temporalEntityAttributesWithInstances
+                    .toList()
+                    .groupBy {
+                        // then, group them by entity
+                        it.first.entityId
+                    }.mapKeys {
+                        entityPayloadService.retrieve(it.key).bind()
+                    }
+                    .mapValues {
+                        it.value.toMap()
+                    }
+                    .toList()
+                    // the ordering made when searching matching temporal entity attributes is lost
+                    // since we are now iterating over the map of TEAs with their instances
+                    .sortedBy { it.first.entityId }
 
-        return Pair(
-            temporalEntityService.buildTemporalEntities(
-                attributeInstancesPerEntityAndAttribute,
-                temporalEntitiesQuery.temporalQuery,
-                listOf(contextLink),
-                temporalEntitiesQuery.withTemporalValues,
-                temporalEntitiesQuery.withAudit
-            ),
-            count
-        )
-    }
+            val count = temporalEntityAttributeService.getCountForEntities(
+                temporalEntitiesQuery.queryParams,
+                accessRightFilter
+            ).getOrElse { 0 }
+
+            Pair(
+                temporalEntityService.buildTemporalEntities(
+                    attributeInstancesPerEntityAndAttribute,
+                    temporalEntitiesQuery.temporalQuery,
+                    listOf(contextLink),
+                    temporalEntitiesQuery.withTemporalValues,
+                    temporalEntitiesQuery.withAudit
+                ),
+                count
+            )
+        }
 
     private suspend fun searchInstancesForTemporalEntityAttributes(
         temporalEntityAttributes: List<TemporalEntityAttribute>,

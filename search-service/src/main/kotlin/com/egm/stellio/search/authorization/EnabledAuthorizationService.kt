@@ -83,7 +83,7 @@ class EnabledAuthorizationService(
 
     override suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
         entitiesId.parTraverseEither {
-            entityAccessRightsService.setAdminRoleOnEntity(sub.orNull(), it)
+            entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it)
         }.map { it.first() }
 
     override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
@@ -100,7 +100,7 @@ class EnabledAuthorizationService(
                         ( 
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (entity_id IN (
+                            (temporal_entity_attribute.entity_id IN (
                                 SELECT entity_id
                                 FROM entity_access_rights
                                 WHERE subject_id IN (${it.toListOfString()})

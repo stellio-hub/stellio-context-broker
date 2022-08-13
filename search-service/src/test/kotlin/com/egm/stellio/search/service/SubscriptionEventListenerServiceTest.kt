@@ -69,7 +69,10 @@ class SubscriptionEventListenerServiceTest {
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri()
                 }
             )
-            entityAccessRightsService.setAdminRoleOnEntity(null, "urn:ngsi-ld:Subscription:04".toUri())
+            entityAccessRightsService.setAdminRoleOnEntity(
+                eq("1343760C-9375-4E3F-B6C1-8A845340EB59"),
+                eq("urn:ngsi-ld:Subscription:04".toUri())
+            )
         }
     }
 

@@ -52,7 +52,7 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             authorizationService.checkCreationAuthorized(ngsiLdEntity, sub).bind()
-            val newEntityUri = temporalEntityAttributeService.createEntityTemporalReferences(
+            temporalEntityAttributeService.createEntityTemporalReferences(
                 ngsiLdEntity, jsonLdEntity, sub.orNull()
             ).bind()
             authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
@@ -65,7 +65,7 @@ class EntityHandler(
             )
 
             ResponseEntity.status(HttpStatus.CREATED)
-                .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
+                .location(URI("/ngsi-ld/v1/entities/${ngsiLdEntity.id}"))
                 .build<String>()
         }.fold(
             { it.toErrorResponse() },
@@ -285,14 +285,14 @@ class EntityHandler(
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
         val entityUri = entityId.toUri()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
+        val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
 
         return either<APIException, ResponseEntity<*>> {
             temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
-            val body = requestBody.awaitFirst().deserializeAsMap()
-            val contexts = checkAndGetContext(httpHeaders, body)
-            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-            val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
 
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, ngsiLdAttributes, sub).bind()
@@ -417,19 +417,19 @@ class EntityHandler(
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
 
-            val result = if (deleteAll)
-                temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(entityUri, expandedAttrId)
+            if (deleteAll)
+                temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+                    entityUri, expandedAttrId
+                ).bind()
             else
-                temporalEntityAttributeService.deleteTemporalAttributeReferences(entityUri, expandedAttrId, datasetId)
+                temporalEntityAttributeService.deleteTemporalAttributeReferences(
+                    entityUri, expandedAttrId, datasetId
+                ).bind()
 
-            if (result.isRight()) {
-                entityEventService.publishAttributeDeleteEvent(
-                    sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
-                )
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            } else
-                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
-                    .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+            entityEventService.publishAttributeDeleteEvent(
+                sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
+            )
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(
             { it.toErrorResponse() },
             { it }

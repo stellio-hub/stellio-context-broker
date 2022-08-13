@@ -54,7 +54,7 @@ class EntityServiceTests {
 
         every {
             applicationProperties.entity
-        } returns ApplicationProperties.Entity("http://localhost:8089/ngsi-ld/v1".toUri(), false)
+        } returns ApplicationProperties.Entity("http://localhost:8089/ngsi-ld/v1".toUri())
 
         val entity = entityService.getEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), "Bearer 1234")
 

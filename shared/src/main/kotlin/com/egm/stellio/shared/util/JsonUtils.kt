@@ -35,6 +35,10 @@ object JsonUtils {
     fun String.deserializeAsMap(): Map<String, Any> =
         deserializeObject(this)
 
+    @Suppress("UNCHECKED_CAST")
+    fun String.deserializeExpandedPayload(): Map<String, List<Any>> =
+        deserializeObject(this) as Map<String, List<Any>>
+
     @SuppressWarnings("SwallowedException")
     fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
         try {

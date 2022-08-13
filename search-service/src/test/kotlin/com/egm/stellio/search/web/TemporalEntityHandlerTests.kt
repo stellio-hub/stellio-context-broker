@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import arrow.core.Either
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
@@ -9,6 +10,7 @@ import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.WithMockCustomUser
@@ -16,10 +18,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.confirmVerified
+import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,6 +48,9 @@ class TemporalEntityHandlerTests {
     private lateinit var queryService: QueryService
 
     @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
+
+    @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @MockkBean(relaxed = true)
@@ -75,7 +77,7 @@ class TemporalEntityHandlerTests {
 
     private fun buildDefaultMockResponsesForAddAttributes() {
         coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
         } returns Unit.right()
@@ -89,7 +91,9 @@ class TemporalEntityHandlerTests {
 
         buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            temporalEntityAttributeUuid.right()
+            mockkClass(TemporalEntityAttribute::class) {
+                every { id } returns temporalEntityAttributeUuid
+            }.right()
         }
         coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
@@ -127,7 +131,9 @@ class TemporalEntityHandlerTests {
 
         buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            temporalEntityAttributeUuid.right()
+            mockkClass(TemporalEntityAttribute::class) {
+                every { id } returns temporalEntityAttributeUuid
+            }.right()
         }
         coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
@@ -165,7 +171,9 @@ class TemporalEntityHandlerTests {
 
         buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            temporalEntityAttributeUuid.right()
+            mockkClass(TemporalEntityAttribute::class) {
+                every { id } returns temporalEntityAttributeUuid
+            }.right()
         }
         coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
@@ -203,7 +211,9 @@ class TemporalEntityHandlerTests {
 
         buildDefaultMockResponsesForAddAttributes()
         coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            temporalEntityAttributeUuid.right()
+            mockkClass(TemporalEntityAttribute::class) {
+                every { id } returns temporalEntityAttributeUuid
+            }.right()
         }
         coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
@@ -261,7 +271,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
         coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
@@ -280,7 +290,7 @@ class TemporalEntityHandlerTests {
 
     private fun buildDefaultMockResponsesForGetEntity() {
         coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkReadAuthorized(any(), any(), any())
         } returns Unit.right()
@@ -650,9 +660,9 @@ class TemporalEntityHandlerTests {
             .map {
                 TemporalEntityAttribute(
                     entityId = entityUri,
-                    types = listOf(BEEHIVE_TYPE),
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    payload = EMPTY_PAYLOAD
                 )
             }
         val entityFileName = if (withTemporalValues)
@@ -717,7 +727,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(emptyList(), 2)
+        } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
             .uri(
@@ -756,7 +766,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
+        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
             .uri(
@@ -784,7 +794,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
+        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
             .uri(
@@ -823,7 +833,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
+        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
             .uri(
@@ -845,7 +855,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
             .uri(
@@ -861,7 +871,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
             .uri(
@@ -885,7 +895,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
+        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
             .uri(
@@ -914,7 +924,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3)
+        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3))
 
         webClient.get()
             .uri(
@@ -1026,9 +1036,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
-        coEvery {
-            temporalEntityAttributeService.getEntityTypes(any())
-        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
@@ -1125,9 +1133,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
-        coEvery {
-            temporalEntityAttributeService.getEntityTypes(any())
-        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
@@ -1172,9 +1178,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
-        coEvery {
-            temporalEntityAttributeService.getEntityTypes(any())
-        } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()

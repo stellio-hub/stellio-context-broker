@@ -4,6 +4,7 @@ import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
@@ -28,6 +29,7 @@ import reactor.core.publisher.Mono
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
+    private val entityPayloadService: EntityPayloadService,
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
@@ -53,7 +55,7 @@ class TemporalEntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
 
             authorizationService.checkUpdateAuthorized(
                 entityUri,
@@ -67,7 +69,7 @@ class TemporalEntityHandler(
                     val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
                     attributeInstances.forEach { attributeInstance ->
                         val datasetId = attributeInstance.getDatasetId()
-                        val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
+                        val temporalEntityAttribute = temporalEntityAttributeService.getForEntityAndAttribute(
                             entityId.toUri(),
                             attributeEntry.key,
                             datasetId
@@ -75,7 +77,7 @@ class TemporalEntityHandler(
 
                         val compactedAttributeName = compactTerm(attributeEntry.key, contexts)
                         attributeInstanceService.addAttributeInstance(
-                            temporalEntityAttributeUuid,
+                            temporalEntityAttribute.id,
                             compactedAttributeName,
                             attributeInstance,
                             contexts
@@ -98,27 +100,33 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val sub = getSubFromSecurityContext()
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-        val mediaType = getApplicableMediaType(httpHeaders)
+        return either<APIException, ResponseEntity<*>> {
+            val sub = getSubFromSecurityContext()
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+            val mediaType = getApplicableMediaType(httpHeaders)
 
-        val temporalEntitiesQuery =
-            parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink, true)
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val (temporalEntities, total) = queryService.queryTemporalEntities(
-            temporalEntitiesQuery,
-            contextLink,
-            accessRightFilter
-        )
+            val temporalEntitiesQuery =
+                parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink, true)
 
-        return buildQueryResponse(
-            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
-            total,
-            "/ngsi-ld/v1/temporal/entities",
-            temporalEntitiesQuery.queryParams,
-            params,
-            mediaType,
-            contextLink
+            val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+            val (temporalEntities, total) = queryService.queryTemporalEntities(
+                temporalEntitiesQuery,
+                contextLink,
+                accessRightFilter
+            ).bind()
+
+            buildQueryResponse(
+                serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+                total,
+                "/ngsi-ld/v1/temporal/entities",
+                temporalEntitiesQuery.queryParams,
+                params,
+                mediaType,
+                contextLink
+            )
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
         )
     }
 
@@ -139,7 +147,9 @@ class TemporalEntityHandler(
 
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)
-            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+
+            // FIXME this should no longer be needed since users are not entities anymore
+            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
 
             authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
 
@@ -179,7 +189,7 @@ class TemporalEntityHandler(
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
 
-            val entityTypes = temporalEntityAttributeService.getEntityTypes(entityUri).bind()
+            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
 
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
 

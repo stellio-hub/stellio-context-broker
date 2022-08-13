@@ -3,12 +3,16 @@ package com.egm.stellio.search.service
 import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkClass
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -29,6 +33,9 @@ class SubscriptionEventListenerServiceTest {
     private lateinit var subscriptionEventListenerService: SubscriptionEventListenerService
 
     @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
+
+    @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @MockkBean
@@ -41,18 +48,25 @@ class SubscriptionEventListenerServiceTest {
     fun `it should parse a subscription and create a temporal entity reference`() = runTest {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
+        coEvery { entityPayloadService.createEntityPayload(any(), any(), any(), any(), any()) } returns Unit.right()
         coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
         subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
         coVerify {
+            entityPayloadService.createEntityPayload(
+                eq("urn:ngsi-ld:Subscription:04".toUri()),
+                listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+                isNull(true),
+                any(),
+                listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+            )
             temporalEntityAttributeService.create(
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri() &&
-                        entityTemporalProperty.types == listOf("https://uri.etsi.org/ngsi-ld/Subscription")
+                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri()
                 }
             )
             entityAccessRightsService.setAdminRoleOnEntity(null, "urn:ngsi-ld:Subscription:04".toUri())
@@ -64,13 +78,20 @@ class SubscriptionEventListenerServiceTest {
         val temporalEntityAttributeUuid = UUID.randomUUID()
         val notificationEvent = loadSampleData("events/subscription/notificationCreateEvent.jsonld")
 
-        coEvery { temporalEntityAttributeService.getFirstForEntity(any()) } returns temporalEntityAttributeUuid.right()
+        coEvery {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } returns listOf(
+            mockkClass(TemporalEntityAttribute::class) {
+                every { id } returns temporalEntityAttributeUuid
+            }
+        )
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.updateStatus(any(), any<Map<String, Any>>()) } returns Unit.right()
 
         subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
 
-        coVerify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
         coVerify {
+            temporalEntityAttributeService.getForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri()), emptySet())
             attributeInstanceService.create(
                 match {
                     it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
@@ -86,6 +107,10 @@ class SubscriptionEventListenerServiceTest {
                             """.trimIndent()
                         )
                 }
+            )
+            temporalEntityAttributeService.updateStatus(
+                eq("urn:ngsi-ld:Subscription:1234".toUri()),
+                any<Map<String, Any>>()
             )
         }
     }

@@ -17,7 +17,6 @@ interface AuthorizationService {
     suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
 
-    // TODO probably to remove / readapt ...
     suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
 

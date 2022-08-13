@@ -33,28 +33,59 @@ class AttributeInstanceService(
     @Transactional
     suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
         val insertStatement =
-            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                attributeInstance.geoValue != null
+            )
                 """
                 INSERT INTO attribute_instance 
-                    (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
-                VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                    (time, measured_value, value, geo_value, temporal_entity_attribute, 
+                        instance_id, payload)
+                VALUES 
+                    (:time, :measured_value, :value, ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
+                        :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
                               instance_id = :instance_id
                 """.trimIndent()
+            else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                """
+                INSERT INTO attribute_instance 
+                    (time, measured_value, value, temporal_entity_attribute, 
+                        instance_id, payload)
+                VALUES 
+                    (:time, :measured_value, :value, :temporal_entity_attribute, 
+                        :instance_id, :payload)
+                ON CONFLICT (time, temporal_entity_attribute)
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                """.trimIndent()
+            else if (attributeInstance.geoValue != null)
+                """
+                INSERT INTO attribute_instance_audit
+                    (time, time_property, measured_value, value, geo_value, 
+                        temporal_entity_attribute, instance_id, payload, sub)
+                VALUES
+                    (:time, :time_property, :measured_value, :value, ST_GeomFromText(:geo_value), 
+                        :temporal_entity_attribute, :instance_id, :payload, :sub)
+                """.trimIndent()
             else
                 """
                 INSERT INTO attribute_instance_audit
-                    (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload, sub)
+                    (time, time_property, measured_value, value,
+                        temporal_entity_attribute, instance_id, payload, sub)
                 VALUES
-                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, 
-                        :instance_id, :payload, :sub)
+                    (:time, :time_property, :measured_value, :value, 
+                        :temporal_entity_attribute, :instance_id, :payload, :sub)
                 """.trimIndent()
 
         return databaseClient.sql(insertStatement)
             .bind("time", attributeInstance.time)
             .bind("measured_value", attributeInstance.measuredValue)
             .bind("value", attributeInstance.value)
+            .let {
+                if (attributeInstance.geoValue != null)
+                    it.bind("geo_value", attributeInstance.geoValue)
+                else it
+            }
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
             .bind("instance_id", attributeInstance.instanceId)
             .bind("payload", Json.of(attributeInstance.payload))
@@ -235,6 +266,7 @@ class AttributeInstanceService(
         )
     }
 
+    @Transactional
     suspend fun deleteEntityAttributeInstance(
         entityId: URI,
         entityAttributeName: String,

@@ -4,6 +4,7 @@ import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -33,6 +34,7 @@ class EntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
+    private val entityAccessRightsService: EntityAccessRightsService,
     private val entityEventService: EntityEventService
 ) {
 
@@ -199,6 +201,8 @@ class EntityHandler(
             authorizationService.checkAdminAuthorized(entityUri, entity.types, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalEntityReferences(entityUri).bind()
+
+            entityAccessRightsService.removeRolesOnEntity(entityUri).bind()
 
             entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
 
@@ -417,14 +421,9 @@ class EntityHandler(
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
 
-            if (deleteAll)
-                temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
-                    entityUri, expandedAttrId
-                ).bind()
-            else
-                temporalEntityAttributeService.deleteTemporalAttributeReferences(
-                    entityUri, expandedAttrId, datasetId
-                ).bind()
+            temporalEntityAttributeService.deleteTemporalAttribute(
+                entityUri, expandedAttrId, datasetId, deleteAll
+            ).bind()
 
             entityEventService.publishAttributeDeleteEvent(
                 sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts

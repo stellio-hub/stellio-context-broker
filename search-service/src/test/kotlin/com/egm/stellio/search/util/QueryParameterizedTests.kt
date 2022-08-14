@@ -6,6 +6,8 @@ import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.params.provider.Arguments
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.Stream
@@ -14,12 +16,15 @@ import java.util.stream.Stream
 class QueryParameterizedTests {
 
     companion object {
+        private val now = Instant.now().atZone(ZoneOffset.UTC)
+
         private val simplifiedResultOfTwoEntitiesWithOneProperty =
             listOf(
                 Pair(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -27,6 +32,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
@@ -41,6 +47,7 @@ class QueryParameterizedTests {
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -48,6 +55,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
@@ -66,6 +74,7 @@ class QueryParameterizedTests {
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -73,6 +82,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
@@ -92,6 +102,7 @@ class QueryParameterizedTests {
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -99,6 +110,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
@@ -122,6 +134,7 @@ class QueryParameterizedTests {
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -129,6 +142,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
@@ -142,6 +156,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
@@ -156,6 +171,7 @@ class QueryParameterizedTests {
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
+                        createdAt = now,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -163,6 +179,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
@@ -176,6 +193,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(

@@ -7,6 +7,8 @@ import com.egm.stellio.shared.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.Stream
@@ -15,6 +17,8 @@ import java.util.stream.Stream
 class ParameterizedTests {
 
     companion object {
+        private val now = Instant.now().atZone(ZoneOffset.UTC)
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -24,6 +28,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -60,6 +65,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -98,6 +104,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -127,6 +134,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -163,6 +171,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -199,6 +208,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -234,6 +244,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -271,6 +282,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -299,6 +311,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -318,6 +331,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -344,6 +358,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -369,6 +384,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(
@@ -398,6 +414,7 @@ class ParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
                             listOf(

@@ -18,6 +18,7 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
@@ -115,12 +116,14 @@ class EntityPayloadService(
             databaseClient.sql(
                 """
                 UPDATE entity_payload
-                SET types = :types
+                SET types = :types,
+                    modified_at = :modified_at
                 WHERE entity_id = :entity_id
                 """.trimIndent()
             )
                 .bind("entity_id", entityId)
                 .bind("types", types.toTypedArray())
+                .bind("modified_at", ZonedDateTime.now(ZoneOffset.UTC))
                 .execute()
                 .map {
                     updateResultFromDetailedResult(

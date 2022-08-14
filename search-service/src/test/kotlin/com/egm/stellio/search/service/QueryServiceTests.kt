@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryService::class])
@@ -36,6 +38,8 @@ class QueryServiceTests {
 
     @MockkBean
     private lateinit var temporalEntityService: TemporalEntityService
+
+    private val now = Instant.now().atZone(ZoneOffset.UTC)
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -79,6 +83,7 @@ class QueryServiceTests {
                     entityId = entityUri,
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    createdAt = now,
                     payload = EMPTY_PAYLOAD
                 )
             }
@@ -141,6 +146,7 @@ class QueryServiceTests {
             entityId = entityUri,
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            createdAt = now,
             payload = EMPTY_PAYLOAD
         )
         coEvery {
@@ -208,6 +214,7 @@ class QueryServiceTests {
             entityId = entityUri,
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            createdAt = now,
             payload = EMPTY_PAYLOAD
         )
 

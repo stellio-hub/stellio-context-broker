@@ -89,7 +89,9 @@ class SubscriptionEventListenerServiceTest {
             }
         )
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.updateStatus(any(), any<Map<String, Any>>()) } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.updateStatus(any(), any(), any<Map<String, Any>>())
+        } returns Unit.right()
 
         subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
 
@@ -113,6 +115,7 @@ class SubscriptionEventListenerServiceTest {
             )
             temporalEntityAttributeService.updateStatus(
                 eq("urn:ngsi-ld:Subscription:1234".toUri()),
+                any(),
                 any<Map<String, Any>>()
             )
         }

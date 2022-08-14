@@ -5,6 +5,8 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.toUri
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -14,8 +16,11 @@ import org.springframework.data.r2dbc.core.ReactiveDeleteOperation
 import org.springframework.r2dbc.core.DatabaseClient
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
+import java.net.URI
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.UUID
 
 fun DatabaseClient.GenericExecuteSpec.allToFlow(): Flow<Map<String, Any>> =
     this.fetch().all().asFlow()
@@ -56,8 +61,13 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.execute(): Either<APIExcep
         .map { Unit.right() }
         .awaitFirst()
 
+fun toUri(entry: Any?): URI = (entry as String).toUri()
+fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
+fun toUuid(entry: Any?): UUID = entry as UUID
+fun toZonedDateTime(entry: Any?): ZonedDateTime =
+    (entry as OffsetDateTime).atZoneSameInstant(ZoneOffset.UTC)
 fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
-    if (entry == null)
-        null
-    else
-        ZonedDateTime.parse(entry as String).toInstant().atZone(ZoneOffset.UTC)
+    (entry as? OffsetDateTime)?.atZoneSameInstant(ZoneOffset.UTC)
+fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
+fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
+fun toJsonString(entry: Any?): String = (entry as Json).asString()

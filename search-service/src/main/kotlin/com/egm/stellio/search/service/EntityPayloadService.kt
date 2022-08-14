@@ -12,14 +12,12 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
@@ -67,11 +65,11 @@ class EntityPayloadService(
 
     private fun rowToEntityPaylaod(row: Map<String, Any>): EntityPayload =
         EntityPayload(
-            entityId = (row["entity_id"] as String).toUri(),
-            types = (row["types"] as Array<ExpandedTerm>).toList(),
-            createdAt = ZonedDateTime.parse(row["created_at"].toString()).toInstant().atZone(ZoneOffset.UTC),
+            entityId = toUri(row["entity_id"]),
+            types = toList(row["types"]),
+            createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            contexts = (row["contexts"] as Array<String>).toList()
+            contexts = toList(row["contexts"])
         )
 
     suspend fun getTypes(entityId: URI): Either<APIException, List<ExpandedTerm>> {

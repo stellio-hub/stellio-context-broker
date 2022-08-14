@@ -9,7 +9,6 @@ import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -19,6 +18,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.mapper
 import com.fasterxml.jackson.databind.JsonNode
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -30,7 +33,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -537,17 +539,17 @@ class TemporalEntityAttributeService(
 
     private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =
         TemporalEntityAttribute(
-            id = row["id"] as UUID,
-            entityId = (row["entity_id"] as String).toUri(),
+            id = toUuid(row["id"]),
+            entityId = toUri(row["entity_id"]),
             attributeName = row["attribute_name"] as ExpandedTerm,
             attributeType = TemporalEntityAttribute.AttributeType.valueOf(row["attribute_type"] as String),
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),
-            datasetId = (row["dataset_id"] as? String)?.toUri(),
-            createdAt = ZonedDateTime.parse(row["created_at"].toString()).toInstant().atZone(ZoneOffset.UTC),
+            datasetId = toOptionalUri(row["dataset_id"]),
+            createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            payload = (row["payload"] as Json).asString()
+            payload = toJsonString(row["payload"])
         )
 
     suspend fun checkEntityAndAttributeExistence(

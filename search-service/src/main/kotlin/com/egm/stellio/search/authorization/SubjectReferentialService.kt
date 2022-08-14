@@ -8,6 +8,7 @@ import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.util.allToMappedList
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.oneToResult
+import com.egm.stellio.search.util.toOptionalList
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.GlobalRole
@@ -73,7 +74,7 @@ class SubjectReferentialService(
             )
             .bind("subject_id", (sub as Some).value)
             .oneToResult(ResourceNotFoundException("No subject information found for $sub")) {
-                val subs = ((it["groups_memberships"] as? Array<Sub>)?.toList() ?: emptyList())
+                val subs = (toOptionalList<Sub>(it["groups_memberships"]) ?: emptyList())
                     .plus(it["subject_id"] as Sub)
                 if (it["service_account_id"] != null)
                     subs.plus(it["service_account_id"] as Sub)
@@ -188,8 +189,8 @@ class SubjectReferentialService(
             subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
             serviceAccountId = row["service_account_id"] as? Sub,
-            globalRoles = (row["global_roles"] as? Array<String>)
+            globalRoles = toOptionalList<String>(row["global_roles"])
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },
-            groupsMemberships = (row["groups_memberships"] as? Array<Sub>)?.toList()
+            groupsMemberships = toOptionalList(row["groups_memberships"])
         )
 }

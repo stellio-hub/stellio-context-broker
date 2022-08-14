@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -62,6 +63,23 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should retrieve an entity payload`() = runTest {
+        entityPayloadService.createEntityPayload(
+            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(entityUri)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasFieldOrPropertyWithValue("entityId", entityUri)
+                    .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
+                    .hasFieldOrPropertyWithValue("createdAt", now)
+                    .hasFieldOrPropertyWithValue("modifiedAt", null)
+                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
+            }
+    }
+
+    @Test
     fun `it should upsert an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
             entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
@@ -98,10 +116,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         assertTrue(deleteResult.isRight())
 
         // if correctly deleted, we should be able to create a new one
-        val createResult =
-            entityPayloadService.createEntityPayload(
-                entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
-            )
-        assertTrue(createResult.isRight())
+        entityPayloadService.createEntityPayload(
+            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+        ).shouldSucceed()
     }
 }

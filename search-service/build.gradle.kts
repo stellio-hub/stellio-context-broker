@@ -27,7 +27,6 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("com.github.tomakehurst:wiremock-standalone:2.27.2")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:r2dbc")

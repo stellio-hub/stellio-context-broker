@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.shared.model.APIException
@@ -42,7 +43,7 @@ import kotlin.random.Random
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : WithTimescaleContainer {
+class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService

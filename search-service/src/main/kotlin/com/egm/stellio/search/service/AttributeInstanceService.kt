@@ -21,7 +21,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -149,7 +148,7 @@ class AttributeInstanceService(
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
         if (!inQueryEntities && temporalQuery.timeBucket == null)
-            selectQuery = selectQuery.plus(", payload::TEXT")
+            selectQuery = selectQuery.plus(", payload")
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
@@ -241,7 +240,7 @@ class AttributeInstanceService(
 
         return databaseClient
             .sql(selectQuery)
-            .oneToResult { ZonedDateTime.parse(it["first"].toString()).toInstant().atZone(ZoneOffset.UTC) }
+            .oneToResult { toZonedDateTime(it["first"]) }
             .orNull()
     }
 
@@ -252,16 +251,13 @@ class AttributeInstanceService(
     ): AttributeInstanceResult {
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
-                temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
+                temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
                 value = row["value"]!!,
-                time = row["time_bucket"]?.let {
-                    ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
-                } ?: row["time"]
-                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                time = toOptionalZonedDateTime(row["time_bucket"]) ?: toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(
-            temporalEntityAttribute = (row["temporal_entity_attribute"] as? UUID)!!,
-            payload = row["payload"].let { it as String },
+            temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
+            payload = toJsonString(row["payload"]),
             sub = row["sub"] as? String
         )
     }

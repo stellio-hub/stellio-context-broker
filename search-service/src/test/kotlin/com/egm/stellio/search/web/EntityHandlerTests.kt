@@ -4,6 +4,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
@@ -72,6 +73,9 @@ class EntityHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
+
+    @MockkBean
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @MockkBean
     private lateinit var entityEventService: EntityEventService
@@ -1951,6 +1955,7 @@ class EntityHandlerTests {
             authorizationService.checkAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub)
         } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
 
         webClient.delete()
@@ -1968,6 +1973,7 @@ class EntityHandlerTests {
                 eq(sub)
             )
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(beehiveId))
+            entityAccessRightsService.removeRolesOnEntity(eq(beehiveId))
         }
         verify {
             entityEventService.publishEntityDeleteEvent(
@@ -2069,7 +2075,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
+            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2089,7 +2095,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
-            temporalEntityAttributeService.deleteTemporalAttributeReferences(
+            temporalEntityAttributeService.deleteTemporalAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 null
@@ -2111,7 +2117,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
+            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2123,9 +2129,11 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+            temporalEntityAttributeService.deleteTemporalAttribute(
                 eq(beehiveId),
-                eq(TEMPERATURE_PROPERTY)
+                eq(TEMPERATURE_PROPERTY),
+                null,
+                eq(true)
             )
         }
         verify {
@@ -2145,7 +2153,7 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
+            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2157,10 +2165,10 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.deleteTemporalAttributeReferences(
+            temporalEntityAttributeService.deleteTemporalAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
-                datasetId.toUri()
+                eq(datasetId.toUri())
             )
         }
         verify {
@@ -2200,7 +2208,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the attribute is not found`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
+            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any(), any())
         } throws ResourceNotFoundException("Attribute Not Found")
 
         webClient.method(HttpMethod.DELETE)
@@ -2222,7 +2230,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 400 if the request is not correct`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
+            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2245,7 +2253,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `it should not authorize user without write rights on entity to delete attributes`() {
+    fun `delete entity attribute should return a 403 if user is not allowed to update entity`() {
         coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {

@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @Component
 class SubscriptionEventListenerService(
@@ -139,7 +141,9 @@ class SubscriptionEventListenerService(
                 temporalEntityAttributeService.getForEntity(subscriptionId, emptySet())
                     .firstOrNull()
                     .right()
-                    .bind() ?: ResourceNotFoundException(entityNotFoundMessage(subscriptionId.toString())).left().bind()
+                    .bind() ?: ResourceNotFoundException(entityNotFoundMessage(subscriptionId.toString()))
+                    .left()
+                    .bind<TemporalEntityAttribute>()
             val payload = mapOf(
                 "type" to "Notification",
                 "value" to entitiesIds,
@@ -154,7 +158,9 @@ class SubscriptionEventListenerService(
                 payload = payload
             )
             attributeInstanceService.create(attributeInstance).bind()
-            temporalEntityAttributeService.updateStatus(subscriptionId, payload).bind()
+            temporalEntityAttributeService.updateStatus(
+                subscriptionId, ZonedDateTime.now(ZoneOffset.UTC), payload
+            ).bind()
         }
     }
 

@@ -66,6 +66,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             entityId = entityId,
             attributeName = INCOMING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            createdAt = now,
             payload = EMPTY_PAYLOAD
         )
 
@@ -196,6 +197,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             entityId = entityId,
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            createdAt = now,
             payload = EMPTY_PAYLOAD
         )
 
@@ -459,6 +461,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             entityId = entityId,
             attributeName = OUTGOING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            createdAt = now,
             payload = EMPTY_PAYLOAD
         )
 

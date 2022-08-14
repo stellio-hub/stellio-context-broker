@@ -30,6 +30,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -662,6 +663,7 @@ class TemporalEntityHandlerTests {
                     entityId = entityUri,
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    createdAt = ZonedDateTime.now(ZoneOffset.UTC),
                     payload = EMPTY_PAYLOAD
                 )
             }

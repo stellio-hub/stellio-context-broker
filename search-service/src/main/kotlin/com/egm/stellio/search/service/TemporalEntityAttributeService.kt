@@ -233,6 +233,7 @@ class TemporalEntityAttributeService(
                 time = createdAt,
                 measuredValue = attributeMetadata.measuredValue,
                 value = attributeMetadata.value,
+                geoValue = attributeMetadata.geoValue,
                 payload = attributePayload,
                 sub = sub
             )

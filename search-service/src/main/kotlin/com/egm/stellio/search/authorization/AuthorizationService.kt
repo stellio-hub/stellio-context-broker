@@ -20,28 +20,28 @@ interface AuthorizationService {
     suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
 
-    private fun checkEntityTypesAreAuthorized(entityTypes: List<ExpandedTerm>): Either<APIException, Unit> {
+    fun checkEntityTypesAreAuthorized(entityTypes: List<ExpandedTerm>): Either<APIException, Unit> {
         val unauthorizedTypes = IAM_TYPES.intersect(entityTypes.toSet())
         return if (unauthorizedTypes.isNotEmpty())
             BadRequestDataException("Entity type(s) $unauthorizedTypes cannot be managed via normal entity API").left()
         else Unit.right()
     }
 
-    private fun checkAttributesAreAuthorized(
+    fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>
     ): Either<APIException, Unit> =
         ngsiLdAttributes.traverse { ngsiLdAttribute ->
             checkAttributeIsAuthorized(ngsiLdAttribute.name)
         }.map {}
 
-    private fun checkAttributesAreAuthorized(
+    fun checkAttributesAreAuthorized(
         jsonLdAttributes: Map<String, Any>
     ): Either<APIException, Unit> =
         jsonLdAttributes.keys.traverse { expandedAttributeName ->
             checkAttributeIsAuthorized(expandedAttributeName)
         }.map {}
 
-    private fun checkAttributeIsAuthorized(attributeName: ExpandedTerm): Either<APIException, Unit> =
+    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm): Either<APIException, Unit> =
         if (attributeName == AuthContextModel.AUTH_PROP_SAP)
             BadRequestDataException(
                 "Specific access policy cannot be updated as a normal property, " +

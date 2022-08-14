@@ -1,7 +1,6 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.authorization
 
 import arrow.core.Some
-import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ResourceNotFoundException

@@ -213,6 +213,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
+            logger.debug("Adding attribute ${ngsiLdAttribute.name} to entity $entityId")
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityId,
                 attributeName = ngsiLdAttribute.name,
@@ -247,6 +248,7 @@ class TemporalEntityAttributeService(
 
     suspend fun deleteTemporalEntityReferences(entityId: URI): Either<APIException, Unit> =
         either {
+            logger.debug("Deleting entity $entityId")
             entityPayloadService.deleteEntityPayload(entityId).bind()
             deleteTemporalAttributesOfEntity(entityId).bind()
         }
@@ -263,6 +265,7 @@ class TemporalEntityAttributeService(
         deleteAll: Boolean = false
     ): Either<APIException, Unit> =
         either {
+            logger.debug("Deleting attribute $attributeName from entity $entityId (all: $deleteAll)")
             if (deleteAll)
                 deleteTemporalAttributeAllInstancesReferences(entityId, attributeName).bind()
             else
@@ -603,7 +606,7 @@ class TemporalEntityAttributeService(
                 }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Gonna append attribute ${ngsiLdAttribute.name} in entity $entityUri")
+                logger.debug("Appending attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val exists = hasAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId).bind()
                 val attributeMetadata = toTemporalAttributeMetadata(ngsiLdAttributeInstance).bind()
                 val attributePayload = getAttributeFromExpandedAttributes(
@@ -627,8 +630,7 @@ class TemporalEntityAttributeService(
                         null
                     ).right()
                 } else if (disallowOverwrite) {
-                    val message = "Attribute ${ngsiLdAttribute.name} already exists on $entityUri " +
-                        "and overwrite is not allowed, ignoring"
+                    val message = "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
                     logger.info(message)
                     UpdateAttributeResult(
                         ngsiLdAttribute.name,
@@ -682,7 +684,7 @@ class TemporalEntityAttributeService(
                 }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Gonna update attribute ${ngsiLdAttribute.name} in entity $entityUri")
+                logger.debug("Updating attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val exists = hasAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId).bind()
                 val attributeMetadata = toTemporalAttributeMetadata(ngsiLdAttributeInstance).bind()
                 val attributePayload = getAttributeFromExpandedAttributes(
@@ -712,10 +714,9 @@ class TemporalEntityAttributeService(
                     ).right()
                 } else {
                     val message = if (ngsiLdAttributeInstance.datasetId != null)
-                        "Attribute ${ngsiLdAttribute.name} " +
-                            "(datasetId: ${ngsiLdAttributeInstance.datasetId}) does not exist"
+                        "Attribute (datasetId: ${ngsiLdAttributeInstance.datasetId}) does not exist"
                     else
-                        "Attribute ${ngsiLdAttribute.name} (default instance) does not exist"
+                        "Attribute (default instance) does not exist"
                     logger.info(message)
                     UpdateAttributeResult(
                         ngsiLdAttribute.name,

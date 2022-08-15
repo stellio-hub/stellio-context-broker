@@ -9,6 +9,7 @@ import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -18,10 +19,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.attributeNotFoundMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.mapper
 import com.fasterxml.jackson.databind.JsonNode
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -588,29 +585,6 @@ class TemporalEntityAttributeService(
                         Unit.right()
                     else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
                 } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
-            }
-    }
-
-    suspend fun checkEntityExistence(
-        entityId: URI
-    ): Either<APIException, Unit> {
-        val selectQuery =
-            """
-                select 
-                    exists(
-                        select 1 
-                        from temporal_entity_attribute 
-                        where entity_id = :entity_id
-                    ) as entityExists;
-            """.trimIndent()
-
-        return databaseClient
-            .sql(selectQuery)
-            .bind("entity_id", entityId)
-            .oneToResult { it["entityExists"] as Boolean }
-            .flatMap {
-                if (it) Unit.right()
-                else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
 

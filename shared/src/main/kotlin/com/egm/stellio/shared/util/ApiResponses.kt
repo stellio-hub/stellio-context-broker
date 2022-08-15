@@ -18,6 +18,8 @@ fun entityOrAttrsNotFoundMessage(
     attrs: Set<String>
 ) = "Entity $entityId does not exist or it has none of the requested attributes : $attrs"
 
+fun entityAlreadyExistsMessage(entityId: String) = "Entity $entityId already exists"
+
 const val ENTITIY_CREATION_FORBIDDEN_MESSAGE = "User forbidden to create entity"
 const val ENTITIY_READ_FORBIDDEN_MESSAGE = "User forbidden to read entity"
 const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"

@@ -77,7 +77,7 @@ class TemporalEntityHandlerTests {
     }
 
     private fun buildDefaultMockResponsesForAddAttributes() {
-        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
@@ -271,7 +271,7 @@ class TemporalEntityHandlerTests {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
-        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
@@ -290,7 +290,7 @@ class TemporalEntityHandlerTests {
     }
 
     private fun buildDefaultMockResponsesForGetEntity() {
-        coEvery { temporalEntityAttributeService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkReadAuthorized(any(), any(), any())

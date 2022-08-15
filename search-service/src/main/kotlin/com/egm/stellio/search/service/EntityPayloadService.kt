@@ -2,15 +2,15 @@ package com.egm.stellio.search.service
 
 import arrow.core.Either
 import arrow.core.continuations.either
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
@@ -72,6 +72,34 @@ class EntityPayloadService(
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"])
         )
+
+    suspend fun checkEntityExistence(
+        entityId: URI,
+        inverse: Boolean = false
+    ): Either<APIException, Unit> {
+        val selectQuery =
+            """
+                select 
+                    exists(
+                        select 1 
+                        from entity_payload 
+                        where entity_id = :entity_id
+                    ) as entityExists;
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", entityId)
+            .oneToResult { it["entityExists"] as Boolean }
+            .flatMap {
+                if ((it && !inverse) || (!it && inverse))
+                    Unit.right()
+                else if (it)
+                    AlreadyExistsException(entityAlreadyExistsMessage(entityId.toString())).left()
+                else
+                    ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+            }
+    }
 
     suspend fun getTypes(entityId: URI): Either<APIException, List<ExpandedTerm>> {
         val selectQuery =

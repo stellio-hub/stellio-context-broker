@@ -50,7 +50,7 @@ class TemporalEntityHandler(
             val sub = getSubFromSecurityContext()
             val entityUri = entityId.toUri()
 
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
@@ -143,7 +143,7 @@ class TemporalEntityHandler(
             val sub = getSubFromSecurityContext()
             val entityUri = entityId.toUri()
 
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)

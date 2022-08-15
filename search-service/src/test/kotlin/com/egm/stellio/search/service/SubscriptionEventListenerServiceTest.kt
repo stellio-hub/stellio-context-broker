@@ -114,7 +114,7 @@ class SubscriptionEventListenerServiceTest {
                 }
             )
             temporalEntityAttributeService.updateStatus(
-                eq("urn:ngsi-ld:Subscription:1234".toUri()),
+                eq(temporalEntityAttributeUuid),
                 any(),
                 any<Map<String, Any>>()
             )

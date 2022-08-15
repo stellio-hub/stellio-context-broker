@@ -127,10 +127,10 @@ class EntityPayloadService(
             val currentTypes = getTypes(entityId).bind()
             // when dealing with an entity update, list of types can be empty if no change of type is requested
             if (currentTypes.sorted() == types.sorted() || types.isEmpty() && allowEmptyListOfTypes)
-                UpdateResult(emptyList(), emptyList()).right().bind()
+                return@either UpdateResult(emptyList(), emptyList())
             if (!types.containsAll(currentTypes)) {
                 val removedTypes = currentTypes.minus(types)
-                updateResultFromDetailedResult(
+                return@either updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
                             attributeName = JsonLdUtils.JSONLD_TYPE,
@@ -138,7 +138,7 @@ class EntityPayloadService(
                             errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
                         )
                     )
-                ).right().bind()
+                )
             }
 
             databaseClient.sql(

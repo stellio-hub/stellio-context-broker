@@ -501,8 +501,8 @@ class TemporalEntityAttributeService(
             SELECT *
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
             AND attribute_name = :attribute_name
+            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
             """.trimIndent()
 
         return databaseClient
@@ -562,7 +562,8 @@ class TemporalEntityAttributeService(
 
     suspend fun checkEntityAndAttributeExistence(
         entityId: URI,
-        entityAttributeName: String
+        entityAttributeName: String,
+        datasetId: URI? = null
     ): Either<APIException, Unit> {
         val selectQuery =
             """
@@ -577,6 +578,7 @@ class TemporalEntityAttributeService(
                         from temporal_entity_attribute 
                         where entity_id = :entity_id 
                         and attribute_name = :attribute_name
+                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
                     ) as attributeNameExists;
             """.trimIndent()
 
@@ -584,6 +586,10 @@ class TemporalEntityAttributeService(
             .sql(selectQuery)
             .bind("entity_id", entityId)
             .bind("attribute_name", entityAttributeName)
+            .let {
+                if (datasetId != null) it.bind("dataset_id", datasetId)
+                else it
+            }
             .oneToResult { Pair(it["entityExists"] as Boolean, it["attributeNameExists"] as Boolean) }
             .flatMap {
                 if (it.first) {

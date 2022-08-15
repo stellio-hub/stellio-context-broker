@@ -54,6 +54,7 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             authorizationService.checkCreationAuthorized(ngsiLdEntity, sub).bind()
+            entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
             temporalEntityAttributeService.createEntityTemporalReferences(
                 ngsiLdEntity, jsonLdEntity, sub.orNull()
             ).bind()
@@ -156,7 +157,7 @@ class EntityHandler(
         )
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
@@ -195,7 +196,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
             authorizationService.checkAdminAuthorized(entityUri, entity.types, sub).bind()
@@ -229,7 +230,7 @@ class EntityHandler(
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
@@ -296,7 +297,7 @@ class EntityHandler(
         val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, ngsiLdAttributes, sub).bind()
@@ -352,7 +353,7 @@ class EntityHandler(
         val entityUri = entityId.toUri()
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val body = mapOf(attrId to JsonUtils.deserializeAs<Any>(requestBody.awaitFirst()))
             val contexts = checkAndGetContext(httpHeaders, body)
@@ -413,7 +414,7 @@ class EntityHandler(
         val datasetId = params.getFirst("datasetId")?.toUri()
 
         return either<APIException, ResponseEntity<*>> {
-            temporalEntityAttributeService.checkEntityExistence(entityUri).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)

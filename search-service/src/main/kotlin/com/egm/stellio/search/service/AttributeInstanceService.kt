@@ -82,7 +82,7 @@ class AttributeInstanceService(
             .bind("value", attributeInstance.value)
             .let {
                 if (attributeInstance.geoValue != null)
-                    it.bind("geo_value", attributeInstance.geoValue)
+                    it.bind("geo_value", attributeInstance.geoValue.value)
                 else it
             }
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)

@@ -9,7 +9,6 @@ import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -19,6 +18,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.mapper
 import com.fasterxml.jackson.databind.JsonNode
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -766,11 +769,9 @@ class TemporalEntityAttributeService(
                     val timeAndProperty =
                         if (isNewObservation)
                             Pair(
-                                ZonedDateTime.parse(
-                                    getPropertyValueFromMap(
-                                        attributeInstanceValues, NGSILD_OBSERVED_AT_PROPERTY
-                                    )!! as String
-                                ),
+                                getPropertyValueFromMap(
+                                    attributeInstanceValues, NGSILD_OBSERVED_AT_PROPERTY
+                                )!! as ZonedDateTime,
                                 AttributeInstance.TemporalProperty.OBSERVED_AT
                             )
                         else

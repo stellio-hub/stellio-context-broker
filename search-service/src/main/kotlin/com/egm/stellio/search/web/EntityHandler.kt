@@ -414,10 +414,12 @@ class EntityHandler(
         val datasetId = params.getFirst("datasetId")?.toUri()
 
         return either<APIException, ResponseEntity<*>> {
-            entityPayloadService.checkEntityExistence(entityUri).bind()
-
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
+
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(
+                entityUri, expandedAttrId, datasetId
+            ).bind()
 
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()

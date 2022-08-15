@@ -2067,7 +2067,7 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
@@ -2091,7 +2091,7 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(beehiveId))
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(beehiveId), eq(TEMPERATURE_PROPERTY))
             entityPayloadService.getTypes(eq(beehiveId))
             authorizationService.checkUpdateAuthorized(
                 eq(beehiveId),
@@ -2157,6 +2157,9 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+        } returns Unit.right()
+        coEvery {
             temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
         } returns Unit.right()
 
@@ -2190,7 +2193,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 404 if the entity is not found`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2258,7 +2261,7 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 403 if user is not allowed to update entity`() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)

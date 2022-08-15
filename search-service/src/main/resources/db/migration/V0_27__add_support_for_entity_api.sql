@@ -1,6 +1,9 @@
 alter table attribute_instance
     add column geo_value geometry;
 
+alter table attribute_instance_audit
+    add column geo_value geometry;
+
 alter table entity_payload
     add column types text[],
     add column created_at timestamp with time zone,

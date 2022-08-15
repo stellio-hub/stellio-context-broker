@@ -19,6 +19,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
+    implementation("com.savvasdalkitsis:json-merge:0.0.6")
     implementation(project(":shared"))
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")

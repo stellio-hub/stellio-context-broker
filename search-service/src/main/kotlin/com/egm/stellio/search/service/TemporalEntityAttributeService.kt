@@ -16,14 +16,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.mapper
-import com.fasterxml.jackson.databind.JsonNode
+import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
+import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -35,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @Service
 class TemporalEntityAttributeService(
@@ -140,15 +140,15 @@ class TemporalEntityAttributeService(
 
     @Transactional
     suspend fun updateStatus(
-        entityId: URI,
+        teaUUID: UUID,
         modifiedAt: ZonedDateTime,
         payload: Map<String, Any>
     ): Either<APIException, Unit> =
-        updateStatus(entityId, modifiedAt, serializeObject(payload))
+        updateStatus(teaUUID, modifiedAt, serializeObject(payload))
 
     @Transactional
     suspend fun updateStatus(
-        entityId: URI,
+        teaUUID: UUID,
         modifiedAt: ZonedDateTime,
         payload: String
     ): Either<APIException, Unit> =
@@ -157,10 +157,10 @@ class TemporalEntityAttributeService(
             UPDATE temporal_entity_attribute
             SET payload = :payload,
                 modified_at = :modified_at
-            WHERE entity_id = :entity_id
+            WHERE id = :tea_uuid
             """.trimIndent()
         )
-            .bind("entity_id", entityId)
+            .bind("tea_uuid", teaUUID)
             .bind("payload", Json.of(payload))
             .bind("modified_at", modifiedAt)
             .execute()
@@ -757,12 +757,15 @@ class TemporalEntityAttributeService(
                 if (exists) {
                     // first update payload in temporal entity attribute
                     val tea = getForEntityAndAttribute(entityId, expandedAttributeName, datasetId).bind()
-                    val currentNode = mapper.readValue(tea.payload, JsonNode::class.java)
-                    val updatedNode = mapper.readerForUpdating(currentNode)
-                        .readValue(serializeObject(attributeInstanceValues), JsonNode::class.java)
-                    val payload = mapper.writeValueAsString(updatedNode)
-                    val deserializedPayload = payload.deserializeExpandedPayload()
-                    updateStatus(entityId, modifiedAt, payload).bind()
+                    val jsonSourceObject = JSONObject(tea.payload)
+                    val jsonUpdateObject = JSONObject(attributeInstanceValues)
+                    val jsonMerger = JsonMerger(
+                        arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
+                        objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
+                    )
+                    val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
+                    val deserializedPayload = jsonTargetObject.toMap() as Map<String, List<Any>>
+                    updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
                     val isNewObservation = attributeInstanceValues.containsKey(NGSILD_OBSERVED_AT_PROPERTY)

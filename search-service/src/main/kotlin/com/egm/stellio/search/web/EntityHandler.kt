@@ -164,7 +164,8 @@ class EntityHandler(
             val entityTypes = entityPayloadService.getTypes(entityUri).bind()
             authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
 
-            val jsonLdEntity = queryService.queryEntity(entityUri, listOf(contextLink)).bind()
+            val jsonLdEntity =
+                queryService.queryEntity(entityUri, listOf(contextLink), queryParams.includeSysAttrs).bind()
 
             jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 

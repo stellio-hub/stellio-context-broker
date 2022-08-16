@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>LargeClass:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$fun publishAttributeChangeEvents( sub: String?, entityId: URI, jsonLdAttributes: Map&lt;String, Any&gt;, updateResult: UpdateResult, overwrite: Boolean, contexts: List&lt;String&gt; )</ID>

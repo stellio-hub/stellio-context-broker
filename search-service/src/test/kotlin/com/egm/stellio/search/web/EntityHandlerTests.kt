@@ -112,7 +112,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any<NgsiLdEntity>(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
@@ -131,6 +131,7 @@ class EntityHandlerTests {
                 match<NgsiLdEntity> {
                     it.id == breedingServiceId
                 },
+                any(),
                 any(),
                 any()
             )
@@ -176,7 +177,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any<NgsiLdEntity>(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -249,7 +250,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any<NgsiLdEntity>(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
 
         webClient.post()

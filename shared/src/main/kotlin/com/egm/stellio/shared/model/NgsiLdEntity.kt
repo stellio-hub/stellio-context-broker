@@ -214,6 +214,8 @@ class NgsiLdPropertyInstance private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
 
 class NgsiLdRelationshipInstance private constructor(
@@ -247,6 +249,8 @@ class NgsiLdRelationshipInstance private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }.plus(objectId)
+
+    override fun toString(): String = "NgsiLdRelationshipInstance(objectId=$objectId)"
 }
 
 class NgsiLdGeoPropertyInstance(
@@ -280,6 +284,8 @@ class NgsiLdGeoPropertyInstance(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun toString(): String = "NgsiLdGeoPropertyInstance(coordinates=$coordinates)"
 }
 
 @JvmInline

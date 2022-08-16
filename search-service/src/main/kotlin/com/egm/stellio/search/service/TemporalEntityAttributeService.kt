@@ -75,26 +75,31 @@ class TemporalEntityAttributeService(
         sub: String? = null
     ): Either<APIException, Unit> {
         val jsonLdEntity = expandJsonLdEntity(payload, contexts)
-        return createEntityTemporalReferences(
-            jsonLdEntity.toNgsiLdEntity(),
-            jsonLdEntity,
-            sub
-        )
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        return ngsiLdEntity.prepareTemporalAttributes()
+            .map {
+                createEntityTemporalReferences(
+                    jsonLdEntity.toNgsiLdEntity(),
+                    jsonLdEntity,
+                    it,
+                    sub
+                )
+            }
     }
 
     @Transactional
     suspend fun createEntityTemporalReferences(
         ngsiLdEntity: NgsiLdEntity,
         jsonLdEntity: JsonLdEntity,
+        attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
         sub: String? = null
     ): Either<APIException, Unit> {
         logger.debug("Creating entity ${ngsiLdEntity.id}")
 
-        val temporalAttributes = prepareTemporalAttributes(ngsiLdEntity).ifEmpty { return Unit.right() }
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-        logger.debug("Found ${temporalAttributes.size} supported attributes in entity: ${ngsiLdEntity.id}")
+        logger.debug("Creating ${attributesMetadata.size} attributes in entity: ${ngsiLdEntity.id}")
 
-        return temporalAttributes.parTraverseEither {
+        return attributesMetadata.parTraverseEither {
             either<APIException, Unit> {
                 val (expandedAttributeName, attributeMetadata) = it
                 val attributePayload = getAttributeFromExpandedAttributes(
@@ -311,58 +316,6 @@ class TemporalEntityAttributeService(
             .bind("entity_id", entityId)
             .bind("attribute_name", attributeName)
             .execute()
-
-    private fun prepareTemporalAttributes(ngsiLdEntity: NgsiLdEntity): List<Pair<String, AttributeMetadata>> =
-        ngsiLdEntity.attributes
-            .flatMapTo(
-                arrayListOf()
-            ) {
-                it.getAttributeInstances().map { instance ->
-                    Pair(it.name, toTemporalAttributeMetadata(instance))
-                }
-            }.filter {
-                it.second.isRight()
-            }.map {
-                Pair(it.first, it.second.orNull()!!)
-            }
-
-    internal fun toTemporalAttributeMetadata(
-        ngsiLdAttributeInstance: NgsiLdAttributeInstance
-    ): Either<APIException, AttributeMetadata> {
-        val attributeType = when (ngsiLdAttributeInstance) {
-            is NgsiLdPropertyInstance -> TemporalEntityAttribute.AttributeType.Property
-            is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeType.Relationship
-            is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeType.GeoProperty
-        }
-        val attributeValue = when (ngsiLdAttributeInstance) {
-            is NgsiLdPropertyInstance ->
-                Triple(
-                    valueToStringOrNull(ngsiLdAttributeInstance.value),
-                    valueToDoubleOrNull(ngsiLdAttributeInstance.value),
-                    null
-                )
-            is NgsiLdRelationshipInstance -> Triple(ngsiLdAttributeInstance.objectId.toString(), null, null)
-            is NgsiLdGeoPropertyInstance -> Triple(null, null, ngsiLdAttributeInstance.coordinates)
-            else -> Triple(null, null, null)
-        }
-        if (attributeValue == Triple(null, null, null)) {
-            return BadRequestDataException("Unable to get a value from attribute: $ngsiLdAttributeInstance").left()
-        }
-        val attributeValueType =
-            if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE
-            else if (attributeValue.third != null) TemporalEntityAttribute.AttributeValueType.GEOMETRY
-            else TemporalEntityAttribute.AttributeValueType.ANY
-
-        return AttributeMetadata(
-            measuredValue = attributeValue.second,
-            value = attributeValue.first,
-            geoValue = attributeValue.third,
-            valueType = attributeValueType,
-            datasetId = ngsiLdAttributeInstance.datasetId,
-            type = attributeType,
-            observedAt = ngsiLdAttributeInstance.observedAt
-        ).right()
-    }
 
     suspend fun getForEntities(
         queryParams: QueryParams,
@@ -617,7 +570,7 @@ class TemporalEntityAttributeService(
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Appending attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val exists = hasAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId).bind()
-                val attributeMetadata = toTemporalAttributeMetadata(ngsiLdAttributeInstance).bind()
+                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
                 val attributePayload = getAttributeFromExpandedAttributes(
                     jsonLdAttributes,
                     ngsiLdAttribute.name,
@@ -695,7 +648,7 @@ class TemporalEntityAttributeService(
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Updating attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val exists = hasAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId).bind()
-                val attributeMetadata = toTemporalAttributeMetadata(ngsiLdAttributeInstance).bind()
+                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
                 val attributePayload = getAttributeFromExpandedAttributes(
                     jsonLdAttributes,
                     ngsiLdAttribute.name,

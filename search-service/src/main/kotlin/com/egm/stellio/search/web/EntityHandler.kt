@@ -10,6 +10,7 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -53,10 +54,11 @@ class EntityHandler(
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         return either<APIException, ResponseEntity<*>> {
+            val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
             authorizationService.checkCreationAuthorized(ngsiLdEntity, sub).bind()
             entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
             temporalEntityAttributeService.createEntityTemporalReferences(
-                ngsiLdEntity, jsonLdEntity, sub.orNull()
+                ngsiLdEntity, jsonLdEntity, attributesMetadata, sub.orNull()
             ).bind()
             authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
 

@@ -92,7 +92,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .oneToResult { it["entityExists"] as Boolean }
             .flatMap {
-                if ((it && !inverse) || (!it && inverse))
+                if (it && !inverse || !it && inverse)
                     Unit.right()
                 else if (it)
                     AlreadyExistsException(entityAlreadyExistsMessage(entityId.toString())).left()

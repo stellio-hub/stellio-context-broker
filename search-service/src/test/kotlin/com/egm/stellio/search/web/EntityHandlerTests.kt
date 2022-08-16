@@ -318,7 +318,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -479,7 +479,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         mockkDefaultBehaviorForGetEntityById()
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -750,7 +750,7 @@ class EntityHandlerTests {
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(

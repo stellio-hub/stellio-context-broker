@@ -15,8 +15,11 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.toExpandedDateTime
 import org.springframework.stereotype.Service
 import java.net.URI
 
@@ -27,25 +30,48 @@ class QueryService(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val temporalEntityService: TemporalEntityService
 ) {
-    // TODO sysattrs
     suspend fun queryEntity(
         entityId: URI,
-        contexts: List<String>
+        contexts: List<String>,
+        withSysAttrs: Boolean = false
     ): Either<APIException, JsonLdEntity> =
         either {
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
             val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, emptySet())
 
-            val entityMap = mapOf(
-                JSONLD_ID to entityId,
-                JSONLD_TYPE to entityPayload.types
-            ).plus(
-                temporalEntityAttributes.map {
-                    it.attributeName to deserializeObject(it.payload)
+            val expandedAttributes = temporalEntityAttributes
+                .groupBy {
+                    it.attributeName
                 }
-            )
+                .mapValues { teas ->
+                    teas.value.map { tea ->
+                        tea.payload.deserializeExpandedPayload()
+                            .let {
+                                if (withSysAttrs)
+                                    it.plus(tea.createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
+                                        .let {
+                                            if (tea.modifiedAt != null)
+                                                it.plus(tea.modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
+                                            else it
+                                        }
+                                else it
+                            }
+                    }
+                }
+                .plus(JSONLD_ID to entityId.toString())
+                .plus(JSONLD_TYPE to entityPayload.types)
+                .let {
+                    if (withSysAttrs)
+                        it.plus(entityPayload.createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
+                            .let {
+                                if (entityPayload.modifiedAt != null)
+                                    it.plus(entityPayload.modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
+                                else it
+                            }
+                    else it
+                }
 
-            JsonLdEntity(entityMap, contexts)
+            JsonLdEntity(expandedAttributes, contexts)
         }
 
     suspend fun queryTemporalEntity(

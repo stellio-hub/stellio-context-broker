@@ -20,13 +20,6 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: entity_service_actuator
-          uri: http://entity-service:8082
-          predicates:
-            - Path=/entity-service/actuator/**
-          filters:
-            - TokenRelay=
-            - RewritePath=/entity-service/actuator, /actuator
         - id: search_service_actuator
           uri: http://search-service:8083
           predicates:

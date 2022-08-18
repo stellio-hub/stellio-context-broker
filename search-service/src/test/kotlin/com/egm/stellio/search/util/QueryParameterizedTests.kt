@@ -31,7 +31,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -54,7 +54,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -81,7 +81,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -109,7 +109,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -141,7 +141,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -155,7 +155,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -178,7 +178,7 @@ class QueryParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(
@@ -192,7 +192,7 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to listOf(

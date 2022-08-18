@@ -662,7 +662,7 @@ class TemporalEntityHandlerTests {
                 TemporalEntityAttribute(
                     entityId = entityUri,
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
                     payload = EMPTY_PAYLOAD
                 )

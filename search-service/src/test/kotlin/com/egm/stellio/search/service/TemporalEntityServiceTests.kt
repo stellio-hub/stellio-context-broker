@@ -30,7 +30,7 @@ class TemporalEntityServiceTests {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )
@@ -107,7 +107,7 @@ class TemporalEntityServiceTests {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )

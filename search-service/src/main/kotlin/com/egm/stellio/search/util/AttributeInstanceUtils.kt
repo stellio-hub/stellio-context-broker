@@ -6,8 +6,12 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.logger
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import java.net.URI
+import java.util.Date
 
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {
@@ -37,29 +41,28 @@ suspend fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<
 }
 
 fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, AttributeMetadata> {
-    val attributeType = when (this) {
-        is NgsiLdPropertyInstance -> TemporalEntityAttribute.AttributeType.Property
-        is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeType.Relationship
-        is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeType.GeoProperty
-    }
-    val attributeValue = when (this) {
+    val (attributeType, attributeValueType, attributeValue) = when (this) {
         is NgsiLdPropertyInstance ->
+            guessPropertyValueType(this).let {
+                Triple(TemporalEntityAttribute.AttributeType.Property, it.first, it.second)
+            }
+        is NgsiLdRelationshipInstance ->
             Triple(
-                valueToStringOrNull(this.value),
-                valueToDoubleOrNull(this.value),
-                null
+                TemporalEntityAttribute.AttributeType.Relationship,
+                AttributeValueType.URI,
+                Triple(this.objectId.toString(), null, null)
             )
-        is NgsiLdRelationshipInstance -> Triple(this.objectId.toString(), null, null)
-        is NgsiLdGeoPropertyInstance -> Triple(null, null, this.coordinates)
+        is NgsiLdGeoPropertyInstance ->
+            Triple(
+                TemporalEntityAttribute.AttributeType.GeoProperty,
+                AttributeValueType.GEOMETRY,
+                Triple(null, null, this.coordinates)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         logger.warn("Unable to get a value from attribute: $this")
         return BadRequestDataException("Unable to get a value from attribute: $this").left()
     }
-    val attributeValueType =
-        if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE
-        else if (attributeValue.third != null) TemporalEntityAttribute.AttributeValueType.GEOMETRY
-        else TemporalEntityAttribute.AttributeValueType.ANY
 
     return AttributeMetadata(
         measuredValue = attributeValue.second,
@@ -71,3 +74,18 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
         observedAt = this.observedAt
     ).right()
 }
+
+private fun guessPropertyValueType(
+    ngsiLdPropertyInstance: NgsiLdPropertyInstance
+): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
+    when (val value = ngsiLdPropertyInstance.value) {
+        is Double -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
+        is Int -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
+        is Map<*, *> -> Pair(AttributeValueType.OBJECT, Triple(serializeObject(value), null, null))
+        is List<*> -> Pair(AttributeValueType.ARRAY, Triple(serializeObject(value), null, null))
+        is String -> Pair(AttributeValueType.STRING, Triple(value, null, null))
+        is Boolean -> Pair(AttributeValueType.BOOLEAN, Triple(value.toString(), null, null))
+        is Date -> Pair(AttributeValueType.DATE, Triple(value.toString(), null, null))
+        is URI -> Pair(AttributeValueType.URI, Triple(value.toString(), null, null))
+        else -> Pair(AttributeValueType.STRING, Triple(value.toString(), null, null))
+    }

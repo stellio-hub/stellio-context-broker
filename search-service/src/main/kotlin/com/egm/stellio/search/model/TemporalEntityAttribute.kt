@@ -19,9 +19,16 @@ data class TemporalEntityAttribute(
     val payload: String
 ) {
     enum class AttributeValueType {
-        MEASURE,
-        ANY,
-        GEOMETRY
+        NUMBER,
+        OBJECT,
+        ARRAY,
+        STRING,
+        BOOLEAN,
+        GEOMETRY,
+        DATETIME,
+        DATE,
+        TIME,
+        URI
     }
 
     enum class AttributeType {

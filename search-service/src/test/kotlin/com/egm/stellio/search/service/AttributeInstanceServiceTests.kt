@@ -65,7 +65,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
             attributeName = INCOMING_COMPACT_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )
@@ -196,7 +196,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
             attributeName = "propWithStringValue",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )
@@ -460,7 +460,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
             attributeName = OUTGOING_COMPACT_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )

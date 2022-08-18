@@ -82,7 +82,7 @@ class QueryServiceTests {
                 TemporalEntityAttribute(
                     entityId = entityUri,
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                    attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = now,
                     payload = EMPTY_PAYLOAD
                 )
@@ -143,7 +143,7 @@ class QueryServiceTests {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
             attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )
@@ -211,7 +211,7 @@ class QueryServiceTests {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,
             attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_PAYLOAD
         )

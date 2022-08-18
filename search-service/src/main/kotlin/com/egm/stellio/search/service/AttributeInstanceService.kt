@@ -199,10 +199,10 @@ class AttributeInstanceService(
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
-        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
             temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value "
-        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
             temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value, sub "
         temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->

@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
@@ -65,7 +66,7 @@ class SubscriptionEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
-                        entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+                        entityTemporalProperty.attributeValueType == AttributeValueType.STRING &&
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri()
                 }
             )

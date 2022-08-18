@@ -100,7 +100,7 @@ class SubscriptionEventListenerService(
         val entityTemporalProperty = TemporalEntityAttribute(
             entityId = subscription.id,
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = subscription.createdAt,
             payload = "{}"
         )

@@ -27,7 +27,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
@@ -64,7 +64,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
@@ -102,7 +102,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -132,7 +132,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -169,7 +169,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -206,7 +206,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -243,7 +243,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
@@ -281,7 +281,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
@@ -309,7 +309,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -329,7 +329,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -356,7 +356,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
@@ -383,7 +383,7 @@ class ParameterizedTests {
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
                             payload = EMPTY_PAYLOAD
                         ) to
@@ -412,7 +412,7 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
                             payload = EMPTY_PAYLOAD

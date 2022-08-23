@@ -7,6 +7,16 @@ import org.locationtech.jts.io.WKTWriter
 import org.locationtech.jts.io.geojson.GeoJsonReader
 import org.locationtech.jts.io.geojson.GeoJsonWriter
 
+object GeoQueryUtils {
+    const val GEO_QUERY_PARAM_GEOREL = "georel"
+    const val GEO_QUERY_PARAM_GEOMETRY = "geometry"
+    const val GEO_QUERY_PARAM_COORDINATES = "coordinates"
+    const val GEO_QUERY_PARAM_GEOPROPERTY = "geoproperty"
+    const val NEAR_QUERY_CLAUSE = "near"
+    const val DISTANCE_QUERY_CLAUSE = "distance"
+    const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
+    const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
+}
 fun geoJsonToWkt(geometryType: String, coordinates: String): String =
     geoJsonToWkt(
         """

@@ -2,6 +2,10 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.util.GeoQueryUtils.DISTANCE_QUERY_CLAUSE
+import com.egm.stellio.shared.util.GeoQueryUtils.MAX_DISTANCE_QUERY_CLAUSE
+import com.egm.stellio.shared.util.GeoQueryUtils.MIN_DISTANCE_QUERY_CLAUSE
+import com.egm.stellio.shared.util.GeoQueryUtils.NEAR_QUERY_CLAUSE
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.JsonNode
@@ -9,10 +13,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 
 object QueryUtils {
 
-    private const val NEAR_QUERY_CLAUSE = "near"
-    private const val DISTANCE_QUERY_CLAUSE = "distance"
-    private const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
-    private const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
     private const val PROPERTY_TYPE = "\"Property\""
     private const val RELATIONSHIP_TYPE = "\"Relationship\""
 

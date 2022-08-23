@@ -241,9 +241,10 @@ class EntityService(
     fun searchEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
+        geoQuery: GeoQuery,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(queryParams, sub, listOf(contextLink))
+        searchEntities(queryParams, sub, geoQuery, listOf(contextLink))
 
     /**
      * Search entities by type and query parameters
@@ -257,11 +258,13 @@ class EntityService(
     fun searchEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
+        geoQuery: GeoQuery,
         contexts: List<String>
     ): Pair<Int, List<JsonLdEntity>> {
         val result = searchRepository.getEntities(
             queryParams,
             sub,
+            geoQuery,
             contexts
         )
 

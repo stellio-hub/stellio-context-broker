@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.model.GeoQuery
 import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.QueryParams
@@ -8,6 +9,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.qPattern
 import java.net.URI
@@ -17,6 +19,7 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
+        geoQuery: GeoQuery,
         contexts: List<String>
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
@@ -50,30 +53,53 @@ object QueryUtils {
             WITH entitiesIds
             MATCH (entity)
             WHERE id(entity) IN entitiesIds
-            $finalFilterClause
+            $finalFilterClause                                                  
             """.trimIndent()
 
         val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity.id) as count
             """.trimIndent()
-        else
+        else if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
+            geoQuery.georel != null &&
+            geoQuery.geometry == "Point" &&
+            geoQuery.coordinates != null
+        ) {
+            """
+                RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
+                ORDER BY id
+                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
+            """.trimIndent()
+        } else
             """
                 WITH collect(distinct(entity.id)) as entityIds, count(entity.id) as count
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
+                
             """.trimIndent()
 
-        return """
-            $matchAuthorizedEntitiesClause
-            $pagingClause
+        return if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
+            geoQuery.georel != null &&
+            geoQuery.geometry == "Point" &&
+            geoQuery.coordinates != null
+        ) {
             """
+                $matchAuthorizedEntitiesClause
+                AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
+                $pagingClause
+            """.trimIndent()
+        } else {
+            """
+                $matchAuthorizedEntitiesClause
+                $pagingClause
+                """
+        }
     }
 
     fun prepareQueryForEntitiesWithoutAuthentication(
         queryParams: QueryParams,
+        geoQuery: GeoQuery,
         contexts: List<String>
     ): String {
 
@@ -93,7 +119,17 @@ object QueryUtils {
             """
             RETURN count(entity) as count
             """.trimIndent()
-        else
+        else if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
+            geoQuery.georel != null &&
+            geoQuery.geometry == "Point" &&
+            geoQuery.coordinates != null
+        ) {
+            """
+            RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
+            ORDER BY id
+            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
+            """.trimIndent()
+        } else
             """
             WITH collect(entity.id) as entitiesIds, count(entity) as count
             UNWIND entitiesIds as entityId
@@ -102,11 +138,24 @@ object QueryUtils {
             SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
-        return """
-            $matchEntityClause
-            $finalFilterClause
-            $pagingClause
+        return if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
+            geoQuery.georel != null &&
+            geoQuery.geometry == "Point" &&
+            geoQuery.coordinates != null
+        ) {
             """
+                    $matchEntityClause
+                    $finalFilterClause
+                    AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
+                    $pagingClause
+            """.trimIndent()
+        } else {
+            """
+                $matchEntityClause
+                $finalFilterClause
+                $pagingClause
+                """
+        }
     }
 
     fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =

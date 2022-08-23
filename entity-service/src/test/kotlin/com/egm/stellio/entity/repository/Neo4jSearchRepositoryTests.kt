@@ -4,6 +4,7 @@ import arrow.core.Some
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.model.GeoQuery
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.QueryParams
@@ -79,12 +80,14 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (24.30623 60.07966)"
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
@@ -98,10 +101,54 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
+            GeoQuery(null, null, null, null),
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id, thirdEntity.id)))
+    }
+
+    @Test
+    fun `it should return matching entities with geo query`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (1.1 5.4)"
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+
+        val fourthEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (24.30623 179.07966)"
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, fourthEntity.id)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
+            sub,
+            GeoQuery("near;maxDistance==1500", "Point", "[2.3, 4.5]", "location"),
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.containsAll(listOf(firstEntity.id)))
     }
 
     @Test
@@ -127,6 +174,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -144,6 +192,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -179,6 +228,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         var entities = searchRepository.getEntities(
             queryParams,
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -187,6 +237,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         entities = searchRepository.getEntities(
             queryParams.copy(attrs = setOf(expandedNameProperty), offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -221,6 +272,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -250,6 +302,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), q = "name==\"Scalpa\"", offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -287,6 +340,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
                 limit = limit
             ),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).first
 
@@ -317,6 +371,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
                 limit = 0
             ),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         )
 
@@ -355,6 +410,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(types = setOf("Beekeeper"), idPattern = idPattern, offset = offset, limit = limit),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 
@@ -390,6 +446,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
                 limit = limit
             ),
             sub,
+            GeoQuery(),
             DEFAULT_CONTEXTS
         ).second
 

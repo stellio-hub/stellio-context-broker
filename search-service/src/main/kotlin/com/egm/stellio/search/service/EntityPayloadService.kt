@@ -64,6 +64,16 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .oneToResult { rowToEntityPaylaod(it) }
 
+    suspend fun retrieve(entitiesIds: List<URI>): List<EntityPayload> =
+        databaseClient.sql(
+            """
+            SELECT * from entity_payload
+            WHERE entity_id IN (:entities_ids)
+            """.trimIndent()
+        )
+            .bind("entities_ids", entitiesIds)
+            .allToMappedList { rowToEntityPaylaod(it) }
+
     private fun rowToEntityPaylaod(row: Map<String, Any>): EntityPayload =
         EntityPayload(
             entityId = toUri(row["entity_id"]),

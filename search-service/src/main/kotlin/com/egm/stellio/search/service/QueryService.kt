@@ -5,14 +5,8 @@ import arrow.core.continuations.either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.search.model.*
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -22,6 +16,7 @@ import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.toExpandedDateTime
 import org.springframework.stereotype.Service
 import java.net.URI
+import java.time.ZonedDateTime
 
 @Service
 class QueryService(
@@ -39,39 +34,41 @@ class QueryService(
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
             val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, emptySet())
 
-            val expandedAttributes = temporalEntityAttributes
-                .groupBy {
-                    it.attributeName
-                }
-                .mapValues { teas ->
-                    teas.value.map { tea ->
-                        tea.payload.deserializeExpandedPayload()
-                            .let {
-                                if (withSysAttrs)
-                                    it.plus(tea.createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
-                                        .let {
-                                            if (tea.modifiedAt != null)
-                                                it.plus(tea.modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
-                                            else it
-                                        }
-                                else it
-                            }
-                    }
-                }
-                .plus(JSONLD_ID to entityId.toString())
-                .plus(JSONLD_TYPE to entityPayload.types)
-                .let {
-                    if (withSysAttrs)
-                        it.plus(entityPayload.createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
-                            .let {
-                                if (entityPayload.modifiedAt != null)
-                                    it.plus(entityPayload.modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
-                                else it
-                            }
-                    else it
-                }
+            buildJsonLdEntity(temporalEntityAttributes, entityPayload, withSysAttrs, contexts)
+        }
 
-            JsonLdEntity(expandedAttributes, contexts)
+    suspend fun queryEntities(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
+    ): Either<APIException, Pair<List<JsonLdEntity>, Int>> =
+        either {
+            val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+                queryParams,
+                accessRightFilter
+            )
+            if (temporalEntityAttributes.isEmpty())
+                return@either Pair<List<JsonLdEntity>, Int>(emptyList(), 0)
+
+            val count = temporalEntityAttributeService.getCountForEntities(
+                queryParams,
+                accessRightFilter
+            ).bind()
+            val entitesPayloads = entityPayloadService.retrieve(
+                temporalEntityAttributes.map { it.entityId }
+            )
+
+            val jsonLdEntities = temporalEntityAttributes
+                .groupBy { it.entityId }
+                .mapValues { (entityId, teas) ->
+                    buildJsonLdEntity(
+                        teas,
+                        entitesPayloads.find { it.entityId == entityId }!!,
+                        queryParams.includeSysAttrs,
+                        listOf(queryParams.context)
+                    )
+                }.values
+
+            Pair(jsonLdEntities.toList(), count).right().bind()
         }
 
     suspend fun queryTemporalEntity(
@@ -112,7 +109,6 @@ class QueryService(
 
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        contextLink: String,
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
@@ -157,7 +153,7 @@ class QueryService(
                 temporalEntityService.buildTemporalEntities(
                     attributeInstancesPerEntityAndAttribute,
                     temporalEntitiesQuery.temporalQuery,
-                    listOf(contextLink),
+                    listOf(temporalEntitiesQuery.queryParams.context),
                     temporalEntitiesQuery.withTemporalValues,
                     temporalEntitiesQuery.withAudit
                 ),
@@ -201,4 +197,41 @@ class QueryService(
             temporalEntityAttributesWithoutInstances.map { it to emptyList() }
         )
     }
+
+    private fun buildJsonLdEntity(
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        entityPayload: EntityPayload,
+        withSysAttrs: Boolean,
+        contexts: List<String>
+    ): JsonLdEntity {
+        val expandedAttributes = temporalEntityAttributes
+            .groupBy {
+                it.attributeName
+            }
+            .mapValues { teas ->
+                teas.value.map { tea ->
+                    tea.payload.deserializeExpandedPayload()
+                        .addSysAttrs(withSysAttrs, tea.createdAt, tea.modifiedAt)
+                }
+            }
+            .plus(JSONLD_ID to entityPayload.entityId.toString())
+            .plus(JSONLD_TYPE to entityPayload.types)
+            .addSysAttrs(withSysAttrs, entityPayload.createdAt, entityPayload.modifiedAt)
+
+        return JsonLdEntity(expandedAttributes, contexts)
+    }
+
+    private fun Map<String, Any>.addSysAttrs(
+        withSysAttrs: Boolean,
+        createdAt: ZonedDateTime,
+        modifiedAt: ZonedDateTime?
+    ): Map<String, Any> =
+        if (withSysAttrs)
+            this.plus(createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
+                .let {
+                    if (modifiedAt != null)
+                        it.plus(modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
+                    else it
+                }
+        else this
 }

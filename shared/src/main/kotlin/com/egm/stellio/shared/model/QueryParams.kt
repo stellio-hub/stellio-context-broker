@@ -13,5 +13,6 @@ data class QueryParams(
     val attrs: Set<ExpandedTerm> = emptySet(),
     val includeSysAttrs: Boolean = false,
     val useSimplifiedRepresentation: Boolean = false,
-    val geoQuery: GeoQuery = GeoQuery()
+    val geoQuery: GeoQuery = GeoQuery(),
+    val context: String
 )

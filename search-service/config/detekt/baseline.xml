@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>ComplexCondition:EntityHandler.kt$EntityHandler$queryParams.ids.isEmpty() &amp;&amp; queryParams.q.isNullOrEmpty() &amp;&amp; queryParams.types.isEmpty() &amp;&amp; queryParams.attrs.isEmpty()</ID>
     <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>LargeClass:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
@@ -18,8 +19,8 @@
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityId: URI, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: Map&lt;String, Any&gt;, sub: Sub? )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityPayload: EntityPayload, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>TooManyFunctions:IAMListener.kt$IAMListener</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
+    <ID>TooManyFunctions:IAMListener.kt$IAMListener</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UnusedPrivateMember:EnabledAuthorizationServiceTest.kt$EnabledAuthorizationServiceTest$@MockkBean private lateinit var entityAccessRightsService: EntityAccessRightsService</ID>
     <ID>UnusedPrivateMember:TemporalEntityAttributeServiceTests.kt$TemporalEntityAttributeServiceTests$@Autowired private lateinit var entityPayloadService: EntityPayloadService</ID>

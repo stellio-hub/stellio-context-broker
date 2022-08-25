@@ -315,7 +315,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 2,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
@@ -342,7 +343,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     offset = 0,
                     limit = 1,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
-                    types = setOf(BEEHIVE_TYPE)
+                    types = setOf(BEEHIVE_TYPE),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
@@ -374,7 +376,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 1,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
@@ -399,7 +402,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    idPattern = ".*urn:ngsi-ld:BeeHive:TESTD.*"
+                    idPattern = ".*urn:ngsi-ld:BeeHive:TESTD.*",
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
@@ -427,14 +431,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) {
                 """
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                        (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                     )
                 """.trimIndent()
             }
@@ -464,14 +469,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) {
                 """
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                        (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
                     )
                 """.trimIndent()
             }
@@ -508,14 +514,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                         limit = 30,
                         ids = setOf(beehiveTestDId, beehiveTestCId),
                         types = setOf(BEEHIVE_TYPE),
-                        attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                        attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                        context = APIC_COMPOUND_CONTEXT
                     )
                 ) {
                     """
                         (
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                            (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                         )
                     """.trimIndent()
                 }
@@ -541,7 +548,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 limit = 30,
                 ids = setOf(beehiveTestDId, beehiveTestCId),
                 types = setOf(BEEHIVE_TYPE),
-                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                context = APIC_COMPOUND_CONTEXT
             )
         ) { null }.shouldSucceedWith { assertEquals(1, it) }
     }
@@ -559,9 +567,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 offset = 0,
                 limit = 30,
                 ids = setOf(beehiveTestDId, beehiveTestCId),
-                types = setOf(BEEHIVE_TYPE)
+                types = setOf(BEEHIVE_TYPE),
+                context = APIC_COMPOUND_CONTEXT
             )
-        ) { "temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
+        ) { "tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
             .shouldSucceedWith { assertEquals(0, it) }
 
         temporalEntityAttributeService.getCountForEntities(
@@ -569,9 +578,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 offset = 0,
                 limit = 30,
                 ids = setOf(beehiveTestDId, beehiveTestCId),
-                types = setOf(BEEHIVE_TYPE)
+                types = setOf(BEEHIVE_TYPE),
+                context = APIC_COMPOUND_CONTEXT
             )
-        ) { "temporal_entity_attribute.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+        ) { "tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
             .shouldSucceedWith { assertEquals(1, it) }
     }
 
@@ -592,7 +602,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 2,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
@@ -623,7 +634,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                         limit = 2,
                         ids = setOf(beehiveTestDId, beehiveTestCId),
                         types = setOf(BEEHIVE_TYPE),
-                        attrs = setOf("unknownAttribute")
+                        attrs = setOf("unknownAttribute"),
+                        context = APIC_COMPOUND_CONTEXT
                     )
                 ) { null }
 

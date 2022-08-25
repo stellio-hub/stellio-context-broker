@@ -11,7 +11,9 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.net.URI
-import java.util.Date
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZonedDateTime
 
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {
@@ -85,7 +87,9 @@ private fun guessPropertyValueType(
         is List<*> -> Pair(AttributeValueType.ARRAY, Triple(serializeObject(value), null, null))
         is String -> Pair(AttributeValueType.STRING, Triple(value, null, null))
         is Boolean -> Pair(AttributeValueType.BOOLEAN, Triple(value.toString(), null, null))
-        is Date -> Pair(AttributeValueType.DATE, Triple(value.toString(), null, null))
+        is LocalDate -> Pair(AttributeValueType.DATE, Triple(value.toString(), null, null))
+        is ZonedDateTime -> Pair(AttributeValueType.DATETIME, Triple(value.toString(), null, null))
+        is LocalTime -> Pair(AttributeValueType.TIME, Triple(value.toString(), null, null))
         is URI -> Pair(AttributeValueType.URI, Triple(value.toString(), null, null))
         else -> Pair(AttributeValueType.STRING, Triple(value.toString(), null, null))
     }

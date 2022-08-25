@@ -50,7 +50,7 @@ class EnabledAuthorizationServiceTest {
             ( 
                 (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                 OR
-                (temporal_entity_attribute.entity_id IN (
+                (tea1.entity_id IN (
                     SELECT entity_id
                     FROM entity_access_rights
                     WHERE subject_id IN ('$subjectUuid','$groupUuid')

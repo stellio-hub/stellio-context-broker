@@ -55,7 +55,6 @@ class TemporalEntityOperationsHandler(
             val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
             val (temporalEntities, total) = queryService.queryTemporalEntities(
                 temporalEntitiesQuery,
-                contextLink,
                 accessRightFilter
             ).bind()
 

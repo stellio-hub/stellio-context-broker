@@ -73,13 +73,18 @@ class TemporalEntityOperationsHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 1, offset = 0),
+                queryParams = QueryParams(
+                    types = setOf("BeeHive", "Apiary"),
+                    limit = 1,
+                    offset = 0,
+                    context = APIC_COMPOUND_CONTEXT
+                ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -113,7 +118,6 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
-                eq(APIC_COMPOUND_CONTEXT),
                 any()
             )
         }
@@ -134,14 +138,15 @@ class TemporalEntityOperationsHandlerTests {
                     types = setOf("BeeHive", "Apiary"),
                     limit = 0,
                     offset = 1,
-                    count = true
+                    count = true,
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
             )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -176,7 +181,6 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
                 },
-                eq(APIC_COMPOUND_CONTEXT),
                 any()
             )
         }

@@ -11,6 +11,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.util.LinkedMultiValueMap
+import java.net.URI
 import java.util.Optional
 
 @ActiveProfiles("test")
@@ -138,5 +140,74 @@ class ApiUtilsTests {
             "Request payload must contain @context term for a request having an application/ld+json content type",
             exception.message
         )
+    }
+
+    @Test
+    fun `it should parse query parameters`() {
+        val requestParams = gimmeFullParamsMap()
+        val queryParams = parseAndCheckParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT)
+
+        assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE), queryParams.types)
+        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), queryParams.attrs)
+        assertEquals(
+            setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
+            queryParams.ids
+        )
+        assertEquals(".*BeeHive.*", queryParams.idPattern)
+        assertEquals("brandName!=Mercedes", queryParams.q)
+        assertEquals(true, queryParams.count)
+        assertEquals(1, queryParams.offset)
+        assertEquals(10, queryParams.limit)
+        assertEquals(true, queryParams.useSimplifiedRepresentation)
+        assertEquals(false, queryParams.includeSysAttrs)
+    }
+
+    @Test
+    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() {
+        val requestParams = LinkedMultiValueMap<String, String>()
+        requestParams.add("options", "sysAttrs")
+        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+
+        assertEquals(true, queryParams.includeSysAttrs)
+    }
+
+    @Test
+    fun `it should decode q in query parameters`() {
+        val requestParams = LinkedMultiValueMap<String, String>()
+        requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
+        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+
+        assertEquals("speed>50;foodName==dietary fibres", queryParams.q)
+    }
+
+    @Test
+    fun `it should set default values in query parameters`() {
+        val requestParams = LinkedMultiValueMap<String, String>()
+        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+
+        assertEquals(emptySet<String>(), queryParams.types)
+        assertEquals(emptySet<String>(), queryParams.attrs)
+        assertEquals(emptySet<URI>(), queryParams.ids)
+        assertEquals(null, queryParams.idPattern)
+        assertEquals(null, queryParams.q)
+        assertEquals(false, queryParams.count)
+        assertEquals(0, queryParams.offset)
+        assertEquals(30, queryParams.limit)
+        assertEquals(false, queryParams.useSimplifiedRepresentation)
+        assertEquals(false, queryParams.includeSysAttrs)
+    }
+
+    private fun gimmeFullParamsMap(): LinkedMultiValueMap<String, String> {
+        val requestParams = LinkedMultiValueMap<String, String>()
+        requestParams.add("type", "BeeHive,Apiary")
+        requestParams.add("attrs", "incoming,outgoing")
+        requestParams.add("id", "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTB")
+        requestParams.add("idPattern", ".*BeeHive.*")
+        requestParams.add("q", "brandName!=Mercedes")
+        requestParams.add("count", "true")
+        requestParams.add("offset", "1")
+        requestParams.add("limit", "10")
+        requestParams.add("options", "keyValues")
+        return requestParams
     }
 }

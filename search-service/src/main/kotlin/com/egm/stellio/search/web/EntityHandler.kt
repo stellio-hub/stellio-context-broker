@@ -78,65 +78,68 @@ class EntityHandler(
         )
     }
 
-//    /**
-//     * Implements 6.4.3.2 - Query Entities
-//     */
-//    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-//    suspend fun getEntities(
-//        @RequestHeader httpHeaders: HttpHeaders,
-//        @RequestParam params: MultiValueMap<String, String>
-//    ): ResponseEntity<*> {
-//        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-//        val mediaType = getApplicableMediaType(httpHeaders)
-//        val sub = getSubFromSecurityContext()
-//
-//        val queryParams = parseAndCheckParams(
-//            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-//            params,
-//            contextLink
-//        )
-//
-//        if (
-//            queryParams.ids.isEmpty() &&
-//            queryParams.q.isNullOrEmpty() &&
-//            queryParams.types.isEmpty() &&
-//            queryParams.attrs.isEmpty()
-//        )
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-//                .body(
-//                    BadRequestDataResponse(
-//                        "one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
-//                    )
-//                )
-//
-//        val countAndEntities = entityService.searchEntities(queryParams, sub, contextLink)
-//
-//        val filteredEntities =
-//            countAndEntities.second.filter { it.containsAnyOf(queryParams.attrs) }
-//                .map {
-//                    JsonLdEntity(
-//                        JsonLdUtils.filterJsonLdEntityOnAttributes(it, queryParams.attrs),
-//                        it.contexts
-//                    )
-//                }
-//
-//        val compactedEntities = JsonLdUtils.compactEntities(
-//            filteredEntities,
-//            queryParams.useSimplifiedRepresentation,
-//            contextLink,
-//            mediaType
-//        )
-//
-//        return buildQueryResponse(
-//            compactedEntities,
-//            countAndEntities.first,
-//            "/ngsi-ld/v1/entities",
-//            queryParams,
-//            params,
-//            mediaType,
-//            contextLink
-//        )
-//    }
+    /**
+     * Implements 6.4.3.2 - Query Entities
+     */
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val sub = getSubFromSecurityContext()
+
+        return either<APIException, ResponseEntity<*>> {
+            val queryParams = parseAndCheckParams(
+                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+                params,
+                contextLink
+            )
+
+            if (
+                queryParams.ids.isEmpty() &&
+                queryParams.q.isNullOrEmpty() &&
+                queryParams.types.isEmpty() &&
+                queryParams.attrs.isEmpty()
+            )
+                BadRequestDataException(
+                    "one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
+                ).left().bind<ResponseEntity<*>>()
+
+            val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+            val countAndEntities = queryService.queryEntities(queryParams, accessRightFilter).bind()
+
+            val filteredEntities =
+                countAndEntities.first.filter { it.containsAnyOf(queryParams.attrs) }
+                    .map {
+                        JsonLdEntity(
+                            JsonLdUtils.filterJsonLdEntityOnAttributes(it, queryParams.attrs),
+                            it.contexts
+                        )
+                    }
+
+            val compactedEntities = JsonLdUtils.compactEntities(
+                filteredEntities,
+                queryParams.useSimplifiedRepresentation,
+                contextLink,
+                mediaType
+            )
+
+            buildQueryResponse(
+                compactedEntities,
+                countAndEntities.second,
+                "/ngsi-ld/v1/entities",
+                queryParams,
+                params,
+                mediaType,
+                contextLink
+            )
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
 
     /**
      * Implements 6.5.3.1 - Retrieve Entity

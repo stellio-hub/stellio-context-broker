@@ -726,7 +726,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
@@ -749,7 +749,6 @@ class TemporalEntityHandlerTests {
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },
-                eq(APIC_COMPOUND_CONTEXT),
                 any()
             )
         }
@@ -765,7 +764,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
@@ -793,7 +792,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
@@ -832,7 +831,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
@@ -855,7 +854,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
             .uri(
@@ -871,7 +870,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         webClient.get()
             .uri(
@@ -894,7 +893,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
 
         webClient.get()
@@ -923,7 +922,7 @@ class TemporalEntityHandlerTests {
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3))
 
         webClient.get()
@@ -950,7 +949,7 @@ class TemporalEntityHandlerTests {
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -978,7 +977,7 @@ class TemporalEntityHandlerTests {
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -1006,7 +1005,7 @@ class TemporalEntityHandlerTests {
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any(), any())
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )

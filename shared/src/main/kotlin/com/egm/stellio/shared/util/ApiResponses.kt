@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -28,6 +30,8 @@ const val ENTITY_ADMIN_FORBIDDEN_MESSAGE = "User forbidden to admin entity"
 const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
 
+private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiResponses")
+
 /**
  * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
  * but main code there should move here when we no longer raise business exceptions
@@ -51,10 +55,12 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseEntity<*> =
-    ResponseEntity.status(status)
+private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
+    logger.error("Returning error ${exception.type} (${exception.detail})")
+    return ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
-        .body(JsonUtils.serializeObject(exception))
+        .body(serializeObject(exception))
+}
 
 fun buildQueryResponse(
     entities: List<CompactedJsonLdEntity>,
@@ -66,7 +72,7 @@ fun buildQueryResponse(
     contextLink: String
 ): ResponseEntity<String> =
     buildQueryResponse(
-        JsonUtils.serializeObject(entities),
+        serializeObject(entities),
         count,
         resourceUrl,
         queryParams,

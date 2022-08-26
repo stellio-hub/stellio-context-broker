@@ -68,7 +68,7 @@ interface SearchRepository {
             } else if (georelParams.second.equals(">=")) {
                 if (distance >= georelParams.third!!.toDouble()) geoResult.add(it)
             } else {
-                if (distance != georelParams.third!!.toDouble()) geoResult.add(it)
+                if (distance == georelParams.third!!.toDouble()) geoResult.add(it)
             }
         }
         return Pair(

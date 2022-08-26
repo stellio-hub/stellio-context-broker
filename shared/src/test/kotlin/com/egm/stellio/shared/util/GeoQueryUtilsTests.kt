@@ -107,7 +107,7 @@ class GeoQueryUtilsTests {
 
         val geoQueryWithoutCoordinates = GeoQuery(
             georel = "distant",
-            geometry = "POINT (1.1 5.4)"
+            geometry = "Point (1.1 5.4)"
         )
 
         Assertions.assertFalse(verifGeoQuery(geoQueryWithoutCoordinates))

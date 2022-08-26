@@ -72,7 +72,7 @@ object QueryUtils {
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                
+                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}                
             """.trimIndent()
 
         return if (verifGeoQuery(geoQuery)) {

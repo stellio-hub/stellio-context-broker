@@ -4,9 +4,6 @@ import arrow.core.Option
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.GeoQueryUtils.MULTIPLY_DISTANCE
-import org.locationtech.jts.io.WKTReader
-import org.locationtech.jts.operation.distance.DistanceOp.distance
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
@@ -39,30 +36,6 @@ class Neo4jSearchRepository(
             .fetch()
             .all()
 
-        if (verifGeoQuery(queryParams.geoQuery)) {
-            val geoResult: ArrayList<Map<String, Any>> = ArrayList()
-            val geo1 = WKTReader().read(
-                geoJsonToWkt(
-                    queryParams.geoQuery.geometry!!,
-                    queryParams.geoQuery.coordinates.toString()
-                )
-            )
-            val georelParams = extractGeorelParams(queryParams.geoQuery.georel!!)
-
-            result.forEach {
-                val geo2 = WKTReader().read(it["entityLocation"] as String)
-                val distance = distance(geo1, geo2) * MULTIPLY_DISTANCE
-                if (georelParams.second.equals("<=")) {
-                    if (distance <= georelParams.third!!.toDouble()) geoResult.add(it)
-                } else if (georelParams.second.equals(">=")) {
-                    if (distance >= georelParams.third!!.toDouble()) geoResult.add(it)
-                } else if (georelParams.second.equals("==")) {
-                    if (distance(geo1, geo2) != georelParams.third!!.toDouble()) geoResult.add(it)
-                }
-            }
-            return return prepareResults(queryParams.limit, geoResult)
-        } else {
-            return prepareResults(queryParams.limit, result)
-        }
+        return prepareResults(queryParams.limit, result, queryParams)
     }
 }

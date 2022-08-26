@@ -74,7 +74,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (-72.1260 42.45)"
+            "POINT (1.1 5.4)"
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
@@ -91,7 +91,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (-72.123 42.1546)"
+            "POINT (24.30623 179.07966)"
         )
 
         val entities = searchRepository.getEntities(
@@ -100,12 +100,13 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "name==\"Scalpa\"",
                 offset = offset,
                 limit = limit,
-                geoQuery = GeoQuery("near;maxDistance==1500", "Point", "[-72.123, 42.3521]", NGSILD_LOCATION_PROPERTY)
+                geoQuery = GeoQuery("near;maxDistance==1500", "Point", "[2.3, 4.5]", NGSILD_LOCATION_PROPERTY)
             ),
             sub,
             DEFAULT_CONTEXTS
         ).second
 
+        assertTrue(entities.size == 1)
         assertTrue(entities.contains(firstEntity.id))
     }
 

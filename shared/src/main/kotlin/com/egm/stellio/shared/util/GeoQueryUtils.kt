@@ -49,7 +49,7 @@ fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
 }
 
 fun verifGeoQuery(geoQuery: GeoQuery): Boolean {
-    return geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
+    return geoQuery.geoproperty == JsonLdUtils.NGSILD_LOCATION_PROPERTY &&
         geoQuery.georel != null &&
         geoQuery.geometry == "Point" &&
         geoQuery.coordinates != null

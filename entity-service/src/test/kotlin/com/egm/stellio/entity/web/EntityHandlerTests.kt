@@ -11,6 +11,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -96,6 +97,8 @@ class EntityHandlerTests {
             "master/aquac/jsonld-contexts/aquac.jsonld",
         "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
     )
+    private val offset = 0
+    private val limit = 30
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
@@ -460,7 +463,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>()) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             1,
             listOf(
                 JsonLdEntity(
@@ -508,7 +511,6 @@ class EntityHandlerTests {
                     limit = 30
                 ),
                 any(),
-                any(),
                 any<String>()
             )
         } returns Pair(
@@ -554,7 +556,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 200 with prev and next link header if exists`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>()) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             3,
             listOf(
                 JsonLdEntity(
@@ -593,7 +595,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 200 with geo query`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>()) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             1,
             listOf(
                 JsonLdEntity(
@@ -634,6 +636,7 @@ class EntityHandlerTests {
                     ]
                 """.trimMargin()
             )
+
         val geoQuery = GeoQuery(
             "near;maxDistance==1500",
             "Point",
@@ -641,8 +644,15 @@ class EntityHandlerTests {
             "$NGSILD_LOCATION_PROPERTY"
         )
 
+        val queryParams = QueryParams(
+            types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+            offset = offset,
+            limit = limit,
+            geoQuery = geoQuery
+        )
+
         verify {
-            entityService.searchEntities(any(), any(), geoQuery, any<String>())
+            entityService.searchEntities(queryParams, any(), any<String>())
         }
     }
 
@@ -650,7 +660,7 @@ class EntityHandlerTests {
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
         every { entityService.exists(any()) } returns true
         every {
-            entityService.searchEntities(any(), any(), any(), any<String>())
+            entityService.searchEntities(any(), any(), any<String>())
         } returns Pair(0, emptyList())
 
         webClient.get()
@@ -705,7 +715,6 @@ class EntityHandlerTests {
                     limit = 30
                 ),
                 any(),
-                any(),
                 any<String>()
             )
         } returns Pair(
@@ -741,7 +750,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>()) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             3,
             emptyList()
         )
@@ -774,7 +783,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>()) } returns Pair(
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
             0,
             emptyList()
         )

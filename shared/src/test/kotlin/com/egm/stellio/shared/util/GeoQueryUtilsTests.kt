@@ -1,7 +1,6 @@
-package com.egm.stellio.entity.util
+package com.egm.stellio.shared.util
 
-import com.egm.stellio.entity.model.GeoQuery
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -26,7 +25,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `extract georel params`() {
+    fun `it should correctly extract georel of a geo query`() {
         val requestParams = gimmeFullParamsMap()
         val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }

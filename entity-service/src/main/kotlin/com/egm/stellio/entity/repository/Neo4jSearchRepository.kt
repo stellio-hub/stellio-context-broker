@@ -2,13 +2,9 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
-import com.egm.stellio.entity.model.GeoQuery
-import com.egm.stellio.entity.util.MULTIPLY_DISTANCE
-import com.egm.stellio.entity.util.extractGeorelParams
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.geoJsonToWkt
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.GeoQueryUtils.MULTIPLY_DISTANCE
 import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.operation.distance.DistanceOp.distance
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -26,7 +22,6 @@ class Neo4jSearchRepository(
     override fun getEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        geoQuery: GeoQuery,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
         val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
@@ -34,9 +29,9 @@ class Neo4jSearchRepository(
             .map { it.toString() }
 
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
-            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, geoQuery, contexts)
+            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, queryParams.geoQuery, contexts)
         else
-            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, geoQuery, contexts)
+            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, queryParams.geoQuery, contexts)
 
         val result = neo4jClient
             .query(query)
@@ -44,14 +39,15 @@ class Neo4jSearchRepository(
             .fetch()
             .all()
 
-        if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
-            geoQuery.georel != null &&
-            geoQuery.geometry == "Point" &&
-            geoQuery.coordinates != null
-        ) {
+        if (verifGeoQuery(queryParams.geoQuery)) {
             val geoResult: ArrayList<Map<String, Any>> = ArrayList()
-            val geo1 = WKTReader().read(geoJsonToWkt(geoQuery.geometry, geoQuery.coordinates.toString()))
-            val georelParams = extractGeorelParams(geoQuery.georel)
+            val geo1 = WKTReader().read(
+                geoJsonToWkt(
+                    queryParams.geoQuery.geometry!!,
+                    queryParams.geoQuery.coordinates.toString()
+                )
+            )
+            val georelParams = extractGeorelParams(queryParams.geoQuery.georel!!)
 
             result.forEach {
                 val geo2 = WKTReader().read(it["entityLocation"] as String)

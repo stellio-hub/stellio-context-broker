@@ -3,8 +3,6 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>ComplexCondition:EntityHandler.kt$EntityHandler$queryParams.ids.isNullOrEmpty() &amp;&amp; queryParams.q.isNullOrEmpty() &amp;&amp; queryParams.types.isNullOrEmpty() &amp;&amp; queryParams.attrs.isNullOrEmpty()</ID>
-    <ID>ComplexCondition:Neo4jSearchRepository.kt$Neo4jSearchRepository$geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &amp;&amp; geoQuery.georel != null &amp;&amp; geoQuery.geometry == "Point" &amp;&amp; geoQuery.coordinates != null</ID>
-    <ID>ComplexCondition:QueryUtils.kt$QueryUtils$geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &amp;&amp; geoQuery.georel != null &amp;&amp; geoQuery.geometry == "Point" &amp;&amp; geoQuery.coordinates != null</ID>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LongMethod:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$@Test fun `get authorized entities should return entities I have a right on`()</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$@Async fun publishAttributeChangeEvents( sub: String?, entityId: URI, jsonLdAttributes: Map&lt;String, Any&gt;, updateResult: UpdateResult, overwrite: Boolean, contexts: List&lt;String&gt; )</ID>
@@ -19,7 +17,7 @@
     <ID>LongParameterList:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$( id: URI, types: List&lt;String&gt;, properties: MutableList&lt;Property&gt; = mutableListOf(), location: String? = null, operationSpace: String? = null, observationSpace: String? = null )</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
-    <ID>NestedBlockDepth:Neo4jSearchRepository.kt$Neo4jSearchRepository$override fun getEntities( queryParams: QueryParams, sub: Option&lt;Sub&gt;, geoQuery: GeoQuery, contexts: List&lt;String&gt; ): Pair&lt;Int, List&lt;URI&gt;&gt;</ID>
+    <ID>NestedBlockDepth:Neo4jSearchRepository.kt$Neo4jSearchRepository$override fun getEntities( queryParams: QueryParams, sub: Option&lt;Sub&gt;, contexts: List&lt;String&gt; ): Pair&lt;Int, List&lt;URI&gt;&gt;</ID>
     <ID>TooManyFunctions:AuthorizationService.kt$AuthorizationService</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService</ID>
     <ID>TooManyFunctions:Neo4jAuthorizationService.kt$Neo4jAuthorizationService : AuthorizationService</ID>

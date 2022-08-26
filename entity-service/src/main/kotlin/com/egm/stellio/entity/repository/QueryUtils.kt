@@ -1,17 +1,17 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.model.GeoQuery
 import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.qPattern
+import com.egm.stellio.shared.util.verifGeoQuery
 import java.net.URI
 import java.util.regex.Pattern
 
@@ -60,11 +60,7 @@ object QueryUtils {
             """
             RETURN count(entity.id) as count
             """.trimIndent()
-        else if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
-            geoQuery.georel != null &&
-            geoQuery.geometry == "Point" &&
-            geoQuery.coordinates != null
-        ) {
+        else if (verifGeoQuery(geoQuery)) {
             """
                 RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
                 ORDER BY id
@@ -79,11 +75,7 @@ object QueryUtils {
                 
             """.trimIndent()
 
-        return if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
-            geoQuery.georel != null &&
-            geoQuery.geometry == "Point" &&
-            geoQuery.coordinates != null
-        ) {
+        return if (verifGeoQuery(geoQuery)) {
             """
                 $matchAuthorizedEntitiesClause
                 AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
@@ -119,11 +111,7 @@ object QueryUtils {
             """
             RETURN count(entity) as count
             """.trimIndent()
-        else if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
-            geoQuery.georel != null &&
-            geoQuery.geometry == "Point" &&
-            geoQuery.coordinates != null
-        ) {
+        else if (verifGeoQuery(geoQuery)) {
             """
             RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
             ORDER BY id
@@ -138,11 +126,7 @@ object QueryUtils {
             SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
-        return if (geoQuery.geoproperty.equals(JsonLdUtils.NGSILD_LOCATION_PROPERTY) &&
-            geoQuery.georel != null &&
-            geoQuery.geometry == "Point" &&
-            geoQuery.coordinates != null
-        ) {
+        return if (verifGeoQuery(geoQuery)) {
             """
                     $matchEntityClause
                     $finalFilterClause

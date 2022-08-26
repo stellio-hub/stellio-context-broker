@@ -3,9 +3,7 @@ package com.egm.stellio.subscription.utils
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.util.GeoQueryUtils.DISTANCE_QUERY_CLAUSE
-import com.egm.stellio.shared.util.GeoQueryUtils.MAX_DISTANCE_QUERY_CLAUSE
-import com.egm.stellio.shared.util.GeoQueryUtils.MIN_DISTANCE_QUERY_CLAUSE
-import com.egm.stellio.shared.util.GeoQueryUtils.NEAR_QUERY_CLAUSE
+import com.egm.stellio.shared.util.extractGeorelParams
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.JsonNode
@@ -84,19 +82,6 @@ object QueryUtils {
             SELECT ST_${georelParams.first}('${geoQuery.pgisGeometry}', ST_GeomFromText('$targetWKTCoordinates')) 
                 as match
             """.trimIndent()
-    }
-
-    fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
-        if (georel.contains(NEAR_QUERY_CLAUSE)) {
-            val comparisonParams = georel.split(";")[1].split("==")
-            return when (comparisonParams[0]) {
-                MAX_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, "<=", comparisonParams[1])
-                MIN_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, ">=", comparisonParams[1])
-                // defaulting to an equality, maybe we should raise a 400 at creation time?
-                else -> Triple(DISTANCE_QUERY_CLAUSE, "==", comparisonParams[1])
-            }
-        }
-        return Triple(georel, null, null)
     }
 
     fun getAttributeType(attribute: String, entity: ObjectNode, separator: String): JsonNode? {

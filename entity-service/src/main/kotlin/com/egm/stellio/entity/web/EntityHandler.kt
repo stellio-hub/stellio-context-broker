@@ -8,7 +8,6 @@ import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.entity.util.parseAndCheckGeoQuery
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -96,8 +95,6 @@ class EntityHandler(
             contextLink
         )
 
-        val geoQuery = parseAndCheckGeoQuery(params, contextLink)
-
         if (
             queryParams.ids.isNullOrEmpty() &&
             queryParams.q.isNullOrEmpty() &&
@@ -111,7 +108,7 @@ class EntityHandler(
                     )
                 )
 
-        val countAndEntities = entityService.searchEntities(queryParams, sub, geoQuery, contextLink)
+        val countAndEntities = entityService.searchEntities(queryParams, sub, contextLink)
 
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(queryParams.attrs) }

@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.repository
 
 import arrow.core.Option
-import com.egm.stellio.entity.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
@@ -26,7 +25,6 @@ interface SearchRepository {
     fun getEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
-        geoQuery: GeoQuery,
         contexts: List<String>
     ): Pair<Int, List<URI>>
 

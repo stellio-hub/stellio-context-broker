@@ -3,7 +3,6 @@ package com.egm.stellio.entity.web
 import arrow.core.*
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.ApplicationProperties
-import com.egm.stellio.entity.model.GeoQuery
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
@@ -348,14 +347,12 @@ class EntityAccessControlHandler(
                 val total = entityService.searchEntities(
                     QueryParams(types = setOf(it), offset = 0, limit = 0),
                     sub,
-                    GeoQuery(),
                     NGSILD_AUTHORIZATION_CONTEXT
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
                 entityService.searchEntities(
                     QueryParams(types = setOf(it), offset = 0, limit = total),
                     sub,
-                    GeoQuery(),
                     NGSILD_AUTHORIZATION_CONTEXT
                 )
             }
@@ -458,14 +455,12 @@ class EntityAccessControlHandler(
         val total = entityService.searchEntities(
             QueryParams(attrs = setOf(AUTH_PROP_SAP), offset = 0, limit = 0),
             sub,
-            GeoQuery(),
             NGSILD_AUTHORIZATION_CONTEXT
         ).first
         logger.debug("Counted a total of $total entities for attribute $AUTH_PROP_SAP")
         entityService.searchEntities(
             QueryParams(attrs = setOf(AUTH_PROP_SAP), offset = 0, limit = total),
             sub,
-            GeoQuery(),
             NGSILD_AUTHORIZATION_CONTEXT
         ).second
             .forEach { jsonLdEntity ->

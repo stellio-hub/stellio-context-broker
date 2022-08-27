@@ -33,17 +33,6 @@ pipeline {
                 sh './gradlew build -p api-gateway'
             }
         }
-        stage('Build Entity Service') {
-            when {
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew build -p entity-service'
-            }
-        }
         stage('Build Search Service') {
             when {
                 anyOf {
@@ -84,30 +73,6 @@ pipeline {
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-            }
-        }
-        stage('Dockerize Dev Entity Service') {
-            when {
-                branch 'develop'
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
-            }
-        }
-        stage('Dockerize Entity Service') {
-            when {
-                branch 'master'
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
             }
         }
         stage('Dockerize Dev Subscription Service') {
@@ -166,7 +131,6 @@ pipeline {
                         for (int i = 0; i < currentTags.size(); ++i) {
                             env.CURRENT_TAG = currentTags[i]
                             sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-                            sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
                             sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
                             sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
                         }

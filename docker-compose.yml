@@ -21,28 +21,6 @@ services:
     volumes:
       - ./config/kafka/update_run.sh:/tmp/update_run.sh
     command: "bash -c 'if [ ! -f /tmp/update_run.sh ]; then echo \"ERROR: Did you forget the update_run.sh file that came with this docker-compose.yml file?\" && exit 1 ; else /tmp/update_run.sh && /etc/confluent/docker/run ; fi'"
-  neo4j:
-    image: neo4j:4.4
-    container_name: stellio-neo4j
-    volumes:
-      - stellio-neo4j-storage:/data
-    environment:
-      - NEO4J_dbms_allow__upgrade=${NEO4J_ALLOW_UPGRADE}
-      - NEO4J_dbms_default__database=${NEO4J_DEFAULT_DATABASE}
-      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
-      - "NEO4J_dbms_security_procedures_unrestricted=apoc.*"
-      - "NEO4J_dbms_security_procedures_allowlist=apoc.*"
-      - NEO4JLABS_PLUGINS=["apoc"]
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    # following https://github.com/neo4j/neo4j/issues/7203#issuecomment-898511474
-    healthcheck:
-      test: wget -qO- http://localhost:7474 || exit 1
-      interval: 1s
-      timeout: 10s
-      retries: 20
-      start_period: 3s
   postgres:
     image: stellio/stellio-timescale-postgis:2.3.0-pg13
     container_name: stellio-postgres
@@ -68,21 +46,6 @@ services:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
     ports:
       - "8080:8080"
-  entity-service:
-    container_name: stellio-entity-service
-    image: stellio/stellio-entity-service:${STELLIO_DOCKER_TAG}
-    environment:
-      - SPRING_DATA_NEO4J_PASSWORD=${NEO4J_PASSWORD}
-      - ORG_NEO4J_DRIVER_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD}
-      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-    ports:
-      - "8082:8082"
-    depends_on:
-      neo4j:
-        condition: service_healthy
-      kafka:
-        condition: service_started
   search-service:
     container_name: stellio-search-service
     image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}

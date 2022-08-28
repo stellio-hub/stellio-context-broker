@@ -22,19 +22,22 @@ services:
       - ./config/kafka/update_run.sh:/tmp/update_run.sh
     command: "bash -c 'if [ ! -f /tmp/update_run.sh ]; then echo \"ERROR: Did you forget the update_run.sh file that came with this docker-compose.yml file?\" && exit 1 ; else /tmp/update_run.sh && /etc/confluent/docker/run ; fi'"
   postgres:
-    image: stellio/stellio-timescale-postgis:2.3.0-pg13
+    image: stellio/postgis:14-3.3-timescale
     container_name: stellio-postgres
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - "POSTGRES_MULTIPLE_DATABASES=${STELLIO_SEARCH_DB_DATABASE},${STELLIO_SEARCH_DB_USER},${STELLIO_SEARCH_DB_PASSWORD}: ${STELLIO_SUBSCRIPTION_DB_DATABASE},${STELLIO_SUBSCRIPTION_DB_USER},${STELLIO_SUBSCRIPTION_DB_PASSWORD}"
-      # not sure it is really necessary but it does not break anything ...
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - DATADIR=/var/lib/postgresql/data
+      - POSTGRES_TEMPLATE_EXTENSIONS=true
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASS=${POSTGRES_PASS}
+      - POSTGRES_DBNAME=${POSTGRES_DBNAME}
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting,timescaledb,pgcrypto
+      - ACCEPT_TIMESCALE_TUNING=TRUE
     ports:
       - "5432:5432"
     volumes:
       - stellio-postgres-storage:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U stellio"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -53,8 +56,8 @@ services:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
       - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
       - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
-      - SPRING_R2DBC_USERNAME=${STELLIO_SEARCH_DB_USER}
-      - SPRING_R2DBC_PASSWORD=${STELLIO_SEARCH_DB_PASSWORD}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
       - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
     ports:
       - "8083:8083"
@@ -70,8 +73,8 @@ services:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
       - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
       - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
-      - SPRING_R2DBC_USERNAME=${STELLIO_SUBSCRIPTION_DB_USER}
-      - SPRING_R2DBC_PASSWORD=${STELLIO_SUBSCRIPTION_DB_PASSWORD}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
       - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
       - APPLICATION_ENTITY_SERVICE-URL=${APPLICATION_ENTITY_SERVICE_URL}
     ports:

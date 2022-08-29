@@ -61,16 +61,6 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should correctly extract georel of a geo query with egal distance`() {
-        val requestParams = gimmeFullParamsMap(georel = "near;egalDistance==1500")
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
-        val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, "=", "1500")
-
-        Assertions.assertEquals(georel, georelParams)
-    }
-
-    @Test
     fun `it should not extract near param of georel if it is not present`() {
         val requestParams = gimmeFullParamsMap(georel = "distant")
         val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)

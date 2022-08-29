@@ -233,8 +233,8 @@ object QueryUtils {
                 $prefix entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
                 AND point.distance(
                      point({
-                        latitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][1]), 
-                        longitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][2]),
+                        latitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][2]), 
+                        longitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][1]),
                         crs: 'wgs-84'
                      }),
                      point({

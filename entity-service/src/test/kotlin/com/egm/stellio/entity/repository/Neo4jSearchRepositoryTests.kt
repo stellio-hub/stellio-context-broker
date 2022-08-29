@@ -207,60 +207,6 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return matching entities with geo query and egalDistance`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val firstEntity = createEntity(
-            beekeeperUri,
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (56.7 12.78)"
-        )
-        val secondEntity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1231".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
-        )
-        val thirdEntity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1232".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
-        )
-
-        val fourthEntity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1233".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (56.6 12.78)"
-        )
-
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, fourthEntity.id)
-
-        val entities = searchRepository.getEntities(
-            QueryParams(
-                types = setOf("Beekeeper"),
-                q = "name==\"Scalpa\"",
-                offset = offset,
-                limit = limit,
-                geoQuery = GeoQuery(
-                    "near;equalDistance==1269.894960563667",
-                    "Point",
-                    "[56.71, 12.79]",
-                    NGSILD_LOCATION_PROPERTY
-                )
-            ),
-            sub,
-            DEFAULT_CONTEXTS
-        ).second
-
-        assertTrue(entities.size == 1)
-        assertTrue(entities.containsAll(listOf(firstEntity.id)))
-    }
-
-    @Test
     fun `it should return matching entities that user can access by it's group`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE), mutableListOf())

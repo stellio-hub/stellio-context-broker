@@ -9,6 +9,10 @@ const val APIC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/apic/json
 
 val APIC_HEADER_LINK = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
+const val SENSOR_COMPACT_TYPE = "Sensor"
+const val SENSOR_TYPE = "https://ontology.eglobalmark.com/egm#$SENSOR_COMPACT_TYPE"
+const val DEVICE_COMPACT_TYPE = "Device"
+const val DEVICE_TYPE = "https://ontology.eglobalmark.com/egm#$DEVICE_COMPACT_TYPE"
 const val BEEHIVE_COMPACT_TYPE = "BeeHive"
 const val BEEHIVE_TYPE = "https://ontology.eglobalmark.com/apic#$BEEHIVE_COMPACT_TYPE"
 const val APIARY_COMPACT_TYPE = "Apiary"

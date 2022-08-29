@@ -3,7 +3,7 @@ package com.egm.stellio.entity.repository
 import arrow.core.Option
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
@@ -36,6 +36,6 @@ class Neo4jSearchRepository(
             .fetch()
             .all()
 
-        return prepareResults(queryParams.limit, result, queryParams)
+        return prepareResults(queryParams.limit, result)
     }
 }

@@ -11,8 +11,8 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.extractGeorelParams
+import com.egm.stellio.shared.util.isSupportedGeoQuery
 import com.egm.stellio.shared.util.qPattern
-import com.egm.stellio.shared.util.verifGeoQuery
 import java.net.URI
 import java.util.regex.Pattern
 
@@ -34,10 +34,10 @@ object QueryUtils {
             .takeIf { it.trim() != "AND" } ?: ""
 
         val finalFilter =
-            if (verifGeoQuery(queryParams.geoQuery)) {
+            if (isSupportedGeoQuery(queryParams.geoQuery)) {
                 """
                 $finalFilterClause 
-                ${buildFitlerWithGeoQuery(queryParams.geoQuery)}                
+                ${buildGeoQueryFilter(queryParams.geoQuery)}                
                 """.trimIndent()
             } else finalFilterClause
 
@@ -74,12 +74,12 @@ object QueryUtils {
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}                
+                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         return """
-                $matchAuthorizedEntitiesClause
-                $pagingClause
+            $matchAuthorizedEntitiesClause
+            $pagingClause
         """.trimIndent()
     }
 
@@ -101,15 +101,15 @@ object QueryUtils {
             .takeIf { it.trim() != "WHERE" } ?: ""
 
         val finalFilter =
-            if (verifGeoQuery(queryParams.geoQuery)) {
+            if (isSupportedGeoQuery(queryParams.geoQuery)) {
                 if (finalFilterClause.contains("WHERE")) {
                     """
                     $finalFilterClause
-                    ${buildFitlerWithGeoQuery(queryParams.geoQuery)}
+                    ${buildGeoQueryFilter(queryParams.geoQuery)}
                     """.trimIndent()
                 } else """
                     $finalFilterClause
-                    ${buildFitlerWithGeoQuery(queryParams.geoQuery, "WHERE")}                    
+                    ${buildGeoQueryFilter(queryParams.geoQuery, "WHERE")}                    
                 """.trimIndent()
             } else finalFilterClause
 
@@ -117,18 +117,19 @@ object QueryUtils {
             """
             RETURN count(entity) as count
             """.trimIndent()
-        else """
+        else
+            """
             WITH collect(entity.id) as entitiesIds, count(entity) as count
             UNWIND entitiesIds as entityId
             RETURN entityId as id, count
             ORDER BY id
             SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
-        """.trimIndent()
+            """.trimIndent()
 
         return """
-                $matchEntityClause
-                $finalFilter
-                $pagingClause
+            $matchEntityClause
+            $finalFilter
+            $pagingClause
         """.trimIndent()
     }
 
@@ -225,7 +226,7 @@ object QueryUtils {
             """.trimIndent()
         }
 
-    private fun buildFitlerWithGeoQuery(geoQuery: GeoQuery, prefix: String = "AND"): String {
+    private fun buildGeoQueryFilter(geoQuery: GeoQuery, prefix: String = "AND"): String {
         val coordinates = geoQuery.coordinates.toString().split("[\\[,\\]]".toRegex())
         val georelParams = extractGeorelParams(geoQuery.georel!!)
         return """

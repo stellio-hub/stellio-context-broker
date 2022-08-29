@@ -29,8 +29,7 @@ interface SearchRepository {
 
     fun prepareResults(
         limit: Int,
-        result: Collection<Map<String, Any>>,
-        queryParams: QueryParams
+        result: Collection<Map<String, Any>>
     ): Pair<Int, List<URI>> =
         if (limit == 0)
             Pair(

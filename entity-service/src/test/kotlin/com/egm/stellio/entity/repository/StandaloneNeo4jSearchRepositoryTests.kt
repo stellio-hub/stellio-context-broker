@@ -496,7 +496,8 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS), value = LocalTime.parse("12:00:00")
+                    name = expandJsonLdTerm("testedAt", DEFAULT_CONTEXTS),
+                    value = LocalTime.parse("12:00:00")
                 ),
                 Property(name = expandedNameProperty, value = "beekeeper")
             )
@@ -515,22 +516,25 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         ).second
         assertTrue(entities.contains(entity.id))
 
-        val queryParams = QueryParams(
-            types = setOf("Beekeeper"),
-            q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
-            offset = offset,
-            limit = limit
-        )
-
         entities = searchRepository.getEntities(
-            queryParams,
+            QueryParams(
+                types = setOf("Beekeeper"),
+                q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\"",
+                offset = offset,
+                limit = limit
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second
         assertTrue(entities.contains(entity.id))
 
         entities = searchRepository.getEntities(
-            queryParams,
+            QueryParams(
+                types = setOf("Beekeeper"),
+                q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
+                offset = offset,
+                limit = limit
+            ),
             sub,
             DEFAULT_CONTEXTS
         ).second

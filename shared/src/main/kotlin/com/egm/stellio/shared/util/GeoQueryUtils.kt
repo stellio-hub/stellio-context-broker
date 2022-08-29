@@ -16,7 +16,6 @@ object GeoQueryUtils {
     const val DISTANCE_QUERY_CLAUSE = "distance"
     const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
     const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
-    const val MULTIPLY_DISTANCE = 1000
 }
 
 fun parseAndCheckGeoQuery(requestParams: MultiValueMap<String, String>, contextLink: String): GeoQuery {
@@ -48,7 +47,7 @@ fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
     return Triple(georel, null, null)
 }
 
-fun verifGeoQuery(geoQuery: GeoQuery): Boolean {
+fun isSupportedGeoQuery(geoQuery: GeoQuery): Boolean {
     return geoQuery.geoproperty == JsonLdUtils.NGSILD_LOCATION_PROPERTY &&
         geoQuery.georel != null &&
         geoQuery.geometry == "Point" &&

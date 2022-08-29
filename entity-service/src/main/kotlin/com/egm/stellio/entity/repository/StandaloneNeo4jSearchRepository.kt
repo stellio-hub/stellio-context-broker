@@ -2,7 +2,7 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
@@ -21,6 +21,6 @@ class StandaloneNeo4jSearchRepository(
     ): Pair<Int, List<URI>> {
         val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, contexts)
         val result = neo4jClient.query(query).fetch().all()
-        return prepareResults(queryParams.limit, result, queryParams)
+        return prepareResults(queryParams.limit, result)
     }
 }

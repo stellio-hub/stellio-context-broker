@@ -71,7 +71,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should not extract near param of georel if it not present`() {
+    fun `it should not extract near param of georel if it is not present`() {
         val requestParams = gimmeFullParamsMap(georel = "distant")
         val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
@@ -81,36 +81,36 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `function verifGeoQuery should return true`() {
+    fun `function isSupportedGeoQuery should return true`() {
         val requestParams = gimmeFullParamsMap()
         val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
-        Assertions.assertTrue(verifGeoQuery(geoQueryParams))
+        Assertions.assertTrue(isSupportedGeoQuery(geoQueryParams))
     }
 
     @Test
-    fun `function verifGeoQuery should return false`() {
+    fun `function isSupportedGeoQuery should return false`() {
         val geoQueryWithoutGeorel = GeoQuery()
 
-        Assertions.assertFalse(verifGeoQuery(geoQueryWithoutGeorel))
+        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithoutGeorel))
 
         val geoQueryWithOperationSpace = GeoQuery(geoproperty = NGSILD_OPERATION_SPACE_PROPERTY)
 
-        Assertions.assertFalse(verifGeoQuery(geoQueryWithOperationSpace))
+        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithOperationSpace))
 
         val geoQueryWithPolygon = GeoQuery(
             georel = "distant",
             geometry = "Polygon"
         )
 
-        Assertions.assertFalse(verifGeoQuery(geoQueryWithPolygon))
+        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithPolygon))
 
         val geoQueryWithoutCoordinates = GeoQuery(
             georel = "distant",
             geometry = "Point"
         )
 
-        Assertions.assertFalse(verifGeoQuery(geoQueryWithoutCoordinates))
+        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithoutCoordinates))
     }
 
     private fun gimmeFullParamsMap(

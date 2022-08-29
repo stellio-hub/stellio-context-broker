@@ -111,6 +111,23 @@ class EntityPayloadService(
             }
     }
 
+    suspend fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
+        if (entitiesIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val query = """
+            select entity_id 
+            from entity_payload
+            where entity_id in (:entities_ids)
+        """.trimIndent()
+
+        return databaseClient
+            .sql(query)
+            .bind("entities_ids", entitiesIds)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
     suspend fun getTypes(entityId: URI): Either<APIException, List<ExpandedTerm>> {
         val selectQuery =
             """

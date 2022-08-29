@@ -1,0 +1,38 @@
+[
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "temperature"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    }
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "dissolvedOxygen"
+    },
+    "related_to": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+    }
+  },
+  {
+    "id": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+    "type": "Device",
+    "brandName": {
+      "type": "Property",
+      "value": "BIOCEANOR"
+    },
+    "monitors": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
+    }
+  }
+]

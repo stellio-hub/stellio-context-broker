@@ -80,7 +80,7 @@ object QueryUtils {
         return """
                 $matchAuthorizedEntitiesClause
                 $pagingClause
-                """.trimIndent()
+        """.trimIndent()
     }
 
     fun prepareQueryForEntitiesWithoutAuthentication(
@@ -116,13 +116,13 @@ object QueryUtils {
             RETURN entityId as id, count
             ORDER BY id
             SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
-            """.trimIndent()
+        """.trimIndent()
 
         return """
                 $matchEntityClause
                 $finalFilter
                 $pagingClause
-                """.trimIndent()
+        """.trimIndent()
     }
 
     fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =
@@ -235,6 +235,6 @@ object QueryUtils {
                         crs: 'wgs-84'
                      })
                 ) ${georelParams.second} ${georelParams.third}
-                """.trimIndent()
+        """.trimIndent()
     }
 }

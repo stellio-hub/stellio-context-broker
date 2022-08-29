@@ -19,7 +19,7 @@ class StandaloneNeo4jSearchRepository(
         sub: Option<Sub>,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
-        val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, queryParams.geoQuery, contexts)
+        val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, contexts)
         val result = neo4jClient.query(query).fetch().all()
         return prepareResults(queryParams.limit, result, queryParams)
     }

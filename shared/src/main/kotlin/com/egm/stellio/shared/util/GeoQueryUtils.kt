@@ -42,7 +42,7 @@ fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
             MAX_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, "<=", comparisonParams[1])
             MIN_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, ">=", comparisonParams[1])
             // defaulting to an equality, maybe we should raise a 400 at creation time?
-            else -> Triple(DISTANCE_QUERY_CLAUSE, "==", comparisonParams[1])
+            else -> Triple(DISTANCE_QUERY_CLAUSE, "=", comparisonParams[1])
         }
     }
     return Triple(georel, null, null)

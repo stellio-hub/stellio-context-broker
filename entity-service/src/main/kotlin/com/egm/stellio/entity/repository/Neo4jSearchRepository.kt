@@ -26,9 +26,9 @@ class Neo4jSearchRepository(
             .map { it.toString() }
 
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
-            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, queryParams.geoQuery, contexts)
+            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, contexts)
         else
-            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, queryParams.geoQuery, contexts)
+            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, contexts)
 
         val result = neo4jClient
             .query(query)

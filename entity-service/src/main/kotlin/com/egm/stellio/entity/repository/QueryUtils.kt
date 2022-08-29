@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.extractGeorelParams
 import com.egm.stellio.shared.util.qPattern
 import com.egm.stellio.shared.util.verifGeoQuery
 import java.net.URI
@@ -19,7 +20,6 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
-        geoQuery: GeoQuery,
         contexts: List<String>
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
@@ -32,6 +32,14 @@ object QueryUtils {
             .filter { it.isNotEmpty() }
             .joinToString(separator = " AND ", prefix = " AND ")
             .takeIf { it.trim() != "AND" } ?: ""
+
+        val finalFilter =
+            if (verifGeoQuery(queryParams.geoQuery)) {
+                """
+                ${buildFitlerWithGeoQuery(queryParams.geoQuery)}
+                $finalFilterClause 
+                """.trimIndent()
+            } else finalFilterClause
 
         val matchAuthorizedEntitiesClause =
             """
@@ -53,20 +61,14 @@ object QueryUtils {
             WITH entitiesIds
             MATCH (entity)
             WHERE id(entity) IN entitiesIds
-            $finalFilterClause                                                  
+            $finalFilter
             """.trimIndent()
 
         val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity.id) as count
             """.trimIndent()
-        else if (verifGeoQuery(geoQuery)) {
-            """
-                RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
-                ORDER BY id
-                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
-            """.trimIndent()
-        } else
+        else
             """
                 WITH collect(distinct(entity.id)) as entityIds, count(entity.id) as count
                 UNWIND entityIds as id
@@ -75,23 +77,14 @@ object QueryUtils {
                 SKIP ${queryParams.offset} LIMIT ${queryParams.limit}                
             """.trimIndent()
 
-        return if (verifGeoQuery(geoQuery)) {
-            """
-                $matchAuthorizedEntitiesClause
-                AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
-                $pagingClause
-            """.trimIndent()
-        } else {
-            """
+        return """
                 $matchAuthorizedEntitiesClause
                 $pagingClause
-                """
-        }
+                """.trimIndent()
     }
 
     fun prepareQueryForEntitiesWithoutAuthentication(
         queryParams: QueryParams,
-        geoQuery: GeoQuery,
         contexts: List<String>
     ): String {
 
@@ -107,18 +100,17 @@ object QueryUtils {
             .joinToString(separator = " AND ", prefix = " WHERE ")
             .takeIf { it.trim() != "WHERE" } ?: ""
 
+        val finalFilter =
+            if (verifGeoQuery(queryParams.geoQuery)) {
+                buildFitlerWithGeoQuery(queryParams.geoQuery)
+                finalFilterClause
+            } else finalFilterClause
+
         val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity) as count
             """.trimIndent()
-        else if (verifGeoQuery(geoQuery)) {
-            """
-            RETURN entity.id as id, entity.location as entityLocation, count(entity) as count
-            ORDER BY id
-            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
-            """.trimIndent()
-        } else
-            """
+        else """
             WITH collect(entity.id) as entitiesIds, count(entity) as count
             UNWIND entitiesIds as entityId
             RETURN entityId as id, count
@@ -126,20 +118,11 @@ object QueryUtils {
             SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
-        return if (verifGeoQuery(geoQuery)) {
-            """
-                    $matchEntityClause
-                    $finalFilterClause
-                    AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
-                    $pagingClause
-            """.trimIndent()
-        } else {
-            """
+        return """
                 $matchEntityClause
-                $finalFilterClause
+                $finalFilter
                 $pagingClause
-                """
-        }
+                """.trimIndent()
     }
 
     fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =
@@ -234,4 +217,24 @@ object QueryUtils {
                }
             """.trimIndent()
         }
+
+    private fun buildFitlerWithGeoQuery(geoQuery: GeoQuery): String {
+        val coordinates = geoQuery.coordinates.toString().split("[\\[,\\]]".toRegex())
+        val georelParams = extractGeorelParams(geoQuery.georel!!)
+        return """
+                AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
+                AND point.distance(
+                     point({
+                        latitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][1]), 
+                        longitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][2]),
+                        crs: 'wgs-84'
+                     }),
+                     point({
+                        latitude: ${coordinates[1].toFloat()}, 
+                        longitude: ${coordinates[2].toFloat()}, 
+                        crs: 'wgs-84'
+                     })
+                ) ${georelParams.second} ${georelParams.third}
+                """.trimIndent()
+    }
 }

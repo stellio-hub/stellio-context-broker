@@ -36,8 +36,8 @@ object QueryUtils {
         val finalFilter =
             if (verifGeoQuery(queryParams.geoQuery)) {
                 """
-                ${buildFitlerWithGeoQuery(queryParams.geoQuery)}
                 $finalFilterClause 
+                ${buildFitlerWithGeoQuery(queryParams.geoQuery)}                
                 """.trimIndent()
             } else finalFilterClause
 
@@ -102,8 +102,15 @@ object QueryUtils {
 
         val finalFilter =
             if (verifGeoQuery(queryParams.geoQuery)) {
-                buildFitlerWithGeoQuery(queryParams.geoQuery)
-                finalFilterClause
+                if (finalFilterClause.contains("WHERE")) {
+                    """
+                    $finalFilterClause
+                    ${buildFitlerWithGeoQuery(queryParams.geoQuery)}
+                    """.trimIndent()
+                } else """
+                    $finalFilterClause
+                    ${buildFitlerWithGeoQuery(queryParams.geoQuery, "WHERE")}                    
+                """.trimIndent()
             } else finalFilterClause
 
         val pagingClause = if (queryParams.limit == 0)
@@ -218,11 +225,11 @@ object QueryUtils {
             """.trimIndent()
         }
 
-    private fun buildFitlerWithGeoQuery(geoQuery: GeoQuery): String {
+    private fun buildFitlerWithGeoQuery(geoQuery: GeoQuery, prefix: String = "AND"): String {
         val coordinates = geoQuery.coordinates.toString().split("[\\[,\\]]".toRegex())
         val georelParams = extractGeorelParams(geoQuery.georel!!)
         return """
-                AND entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
+                $prefix entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
                 AND point.distance(
                      point({
                         latitude: toFloat(apoc.text.regexGroups(entity.location, '([\\d\\.]+) ([\\d\\.]+)')[0][1]), 

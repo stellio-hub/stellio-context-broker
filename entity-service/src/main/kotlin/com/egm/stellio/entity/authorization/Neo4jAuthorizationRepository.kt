@@ -462,7 +462,8 @@ class Neo4jAuthorizationRepository(
                 (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     Group(
                         id = (it["groupId"] as String).toUri(),
-                        name = it["groupName"] as String
+                        name = it["groupName"] as String,
+                        isMember = true
                     )
                 }
             )

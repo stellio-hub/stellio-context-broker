@@ -736,7 +736,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(groupUri, groupEntities.second.first().id)
         assertEquals(GROUP_TYPE, groupEntities.second.first().type)
         assertEquals("egm", groupEntities.second.first().name)
-        assertEquals(false, groupEntities.second.first().isMember)
+        assertEquals(true, groupEntities.second.first().isMember)
     }
 
     @Test

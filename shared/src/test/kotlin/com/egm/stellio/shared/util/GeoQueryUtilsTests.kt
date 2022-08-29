@@ -65,7 +65,7 @@ class GeoQueryUtilsTests {
         val requestParams = gimmeFullParamsMap(georel = "near;egalDistance==1500")
         val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
-        val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, "==", "1500")
+        val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, "=", "1500")
 
         Assertions.assertEquals(georel, georelParams)
     }

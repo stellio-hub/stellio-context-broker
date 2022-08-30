@@ -30,6 +30,8 @@ fun parseAndCheckParams(
         count
     )
 
+    val geoQuery = parseAndCheckGeoQuery(requestParams, contextLink)
+
     return QueryParams(
         ids = ids,
         types = types,
@@ -40,6 +42,7 @@ fun parseAndCheckParams(
         count = count,
         attrs = attrs,
         includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation
+        useSimplifiedRepresentation = useSimplifiedRepresentation,
+        geoQuery = geoQuery
     )
 }

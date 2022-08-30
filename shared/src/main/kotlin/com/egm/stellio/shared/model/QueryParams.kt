@@ -12,5 +12,6 @@ data class QueryParams(
     val count: Boolean = false,
     val attrs: Set<ExpandedTerm> = emptySet(),
     val includeSysAttrs: Boolean = false,
-    val useSimplifiedRepresentation: Boolean = false
+    val useSimplifiedRepresentation: Boolean = false,
+    val geoQuery: GeoQuery = GeoQuery()
 )

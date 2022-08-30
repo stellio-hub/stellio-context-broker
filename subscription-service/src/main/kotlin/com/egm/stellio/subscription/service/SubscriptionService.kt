@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.repository.SubscriptionRepository
 import com.egm.stellio.subscription.utils.ParsingUtils

@@ -5,8 +5,10 @@ import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
@@ -64,6 +66,48 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         ).second
 
         assertTrue(entities.contains(entity.id))
+    }
+
+    @Test
+    fun `it should return an entity with geo query`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (12.78 56.7)"
+        )
+        createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
+        )
+        createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createEntity(
+            "urn:ngsi-ld:Beekeeper:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (12.78 56.6)"
+        )
+
+        val entities = searchRepository.getEntities(
+            QueryParams(
+                types = setOf("Beekeeper"),
+                q = "name==\"Scalpa\"",
+                offset = offset,
+                limit = limit,
+                geoQuery = GeoQuery("near;maxDistance==1500", "Point", "[12.79, 56.71]", NGSILD_LOCATION_PROPERTY)
+            ),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.size == 1)
+        assertTrue(entities.contains(firstEntity.id))
     }
 
     @Test

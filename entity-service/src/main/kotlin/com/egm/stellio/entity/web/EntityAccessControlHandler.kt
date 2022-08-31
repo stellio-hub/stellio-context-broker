@@ -132,7 +132,7 @@ class EntityAccessControlHandler(
         return buildQueryResponse(
             compactedEntities,
             countAndGroupEntities.first,
-            "/ngsi-ld/v1/entityAccessControl/entities",
+            "/ngsi-ld/v1/entityAccessControl/groups",
             queryParams,
             params,
             mediaType,

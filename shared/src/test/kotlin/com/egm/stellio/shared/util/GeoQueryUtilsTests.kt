@@ -110,7 +110,7 @@ class GeoQueryUtilsTests {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("georel", georel)
         requestParams.add("geometry", "Point")
-        requestParams.add("coordinates", "[57.5522, -20.3484]")
+        requestParams.add("coordinates", "[57.5522,%20-20.3484]")
         requestParams.add("geoproperty", geoproperty)
         return requestParams
     }

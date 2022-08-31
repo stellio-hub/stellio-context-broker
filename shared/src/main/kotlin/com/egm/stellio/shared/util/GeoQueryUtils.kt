@@ -21,7 +21,7 @@ object GeoQueryUtils {
 fun parseAndCheckGeoQuery(requestParams: MultiValueMap<String, String>, contextLink: String): GeoQuery {
     val georel = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_GEOREL)
     val geometry = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_GEOMETRY)
-    val coordinates = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_COORDINATES)
+    val coordinates = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_COORDINATES)?.decode()
     val geoproperty = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_GEOPROPERTY)?.let {
         JsonLdUtils.expandJsonLdTerm(it, contextLink)
     } ?: JsonLdUtils.NGSILD_LOCATION_PROPERTY

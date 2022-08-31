@@ -115,7 +115,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (12.78 56.7)"
+            "POINT (-15.432823 -28.133731)"
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
@@ -133,7 +133,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT (12.78 56.6)"
+            "POINT (-15.432823 -30.133731)"
         )
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
@@ -147,7 +147,12 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "name==\"Scalpa\"",
                 offset = offset,
                 limit = limit,
-                geoQuery = GeoQuery("near;maxDistance==1500", "Point", "[12.79, 56.71]", NGSILD_LOCATION_PROPERTY)
+                geoQuery = GeoQuery(
+                    "near;maxDistance==1500",
+                    "Point",
+                    "[-15.432823, -28.133731]",
+                    NGSILD_LOCATION_PROPERTY
+                )
             ),
             sub,
             DEFAULT_CONTEXTS

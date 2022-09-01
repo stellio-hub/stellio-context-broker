@@ -74,7 +74,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
-            "POINT POINT (-15.432823 -28.133731)"
+            "POINT (-15.432823 -28.133731)"
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),

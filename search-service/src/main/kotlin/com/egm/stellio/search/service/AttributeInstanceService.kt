@@ -4,8 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.valueToDoubleOrNull
-import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -17,12 +16,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.instanceNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -34,7 +31,7 @@ class AttributeInstanceService(
 ) {
 
     @Transactional
-    fun create(attributeInstance: AttributeInstance): Mono<Int> {
+    suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
         val insertStatement =
             if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -66,17 +63,16 @@ class AttributeInstanceService(
                         .bind("sub", attributeInstance.sub)
                 else it
             }
-            .fetch()
-            .rowsUpdated()
+            .execute()
     }
 
     @Transactional
-    fun addAttributeInstance(
+    suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
         attributeValues: Map<String, List<Any>>,
         contexts: List<String>
-    ): Mono<Int> {
+    ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
@@ -93,25 +89,35 @@ class AttributeInstanceService(
         return create(attributeInstance)
     }
 
-    fun search(
+    suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttribute: TemporalEntityAttribute,
         withTemporalValues: Boolean
-    ): Mono<List<AttributeInstanceResult>> =
+    ): List<AttributeInstanceResult> =
         search(temporalQuery, listOf(temporalEntityAttribute), withTemporalValues)
 
-    fun search(
+    suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        withTemporalValues: Boolean
-    ): Mono<List<AttributeInstanceResult>> {
-        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
-
-        if (!withTemporalValues && temporalQuery.timeBucket == null)
-            selectQuery = selectQuery.plus(", payload::TEXT")
-
+        inQueryEntities: Boolean
+    ): List<AttributeInstanceResult> {
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
+
+        // time_bucket has a default origin set to 2000-01-03
+        // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
+        // so we force the default origin to:
+        // - timeAt if it is provided
+        // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
+        val timestamp =
+            if (temporalQuery.timeBucket != null)
+                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
+            else null
+
+        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
+
+        if (!inQueryEntities && temporalQuery.timeBucket == null)
+            selectQuery = selectQuery.plus(", payload::TEXT")
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
@@ -148,22 +154,18 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .fetch()
-            .all()
-            .map {
-                rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues)
-            }
-            .collectList()
+            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, inQueryEntities) }
     }
 
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
-        temporalEntityAttributes: List<TemporalEntityAttribute>
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        timestamp: ZonedDateTime?
     ) = when {
         temporalQuery.timeBucket != null ->
             """
             SELECT temporal_entity_attribute,
-                   time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
+                   time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
         // temporal entity attributes are grouped by attribute type by calling services
@@ -177,6 +179,38 @@ class AttributeInstanceService(
             "SELECT temporal_entity_attribute, time, measured_value as value, sub "
         else ->
             "SELECT temporal_entity_attribute, time, measured_value as value "
+    }
+
+    suspend fun selectOldestDate(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttributesIds: String
+    ): ZonedDateTime? {
+        var selectQuery =
+            """
+                SELECT min(time) as first
+            """.trimIndent()
+
+        selectQuery =
+            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    """
+                )
+            else
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance_audit
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    AND time_property = '${temporalQuery.timeproperty.name}'
+                    """
+                )
+
+        return databaseClient
+            .sql(selectQuery)
+            .oneToResult { ZonedDateTime.parse(it["first"].toString()).toInstant().atZone(ZoneOffset.UTC) }
+            .orNull()
     }
 
     private fun rowToAttributeInstanceResult(
@@ -217,17 +251,15 @@ class AttributeInstanceService(
                 AND instance_id = :instance_id
             """.trimIndent()
 
-        val result = databaseClient
+        return databaseClient
             .sql(deleteQuery)
             .bind("entity_id", entityId)
             .bind("attribute_name", entityAttributeName)
             .bind("instance_id", instanceId)
-            .fetch()
-            .rowsUpdated()
-            .awaitFirst()
-
-        return if (result == 0)
-            ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
-        else Unit.right()
+            .executeExpected {
+                if (it == 0)
+                    ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
+                else Unit.right()
+            }
     }
 }

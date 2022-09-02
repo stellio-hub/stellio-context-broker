@@ -407,9 +407,7 @@ class Neo4jAuthorizationRepository(
                 rCanReadUsers = usersRightsOnEntity.valuesForRight(AccessRight.R_CAN_READ),
                 createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
                 modifiedAt = (entityNode.get("modifiedAt") as? DateTimeValue)?.asZonedDateTime(),
-                specificAccessPolicy = specificAccessPolicy?.let { it ->
-                    AuthContextModel.SpecificAccessPolicy.valueOf(it)
-                }
+                specificAccessPolicy = specificAccessPolicy?.let { AuthContextModel.SpecificAccessPolicy.valueOf(it) }
             )
         }.toSet()
 
@@ -464,7 +462,8 @@ class Neo4jAuthorizationRepository(
                 (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     Group(
                         id = (it["groupId"] as String).toUri(),
-                        name = it["groupName"] as String
+                        name = it["groupName"] as String,
+                        isMember = true
                     )
                 }
             )

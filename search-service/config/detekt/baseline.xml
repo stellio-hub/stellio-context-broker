@@ -9,7 +9,8 @@
     <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( sub: String?, entityId: URI, entityTypes: List&lt;String&gt;, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityId: URI, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;): TemporalQuery</ID>
+    <ID>TooManyFunctions:IAMListener.kt$IAMListener</ID>
+    <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>

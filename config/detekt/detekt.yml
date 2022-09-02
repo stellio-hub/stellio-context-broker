@@ -78,6 +78,8 @@ style:
 #    active: true
 #  DataClassShouldBeImmutable:
 #    active: true
+  DestructuringDeclarationWithTooManyEntries:
+    active: false
   ExplicitCollectionElementAccessMethod:
     active: true
   ExpressionBodySyntax:

@@ -6,6 +6,7 @@ import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
@@ -19,6 +20,7 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -79,12 +81,14 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (24.30623 60.07966)"
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
@@ -102,6 +106,109 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id, thirdEntity.id)))
+    }
+
+    @Test
+    fun `it should return matching entities with geo query and maxDistance`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (-15.432823 -28.133731)"
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+
+        val fourthEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (-15.432823 -30.133731)"
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, fourthEntity.id)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(
+                types = setOf("Beekeeper"),
+                q = "name==\"Scalpa\"",
+                offset = offset,
+                limit = limit,
+                geoQuery = GeoQuery(
+                    "near;maxDistance==1500",
+                    "Point",
+                    "[-15.432823, -28.133731]",
+                    NGSILD_LOCATION_PROPERTY
+                )
+            ),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.size == 1)
+        assertTrue(entities.containsAll(listOf(firstEntity.id)))
+    }
+
+    @Test
+    fun `it should return matching entities with geo query and minDistance`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (12.78 56.7)"
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POLYGON ((7.49 43.78, 7.5 43.78, 7.5 43.79, 7.49 43.79, 7.49 43.78))"
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+
+        val fourthEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa")),
+            "POINT (12.78 56.6)"
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, fourthEntity.id)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(
+                types = setOf("Beekeeper"),
+                q = "name==\"Scalpa\"",
+                offset = offset,
+                limit = limit,
+                geoQuery = GeoQuery("near;minDistance==1500", "Point", "[12.79, 56.71]", NGSILD_LOCATION_PROPERTY)
+            ),
+            sub,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.size == 1)
+        assertTrue(entities.containsAll(listOf(fourthEntity.id)))
     }
 
     @Test

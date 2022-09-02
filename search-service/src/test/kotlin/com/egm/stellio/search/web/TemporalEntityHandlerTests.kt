@@ -3,12 +3,12 @@ package com.egm.stellio.search.web
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.WithMockCustomUser
@@ -18,7 +18,10 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Called
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,8 +33,6 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -80,13 +81,11 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            Mono.just(temporalEntityAttributeUuid)
+        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            temporalEntityAttributeUuid.right()
         }
-        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
-            Mono.just(1)
-        }
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -96,13 +95,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
                 eq(INCOMING_PROPERTY)
             )
         }
-        verify {
+        coVerify {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 eq("incoming"),
@@ -120,13 +119,11 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            Mono.just(temporalEntityAttributeUuid)
+        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            temporalEntityAttributeUuid.right()
         }
-        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
-            Mono.just(1)
-        }
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -136,13 +133,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
                 eq(INCOMING_PROPERTY)
             )
         }
-        verify(exactly = 2) {
+        coVerify(exactly = 2) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 eq("incoming"),
@@ -160,13 +157,11 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            Mono.just(temporalEntityAttributeUuid)
+        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            temporalEntityAttributeUuid.right()
         }
-        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
-            Mono.just(1)
-        }
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -176,13 +171,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(exactly = 2) {
+        coVerify(exactly = 2) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
                 or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
-        verify(exactly = 2) {
+        coVerify(exactly = 2) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 or("incoming", "outgoing"),
@@ -200,13 +195,11 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } answers { Unit.right() }
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            Mono.just(temporalEntityAttributeUuid)
+        coEvery { entityAccessRightsService.canWriteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            temporalEntityAttributeUuid.right()
         }
-        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
-            Mono.just(1)
-        }
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -216,13 +209,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(exactly = 4) {
+        coVerify(exactly = 4) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
                 or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
-        verify(exactly = 4) {
+        coVerify(exactly = 4) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 or("incoming", "outgoing"),
@@ -270,8 +263,8 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
-        verify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
+        coVerify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
+        coVerify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
     }
 
     @Test
@@ -314,7 +307,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        coEvery {
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+        } returns emptyMap<String, Any>().right()
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -480,7 +475,9 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        coEvery {
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+        } returns emptyMap<String, Any>().right()
 
         webClient.get()
             .uri(
@@ -509,7 +506,9 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        coEvery {
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+        } returns emptyMap<String, Any>().right()
 
         webClient.get()
             .uri(
@@ -531,7 +530,9 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        coEvery {
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+        } returns emptyMap<String, Any>().right()
 
         webClient.get()
             .uri(
@@ -631,11 +632,9 @@ class TemporalEntityHandlerTests {
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
         val entityWith2temporalEvolutions = deserializeObject(loadSampleData(entityFileName))
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntity(any(), any())
-        } answers {
-            Flux.just(entityTemporalProperties[0], entityTemporalProperties[1])
-        }
+        } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
 
         val attributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
@@ -649,14 +648,14 @@ class TemporalEntityHandlerTests {
             }
         }
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
-            every {
+            coEvery {
                 attributeInstanceService.search(any(), it.second, withTemporalValues)
-            } returns Mono.just(listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]))
+            } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1])
         }
 
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
-        } returns entityWith2temporalEvolutions
+        } returns entityWith2temporalEvolutions.right()
     }
 
     @Test
@@ -664,7 +663,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
+            .uri("/ngsi-ld/v1/temporal/entities?type=Beehive&timerel=before")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1028,9 +1027,9 @@ class TemporalEntityHandlerTests {
     fun `delete attribute instance temporal should return 404 if entityId is not found`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.empty() }
+        } returns UUID.randomUUID().right()
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
@@ -1061,9 +1060,9 @@ class TemporalEntityHandlerTests {
     fun `delete attribute instance temporal should return 404 if temporalEntityAttributeName is not found`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.empty() }
+        } returns UUID.randomUUID().right()
         coEvery {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns ResourceNotFoundException(attributeNotFoundMessage(expandedAttr)).left()

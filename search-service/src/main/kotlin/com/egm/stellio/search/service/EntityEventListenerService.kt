@@ -1,6 +1,8 @@
 package com.egm.stellio.search.service
 
 import arrow.core.*
+import arrow.core.continuations.either
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.AttributeMetadata
@@ -19,11 +21,12 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
-import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -37,80 +40,87 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_search")
     fun processMessage(content: String) {
         logger.debug("Processing message: $content")
-        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
-            is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
-            is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
-            is AttributeAppendEvent ->
-                when (entityEvent.attributeName) {
-                    JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
-                    else -> handleAttributeAppendEvent(entityEvent)
-                }
-            is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
-            is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
-            is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
-            is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
+        coroutineScope.launch {
+            dispatchMessage(content)
         }
     }
 
-    private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) {
+    internal suspend fun dispatchMessage(content: String) {
+        val entityEvent = deserializeAs<EntityEvent>(content)
+        kotlin.runCatching {
+            when (entityEvent) {
+                is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
+                is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
+                is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
+                is AttributeAppendEvent ->
+                    when (entityEvent.attributeName) {
+                        JSONLD_TYPE_TERM -> handleEntityTypeAppendEvent(entityEvent)
+                        else -> handleAttributeAppendEvent(entityEvent)
+                    }
+                is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
+                is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
+                is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
+                is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
+                else ->
+                    OperationNotSupportedException(unhandledOperationType(entityEvent.operationType)).left()
+            }.fold({
+                if (it is OperationNotSupportedException)
+                    logger.info(it.message)
+                else
+                    logger.error(entityEvent.failedHandlingMessage(it))
+            }, {
+                logger.debug(entityEvent.successfulHandlingMessage())
+            })
+        }.onFailure {
+            logger.error(entityEvent.failedHandlingMessage(it))
+        }
+    }
+
+    private suspend fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent): Either<APIException, Unit> {
         val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
-        temporalEntityAttributeService.createEntityTemporalReferences(
-            operationPayload,
-            entityCreateEvent.contexts,
-            entityCreateEvent.sub
-        ).then(
+        return either {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                operationPayload,
+                entityCreateEvent.contexts,
+                entityCreateEvent.sub
+            ).bind()
             entityAccessRightsService.setAdminRoleOnEntity(
                 entityCreateEvent.sub,
                 entityCreateEvent.entityId
-            )
-        ).subscribe(
-            { logger.debug("Created temporal entity ${entityCreateEvent.entityId}") },
-            {
-                logger.warn("Failed to create temporal entity ${entityCreateEvent.entityId}: ${it.message}")
-            }
-        )
+            ).bind()
+        }
     }
 
-    private fun handleEntityReplaceEvent(entityReplaceEvent: EntityReplaceEvent) {
+    private suspend fun handleEntityReplaceEvent(entityReplaceEvent: EntityReplaceEvent): Either<APIException, Unit> {
         val operationPayload = addContextToElement(entityReplaceEvent.operationPayload, entityReplaceEvent.contexts)
-        temporalEntityAttributeService.deleteTemporalEntityReferences(entityReplaceEvent.entityId)
-            .then(
-                temporalEntityAttributeService.createEntityTemporalReferences(
-                    operationPayload,
-                    entityReplaceEvent.contexts,
-                    entityReplaceEvent.sub
-                )
-            ).then(
-                entityAccessRightsService.setAdminRoleOnEntity(
-                    entityReplaceEvent.sub,
-                    entityReplaceEvent.entityId
-                )
-            ).subscribe(
-                { logger.debug("Replaced entity ${entityReplaceEvent.entityId} (records replaced: $it)") },
-                {
-                    logger.warn("Failed to replace temporal entity ${entityReplaceEvent.entityId}: ${it.message}")
-                }
-
-            )
+        return either {
+            temporalEntityAttributeService.deleteTemporalEntityReferences(entityReplaceEvent.entityId).bind()
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                operationPayload,
+                entityReplaceEvent.contexts,
+                entityReplaceEvent.sub
+            ).bind()
+            entityAccessRightsService.setAdminRoleOnEntity(
+                entityReplaceEvent.sub,
+                entityReplaceEvent.entityId
+            ).bind()
+        }
     }
 
-    private fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent) =
-        temporalEntityAttributeService.deleteTemporalEntityReferences(entityDeleteEvent.entityId)
-            .then(
-                entityAccessRightsService.removeRolesOnEntity(entityDeleteEvent.entityId)
-            )
-            .subscribe(
-                { logger.debug("Deleted entity ${entityDeleteEvent.entityId} (records deleted: $it)") },
-                {
-                    logger.warn("Failed to delete temporal entity ${entityDeleteEvent.entityId}: ${it.message}")
-                }
-            )
+    private suspend fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent): Either<APIException, Unit> =
+        either {
+            temporalEntityAttributeService.deleteTemporalEntityReferences(entityDeleteEvent.entityId).bind()
+            entityAccessRightsService.removeRolesOnEntity(entityDeleteEvent.entityId).bind()
+        }
 
-    private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
+    private suspend fun handleAttributeDeleteEvent(
+        attributeDeleteEvent: AttributeDeleteEvent
+    ): Either<APIException, Unit> {
         val expandedAttributeName =
             expandJsonLdTerm(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)
         val compactedJsonLdEntity = addContextsToEntity(
@@ -118,35 +128,22 @@ class EntityEventListenerService(
             attributeDeleteEvent.contexts
         )
 
-        temporalEntityAttributeService.deleteTemporalAttributeReferences(
-            attributeDeleteEvent.entityId,
-            expandedAttributeName,
-            attributeDeleteEvent.datasetId
-        ).then(
+        return either {
+            temporalEntityAttributeService.deleteTemporalAttributeReferences(
+                attributeDeleteEvent.entityId,
+                expandedAttributeName,
+                attributeDeleteEvent.datasetId
+            ).bind()
             entityPayloadService.upsertEntityPayload(
                 attributeDeleteEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
-            )
-        ).subscribe(
-            {
-                logger.debug(
-                    "Deleted temporal attribute $expandedAttributeName with datasetId " +
-                        "${attributeDeleteEvent.datasetId} from entity ${attributeDeleteEvent.entityId} "
-                )
-            },
-            {
-                logger.warn(
-                    "Failed to delete temporal attribute $expandedAttributeName from entity " +
-                        "${attributeDeleteEvent.entityId}: ${it.message}"
-                )
-            }
-
-        )
+            ).bind()
+        }
     }
 
-    private fun handleAttributeDeleteAllInstancesEvent(
+    private suspend fun handleAttributeDeleteAllInstancesEvent(
         attributeDeleteAllInstancesEvent: AttributeDeleteAllInstancesEvent
-    ) {
+    ): Either<APIException, Unit> {
         val expandedAttributeName = expandJsonLdTerm(
             attributeDeleteAllInstancesEvent.attributeName, attributeDeleteAllInstancesEvent.contexts
         )
@@ -155,59 +152,46 @@ class EntityEventListenerService(
             attributeDeleteAllInstancesEvent.contexts
         )
 
-        temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
-            attributeDeleteAllInstancesEvent.entityId,
-            expandedAttributeName
-        ).then(
+        return either {
+            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+                attributeDeleteAllInstancesEvent.entityId,
+                expandedAttributeName
+            ).bind()
             entityPayloadService.upsertEntityPayload(
                 attributeDeleteAllInstancesEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
-            )
-        ).subscribe(
-            {
-                logger.debug(
-                    "Deleted all temporal attributes of $expandedAttributeName " +
-                        "from entity ${attributeDeleteAllInstancesEvent.entityId}"
-                )
-            },
-            {
-                logger.warn(
-                    "Failed to delete all temporal attributes of $expandedAttributeName from entity " +
-                        "${attributeDeleteAllInstancesEvent.entityId}: ${it.message}"
-                )
-            }
-
-        )
+            ).bind()
+        }
     }
 
-    private fun handleEntityTypeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
+    private suspend fun handleEntityTypeAppendEvent(
+        attributeAppendEvent: AttributeAppendEvent
+    ): Either<APIException, Unit> {
         val (_, entityId, entityTypes, _, _, _, _, updatedEntity, contexts) = attributeAppendEvent
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
 
-        temporalEntityAttributeService.updateTemporalEntityTypes(entityId, expandJsonLdTerms(entityTypes, contexts))
-            .then(
-                entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
-            )
-            .subscribe(
-                {
-                    logger.debug("Updated types of entity $entityId to $entityTypes")
-                },
-                {
-                    logger.warn("Failed to update entity types of entity $entityId: ${it.message}")
-                }
-            )
+        return either {
+            temporalEntityAttributeService.updateTemporalEntityTypes(
+                entityId,
+                expandJsonLdTerms(entityTypes, contexts)
+            ).bind()
+            entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity)).bind()
+        }
     }
 
-    private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
+    private suspend fun handleAttributeAppendEvent(
+        attributeAppendEvent: AttributeAppendEvent
+    ): Either<APIException, Unit> =
         handleAttributeAppend(attributeAppendEvent)
-    }
 
-    private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
+    private suspend fun handleAttributeReplaceEvent(
+        attributeReplaceEvent: AttributeReplaceEvent
+    ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(attributeReplaceEvent.operationPayload)
 
         // FIXME since the NGSI-LD API still misses a proper API to partially update a list of attributes,
         //  replace events with an observedAt property are considered as observation updates, and not as audit ones
-        handleAttributeUpdate(
+        return handleAttributeUpdate(
             attributeReplaceEvent.sub,
             attributeReplaceEvent.entityId,
             attributeReplaceEvent.entityTypes,
@@ -219,10 +203,12 @@ class EntityEventListenerService(
         )
     }
 
-    private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
+    private suspend fun handleAttributeUpdateEvent(
+        attributeUpdateEvent: AttributeUpdateEvent
+    ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(attributeUpdateEvent.operationPayload)
 
-        handleAttributeUpdate(
+        return handleAttributeUpdate(
             attributeUpdateEvent.sub,
             attributeUpdateEvent.entityId,
             attributeUpdateEvent.entityTypes,
@@ -234,7 +220,7 @@ class EntityEventListenerService(
         )
     }
 
-    private fun handleAttributeUpdate(
+    private suspend fun handleAttributeUpdate(
         sub: String?,
         entityId: URI,
         entityTypes: List<String>,
@@ -243,7 +229,7 @@ class EntityEventListenerService(
         isNewObservation: Boolean,
         updatedEntity: String,
         contexts: List<String>
-    ) {
+    ): Either<APIException, Unit> {
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
         val fullAttributeInstance = extractAttributeInstanceFromCompactedEntity(
             compactedJsonLdEntity,
@@ -251,30 +237,31 @@ class EntityEventListenerService(
             datasetId
         )
 
-        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(fullAttributeInstance)) {
-            is Invalid -> {
-                logger.info(extractedAttributeMetadata.value)
-                return
-            }
-            is Valid -> {
-                val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
-                temporalEntityAttributeService.getForEntityAndAttribute(
-                    entityId, expandedAttributeName, attributeMetadata.datasetId
-                ).switchIfEmpty {
-                    // in case of an existing attribute not handled previously by search service (not using observedAt)
-                    // we transparently create the temporal entity attribute
-                    val temporalEntityAttribute = TemporalEntityAttribute(
-                        entityId = entityId,
-                        types = expandJsonLdTerms(entityTypes, contexts),
-                        attributeName = expandedAttributeName,
-                        attributeType = attributeMetadata.type,
-                        attributeValueType = attributeMetadata.valueType,
-                        datasetId = attributeMetadata.datasetId
-                    )
-                    temporalEntityAttributeService.create(temporalEntityAttribute)
-                        .map { temporalEntityAttribute.id }
-                }.flatMap {
+        return either {
+            when (val extractedAttributeMetadata = toTemporalAttributeMetadata(fullAttributeInstance)) {
+                is Invalid -> {
+                    logger.info(extractedAttributeMetadata.value)
+                    extractedAttributeMetadata.value.right().bind()
+                }
+                is Valid -> {
+                    val attributeMetadata = extractedAttributeMetadata.value
+                    val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
+                    val existingTeaUuid = temporalEntityAttributeService.getForEntityAndAttribute(
+                        entityId, expandedAttributeName, attributeMetadata.datasetId
+                    ).getOrHandle {
+                        // in case of an existing attribute not handled previously by search service
+                        // (not using observedAt), we transparently create the temporal entity attribute
+                        val temporalEntityAttribute = TemporalEntityAttribute(
+                            entityId = entityId,
+                            types = expandJsonLdTerms(entityTypes, contexts),
+                            attributeName = expandedAttributeName,
+                            attributeType = attributeMetadata.type,
+                            attributeValueType = attributeMetadata.valueType,
+                            datasetId = attributeMetadata.datasetId
+                        )
+                        temporalEntityAttributeService.create(temporalEntityAttribute)
+                            .map { temporalEntityAttribute.id }.bind()
+                    }
                     val timeAndProperty =
                         if (isNewObservation)
                             Pair(attributeMetadata.observedAt!!, TemporalProperty.OBSERVED_AT)
@@ -283,7 +270,7 @@ class EntityEventListenerService(
                         // in case of an attribute replace
                         else Pair(attributeMetadata.createdAt, TemporalProperty.MODIFIED_AT)
                     val attributeInstance = AttributeInstance(
-                        temporalEntityAttribute = it,
+                        temporalEntityAttribute = existingTeaUuid,
                         timeProperty = timeAndProperty.second,
                         time = timeAndProperty.first,
                         value = attributeMetadata.value,
@@ -291,23 +278,14 @@ class EntityEventListenerService(
                         payload = fullAttributeInstance,
                         sub = sub
                     )
-                    attributeInstanceService.create(attributeInstance)
-                }.flatMap {
-                    entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
-                }.subscribe(
-                    { logger.debug("Created new attribute instance of $expandedAttributeName for $entityId") },
-                    {
-                        logger.warn(
-                            "Failed to persist new attribute instance $expandedAttributeName " +
-                                "for $entityId, ignoring it (${it.message})"
-                        )
-                    }
-                )
+                    attributeInstanceService.create(attributeInstance).bind()
+                    entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity)).bind()
+                }
             }
         }
     }
 
-    private fun handleAttributeAppend(attributeAppendEvent: AttributeAppendEvent) {
+    private suspend fun handleAttributeAppend(attributeAppendEvent: AttributeAppendEvent): Either<APIException, Unit> {
         val (sub, entityId, entityTypes, attributeName, datasetId, _, _, updatedEntity, contexts) = attributeAppendEvent
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
         val fullAttributeInstance = extractAttributeInstanceFromCompactedEntity(
@@ -316,57 +294,46 @@ class EntityEventListenerService(
             datasetId
         )
 
-        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(fullAttributeInstance)) {
-            is Invalid -> {
-                logger.info(extractedAttributeMetadata.value)
-                return
-            }
-            is Valid -> {
-                val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
+        return either {
+            when (val extractedAttributeMetadata = toTemporalAttributeMetadata(fullAttributeInstance)) {
+                is Invalid -> {
+                    logger.info(extractedAttributeMetadata.value)
+                    extractedAttributeMetadata.value.right().bind()
+                }
+                is Valid -> {
+                    val attributeMetadata = extractedAttributeMetadata.value
+                    val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)
 
-                val temporalEntityAttribute = TemporalEntityAttribute(
-                    entityId = entityId,
-                    types = expandJsonLdTerms(entityTypes, contexts),
-                    attributeName = expandedAttributeName,
-                    attributeType = attributeMetadata.type,
-                    attributeValueType = attributeMetadata.valueType,
-                    datasetId = attributeMetadata.datasetId
-                )
-                val attributeInstance = AttributeInstance(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
-                    timeProperty = TemporalProperty.CREATED_AT,
-                    time = attributeMetadata.createdAt,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    payload = fullAttributeInstance,
-                    sub = sub
-                )
+                    val temporalEntityAttribute = TemporalEntityAttribute(
+                        entityId = entityId,
+                        types = expandJsonLdTerms(entityTypes, contexts),
+                        attributeName = expandedAttributeName,
+                        attributeType = attributeMetadata.type,
+                        attributeValueType = attributeMetadata.valueType,
+                        datasetId = attributeMetadata.datasetId
+                    )
+                    val attributeInstance = AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
+                        timeProperty = TemporalProperty.CREATED_AT,
+                        time = attributeMetadata.createdAt,
+                        measuredValue = attributeMetadata.measuredValue,
+                        value = attributeMetadata.value,
+                        payload = fullAttributeInstance,
+                        sub = sub
+                    )
 
-                val attributeObservedAtInstanceMono =
+                    temporalEntityAttributeService.create(temporalEntityAttribute).bind()
+                    attributeInstanceService.create(attributeInstance).bind()
                     if (attributeMetadata.observedAt != null) {
                         val attributeObservedAtInstance = attributeInstance.copy(
                             time = attributeMetadata.observedAt,
                             timeProperty = TemporalProperty.OBSERVED_AT
                         )
                         attributeInstanceService.create(attributeObservedAtInstance)
-                    } else Mono.just(1)
+                    }
 
-                temporalEntityAttributeService.create(temporalEntityAttribute)
-                    .then(attributeInstanceService.create(attributeInstance))
-                    .then(attributeObservedAtInstanceMono)
-                    .then(entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity)))
-                    .subscribe(
-                        {
-                            logger.debug("Created temporal entity attribute $expandedAttributeName for $entityId ")
-                        },
-                        {
-                            logger.error(
-                                "Failed to persist new temporal entity attribute for $entityId " +
-                                    "with attribute instance $expandedAttributeName, ignoring it (${it.message})"
-                            )
-                        }
-                    )
+                    entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity)).bind()
+                }
             }
         }
     }

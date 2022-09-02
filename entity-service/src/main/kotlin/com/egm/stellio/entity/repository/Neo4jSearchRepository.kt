@@ -21,20 +21,21 @@ class Neo4jSearchRepository(
         sub: Option<Sub>,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
+        val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
+            .plus(neo4jAuthorizationService.getSubjectUri(sub))
+            .map { it.toString() }
+
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
             QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, contexts)
         else
             QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, contexts)
-
-        val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
-            .plus(neo4jAuthorizationService.getSubjectUri(sub))
-            .map { it.toString() }
 
         val result = neo4jClient
             .query(query)
             .bind(userAndGroupIds).to("userAndGroupIds")
             .fetch()
             .all()
+
         return prepareResults(queryParams.limit, result)
     }
 }

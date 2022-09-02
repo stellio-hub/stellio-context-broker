@@ -11,6 +11,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -21,6 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -95,6 +97,8 @@ class EntityHandlerTests {
             "master/aquac/jsonld-contexts/aquac.jsonld",
         "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
     )
+    private val offset = 0
+    private val limit = 30
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
@@ -586,6 +590,70 @@ class EntityHandlerTests {
                     ]
                 """.trimMargin()
             )
+    }
+
+    @Test
+    fun `get entities should return 200 with geo query`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any<String>()) } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@type" to listOf("Beehive"),
+                        "https://uri.etsi.org/ngsi-ld/location" to mapOf(
+                            JSONLD_TYPE to "GeoProperty",
+                            JsonLdUtils.NGSILD_GEOPROPERTY_VALUE to " Point (2.3 4.5)"
+                        )
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        )
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/entities/?type=Beehive" +
+                    "&geoproperty=location&georel=near;maxDistance==1500&geometry=Point&coordinates=[1.1, 5.4]"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "location": {
+                              "type": "GeoProperty",
+                              "value": {
+                                  "type": "Point",
+                                      "coordinates": [ 2.3, 4.5 ]
+            }
+                            },
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+
+        val geoQuery = GeoQuery(
+            "near;maxDistance==1500",
+            "Point",
+            "[1.1, 5.4]",
+            "$NGSILD_LOCATION_PROPERTY"
+        )
+
+        val queryParams = QueryParams(
+            types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+            offset = offset,
+            limit = limit,
+            geoQuery = geoQuery
+        )
+
+        verify {
+            entityService.searchEntities(queryParams, any(), any<String>())
+        }
     }
 
     @Test

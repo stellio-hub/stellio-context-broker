@@ -275,31 +275,6 @@ class Neo4jRepository(
         return neo4jClient.query(relationshipTypeQuery).bindAll(parameters).run().counters().containsUpdates()
     }
 
-    fun updateTargetOfRelationship(
-        attributeId: URI,
-        relationshipType: String,
-        oldRelationshipObjectId: URI,
-        newRelationshipObjectId: URI
-    ): Int {
-        val relationshipTypeQuery =
-            """
-            MATCH (a:Attribute { id: ${'$'}attributeId })-[v:$relationshipType]
-                ->(e { id: ${'$'}oldRelationshipObjectId })
-            MERGE (target { id: ${'$'}newRelationshipObjectId })
-            ON CREATE SET target:PartialEntity
-            DETACH DELETE v
-            MERGE (a)-[:$relationshipType]->(target)
-            SET a.objectId = ${'$'}newRelationshipObjectId
-            """.trimIndent()
-
-        val parameters = mapOf(
-            "attributeId" to attributeId.toString(),
-            "oldRelationshipObjectId" to oldRelationshipObjectId.toString(),
-            "newRelationshipObjectId" to newRelationshipObjectId.toString()
-        )
-        return neo4jClient.query(relationshipTypeQuery).bindAll(parameters).run().counters().nodesDeleted()
-    }
-
     fun updateGeoPropertyOfEntity(entityId: URI, propertyKey: String, geoProperty: NgsiLdGeoPropertyInstance): Int {
         val query =
             """
@@ -313,6 +288,19 @@ class Neo4jRepository(
     }
 
     fun deleteEntity(entityId: URI): Pair<Int, Int> {
+        // first update incoming relationships to point to a partial entity with the same id as the deleted one
+        val relationshipTypeQuery =
+            """
+            MATCH (r:Relationship)-[relType]->(e { id: ${'$'}entityId })
+            MERGE (target:PartialEntity { id: ${'$'}entityId })
+            WITH relType, target
+            CALL apoc.refactor.to(relType, target)
+            YIELD input, output
+            RETURN input, output
+            """.trimIndent()
+
+        neo4jClient.query(relationshipTypeQuery).bind(entityId.toString()).to("entityId").run()
+
         /**
          * Delete :
          *
@@ -339,9 +327,8 @@ class Neo4jRepository(
             OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
             WITH n, prop, relOfProp, propOfProp, rel, propOfRel
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            WITH n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel            
-            OPTIONAL MATCH (inRel:Relationship)-[]->(n)
-            DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel, inRel
+            WITH n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
+            DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
             """.trimIndent()
 
         val queryStatistics = neo4jClient.query(query).bind(entityId.toString()).to("entityId").run().counters()

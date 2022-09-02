@@ -32,6 +32,14 @@ open class EntityEvent(
 
     @JsonIgnore
     open fun getAttribute(): String? = null
+
+    @JsonIgnore
+    fun successfulHandlingMessage(): String =
+        "Successfully handled event ${this.operationType} for resource ${this.entityId}"
+
+    @JsonIgnore
+    fun failedHandlingMessage(throwable: Throwable): String =
+        "Error while handling event ${this.operationType} for resource ${this.entityId}: $throwable"
 }
 
 @JsonTypeName("ENTITY_CREATE")
@@ -156,3 +164,5 @@ enum class EventsType {
     ATTRIBUTE_DELETE,
     ATTRIBUTE_DELETE_ALL_INSTANCES
 }
+
+fun unhandledOperationType(operationType: EventsType): String = "Entity event $operationType not handled."

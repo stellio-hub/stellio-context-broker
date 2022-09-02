@@ -8,14 +8,17 @@ import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import reactor.test.StepVerifier
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityService::class])
 @ActiveProfiles("test")
 class EntityServiceTests {
@@ -42,7 +45,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should call the context registry with the correct entityId`() {
+    fun `it should call the context registry with the correct entityId`() = runTest {
         // prepare our stub
         stubFor(
             get(urlMatching("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
@@ -56,10 +59,7 @@ class EntityServiceTests {
         val entity = entityService.getEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), "Bearer 1234")
 
         // verify the steps in getEntityById
-        StepVerifier.create(entity)
-            .expectNextMatches { it.id == "urn:ngsi-ld:BeeHive:TESTC" }
-            .expectComplete()
-            .verify()
+        assertEquals("urn:ngsi-ld:BeeHive:TESTC", entity.id)
 
         // ensure external components and services have been called as expected
         verify(

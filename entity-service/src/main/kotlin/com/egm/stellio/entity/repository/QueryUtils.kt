@@ -2,6 +2,7 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -9,8 +10,11 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.extractGeorelParams
+import com.egm.stellio.shared.util.isSupportedGeoQuery
 import com.egm.stellio.shared.util.qPattern
 import java.net.URI
+import java.util.regex.Pattern
 
 object QueryUtils {
 
@@ -28,6 +32,14 @@ object QueryUtils {
             .filter { it.isNotEmpty() }
             .joinToString(separator = " AND ", prefix = " AND ")
             .takeIf { it.trim() != "AND" } ?: ""
+
+        val finalFilter =
+            if (isSupportedGeoQuery(queryParams.geoQuery)) {
+                """
+                $finalFilterClause 
+                ${buildGeoQueryFilter(queryParams.geoQuery)}                
+                """.trimIndent()
+            } else finalFilterClause
 
         val matchAuthorizedEntitiesClause =
             """
@@ -49,7 +61,7 @@ object QueryUtils {
             WITH entitiesIds
             MATCH (entity)
             WHERE id(entity) IN entitiesIds
-            $finalFilterClause
+            $finalFilter
             """.trimIndent()
 
         val pagingClause = if (queryParams.limit == 0)
@@ -68,7 +80,7 @@ object QueryUtils {
         return """
             $matchAuthorizedEntitiesClause
             $pagingClause
-            """
+        """.trimIndent()
     }
 
     fun prepareQueryForEntitiesWithoutAuthentication(
@@ -88,6 +100,19 @@ object QueryUtils {
             .joinToString(separator = " AND ", prefix = " WHERE ")
             .takeIf { it.trim() != "WHERE" } ?: ""
 
+        val finalFilter =
+            if (isSupportedGeoQuery(queryParams.geoQuery)) {
+                if (finalFilterClause.contains("WHERE")) {
+                    """
+                    $finalFilterClause
+                    ${buildGeoQueryFilter(queryParams.geoQuery)}
+                    """.trimIndent()
+                } else """
+                    $finalFilterClause
+                    ${buildGeoQueryFilter(queryParams.geoQuery, "WHERE")}                    
+                """.trimIndent()
+            } else finalFilterClause
+
         val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity) as count
@@ -103,9 +128,9 @@ object QueryUtils {
 
         return """
             $matchEntityClause
-            $finalFilterClause
+            $finalFilter
             $pagingClause
-            """
+        """.trimIndent()
     }
 
     fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =
@@ -126,9 +151,28 @@ object QueryUtils {
             " entity.id =~ '$idPattern' "
         else ""
 
-    private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
-        rawQuery.replace(qPattern.toRegex()) { matchResult ->
-            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
+    private val innerRegexPattern: Pattern = Pattern.compile(".*(=~\"\\(\\?i\\)).*")
+
+    private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String {
+        // Quick hack to allow inline options for regex expressions
+        // (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
+        // When matched, parenthesis are replaced by special characters that are later restored after the main
+        // qPattern regex has been processed
+        val rawQueryWithPatternEscaped =
+            if (rawQuery.matches(innerRegexPattern.toRegex())) {
+                rawQuery.replace(innerRegexPattern.toRegex()) { matchResult ->
+                    matchResult.value
+                        .replace("(", "##")
+                        .replace(")", "//")
+                }
+            } else rawQuery
+
+        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
+            // restoring the eventual inline options for regex expressions (replaced above)
+            val fixedValue = matchResult.value
+                .replace("##", "(")
+                .replace("//", ")")
+            val parsedQueryTerm = extractComparisonParametersFromQuery(fixedValue)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
@@ -165,6 +209,7 @@ object QueryUtils {
         }
             .replace(";", " AND ")
             .replace("|", " OR ")
+    }
 
     private fun buildInnerAttrFilterQuery(attrs: Set<ExpandedTerm>): String =
         attrs.joinToString(
@@ -180,4 +225,24 @@ object QueryUtils {
                }
             """.trimIndent()
         }
+
+    private fun buildGeoQueryFilter(geoQuery: GeoQuery, prefix: String = "AND"): String {
+        val coordinates = geoQuery.coordinates.toString().split("[\\[,\\]]".toRegex())
+        val georelParams = extractGeorelParams(geoQuery.georel!!)
+        return """
+                $prefix entity.location CONTAINS '${geoQuery.geometry!!.uppercase()}'
+                AND point.distance(
+                     point({
+                        longitude:toFloat(apoc.text.regexGroups(entity.location,'([\\-\\d\\.]+) ([\\-\\d\\.]+)')[0][1]),
+                        latitude:toFloat(apoc.text.regexGroups(entity.location,'([\\-\\d\\.]+) ([\\-\\d\\.]+)')[0][2]),
+                        crs:'wgs-84'
+                     }),
+                     point({
+                        longitude: ${coordinates[1].toFloat()},
+                        latitude: ${coordinates[2].toFloat()},                         
+                        crs: 'wgs-84'
+                     })
+                ) ${georelParams.second} ${georelParams.third}
+        """.trimIndent()
+    }
 }

@@ -1,22 +1,29 @@
 package com.egm.stellio.search.service
 
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
 class EntityEventListenerServiceTest {
@@ -111,17 +118,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ENTITY_CREATE event`() {
+    fun `it should handle an ENTITY_CREATE event`() = runTest {
         val entityCreateEventPayload = loadSampleData("events/entity/entityCreateEvent.json")
 
-        every {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any())
-        } answers { Mono.just(1) }
-        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any<String>(), any(), any())
+        } returns Unit.right()
+        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityCreateEventPayload)
+        entityEventListenerService.dispatchMessage(entityCreateEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.createEntityTemporalReferences(
                 match {
                     it.contains(expectedEntityId)
@@ -138,18 +145,18 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ENTITY_REPLACE event`() {
+    fun `it should handle an ENTITY_REPLACE event`() = runTest {
         val entityCreateEventPayload = loadSampleData("events/entity/entityReplaceEvent.json")
 
-        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(1) }
-        every {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any())
-        } answers { Mono.just(1) }
-        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any<String>(), any(), any())
+        } returns Unit.right()
+        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityCreateEventPayload)
+        entityEventListenerService.dispatchMessage(entityCreateEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(expectedEntityId.toUri())
             temporalEntityAttributeService.createEntityTemporalReferences(
                 match {
@@ -163,15 +170,15 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ENTITY_DELETE event`() {
+    fun `it should handle an ENTITY_DELETE event`() = runTest {
         val entityDeleteEventPayload = loadSampleData("events/entity/entityDeleteEvent.json")
 
-        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(10) }
-        every { entityAccessRightsService.removeRolesOnEntity(any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(entityDeleteEventPayload)
+        entityEventListenerService.dispatchMessage(entityDeleteEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(expectedEntityId.toUri()))
             entityAccessRightsService.removeRolesOnEntity(eq(expectedEntityId.toUri()))
         }
@@ -179,17 +186,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_DELETE event`() {
+    fun `it should handle an ATTRIBUTE_DELETE event`() = runTest {
         val attributeDeleteEventPayload = loadSampleData("events/entity/attributeDeleteEvent.json")
 
-        every {
+        coEvery {
             temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
-        } answers { Mono.just(4) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeDeleteEventPayload)
+        entityEventListenerService.dispatchMessage(attributeDeleteEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.deleteTemporalAttributeReferences(
                 eq(expectedEntityId.toUri()),
                 eq(NAME_PROPERTY),
@@ -204,17 +211,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_DELETE_ALL_INSTANCES event`() {
+    fun `it should handle an ATTRIBUTE_DELETE_ALL_INSTANCES event`() = runTest {
         val attributeDeleteAllInstancesEvent = loadSampleData("events/entity/attributeDeleteAllInstancesEvent.json")
 
-        every {
+        coEvery {
             temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
-        } answers { Mono.just(8) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeDeleteAllInstancesEvent)
+        entityEventListenerService.dispatchMessage(attributeDeleteAllInstancesEvent)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
                 eq(expectedEntityId.toUri()),
                 eq(TEMPERATURE_PROPERTY)
@@ -228,16 +235,16 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_APPEND event for a text property`() {
+    fun `it should handle an ATTRIBUTE_APPEND event for a text property`() = runTest {
         val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendTextPropEvent.json")
 
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
@@ -266,16 +273,16 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_APPEND event for a numeric property having an observed date`() {
+    fun `it should handle an ATTRIBUTE_APPEND event for a numeric property having an observed date`() = runTest {
         val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendNumericPropEvent.json")
 
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
@@ -314,17 +321,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_APPEND event for a numeric property having dataset id`() {
+    fun `it should handle an ATTRIBUTE_APPEND event for a numeric property having dataset id`() = runTest {
         val attributeAppendEventPayload =
             loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
@@ -362,16 +369,16 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_APPEND event for a relationship`() {
+    fun `it should handle an ATTRIBUTE_APPEND event for a relationship`() = runTest {
         val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendRelEvent.json")
 
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == expectedEntityId.toUri() &&
@@ -400,15 +407,15 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_APPEND event for a type`() {
+    fun `it should handle an ATTRIBUTE_APPEND event for a type`() = runTest {
         val attributeAppendEventPayload = loadSampleData("events/entity/attributeAppendTypeEvent.json")
 
-        every { temporalEntityAttributeService.updateTemporalEntityTypes(any(), any()) } answers { Mono.just(1) }
-        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.updateTemporalEntityTypes(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeAppendEventPayload)
+        entityEventListenerService.dispatchMessage(attributeAppendEventPayload)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.updateTemporalEntityTypes(
                 eq(expectedEntityId.toUri()),
                 match {
@@ -424,16 +431,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property`() {
+    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property`() = runTest {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY
@@ -452,55 +460,58 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property not existing previously`() {
-        val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
+    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property not existing previously`() =
+        runTest {
+            val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
 
-        every {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.empty() }
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+            coEvery {
+                temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
+            } returns ResourceNotFoundException("Attribute does not exist").left()
+            coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+            coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+            coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+            entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
-        verify {
-            temporalEntityAttributeService.create(
-                match {
-                    it.entityId == expectedEntityId.toUri() &&
-                        it.types == listOf(BEEHIVE_TYPE) &&
-                        it.attributeName == TEMPERATURE_PROPERTY &&
-                        it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
-                        it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
-                        it.datasetId == null
-                }
-            )
+            coVerify {
+                temporalEntityAttributeService.create(
+                    match {
+                        it.entityId == expectedEntityId.toUri() &&
+                            it.types == listOf(BEEHIVE_TYPE) &&
+                            it.attributeName == TEMPERATURE_PROPERTY &&
+                            it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
+                            it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
+                            it.datasetId == null
+                    }
+                )
+            }
+            verifyMocksForAttributeUpdateOrReplace(
+                TEMPERATURE_PROPERTY
+            ) {
+                attributeInstanceService.create(
+                    match {
+                        it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                            it.time == ZonedDateTime.parse("2021-11-26T22:35:52.98601Z") &&
+                            it.value == null &&
+                            it.measuredValue == 44.0 &&
+                            it.payload.contains("createdAt")
+                    }
+                )
+            }
         }
-        verifyMocksForAttributeUpdateOrReplace(
-            TEMPERATURE_PROPERTY
-        ) {
-            attributeInstanceService.create(
-                match {
-                    it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
-                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.98601Z") &&
-                        it.value == null &&
-                        it.measuredValue == 44.0 &&
-                        it.payload.contains("createdAt")
-                }
-            )
-        }
-    }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for a text property`() {
+    fun `it should handle an ATTRIBUTE_REPLACE event for a text property`() = runTest {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             NAME_PROPERTY
@@ -519,16 +530,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for a relationship`() {
+    fun `it should handle an ATTRIBUTE_REPLACE event for a relationship`() = runTest {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceRelEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+        entityEventListenerService.dispatchMessage(attributeReplaceEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             MANAGED_BY_RELATIONSHIP
@@ -547,33 +559,34 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should not update entity payload if the creation of the attribute instance has failed`() {
+    fun `it should not update entity payload if the creation of the attribute instance has failed`() = runTest {
         val attributeUpdateEventPayload = loadSampleData("events/entity/attributeUpdateRelEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.error(RuntimeException()) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns InternalErrorException("DB is down").left()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
-        verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) }
-        verify { entityPayloadService.upsertEntityPayload(any(), any()) wasNot Called }
+        coVerify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) }
+        coVerify { entityPayloadService.upsertEntityPayload(any(), any()) wasNot Called }
         confirmVerified(temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_UPDATE event for a numeric property having an observed date`() {
+    fun `it should handle an ATTRIBUTE_UPDATE event for a numeric property having an observed date`() = runTest {
         val attributeUpdateEventPayload = loadSampleData("events/entity/attributeUpdateNumericPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY
@@ -592,17 +605,18 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_UPDATE event for a numeric property having a dataset id`() {
+    fun `it should handle an ATTRIBUTE_UPDATE event for a numeric property having a dataset id`() = runTest {
         val attributeUpdateEventPayload =
             loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             TEMPERATURE_PROPERTY,
@@ -622,16 +636,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_UPDATE event for a relationship`() {
+    fun `it should handle an ATTRIBUTE_UPDATE event for a relationship`() = runTest {
         val attributeUpdateEventPayload = loadSampleData("events/entity/attributeUpdateRelEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             MANAGED_BY_RELATIONSHIP
@@ -650,16 +665,17 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_UPDATE event for a text property`() {
+    fun `it should handle an ATTRIBUTE_UPDATE event for a text property`() = runTest {
         val attributeUpdateEventPayload = loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every {
+        coEvery {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertEntityPayload(any(), any()) } returns Unit.right()
 
-        entityEventListenerService.processMessage(attributeUpdateEventPayload)
+        entityEventListenerService.dispatchMessage(attributeUpdateEventPayload)
 
         verifyMocksForAttributeUpdateOrReplace(
             NAME_PROPERTY,
@@ -680,18 +696,18 @@ class EntityEventListenerServiceTest {
     private fun verifyMocksForAttributeUpdateOrReplace(
         attributeName: ExpandedTerm,
         datasetId: URI? = null,
-        attributeInstanceVerifyBlock: MockKVerificationScope.() -> Unit
+        attributeInstanceVerifyBlock: suspend MockKVerificationScope.() -> Unit
     ) {
-        verify {
+        coVerify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(expectedEntityId.toUri()),
                 eq(attributeName),
                 matchNullable { expected -> expected == datasetId }
             )
         }
-        verify(verifyBlock = attributeInstanceVerifyBlock)
+        coVerify(verifyBlock = attributeInstanceVerifyBlock)
 
-        verify {
+        coVerify {
             entityPayloadService.upsertEntityPayload(
                 expectedEntityId.toUri(),
                 match {

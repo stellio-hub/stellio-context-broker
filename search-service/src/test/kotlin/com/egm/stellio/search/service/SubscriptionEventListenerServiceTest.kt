@@ -1,19 +1,23 @@
 package com.egm.stellio.search.service
 
+import arrow.core.right
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.coEvery
+import io.mockk.coVerify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import reactor.core.publisher.Mono
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     classes = [SubscriptionEventListenerService::class]
@@ -34,15 +38,15 @@ class SubscriptionEventListenerServiceTest {
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @Test
-    fun `it should parse a subscription and create a temporal entity reference`() {
+    fun `it should parse a subscription and create a temporal entity reference`() = runTest {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
-        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
-        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processSubscription(subscriptionEvent)
+        subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.create(
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
@@ -56,19 +60,17 @@ class SubscriptionEventListenerServiceTest {
     }
 
     @Test
-    fun `it should parse a notification and create one related observation`() {
+    fun `it should parse a notification and create one related observation`() = runTest {
         val temporalEntityAttributeUuid = UUID.randomUUID()
         val notificationEvent = loadSampleData("events/subscription/notificationCreateEvent.jsonld")
 
-        every {
-            temporalEntityAttributeService.getFirstForEntity(any())
-        } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.getFirstForEntity(any()) } returns temporalEntityAttributeUuid.right()
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processNotification(notificationEvent)
+        subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
 
-        verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
-        verify {
+        coVerify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
+        coVerify {
             attributeInstanceService.create(
                 match {
                     it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
@@ -89,15 +91,15 @@ class SubscriptionEventListenerServiceTest {
     }
 
     @Test
-    fun `it should delete subscription temporal references`() {
+    fun `it should delete subscription temporal references`() = runTest {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionDeleteEvent.jsonld")
 
-        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(10) }
-        every { entityAccessRightsService.removeRolesOnEntity(any()) } answers { Mono.just(1) }
+        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
 
-        subscriptionEventListenerService.processSubscription(subscriptionEvent)
+        subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
-        verify {
+        coVerify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))
             entityAccessRightsService.removeRolesOnEntity(eq("urn:ngsi-ld:Subscription:04".toUri()))
         }

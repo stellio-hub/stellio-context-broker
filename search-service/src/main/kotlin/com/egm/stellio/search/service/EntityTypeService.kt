@@ -13,10 +13,7 @@ import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.typeNotFoundMessage
-import kotlinx.coroutines.reactive.awaitFirst
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
 
@@ -77,7 +74,7 @@ class EntityTypeService(
             .bind("type", expandedType)
             .allToMappedList { it }
 
-        if(result.isEmpty())
+        if (result.isEmpty())
             return ResourceNotFoundException(typeNotFoundMessage(type)).left()
 
         return EntityTypeInfo(

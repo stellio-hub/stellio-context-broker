@@ -45,61 +45,32 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-
-    private val entityPayload1 = EntityPayload(
-        entityId = "urn:ngsi-ld:BeeHive:TESTA".toUri(),
-        types = listOf(BEEHIVE_TYPE),
-        createdAt = now,
-        contexts = listOf(DEVICE_COMPACT_TYPE)
+    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", BEEHIVE_TYPE, DEVICE_COMPACT_TYPE)
+    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", SENSOR_TYPE, DEVICE_COMPACT_TYPE)
+    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", APIARY_TYPE, DEVICE_COMPACT_TYPE)
+    private val temporalEntityAttribute1 = newTemporalEntityAttribute(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        INCOMING_PROPERTY,
+        TemporalEntityAttribute.AttributeType.Property,
+        TemporalEntityAttribute.AttributeValueType.NUMBER
     )
-
-    private val entityPayload2 = EntityPayload(
-        entityId = "urn:ngsi-ld:Sensor:TESTB".toUri(),
-        types = listOf(SENSOR_TYPE),
-        createdAt = now,
-        contexts = listOf(APIC_COMPOUND_CONTEXT)
+    private val temporalEntityAttribute2 = newTemporalEntityAttribute(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        MANAGED_BY_RELATIONSHIP,
+        TemporalEntityAttribute.AttributeType.Relationship,
+        TemporalEntityAttribute.AttributeValueType.STRING
     )
-
-    private val entityPayload3 = EntityPayload(
-        entityId = "urn:ngsi-ld:Apiary:TESTC".toUri(),
-        types = listOf(APIARY_TYPE),
-        createdAt = now,
-        contexts = listOf(APIC_COMPOUND_CONTEXT)
+    private val temporalEntityAttribute3 = newTemporalEntityAttribute(
+        "urn:ngsi-ld:Apiary:TESTC",
+        NGSILD_LOCATION_PROPERTY,
+        TemporalEntityAttribute.AttributeType.GeoProperty,
+        TemporalEntityAttribute.AttributeValueType.GEOMETRY
     )
-
-    private val temporalEntityAttribute1 = TemporalEntityAttribute(
-        entityId = "urn:ngsi-ld:BeeHive:TESTA".toUri(),
-        attributeName = INCOMING_PROPERTY,
-        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
-        createdAt = now,
-        payload = EMPTY_PAYLOAD
-    )
-
-    private val temporalEntityAttribute2 = TemporalEntityAttribute(
-        entityId = "urn:ngsi-ld:BeeHive:TESTA".toUri(),
-        attributeName = MANAGED_BY_RELATIONSHIP,
-        attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
-        createdAt = now,
-        payload = EMPTY_PAYLOAD
-    )
-
-    private val temporalEntityAttribute3 = TemporalEntityAttribute(
-        entityId = "urn:ngsi-ld:Apiary:TESTC".toUri(),
-        attributeName = NGSILD_LOCATION_PROPERTY,
-        attributeType = TemporalEntityAttribute.AttributeType.GeoProperty,
-        attributeValueType = TemporalEntityAttribute.AttributeValueType.GEOMETRY,
-        createdAt = now,
-        payload = EMPTY_PAYLOAD
-    )
-
-    private val temporalEntityAttribute4 = TemporalEntityAttribute(
-        entityId = "urn:ngsi-ld:Sensor:TESTB".toUri(),
-        attributeName = OUTGOING_PROPERTY,
-        attributeType = TemporalEntityAttribute.AttributeType.Property,
-        attributeValueType = TemporalEntityAttribute.AttributeValueType.GEOMETRY,
-        createdAt = now,
-        payload = EMPTY_PAYLOAD
+    private val temporalEntityAttribute4 = newTemporalEntityAttribute(
+        "urn:ngsi-ld:Sensor:TESTB",
+        OUTGOING_PROPERTY,
+        TemporalEntityAttribute.AttributeType.Property,
+        TemporalEntityAttribute.AttributeValueType.GEOMETRY
     )
 
     @AfterEach
@@ -107,11 +78,9 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         r2dbcEntityTemplate.delete(EntityPayload::class.java)
             .all()
             .block()
-
         r2dbcEntityTemplate.delete(AttributeInstance::class.java)
             .all()
             .block()
-
         r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
             .all()
             .block()
@@ -122,7 +91,6 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         createEntityPayload(entityPayload1)
         createEntityPayload(entityPayload2)
         createEntityPayload(entityPayload3)
-
         createTemporalEntityAttribute(temporalEntityAttribute1)
         createTemporalEntityAttribute(temporalEntityAttribute2)
         createTemporalEntityAttribute(temporalEntityAttribute3)
@@ -134,7 +102,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entityTypes = entityTypeService.getEntityTypeList(listOf(APIC_COMPOUND_CONTEXT))
 
         assertTrue(
-            entityTypes.typeList == (listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE))
+            entityTypes.typeList == listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
         )
     }
 
@@ -191,24 +159,26 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         assert(entityTypes.isEmpty())
     }
 
-
     @Test
     fun `it should return an EntityTypeInfo for a specific type`() = runTest {
-        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(BEEHIVE_COMPACT_TYPE, listOf(APIC_COMPOUND_CONTEXT))
+        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(
+            BEEHIVE_COMPACT_TYPE,
+            listOf(APIC_COMPOUND_CONTEXT)
+        )
 
         entityTypeInfo.shouldSucceedWith {
             EntityTypeInfo(
-                id= toUri(BEEHIVE_TYPE),
+                id = toUri(BEEHIVE_TYPE),
                 typeName = BEEHIVE_COMPACT_TYPE,
                 entityCount = 1,
                 attributeDetails = listOf(
                     AttributeInfo(
-                        id= toUri(INCOMING_PROPERTY),
+                        id = toUri(INCOMING_PROPERTY),
                         attributeName = compactTerm(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
                         attributeTypes = listOf(AttributeType.Property)
                     ),
                     AttributeInfo(
-                        id= toUri(MANAGED_BY_RELATIONSHIP),
+                        id = toUri(MANAGED_BY_RELATIONSHIP),
                         attributeName = compactTerm(MANAGED_BY_RELATIONSHIP, listOf(APIC_COMPOUND_CONTEXT)),
                         attributeTypes = listOf(AttributeType.Relationship)
                     )
@@ -216,7 +186,6 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             )
         }
     }
-
 
     @Test
     fun `it should error when type doesn't exist`() = runTest {
@@ -248,6 +217,21 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .execute()
         }
 
+    private fun newTemporalEntityAttribute(
+        id: String,
+        attributeName: String,
+        attributeType: TemporalEntityAttribute.AttributeType,
+        attributeValueType: TemporalEntityAttribute.AttributeValueType
+    ): TemporalEntityAttribute =
+        TemporalEntityAttribute(
+            entityId = toUri(id),
+            attributeName = attributeName,
+            attributeType = attributeType,
+            attributeValueType = attributeValueType,
+            createdAt = now,
+            payload = EMPTY_PAYLOAD
+        )
+
     private fun createEntityPayload(
         entityPayload: EntityPayload
     ): Either<APIException, Unit> =
@@ -262,4 +246,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .bind("types", entityPayload.types.toTypedArray())
                 .execute()
         }
+
+    private fun newEntityPayload(id: String, types: String, contexts: String): EntityPayload =
+        EntityPayload(
+            entityId = toUri(id),
+            types = listOf(types),
+            createdAt = now,
+            contexts = listOf(contexts)
+        )
 }

@@ -101,9 +101,9 @@ class EntityTypeHandlerTests {
     @Test
     fun `get entity types should return a 200 and an EntityTypeList`() {
         coEvery { entityTypeService.getEntityTypeList(any()) } returns
-                EntityTypeList(
-                    typeList = listOf(deadFishesType, sensorType)
-                )
+            EntityTypeList(
+                typeList = listOf(deadFishesType, sensorType)
+            )
 
         webClient.get()
             .uri("/ngsi-ld/v1/types")
@@ -282,8 +282,8 @@ class EntityTypeHandlerTests {
     @Test
     fun `get entity type information should return a 404 if no entities of that type exists`() {
         val expandedType = "https://ontology.eglobalmark.com/apic#BeeHive"
-        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) }returns
-                ResourceNotFoundException(typeNotFoundMessage(expandedType)).left()
+        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
+            ResourceNotFoundException(typeNotFoundMessage(expandedType)).left()
 
         webClient.get()
             .uri("/ngsi-ld/v1/types/Beehive")
@@ -292,8 +292,8 @@ class EntityTypeHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                        "\"title\":\"The referred resource has not been found\"," +
-                        "\"detail\":\"${typeNotFoundMessage(expandedType)}\"}"
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"${typeNotFoundMessage(expandedType)}\"}"
             )
     }
 }

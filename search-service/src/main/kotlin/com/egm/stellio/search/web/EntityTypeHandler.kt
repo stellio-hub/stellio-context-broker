@@ -4,7 +4,6 @@ import arrow.core.computations.ResultEffect.bind
 import arrow.core.continuations.either
 import com.egm.stellio.search.service.EntityTypeService
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import org.springframework.http.HttpHeaders

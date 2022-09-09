@@ -17,8 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,10 +31,10 @@ import java.time.ZoneOffset
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
-    private lateinit var entityTypeService: EntityTypeService
+    private lateinit var attributeService: AttributeService
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
@@ -98,53 +97,51 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return an EntityTypeList`() = runTest {
-        val entityTypes = entityTypeService.getEntityTypeList(listOf(APIC_COMPOUND_CONTEXT))
+    fun `it should return an AttributeList`() = runTest {
+        val attributeNames = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
 
         assertTrue(
-            entityTypes.typeList == listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
+            attributeNames.attributeList == compactTerms(
+                listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, MANAGED_BY_RELATIONSHIP, NGSILD_LOCATION_PROPERTY,),
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
         )
     }
 
     @Test
-    fun `it should return an empty list of types if no entity was found`() = runTest {
+    fun `it should return an empty list of attributes if no attributes was found`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
-        val entityTypes = entityTypeService.getEntityTypeList(listOf(AQUAC_COMPOUND_CONTEXT))
-        assert(entityTypes.typeList.isEmpty())
+        val attributeNames = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
+        assert(attributeNames.attributeList.isEmpty())
     }
 
     @Test
-    fun `it should return a list of EntityType`() = runTest {
-        val entityTypes = entityTypeService.getEntityTypes(listOf(APIC_COMPOUND_CONTEXT))
-
-        assertTrue(entityTypes.size == 3)
+    fun `it should return a list of AttributeDetails`() = runTest {
+        val attributeDetails = attributeService.getAttributeDetails(listOf(APIC_COMPOUND_CONTEXT))
+        assertEquals(4, attributeDetails.size)
         assertTrue(
-            entityTypes.containsAll(
+            attributeDetails.containsAll(
                 listOf(
-                    EntityType(
-                        id = toUri(entityPayload3.types.first()),
-                        typeName = compactTerm(entityPayload3.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute3.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
-                        )
+                    AttributeDetails(
+                        id = INCOMING_PROPERTY.toUri(),
+                        attributeName = compactTerm(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
+                        typeNames = setOf(BEEHIVE_COMPACT_TYPE)
                     ),
-                    EntityType(
-                        id = toUri(entityPayload1.types.first()),
-                        typeName = compactTerm(entityPayload1.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute1.attributeName, temporalEntityAttribute2.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
-                        )
+                    AttributeDetails(
+                        id = NGSILD_LOCATION_PROPERTY.toUri(),
+                        attributeName = compactTerm(NGSILD_LOCATION_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
+                        typeNames = setOf(APIARY_COMPACT_TYPE)
                     ),
-                    EntityType(
-                        id = toUri(entityPayload2.types.first()),
-                        typeName = compactTerm(entityPayload2.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute4.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
-                        )
+                    AttributeDetails(
+                        id = MANAGED_BY_RELATIONSHIP.toUri(),
+                        attributeName = compactTerm(MANAGED_BY_RELATIONSHIP, listOf(APIC_COMPOUND_CONTEXT)),
+                        typeNames = setOf(BEEHIVE_COMPACT_TYPE)
+                    ),
+                    AttributeDetails(
+                        id = OUTGOING_PROPERTY.toUri(),
+                        attributeName = compactTerm(OUTGOING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
+                        typeNames = setOf(SENSOR_COMPACT_TYPE)
                     )
                 )
             )
@@ -152,48 +149,36 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return an empty list of EntityTypes if no entity was found`() = runTest {
+    fun `it should return an empty list of AttributeDetails if no attribute was found`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
-        val entityTypes = entityTypeService.getEntityTypes(listOf(AQUAC_COMPOUND_CONTEXT))
-        assert(entityTypes.isEmpty())
+        val attributeDetails = attributeService.getAttributeDetails(listOf(APIC_COMPOUND_CONTEXT))
+        assertTrue(attributeDetails.isEmpty())
     }
 
     @Test
-    fun `it should return an EntityTypeInfo for a specific type`() = runTest {
-        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(
-            BEEHIVE_TYPE,
-            listOf(APIC_COMPOUND_CONTEXT)
-        )
+    fun `it should return an attribute Information by specific attribute`() = runTest {
+        val attributeTypeInfo =
+            attributeService.getAttributeTypeInfoByAttribute(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
 
-        entityTypeInfo.shouldSucceedWith {
-            EntityTypeInfo(
-                id = toUri(BEEHIVE_TYPE),
-                typeName = BEEHIVE_COMPACT_TYPE,
-                entityCount = 1,
-                attributeDetails = listOf(
-                    AttributeInfo(
-                        id = toUri(INCOMING_PROPERTY),
-                        attributeName = compactTerm(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeTypes = listOf(AttributeType.Property)
-                    ),
-                    AttributeInfo(
-                        id = toUri(MANAGED_BY_RELATIONSHIP),
-                        attributeName = compactTerm(MANAGED_BY_RELATIONSHIP, listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeTypes = listOf(AttributeType.Relationship)
-                    )
-                )
+        attributeTypeInfo.shouldSucceedWith {
+            AttributeTypeInfo(
+                id = toUri(INCOMING_PROPERTY),
+                attributeName = INCOMING_COMPACT_PROPERTY,
+                attributeCount = 1,
+                attributeTypes = setOf(AttributeType.Property),
+                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
             )
         }
     }
 
     @Test
     fun `it should error when type doesn't exist`() = runTest {
-        val entityTypeInfo =
-            entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
+        val attributeTypeInfo =
+            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
 
-        entityTypeInfo.shouldFail {
-            assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
+        attributeTypeInfo.shouldFail {
+            assertEquals(ResourceNotFoundException(attributeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
         }
     }
 

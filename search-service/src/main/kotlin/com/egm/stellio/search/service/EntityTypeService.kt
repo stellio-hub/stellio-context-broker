@@ -9,10 +9,8 @@ import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.typeNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
@@ -21,16 +19,15 @@ import org.springframework.stereotype.Component
 class EntityTypeService(
     private val databaseClient: DatabaseClient
 ) {
-
     suspend fun getEntityTypeList(contexts: List<String>): EntityTypeList {
         val entityTypes = databaseClient.sql(
             """
             SELECT DISTINCT(types) FROM entity_payload
             ORDER BY types
             """.trimIndent()
-        ).allToMappedList { rowToTypes(it) }.flatten()
+        ).allToMappedList { rowToTypes(it) }.flatten().toSet()
 
-        return EntityTypeList(typeList = compactTerms(entityTypes, contexts))
+        return EntityTypeList(typeList = compactTerms(entityTypes.toList(), contexts))
     }
 
     suspend fun getEntityTypes(contexts: List<String>): List<EntityType> {
@@ -49,14 +46,13 @@ class EntityTypeService(
                 typeName = compactTerm(it.first, contexts),
                 attributeNames = compactTerms(it.second, contexts).toSet().sorted()
             )
-        }
+        }.sortedBy { it.typeName }
     }
 
     suspend fun getEntityTypeInfoByType(
-        type: String,
+        expandedType: ExpandedTerm,
         contexts: List<String>
     ): Either<APIException, EntityTypeInfo> {
-        val expandedType = expandJsonLdTerm(type, contexts)
         val result = databaseClient.sql(
             """
             WITH entities AS (
@@ -75,7 +71,7 @@ class EntityTypeService(
             .allToMappedList { it }
 
         if (result.isEmpty())
-            return ResourceNotFoundException(typeNotFoundMessage(type)).left()
+            return ResourceNotFoundException(typeNotFoundMessage(expandedType)).left()
 
         return EntityTypeInfo(
             id = toUri(expandedType),
@@ -85,18 +81,17 @@ class EntityTypeService(
                 AttributeInfo(
                     id = toUri(it["attribute_name"]),
                     attributeName = compactTerm(it["attribute_name"] as ExpandedTerm, contexts),
-                    attributeTypes = listOf(AttributeType.forKey(it["attribute_type"] as String))
+                    attributeTypes = listOf(AttributeType.forKey(it["attribute_type"] as String)).sorted()
                 )
-            }
+            }.sortedBy { it.attributeName }
         ).right()
     }
 
     private fun rowToTypes(row: Map<String, Any>): List<ExpandedTerm> =
-        toList<ExpandedTerm>(row["types"]).filter { !AuthContextModel.IAM_TYPES.plus("Entity").contains(it) }
+        toList(row["types"])
 
-    private fun rowToEntityType(row: Map<String, Any>): List<Pair<String, String>> {
-        val types =
-            toList<ExpandedTerm>(row["types"]).filter { !AuthContextModel.IAM_TYPES.plus("Entity").contains(it) }
+    private fun rowToEntityType(row: Map<String, Any>): List<Pair<ExpandedTerm, ExpandedTerm>> {
+        val types = toList<ExpandedTerm>(row["types"])
         val attributeName = row["attribute_name"] as ExpandedTerm
         return types.map { Pair(it, attributeName) }
     }

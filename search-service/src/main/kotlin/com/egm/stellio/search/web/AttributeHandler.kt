@@ -50,11 +50,11 @@ class AttributeHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val expandedType = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)
+        val expandedAttribute = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)
 
         return either<APIException, ResponseEntity<*>> {
             val attributeTypeInfo =
-                attributeService.getAttributeTypeInfoByAttribute(expandedType, listOf(contextLink)).bind()
+                attributeService.getAttributeTypeInfoByAttribute(expandedAttribute, listOf(contextLink)).bind()
 
             prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(attributeTypeInfo))
         }.fold(

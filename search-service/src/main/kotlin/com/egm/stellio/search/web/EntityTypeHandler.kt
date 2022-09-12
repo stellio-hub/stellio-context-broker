@@ -1,6 +1,5 @@
 package com.egm.stellio.search.web
 
-import arrow.core.computations.ResultEffect.bind
 import arrow.core.continuations.either
 import com.egm.stellio.search.service.EntityTypeService
 import com.egm.stellio.shared.model.APIException

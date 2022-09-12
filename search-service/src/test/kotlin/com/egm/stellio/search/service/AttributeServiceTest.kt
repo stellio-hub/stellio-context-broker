@@ -11,8 +11,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -44,9 +43,13 @@ class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", BEEHIVE_TYPE, DEVICE_COMPACT_TYPE)
-    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", SENSOR_TYPE, DEVICE_COMPACT_TYPE)
-    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", APIARY_TYPE, DEVICE_COMPACT_TYPE)
+    private val entityPayload1 = newEntityPayload(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        listOf(BEEHIVE_TYPE, SENSOR_TYPE),
+        DEVICE_COMPACT_TYPE
+    )
+    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE), DEVICE_COMPACT_TYPE)
+    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE), DEVICE_COMPACT_TYPE)
     private val temporalEntityAttribute1 = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
@@ -99,11 +102,12 @@ class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should return an AttributeList`() = runTest {
         val attributeNames = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
-
         assertTrue(
-            attributeNames.attributeList == compactTerms(
-                listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, MANAGED_BY_RELATIONSHIP, NGSILD_LOCATION_PROPERTY,),
-                listOf(APIC_COMPOUND_CONTEXT)
+            attributeNames.attributeList == listOf(
+                INCOMING_COMPACT_PROPERTY,
+                OUTGOING_COMPACT_PROPERTY,
+                MANAGED_BY_COMPACT_RELATIONSHIP,
+                NGSILD_LOCATION_TERM
             )
         )
     }
@@ -125,23 +129,23 @@ class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
                 listOf(
                     AttributeDetails(
                         id = INCOMING_PROPERTY.toUri(),
-                        attributeName = compactTerm(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
-                        typeNames = setOf(BEEHIVE_COMPACT_TYPE)
-                    ),
-                    AttributeDetails(
-                        id = NGSILD_LOCATION_PROPERTY.toUri(),
-                        attributeName = compactTerm(NGSILD_LOCATION_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
-                        typeNames = setOf(APIARY_COMPACT_TYPE)
-                    ),
-                    AttributeDetails(
-                        id = MANAGED_BY_RELATIONSHIP.toUri(),
-                        attributeName = compactTerm(MANAGED_BY_RELATIONSHIP, listOf(APIC_COMPOUND_CONTEXT)),
-                        typeNames = setOf(BEEHIVE_COMPACT_TYPE)
+                        attributeName = INCOMING_COMPACT_PROPERTY,
+                        typeNames = setOf(BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
                     ),
                     AttributeDetails(
                         id = OUTGOING_PROPERTY.toUri(),
-                        attributeName = compactTerm(OUTGOING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
+                        attributeName = OUTGOING_COMPACT_PROPERTY,
                         typeNames = setOf(SENSOR_COMPACT_TYPE)
+                    ),
+                    AttributeDetails(
+                        id = MANAGED_BY_RELATIONSHIP.toUri(),
+                        attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
+                        typeNames = setOf(BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
+                    ),
+                    AttributeDetails(
+                        id = NGSILD_LOCATION_PROPERTY.toUri(),
+                        attributeName = NGSILD_LOCATION_TERM,
+                        typeNames = setOf(APIARY_COMPACT_TYPE)
                     )
                 )
             )
@@ -233,10 +237,10 @@ class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
                 .execute()
         }
 
-    private fun newEntityPayload(id: String, types: String, contexts: String): EntityPayload =
+    private fun newEntityPayload(id: String, types: List<String>, contexts: String): EntityPayload =
         EntityPayload(
             entityId = toUri(id),
-            types = listOf(types),
+            types = types,
             createdAt = now,
             contexts = listOf(contexts)
         )

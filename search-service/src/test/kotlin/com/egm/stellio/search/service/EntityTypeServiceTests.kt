@@ -11,8 +11,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -45,9 +44,13 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", BEEHIVE_TYPE, DEVICE_COMPACT_TYPE)
-    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", SENSOR_TYPE, DEVICE_COMPACT_TYPE)
-    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", APIARY_TYPE, DEVICE_COMPACT_TYPE)
+    private val entityPayload1 = newEntityPayload(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        listOf(BEEHIVE_TYPE, SENSOR_TYPE),
+        DEVICE_COMPACT_TYPE
+    )
+    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE), DEVICE_COMPACT_TYPE)
+    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE), DEVICE_COMPACT_TYPE)
     private val temporalEntityAttribute1 = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
@@ -123,27 +126,22 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             entityTypes.containsAll(
                 listOf(
                     EntityType(
-                        id = toUri(entityPayload3.types.first()),
-                        typeName = compactTerm(entityPayload3.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute3.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
-                        )
+                        id = toUri(APIARY_TYPE),
+                        typeName = APIARY_COMPACT_TYPE,
+                        attributeNames = listOf(NGSILD_LOCATION_TERM)
                     ),
                     EntityType(
-                        id = toUri(entityPayload1.types.first()),
-                        typeName = compactTerm(entityPayload1.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute1.attributeName, temporalEntityAttribute2.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
-                        )
+                        id = toUri(BEEHIVE_TYPE),
+                        typeName = BEEHIVE_COMPACT_TYPE,
+                        attributeNames = listOf(INCOMING_COMPACT_PROPERTY, MANAGED_BY_COMPACT_RELATIONSHIP)
                     ),
                     EntityType(
-                        id = toUri(entityPayload2.types.first()),
-                        typeName = compactTerm(entityPayload2.types.first(), listOf(APIC_COMPOUND_CONTEXT)),
-                        attributeNames = compactTerms(
-                            listOf(temporalEntityAttribute4.attributeName),
-                            listOf(APIC_COMPOUND_CONTEXT)
+                        id = toUri(SENSOR_TYPE),
+                        typeName = SENSOR_COMPACT_TYPE,
+                        attributeNames = listOf(
+                            INCOMING_COMPACT_PROPERTY,
+                            MANAGED_BY_COMPACT_RELATIONSHIP,
+                            OUTGOING_COMPACT_PROPERTY
                         )
                     )
                 )
@@ -174,12 +172,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 attributeDetails = listOf(
                     AttributeInfo(
                         id = toUri(INCOMING_PROPERTY),
-                        attributeName = compactTerm(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT)),
+                        attributeName = INCOMING_COMPACT_PROPERTY,
                         attributeTypes = listOf(AttributeType.Property)
                     ),
                     AttributeInfo(
                         id = toUri(MANAGED_BY_RELATIONSHIP),
-                        attributeName = compactTerm(MANAGED_BY_RELATIONSHIP, listOf(APIC_COMPOUND_CONTEXT)),
+                        attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
                         attributeTypes = listOf(AttributeType.Relationship)
                     )
                 )
@@ -248,10 +246,10 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .execute()
         }
 
-    private fun newEntityPayload(id: String, types: String, contexts: String): EntityPayload =
+    private fun newEntityPayload(id: String, types: List<String>, contexts: String): EntityPayload =
         EntityPayload(
             entityId = toUri(id),
-            types = listOf(types),
+            types = types,
             createdAt = now,
             contexts = listOf(contexts)
         )

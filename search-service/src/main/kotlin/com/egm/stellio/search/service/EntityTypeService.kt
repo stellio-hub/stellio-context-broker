@@ -1,7 +1,6 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.flatten
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
@@ -22,23 +21,24 @@ class EntityTypeService(
     suspend fun getEntityTypeList(contexts: List<String>): EntityTypeList {
         val entityTypes = databaseClient.sql(
             """
-            SELECT DISTINCT(types) FROM entity_payload
-            ORDER BY types
+            SELECT DISTINCT(unnest(types)) as type
+            FROM entity_payload
+            ORDER BY type
             """.trimIndent()
-        ).allToMappedList { rowToTypes(it) }.flatten().toSet()
+        ).allToMappedList { rowToType(it) }
 
-        return EntityTypeList(typeList = compactTerms(entityTypes.toList(), contexts))
+        return EntityTypeList(typeList = compactTerms(entityTypes, contexts))
     }
 
     suspend fun getEntityTypes(contexts: List<String>): List<EntityType> {
         val result = databaseClient.sql(
             """
-            SELECT types, attribute_name
+            SELECT unnest(types) as type, attribute_name
             FROM entity_payload
             JOIN temporal_entity_attribute ON entity_payload.entity_id = temporal_entity_attribute.entity_id
-            ORDER BY types
+            ORDER BY type
             """.trimIndent()
-        ).allToMappedList { rowToEntityType(it) }.flatten().groupBy({ it.first }, { it.second }).toList()
+        ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()
 
         return result.map {
             EntityType(
@@ -46,11 +46,11 @@ class EntityTypeService(
                 typeName = compactTerm(it.first, contexts),
                 attributeNames = compactTerms(it.second, contexts).toSet().sorted()
             )
-        }.sortedBy { it.typeName }
+        }
     }
 
     suspend fun getEntityTypeInfoByType(
-        expandedType: ExpandedTerm,
+        typeName: ExpandedTerm,
         contexts: List<String>
     ): Either<APIException, EntityTypeInfo> {
         val result = databaseClient.sql(
@@ -58,8 +58,7 @@ class EntityTypeService(
             WITH entities AS (
                 SELECT entity_id 
                 FROM entity_payload 
-                WHERE :type = any (types)
-                ORDER BY entity_id
+                WHERE :type_name = any (types)
             )    
             SELECT attribute_name, attribute_type, count(distinct(entity_id)) as count_entity
             FROM temporal_entity_attribute
@@ -67,16 +66,16 @@ class EntityTypeService(
             GROUP BY attribute_name, attribute_type
             """.trimIndent()
         )
-            .bind("type", expandedType)
+            .bind("type_name", typeName)
             .allToMappedList { it }
 
         if (result.isEmpty())
-            return ResourceNotFoundException(typeNotFoundMessage(expandedType)).left()
+            return ResourceNotFoundException(typeNotFoundMessage(typeName)).left()
 
         return EntityTypeInfo(
-            id = toUri(expandedType),
-            typeName = compactTerm(expandedType, contexts),
-            entityCount = (result.first()["count_entity"] as Long).toInt(),
+            id = toUri(typeName),
+            typeName = compactTerm(typeName, contexts),
+            entityCount = toInt(result.first()["count_entity"]),
             attributeDetails = result.map {
                 AttributeInfo(
                     id = toUri(it["attribute_name"]),
@@ -87,12 +86,12 @@ class EntityTypeService(
         ).right()
     }
 
-    private fun rowToTypes(row: Map<String, Any>): List<ExpandedTerm> =
-        toList(row["types"])
+    private fun rowToType(row: Map<String, Any>): ExpandedTerm =
+        row["type"] as ExpandedTerm
 
-    private fun rowToEntityType(row: Map<String, Any>): List<Pair<ExpandedTerm, ExpandedTerm>> {
-        val types = toList<ExpandedTerm>(row["types"])
+    private fun rowToEntityType(row: Map<String, Any>): Pair<ExpandedTerm, ExpandedTerm> {
+        val type = row["type"] as ExpandedTerm
         val attributeName = row["attribute_name"] as ExpandedTerm
-        return types.map { Pair(it, attributeName) }
+        return Pair(type, attributeName)
     }
 }

@@ -110,7 +110,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
@@ -126,7 +126,7 @@ class EntityHandlerTests {
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
 
         coVerify {
-            authorizationService.checkCreationAuthorized(any(), sub)
+            authorizationService.userCanCreateEntities(sub)
             entityPayloadService.checkEntityExistence(any(), true)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 match {
@@ -152,7 +152,7 @@ class EntityHandlerTests {
     fun `create entity should return a 409 if the entity already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery {
             entityPayloadService.checkEntityExistence(any(), any())
         } returns AlreadyExistsException("Already Exists").left()
@@ -175,7 +175,7 @@ class EntityHandlerTests {
     fun `create entity should return a 500 error if there is an internal server error`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
@@ -247,7 +247,7 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if creation unexpectedly fails`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         coEvery {
@@ -275,7 +275,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         coEvery {
-            authorizationService.checkCreationAuthorized(any(), sub)
+            authorizationService.userCanCreateEntities(sub)
         } returns AccessDeniedException("User forbidden to create entities").left()
 
         webClient.post()
@@ -297,7 +297,7 @@ class EntityHandlerTests {
     private fun mockkDefaultBehaviorForGetEntityById() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery { authorizationService.checkReadAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanReadEntity(beehiveId, sub) } returns Unit.right()
     }
 
     @Test
@@ -869,7 +869,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
-            authorizationService.checkReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), listOf(BEEHIVE_TYPE), sub)
+            authorizationService.userCanReadEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub)
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
 
         webClient.get()
@@ -1160,7 +1160,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(breedingServiceType).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), sub)
+            authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
         every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
     }
@@ -1198,13 +1198,7 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.getTypes(eq(entityId))
-            authorizationService.checkUpdateAuthorized(
-                eq(entityId),
-                eq(listOf(breedingServiceType)),
-                any<List<NgsiLdAttribute>>(),
-                eq(sub)
-            )
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             temporalEntityAttributeService.appendEntityAttributes(
                 eq(entityId),
                 any(),
@@ -1266,7 +1260,6 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.getTypes(eq(entityId))
             temporalEntityAttributeService.appendEntityAttributes(
                 eq(entityId),
                 any(),
@@ -1315,7 +1308,6 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.getTypes(eq(entityId))
             entityPayloadService.updateTypes(
                 eq(entityId),
                 listOf(breedingServiceType, deadFishesType)
@@ -1462,7 +1454,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(breedingServiceType).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(entityId, any(), any<List<NgsiLdAttribute>>(), sub)
+            authorizationService.userCanUpdateEntity(entityId, sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:BreedingService:0214").left()
 
         webClient.post()
@@ -1488,9 +1480,7 @@ class EntityHandlerTests {
     private fun mockkDefaultBehaviorForPartialUpdateAttribute() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
     @Test
@@ -1521,13 +1511,7 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.getTypes(eq(entityId))
-            authorizationService.checkUpdateAuthorized(
-                eq(entityId),
-                eq(listOf(deadFishesType)),
-                eq(fishNumberAttribute),
-                eq(sub)
-            )
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             temporalEntityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), sub.orNull())
         }
         verify {
@@ -1679,7 +1663,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
+            authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
 
         webClient.patch()
@@ -1699,22 +1683,13 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify {
-            authorizationService.checkUpdateAuthorized(
-                eq(entityId),
-                eq(listOf(deadFishesType)),
-                eq(fishNumberAttribute),
-                sub
-            )
-        }
+        coVerify { authorizationService.userCanUpdateEntity(eq(entityId), sub) }
     }
 
     private fun mockkDefaultBehaviorForUpdateAttribute() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
     @Test
@@ -1751,13 +1726,7 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.getTypes(eq(entityId))
-            authorizationService.checkUpdateAuthorized(
-                eq(entityId),
-                eq(listOf(deadFishesType)),
-                any<List<NgsiLdAttribute>>(),
-                eq(sub)
-            )
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             temporalEntityAttributeService.updateEntityAttributes(eq(entityId), any(), any(), any())
         }
@@ -1906,7 +1875,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
+            authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC").left()
 
         webClient.patch()
@@ -1935,9 +1904,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
-        coEvery {
-            authorizationService.checkAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub)
-        } returns Unit.right()
+        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
@@ -1951,11 +1918,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
-            authorizationService.checkAdminAuthorized(
-                eq(beehiveId),
-                eq(listOf(BEEHIVE_TYPE)),
-                eq(sub)
-            )
+            authorizationService.userIsAdminOfEntity(eq(beehiveId), eq(sub))
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(beehiveId))
             entityAccessRightsService.removeRolesOnEntity(eq(beehiveId))
         }
@@ -1998,9 +1961,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        coEvery {
-            authorizationService.checkAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub)
-        } returns Unit.right()
+        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.deleteTemporalEntityReferences(any())
         } throws RuntimeException("Unexpected server error")
@@ -2027,7 +1988,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(beehiveId) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            authorizationService.checkAdminAuthorized(beehiveId, any(), sub)
+            authorizationService.userIsAdminOfEntity(beehiveId, sub)
         } returns AccessDeniedException("User forbidden admin access to entity $beehiveId").left()
 
         webClient.delete()
@@ -2049,9 +2010,7 @@ class EntityHandlerTests {
     private fun mockkDefaultBehaviorForDeleteAttribute() {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
     }
 
@@ -2072,13 +2031,7 @@ class EntityHandlerTests {
 
         coVerify {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(beehiveId), eq(TEMPERATURE_PROPERTY))
-            entityPayloadService.getTypes(eq(beehiveId))
-            authorizationService.checkUpdateAuthorized(
-                eq(beehiveId),
-                eq(listOf(BEEHIVE_TYPE)),
-                eq(TEMPERATURE_PROPERTY),
-                eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
-            )
+            authorizationService.userCanUpdateEntity(eq(beehiveId), eq(sub))
             temporalEntityAttributeService.deleteTemporalAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
@@ -2244,7 +2197,7 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
+            authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $beehiveId").left()
 
         webClient.method(HttpMethod.DELETE)

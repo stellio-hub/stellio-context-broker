@@ -55,7 +55,7 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
-            authorizationService.checkCreationAuthorized(ngsiLdEntity, sub).bind()
+            authorizationService.userCanCreateEntities(sub).bind()
             entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
             temporalEntityAttributeService.createEntityTemporalReferences(
                 ngsiLdEntity, jsonLdEntity, attributesMetadata, sub.orNull()
@@ -164,8 +164,7 @@ class EntityHandler(
         return either<APIException, ResponseEntity<*>> {
             entityPayloadService.checkEntityExistence(entityUri).bind()
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-            authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
+            authorizationService.userCanReadEntity(entityUri, sub).bind()
 
             val jsonLdEntity =
                 queryService.queryEntity(entityUri, listOf(contextLink), queryParams.includeSysAttrs).bind()
@@ -205,7 +204,7 @@ class EntityHandler(
             entityPayloadService.checkEntityExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
-            authorizationService.checkAdminAuthorized(entityUri, entity.types, sub).bind()
+            authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalEntityReferences(entityUri).bind()
 
@@ -244,8 +243,7 @@ class EntityHandler(
             val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
             val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, ngsiLdAttributes, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             val updateResult = entityPayloadService.updateTypes(
                 entityUri,
@@ -305,8 +303,7 @@ class EntityHandler(
         return either<APIException, ResponseEntity<*>> {
             entityPayloadService.checkEntityExistence(entityUri).bind()
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, ngsiLdAttributes, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             val updateResult = entityPayloadService.updateTypes(
                 entityUri,
@@ -366,8 +363,7 @@ class EntityHandler(
             val expandedPayload = expandJsonLdFragment(body, contexts)
             val expandedAttrId = expandedPayload.keys.first()
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             when (expandedAttrId) {
                 JsonLdUtils.JSONLD_TYPE ->
@@ -427,8 +423,7 @@ class EntityHandler(
                 entityUri, expandedAttrId, datasetId
             ).bind()
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalAttribute(
                 entityUri, expandedAttrId, datasetId, deleteAll

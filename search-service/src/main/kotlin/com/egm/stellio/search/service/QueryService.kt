@@ -6,7 +6,10 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.addSpecificAccessPolicy
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -166,7 +169,7 @@ class QueryService(
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean
     ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> =
-        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+    // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
         temporalEntityAttributes
             .groupBy {
@@ -216,6 +219,7 @@ class QueryService(
             }
             .plus(JSONLD_ID to entityPayload.entityId.toString())
             .plus(JSONLD_TYPE to entityPayload.types)
+            .addSpecificAccessPolicy(entityPayload.specificAccessPolicy)
             .addSysAttrs(withSysAttrs, entityPayload.createdAt, entityPayload.modifiedAt)
 
         return JsonLdEntity(expandedAttributes, contexts)
@@ -234,4 +238,5 @@ class QueryService(
                     else it
                 }
         else this
+
 }

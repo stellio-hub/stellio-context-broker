@@ -49,7 +49,9 @@ class SubscriptionEventListenerServiceTest {
     fun `it should parse a subscription and create a temporal entity reference`() = runTest {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
-        coEvery { entityPayloadService.createEntityPayload(any(), any(), any(), any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.createEntityPayload(any(), any(), any(), any(), any(), any())
+        } returns Unit.right()
         coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 

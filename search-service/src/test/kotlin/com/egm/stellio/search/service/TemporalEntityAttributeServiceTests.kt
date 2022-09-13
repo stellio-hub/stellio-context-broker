@@ -212,47 +212,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should set a specific access policy for a temporal entity`() = runTest {
-        val rawEntity = loadSampleData()
-
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
-
-        temporalEntityAttributeService.updateSpecificAccessPolicy(
-            beehiveTestCId,
-            SpecificAccessPolicy.AUTH_READ
-        ).shouldSucceed()
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestCId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertTrue(it) }
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestDId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertFalse(it) }
-    }
-
-    @Test
-    fun `it should remove a specific access policy from a temporal entity`() = runTest {
-        val rawEntity = loadSampleData()
-
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
-
-        temporalEntityAttributeService.removeSpecificAccessPolicy(beehiveTestCId).shouldSucceed()
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestCId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertFalse(it) }
-    }
-
-    @Test
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() = runTest {
         val rawEntity = loadSampleData()
 
@@ -460,7 +419,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+        entityPayloadService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -505,7 +464,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 secondRawEntity,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
-            temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            entityPayloadService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
             val temporalEntityAttributes =
                 temporalEntityAttributeService.getForEntities(

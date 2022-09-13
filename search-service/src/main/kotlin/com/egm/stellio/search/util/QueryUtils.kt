@@ -7,6 +7,8 @@ import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 import java.util.Optional
@@ -112,3 +114,10 @@ fun buildTimerelAndTime(
     } else {
         "'timerel' and 'time' must be used in conjunction".left()
     }
+
+fun Map<String, Any>.addSpecificAccessPolicy(
+    specificAccessPolicy: SpecificAccessPolicy?
+): Map<String, Any> =
+    if (specificAccessPolicy!=null)
+        this.plus(AUTH_PROP_SAP to specificAccessPolicy)
+    else this

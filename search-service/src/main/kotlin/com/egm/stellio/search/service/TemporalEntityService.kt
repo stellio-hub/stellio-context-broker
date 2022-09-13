@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.addSpecificAccessPolicy
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -48,7 +49,9 @@ class TemporalEntityService {
             "type" to entityPayload.types
                 .map { JsonLdUtils.compactTerm(it, contexts) }
                 .let { if (it.size > 1) it else it.first() }
-        ).plus(temporalAttributes)
+        )
+            .plus(temporalAttributes)
+            .addSpecificAccessPolicy(entityPayload.specificAccessPolicy)
     }
 
     private fun buildTemporalAttributes(

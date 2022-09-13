@@ -8,6 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
@@ -30,21 +31,30 @@ class EntityPayloadService(
         entityId: URI,
         types: List<ExpandedTerm>,
         createdAt: ZonedDateTime,
-        jsonLdEntity: JsonLdEntity
+        jsonLdEntity: JsonLdEntity,
+        specificAccessPolicy: SpecificAccessPolicy? = null
     ): Either<APIException, Unit> =
-        createEntityPayload(entityId, types, createdAt, serializeObject(jsonLdEntity), jsonLdEntity.contexts)
+        createEntityPayload(
+            entityId,
+            types,
+            createdAt,
+            serializeObject(jsonLdEntity),
+            jsonLdEntity.contexts,
+            specificAccessPolicy
+        )
 
     suspend fun createEntityPayload(
         entityId: URI,
         types: List<ExpandedTerm>,
         createdAt: ZonedDateTime,
         entityPayload: String?,
-        contexts: List<String>
+        contexts: List<String>,
+        specificAccessPolicy: SpecificAccessPolicy? = null
     ): Either<APIException, Unit> =
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, created_at, payload, contexts)
-            VALUES (:entity_id, :types, :created_at, :payload, :contexts)
+            INSERT INTO entity_payload (entity_id, types, created_at, payload, contexts, specific_access_policy)
+            VALUES (:entity_id, :types, :created_at, :payload, :contexts, :specific_access_policy)
             """.trimIndent()
         )
             .bind("entity_id", entityId)
@@ -52,6 +62,7 @@ class EntityPayloadService(
             .bind("created_at", createdAt)
             .bind("payload", entityPayload?.let { Json.of(entityPayload) })
             .bind("contexts", contexts.toTypedArray())
+            .bind("specific_access_policy", specificAccessPolicy?.let { it.toString() })
             .execute()
 
     suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
@@ -80,7 +91,8 @@ class EntityPayloadService(
             types = toList(row["types"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            contexts = toList(row["contexts"])
+            contexts = toList(row["contexts"]),
+            specificAccessPolicy = toOptionalSpecificAccessPolicy(row["specific_access_policy"])
         )
 
     suspend fun checkEntityExistence(
@@ -110,6 +122,22 @@ class EntityPayloadService(
                     ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
+
+    suspend fun hasSpecificAccessPolicies(
+        entityId: URI,
+        specificAccessPolicies: List<SpecificAccessPolicy>
+    ): Either<APIException, Boolean> =
+        databaseClient.sql(
+            """
+            SELECT count(entity_id) as count
+            FROM entity_payload
+            WHERE entity_id = :entity_id
+            AND specific_access_policy IN (:specific_access_policies)
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
+            .oneToResult { it["count"] as Long > 0 }
 
     suspend fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
         if (entitiesIds.isEmpty()) {
@@ -205,6 +233,21 @@ class EntityPayloadService(
             .bind("modified_at", modifiedAt)
             .execute()
 
+    suspend fun updateSpecificAccessPolicy(
+        entityId: URI,
+        specificAccessPolicy: SpecificAccessPolicy
+    ): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET specific_access_policy = :specific_access_policy
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policy", specificAccessPolicy.toString())
+            .execute()
+
     @Transactional
     suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
         databaseClient.sql(
@@ -224,6 +267,17 @@ class EntityPayloadService(
         databaseClient.sql(
             """
             DELETE FROM entity_payload WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .execute()
+
+    suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET specific_access_policy = null
+            WHERE entity_id = :entity_id
             """.trimIndent()
         )
             .bind("entity_id", entityId)

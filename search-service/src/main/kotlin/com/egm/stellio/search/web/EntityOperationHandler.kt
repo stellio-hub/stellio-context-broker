@@ -47,7 +47,7 @@ class EntityOperationHandler(
                 expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
             val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
-                authorizationService.checkCreationAuthorized(it, sub).isLeft()
+                authorizationService.userCanCreateEntities(sub).isLeft()
             }
             val batchOperationResult = BatchOperationResult().apply {
                 addEntitiesToErrors(existingEntities, ENTITY_ALREADY_EXISTS_MESSAGE)
@@ -88,7 +88,7 @@ class EntityOperationHandler(
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
             val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
-                authorizationService.checkCreationAuthorized(it, sub).isLeft()
+                authorizationService.userCanCreateEntities(sub).isLeft()
             }
             val batchOperationResult = BatchOperationResult().apply {
                 addEntitiesToErrors(newUnauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
@@ -97,7 +97,7 @@ class EntityOperationHandler(
             doBatchCreation(newAuthorizedEntities, jsonLdEntities, batchOperationResult, sub)
 
             val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
-                existingEntities.partition { authorizationService.checkUpdateAuthorized(it, sub).isLeft() }
+                existingEntities.partition { authorizationService.userCanUpdateEntity(it.id, sub).isLeft() }
             batchOperationResult.addEntitiesToErrors(existingEntitiesUnauthorized, ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
             if (existingEntitiesAuthorized.isNotEmpty()) {
@@ -153,7 +153,7 @@ class EntityOperationHandler(
             val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
             val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
-                existingEntities.partition { authorizationService.checkUpdateAuthorized(it, sub).isLeft() }
+                existingEntities.partition { authorizationService.userCanUpdateEntity(it.id, sub).isLeft() }
 
             val batchOperationResult = BatchOperationResult().apply {
                 addEntitiesToErrors(newEntities, ENTITY_DOES_NOT_EXIST_MESSAGE)
@@ -202,7 +202,7 @@ class EntityOperationHandler(
 
             val (entitiesUserCannotAdmin, entitiesUserCanAdmin) =
                 entitiesBeforeDelete.partition {
-                    authorizationService.checkAdminAuthorized(it.entityId, it.types, sub).isLeft()
+                    authorizationService.userIsAdminOfEntity(it.entityId, sub).isLeft()
                 }
 
             val batchOperationResult = BatchOperationResult().apply {

@@ -79,9 +79,7 @@ class TemporalEntityHandlerTests {
     private fun buildDefaultMockResponsesForAddAttributes() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
     @Test
@@ -274,7 +272,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<Map<String, Any>>(), any())
+            authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.post()
@@ -292,9 +290,7 @@ class TemporalEntityHandlerTests {
     private fun buildDefaultMockResponsesForGetEntity() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery {
-            authorizationService.checkReadAuthorized(any(), any(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
     }
 
     @Test
@@ -349,11 +345,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            authorizationService.checkReadAuthorized(
-                eq(entityUri),
-                any(),
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
-            )
+            authorizationService.userCanReadEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
         }
     }
 
@@ -555,9 +547,7 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        coVerify {
-            authorizationService.checkReadAuthorized(eq(entityUri), any(), any())
-        }
+        coVerify { authorizationService.userCanReadEntity(eq(entityUri), any()) }
     }
 
     @Test
@@ -578,11 +568,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            authorizationService.checkReadAuthorized(
-                eq(entityUri),
-                any(),
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
-            )
+            authorizationService.userCanReadEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
         }
     }
 
@@ -1036,9 +1022,7 @@ class TemporalEntityHandlerTests {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
         } returns Unit.right()
@@ -1056,12 +1040,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
-            authorizationService.checkUpdateAuthorized(
-                eq(entityUri),
-                any(),
-                any<ExpandedTerm>(),
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
-            )
+            authorizationService.userCanUpdateEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
         }
     }
 
@@ -1133,9 +1112,7 @@ class TemporalEntityHandlerTests {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
-        coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
-        } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
         } returns ResourceNotFoundException(instanceNotFoundMessage(attributeInstanceId.toString())).left()
@@ -1161,10 +1138,8 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
-            authorizationService.checkUpdateAuthorized(
+            authorizationService.userCanUpdateEntity(
                 eq(entityUri),
-                any(),
-                any<ExpandedTerm>(),
                 eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }
@@ -1179,7 +1154,7 @@ class TemporalEntityHandlerTests {
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
+            authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient
@@ -1200,10 +1175,8 @@ class TemporalEntityHandlerTests {
 
         coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
         coVerify {
-            authorizationService.checkUpdateAuthorized(
+            authorizationService.userCanUpdateEntity(
                 eq(entityUri),
-                any(),
-                any<ExpandedTerm>(),
                 eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
             )
         }

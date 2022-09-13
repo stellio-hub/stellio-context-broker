@@ -55,14 +55,8 @@ class TemporalEntityHandler(
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
 
-            authorizationService.checkUpdateAuthorized(
-                entityUri,
-                entityTypes,
-                jsonLdAttributes,
-                sub
-            ).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             jsonLdAttributes
                 .forEach { attributeEntry ->
@@ -147,10 +141,7 @@ class TemporalEntityHandler(
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)
 
-            // FIXME this should no longer be needed since users are not entities anymore
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-
-            authorizationService.checkReadAuthorized(entityUri, entityTypes, sub).bind()
+            authorizationService.userCanReadEntity(entityUri, sub).bind()
 
             val temporalEntitiesQuery =
                 parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
@@ -188,9 +179,7 @@ class TemporalEntityHandler(
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
 
-            val entityTypes = entityPayloadService.getTypes(entityUri).bind()
-
-            authorizationService.checkUpdateAuthorized(entityUri, entityTypes, expandedAttrId, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttrId, instanceUri).bind()
 

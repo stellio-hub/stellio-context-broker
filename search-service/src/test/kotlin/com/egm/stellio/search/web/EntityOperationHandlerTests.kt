@@ -130,7 +130,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
             emptyList()
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             entityOperationService.update(any(), any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -159,7 +159,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
             mutableListOf(),
             errors
@@ -202,7 +202,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             entityOperationService.update(any(), any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -227,7 +227,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity),
             listOf(mockedDeviceEntity)
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
             success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
             errors = mutableListOf()
@@ -263,7 +263,7 @@ class EntityOperationHandlerTests {
         coEvery {
             entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities))
         } answers { Pair(emptyList(), capturedExpandedEntities.captured) }
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
@@ -309,7 +309,7 @@ class EntityOperationHandlerTests {
                 listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity)
             )
         }
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
@@ -357,7 +357,7 @@ class EntityOperationHandlerTests {
             entityOperationService.splitEntitiesByExistence(any())
         } returns Pair(emptyList(), listOf(mockedDeviceEntity))
         coEvery {
-            authorizationService.checkCreationAuthorized(any(), sub)
+            authorizationService.userCanCreateEntities(sub)
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
 
         webClient.post()
@@ -424,12 +424,12 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
             listOf(mockedTemperatureSensorEntity)
         )
-        coEvery { authorizationService.checkCreationAuthorized(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
         every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
@@ -470,7 +470,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             entityOperationService.update(any(), any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -498,14 +498,14 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
             listOf(mockedDeviceEntity)
         )
-        coEvery { authorizationService.checkCreationAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
             arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
             arrayListOf()
         )
         coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
 
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
@@ -547,7 +547,7 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.checkUpdateAuthorized(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
@@ -582,7 +582,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity)
         )
         coEvery {
-            authorizationService.checkCreationAuthorized(any(), sub)
+            authorizationService.userCanCreateEntities(sub)
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
 
         webClient.post()
@@ -617,16 +617,10 @@ class EntityOperationHandlerTests {
             emptyList()
         )
         coEvery {
-            authorizationService.checkUpdateAuthorized(
-                match { it.id == temperatureSensorUri },
-                sub
-            )
+            authorizationService.userCanUpdateEntity(match { it == temperatureSensorUri }, sub)
         } returns Unit.right()
         coEvery {
-            authorizationService.checkUpdateAuthorized(
-                match { it.id == dissolvedOxygenSensorUri },
-                sub
-            )
+            authorizationService.userCanUpdateEntity(match { it == dissolvedOxygenSensorUri }, sub)
         } returns AccessDeniedException(ENTITY_UPDATE_FORBIDDEN_MESSAGE).left()
         coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(temperatureSensorUri)),
@@ -694,7 +688,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(allEntitiesUris, emptyList())
         }
-        coEvery { authorizationService.checkAdminAuthorized(any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
         coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
                 allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
@@ -743,7 +737,7 @@ class EntityOperationHandlerTests {
             Pair(emptyList(), allEntitiesUris)
         }
         coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns emptyList()
-        coEvery { authorizationService.checkAdminAuthorized(any(), any(), any()) } answers { Unit.right() }
+        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } answers { Unit.right() }
 
         performBatchDeleteAndCheck207Response(ENTITY_DOES_NOT_EXIST_MESSAGE)
 
@@ -774,7 +768,7 @@ class EntityOperationHandlerTests {
                 }
             )
         coEvery {
-            authorizationService.checkAdminAuthorized(any(), any(), any())
+            authorizationService.userIsAdminOfEntity(any(), any())
         } returns AccessDeniedException(ENTITY_DELETE_FORBIDDEN_MESSAGE).left()
 
         performBatchDeleteAndCheck207Response(ENTITY_DELETE_FORBIDDEN_MESSAGE)

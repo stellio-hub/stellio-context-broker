@@ -92,7 +92,7 @@ class EntityPayloadService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"]),
-            specificAccessPolicy = toOptionalSpecificAccessPolicy(row["specific_access_policy"])
+            specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )
 
     suspend fun checkEntityExistence(

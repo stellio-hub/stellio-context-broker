@@ -9,7 +9,6 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
@@ -39,9 +38,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
-
-    @Autowired
-    private lateinit var entityPayloadService: EntityPayloadService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -419,7 +415,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        entityPayloadService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -464,7 +459,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 secondRawEntity,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
-            entityPayloadService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
             val temporalEntityAttributes =
                 temporalEntityAttributeService.getForEntities(

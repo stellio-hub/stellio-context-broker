@@ -118,6 +118,6 @@ fun buildTimerelAndTime(
 fun Map<String, Any>.addSpecificAccessPolicy(
     specificAccessPolicy: SpecificAccessPolicy?
 ): Map<String, Any> =
-    if (specificAccessPolicy!=null)
+    if (specificAccessPolicy != null)
         this.plus(AUTH_PROP_SAP to specificAccessPolicy)
     else this

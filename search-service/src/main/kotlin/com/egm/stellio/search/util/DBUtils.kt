@@ -5,7 +5,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.flow.Flow
@@ -72,5 +71,5 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
-fun toOptionalSpecificAccessPolicy(entry: Any?): SpecificAccessPolicy? =
-    (entry as? String)?.let { SpecificAccessPolicy.valueOf(it) }
+inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
+    (entry as? String)?.let { enumValueOf<T>(it) }

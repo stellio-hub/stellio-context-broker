@@ -71,3 +71,4 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
+fun toInt(entry: Any?): Int = (entry as Long).toInt()

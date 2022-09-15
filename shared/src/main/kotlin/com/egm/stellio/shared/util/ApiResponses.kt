@@ -11,6 +11,8 @@ import org.springframework.util.MultiValueMap
 
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
 
+fun typeNotFoundMessage(type: String) = "Type $type was not found"
+
 fun attributeNotFoundMessage(attributeName: String) = "Attribute $attributeName was not found"
 
 fun instanceNotFoundMessage(instanceId: String) = "Instance $instanceId was not found"

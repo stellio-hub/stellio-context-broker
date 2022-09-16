@@ -40,7 +40,6 @@ class TemporalEntityService {
             withTemporalValues,
             withAudit
         )
-
         return entityPayload.serializeProperties(false, true, contexts)
             .plus(temporalAttributes)
     }

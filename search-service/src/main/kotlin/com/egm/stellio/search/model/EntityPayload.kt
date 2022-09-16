@@ -8,8 +8,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.toExpandedDateTime
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -38,21 +39,31 @@ data class EntityPayload(
                 types.map { compactTerm(it, contexts) }
                     .let { if (it.size > 1) it else it.first() }
             specificAccessPolicy?.run {
-                resultEntity[AuthContextModel.AUTH_TERM_SAP] = specificAccessPolicy
+                resultEntity[AuthContextModel.AUTH_TERM_SAP] = mapOf(
+                    JSONLD_TYPE_TERM to "Property",
+                    JSONLD_VALUE to this
+                )
             }
         } else {
             resultEntity[JSONLD_ID] = entityId.toString()
             resultEntity[JSONLD_TYPE] = types
             specificAccessPolicy?.run {
-                resultEntity[AuthContextModel.AUTH_PROP_SAP] = specificAccessPolicy
+                resultEntity[AuthContextModel.AUTH_PROP_SAP] = mapOf(
+                    JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE,
+                    JsonLdUtils.JSONLD_VALUE_KW to this
+                )
             }
             if (withSysAttrs) {
-                resultEntity[JsonLdUtils.NGSILD_CREATED_AT_PROPERTY] =
-                    createdAt.toExpandedDateTime(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY)
+                resultEntity[JsonLdUtils.NGSILD_CREATED_AT_PROPERTY] = mapOf(
+                    JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                    JsonLdUtils.JSONLD_VALUE_KW to createdAt.toNgsiLdFormat()
+                )
 
                 modifiedAt?.run {
-                    resultEntity[JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY] =
-                        modifiedAt.toExpandedDateTime(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY)
+                    resultEntity[JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                        JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                        JsonLdUtils.JSONLD_VALUE_KW to this.toNgsiLdFormat()
+                    )
                 }
             }
         }

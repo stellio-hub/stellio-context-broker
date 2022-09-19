@@ -9,7 +9,6 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
@@ -39,9 +38,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
-
-    @Autowired
-    private lateinit var entityPayloadService: EntityPayloadService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -209,47 +205,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val teas = temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri(), emptySet())
         assertTrue(teas.isEmpty())
-    }
-
-    @Test
-    fun `it should set a specific access policy for a temporal entity`() = runTest {
-        val rawEntity = loadSampleData()
-
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
-
-        temporalEntityAttributeService.updateSpecificAccessPolicy(
-            beehiveTestCId,
-            SpecificAccessPolicy.AUTH_READ
-        ).shouldSucceed()
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestCId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertTrue(it) }
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestDId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertFalse(it) }
-    }
-
-    @Test
-    fun `it should remove a specific access policy from a temporal entity`() = runTest {
-        val rawEntity = loadSampleData()
-
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
-
-        temporalEntityAttributeService.removeSpecificAccessPolicy(beehiveTestCId).shouldSucceed()
-
-        temporalEntityAttributeService.hasSpecificAccessPolicies(
-            beehiveTestCId,
-            listOf(SpecificAccessPolicy.AUTH_READ)
-        ).shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
@@ -460,7 +415,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -505,7 +459,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 secondRawEntity,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
-            temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
 
             val temporalEntityAttributes =
                 temporalEntityAttributeService.getForEntities(

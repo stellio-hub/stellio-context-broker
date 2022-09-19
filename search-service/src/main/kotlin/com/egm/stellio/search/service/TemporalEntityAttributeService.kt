@@ -10,7 +10,6 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -171,48 +170,6 @@ class TemporalEntityAttributeService(
             .bind("payload", Json.of(payload))
             .bind("modified_at", modifiedAt)
             .execute()
-
-    suspend fun updateSpecificAccessPolicy(
-        entityId: URI,
-        specificAccessPolicy: SpecificAccessPolicy
-    ): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET specific_access_policy = :specific_access_policy
-            WHERE entity_id = :entity_id
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("specific_access_policy", specificAccessPolicy.toString())
-            .execute()
-
-    suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET specific_access_policy = null
-            WHERE entity_id = :entity_id
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .execute()
-
-    suspend fun hasSpecificAccessPolicies(
-        entityId: URI,
-        specificAccessPolicies: List<SpecificAccessPolicy>
-    ): Either<APIException, Boolean> =
-        databaseClient.sql(
-            """
-            SELECT count(id) as count
-            FROM temporal_entity_attribute
-            WHERE entity_id = :entity_id
-            AND specific_access_policy IN (:specific_access_policies)
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
-            .oneToResult { it["count"] as Long > 0 }
 
     suspend fun addAttribute(
         entityId: URI,

@@ -6,17 +6,12 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.addSysAttrs
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
-import com.egm.stellio.shared.util.toExpandedDateTime
 import org.springframework.stereotype.Service
 import java.net.URI
-import java.time.ZonedDateTime
 
 @Service
 class QueryService(
@@ -216,24 +211,8 @@ class QueryService(
                         .addSysAttrs(withSysAttrs, tea.createdAt, tea.modifiedAt)
                 }
             }
-            .plus(JSONLD_ID to entityPayload.entityId.toString())
-            .plus(JSONLD_TYPE to entityPayload.types)
-            .addSysAttrs(withSysAttrs, entityPayload.createdAt, entityPayload.modifiedAt)
+            .plus(entityPayload.serializeProperties(withSysAttrs))
 
         return JsonLdEntity(expandedAttributes, contexts)
     }
-
-    private fun Map<String, Any>.addSysAttrs(
-        withSysAttrs: Boolean,
-        createdAt: ZonedDateTime,
-        modifiedAt: ZonedDateTime?
-    ): Map<String, Any> =
-        if (withSysAttrs)
-            this.plus(createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
-                .let {
-                    if (modifiedAt != null)
-                        it.plus(modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
-                    else it
-                }
-        else this
 }

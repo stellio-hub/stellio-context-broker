@@ -28,7 +28,7 @@ import java.net.URI
 class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
     private val entityAccessRightsService: EntityAccessRightsService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService
+    private val entityPayloadService: EntityPayloadService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -259,7 +259,7 @@ class IAMListener(
     ): Either<APIException, Unit> {
         val operationPayloadNode = mapper.readTree(operationPayload)
         val policy = SpecificAccessPolicy.valueOf(operationPayloadNode["value"].asText())
-        return temporalEntityAttributeService.updateSpecificAccessPolicy(entityId, policy)
+        return entityPayloadService.updateSpecificAccessPolicy(entityId, policy)
     }
 
     private suspend fun addEntityToSubject(
@@ -292,7 +292,7 @@ class IAMListener(
     private suspend fun removeSpecificAccessPolicy(
         attributeDeleteEvent: AttributeDeleteEvent
     ): Either<APIException, Unit> =
-        temporalEntityAttributeService.removeSpecificAccessPolicy(attributeDeleteEvent.entityId)
+        entityPayloadService.removeSpecificAccessPolicy(attributeDeleteEvent.entityId)
 
     private suspend fun removeEntityFromSubject(
         attributeDeleteEvent: AttributeDeleteEvent

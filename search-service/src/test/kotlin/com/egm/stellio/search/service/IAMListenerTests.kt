@@ -29,7 +29,7 @@ class IAMListenerTests {
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @MockkBean(relaxed = true)
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+    private lateinit var entityPayloadService: EntityPayloadService
 
     @Test
     fun `it should handle a create event for a subject`() = runTest {
@@ -238,12 +238,12 @@ class IAMListenerTests {
     fun `it should handle an append event adding a specific access policy on an entity`() = runTest {
         val rightAppendEvent = loadSampleData("events/authorization/SpecificAccessPolicyAddOnEntity.json")
 
-        coEvery { temporalEntityAttributeService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         iamListener.dispatchIamRightsMessage(rightAppendEvent)
 
         coVerify {
-            temporalEntityAttributeService.updateSpecificAccessPolicy(
+            entityPayloadService.updateSpecificAccessPolicy(
                 eq("urn:ngsi-ld:Beekeeper:01".toUri()),
                 eq(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
             )
@@ -270,12 +270,12 @@ class IAMListenerTests {
     fun `it should handle a delete event removing a specific access policy on an entity`() = runTest {
         val rightRemoveEvent = loadSampleData("events/authorization/SpecificAccessPolicyRemoveOnEntity.json")
 
-        coEvery { temporalEntityAttributeService.removeSpecificAccessPolicy(any()) } returns Unit.right()
+        coEvery { entityPayloadService.removeSpecificAccessPolicy(any()) } returns Unit.right()
 
         iamListener.dispatchIamRightsMessage(rightRemoveEvent)
 
         coVerify {
-            temporalEntityAttributeService.removeSpecificAccessPolicy(
+            entityPayloadService.removeSpecificAccessPolicy(
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }

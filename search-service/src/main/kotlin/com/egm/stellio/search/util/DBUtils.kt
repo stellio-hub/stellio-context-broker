@@ -73,3 +73,4 @@ fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
 inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
     (entry as? String)?.let { enumValueOf<T>(it) }
+fun toInt(entry: Any?): Int = (entry as Long).toInt()

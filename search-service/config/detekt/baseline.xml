@@ -16,6 +16,7 @@
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, jsonLdAttributes: Map&lt;String, Any&gt;, updateResult: UpdateResult, overwrite: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityHandler.kt$EntityHandler$( private val applicationProperties: ApplicationProperties, private val entityPayloadService: EntityPayloadService, private val temporalEntityAttributeService: TemporalEntityAttributeService, private val queryService: QueryService, private val authorizationService: AuthorizationService, private val entityAccessRightsService: EntityAccessRightsService, private val entityEventService: EntityEventService )</ID>
+    <ID>LongParameterList:EntityPayloadService.kt$EntityPayloadService$( entityId: URI, types: List&lt;ExpandedTerm&gt;, createdAt: ZonedDateTime, entityPayload: String?, contexts: List&lt;String&gt;, specificAccessPolicy: SpecificAccessPolicy? = null )</ID>
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityId: URI, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: Map&lt;String, Any&gt;, sub: Sub? )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityPayload: EntityPayload, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
@@ -23,7 +24,6 @@
     <ID>TooManyFunctions:IAMListener.kt$IAMListener</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UnusedPrivateMember:EnabledAuthorizationServiceTest.kt$EnabledAuthorizationServiceTest$@MockkBean private lateinit var entityAccessRightsService: EntityAccessRightsService</ID>
-    <ID>UnusedPrivateMember:TemporalEntityAttributeServiceTests.kt$TemporalEntityAttributeServiceTests$@Autowired private lateinit var entityPayloadService: EntityPayloadService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>
   </CurrentIssues>

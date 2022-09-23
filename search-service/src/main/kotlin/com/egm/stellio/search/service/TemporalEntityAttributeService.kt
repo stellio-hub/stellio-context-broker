@@ -428,7 +428,7 @@ class TemporalEntityAttributeService(
                         WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN 
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_PROPERTY_VALUE" ? 
-                                    (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue}.datetime())')
+                                    (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue.datetime())')
                         WHEN attribute_type = 'Relationship' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_RELATIONSHIP_HAS_OBJECT" ? 

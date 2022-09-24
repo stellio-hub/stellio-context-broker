@@ -5,10 +5,7 @@ import arrow.core.Option
 import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.model.SubjectReferential
-import com.egm.stellio.search.util.allToMappedList
-import com.egm.stellio.search.util.execute
-import com.egm.stellio.search.util.oneToResult
-import com.egm.stellio.search.util.toOptionalList
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.GlobalRole
@@ -80,6 +77,87 @@ class SubjectReferentialService(
                     subs.plus(it["service_account_id"] as Sub)
                 else subs
             }
+
+    suspend fun getGroups(sub: Option<Sub>, offset: Int, limit: Int): List<Group> =
+        databaseClient
+            .sql(
+                """
+                WITH groups_memberships AS (
+                    SELECT unnest(groups_memberships) as groups
+                    FROM subject_referential
+                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                )
+                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
+                    (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
+                FROM subject_referential
+                WHERE subject_type = '${SubjectType.GROUP.name}'
+                ORDER BY name
+                LIMIT :limit
+                OFFSET :offset
+                """.trimIndent()
+            )
+            .bind("subject_id", (sub as Some).value)
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .allToMappedList {
+                Group(
+                    id = it["group_id"] as String,
+                    name = it["name"] as String,
+                    isMember = true
+                )
+            }
+
+    suspend fun getCountGroups(sub: Option<Sub>): Either<APIException, Int> =
+        databaseClient
+            .sql(
+                """
+                SELECT count(unnest(groups_memberships)) as count
+                FROM subject_referential
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                """.trimIndent()
+            )
+            .bind("subject_id", (sub as Some).value)
+            .oneToResult { toInt(it["count"]) }
+
+    suspend fun getAllGroups(sub: Option<Sub>, offset: Int, limit: Int): List<Group> =
+        databaseClient
+            .sql(
+                """
+                WITH groups_memberships AS (
+                    SELECT unnest(groups_memberships) as groups
+                    FROM subject_referential 
+                    WHERE subject_id = :subject_id
+                )
+                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
+                    (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
+                FROM subject_referential
+                WHERE subject_type = '${SubjectType.GROUP.name}'
+                ORDER BY name
+                LIMIT :limit
+                OFFSET :offset
+                """.trimIndent()
+            )
+            .bind("subject_id", (sub as Some).value)
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .allToMappedList {
+                Group(
+                    id = it["group_id"] as String,
+                    name = it["name"] as String,
+                    isMember = toBoolean(it["is_member"])
+                )
+            }
+
+    suspend fun getCountAllGroups(): Either<APIException, Int> =
+        databaseClient
+            .sql(
+                """
+                SELECT count(*) as count
+                FROM subject_referential
+                WHERE subject_type = '${SubjectType.GROUP.name}'
+                """.trimIndent()
+            )
+            .oneToResult { toInt(it["count"]) }
 
     suspend fun hasStellioAdminRole(sub: Option<Sub>): Either<APIException, Boolean> =
         hasStellioRole(sub, GlobalRole.STELLIO_ADMIN)

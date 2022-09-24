@@ -4,6 +4,8 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -34,4 +36,16 @@ class DisabledAuthorizationService : AuthorizationService {
         entitiesId: List<URI>,
         sub: Option<Sub>
     ): Either<APIException, Unit> = Unit.right()
+
+    override suspend fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        contextLink: String,
+        sub: Option<Sub>
+    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
+
+    override suspend fun getGroupsMemberships(
+        offset: Int,
+        limit: Int,
+        sub: Option<Sub>
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
 }

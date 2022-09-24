@@ -2,7 +2,6 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.*
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.oneToResult

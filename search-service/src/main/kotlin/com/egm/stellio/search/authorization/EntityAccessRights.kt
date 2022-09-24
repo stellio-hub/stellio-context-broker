@@ -1,4 +1,4 @@
-package com.egm.stellio.search.model
+package com.egm.stellio.search.authorization
 
 import com.egm.stellio.shared.util.AccessRight
 import java.net.URI

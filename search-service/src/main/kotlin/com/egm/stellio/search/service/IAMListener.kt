@@ -1,16 +1,15 @@
 package com.egm.stellio.search.service
 
-import arrow.core.*
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import arrow.core.Either
+import arrow.core.flattenOption
+import arrow.core.left
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
@@ -22,13 +21,10 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
-import java.net.URI
 
 @Component
 class IAMListener(
-    private val subjectReferentialService: SubjectReferentialService,
-    private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityPayloadService: EntityPayloadService
+    private val subjectReferentialService: SubjectReferentialService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -66,70 +62,7 @@ class IAMListener(
         }
     }
 
-    @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
-    fun processIamRights(content: String) {
-        logger.debug("Received IAM rights event: $content")
-        coroutineScope.launch {
-            dispatchIamRightsMessage(content)
-        }
-    }
-
-    internal suspend fun dispatchIamRightsMessage(content: String) {
-        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
-        kotlin.runCatching {
-            when (authorizationEvent) {
-                is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
-                is AttributeReplaceEvent -> handleAttributeReplaceOnRights(authorizationEvent)
-                is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
-                else ->
-                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
-            }.fold({
-                if (it is OperationNotSupportedException)
-                    logger.info(it.message)
-                else
-                    logger.error(authorizationEvent.failedHandlingMessage(it))
-            }, {
-                logger.debug(authorizationEvent.successfulHandlingMessage())
-            })
-        }.onFailure {
-            logger.error(authorizationEvent.failedHandlingMessage(it))
-        }
-    }
-
-    @KafkaListener(topics = ["cim.iam.replay"], groupId = "search-iam-replay")
-    fun processIamReplay(content: String) {
-        logger.debug("Received IAM replay event: $content")
-        coroutineScope.launch {
-            dispatchIamReplayMessage(content)
-        }
-    }
-
-    internal suspend fun dispatchIamReplayMessage(content: String) {
-        val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
-        kotlin.runCatching {
-            when (authorizationEvent) {
-                is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
-                is AttributeAppendEvent ->
-                    addEntityToSubject(
-                        authorizationEvent.operationPayload,
-                        authorizationEvent.attributeName,
-                        authorizationEvent.entityId
-                    )
-                else ->
-                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
-            }.fold({
-                if (it is OperationNotSupportedException)
-                    logger.info(it.message)
-                else
-                    logger.error(authorizationEvent.failedHandlingMessage(it))
-            }, {
-                logger.debug(authorizationEvent.successfulHandlingMessage())
-            })
-        }.onFailure {
-            logger.error(authorizationEvent.failedHandlingMessage(it))
-        }
-    }
-
+    @SuppressWarnings("unused")
     private suspend fun createFullSubjectReferential(
         entityCreateEvent: EntityCreateEvent
     ): Either<APIException, Unit> {
@@ -225,80 +158,5 @@ class IAMListener(
         subjectReferentialService.removeGroupMembershipToUser(
             attributeDeleteEvent.entityId.extractSub(),
             attributeDeleteEvent.datasetId!!.extractSub()
-        )
-
-    private suspend fun handleAttributeReplaceOnRights(
-        attributeReplaceEvent: AttributeReplaceEvent
-    ): Either<APIException, Unit> =
-        if (attributeReplaceEvent.attributeName == AUTH_TERM_SAP) {
-            updateSpecificAccessPolicy(attributeReplaceEvent.operationPayload, attributeReplaceEvent.entityId)
-        } else {
-            addEntityToSubject(
-                attributeReplaceEvent.operationPayload,
-                attributeReplaceEvent.attributeName,
-                attributeReplaceEvent.entityId
-            )
-        }
-
-    private suspend fun handleAttributeAppendOnRights(
-        attributeAppendEvent: AttributeAppendEvent
-    ): Either<APIException, Unit> =
-        if (attributeAppendEvent.attributeName == AUTH_TERM_SAP) {
-            updateSpecificAccessPolicy(attributeAppendEvent.operationPayload, attributeAppendEvent.entityId)
-        } else {
-            addEntityToSubject(
-                attributeAppendEvent.operationPayload,
-                attributeAppendEvent.attributeName,
-                attributeAppendEvent.entityId
-            )
-        }
-
-    private suspend fun updateSpecificAccessPolicy(
-        operationPayload: String,
-        entityId: URI
-    ): Either<APIException, Unit> {
-        val operationPayloadNode = mapper.readTree(operationPayload)
-        val policy = SpecificAccessPolicy.valueOf(operationPayloadNode["value"].asText())
-        return entityPayloadService.updateSpecificAccessPolicy(entityId, policy)
-    }
-
-    private suspend fun addEntityToSubject(
-        operationPayload: String,
-        attributeName: String,
-        subjectId: URI
-    ): Either<APIException, Unit> {
-        val operationPayloadNode = mapper.readTree(operationPayload)
-        val entityId = operationPayloadNode["object"].asText()
-        return when (val accessRight = AccessRight.forAttributeName(attributeName)) {
-            is Some ->
-                entityAccessRightsService.setRoleOnEntity(
-                    subjectId.extractSub(),
-                    entityId.toUri(),
-                    accessRight.value
-                )
-            is None -> BadRequestDataException("Unable to extract a known access right from $attributeName").left()
-        }
-    }
-
-    private suspend fun handleAttributeDeleteOnRights(
-        attributeDeleteEvent: AttributeDeleteEvent
-    ): Either<APIException, Unit> =
-        if (attributeDeleteEvent.attributeName == AUTH_TERM_SAP) {
-            removeSpecificAccessPolicy(attributeDeleteEvent)
-        } else {
-            removeEntityFromSubject(attributeDeleteEvent)
-        }
-
-    private suspend fun removeSpecificAccessPolicy(
-        attributeDeleteEvent: AttributeDeleteEvent
-    ): Either<APIException, Unit> =
-        entityPayloadService.removeSpecificAccessPolicy(attributeDeleteEvent.entityId)
-
-    private suspend fun removeEntityFromSubject(
-        attributeDeleteEvent: AttributeDeleteEvent
-    ): Either<APIException, Unit> =
-        entityAccessRightsService.removeRoleOnEntity(
-            attributeDeleteEvent.entityId.extractSub(),
-            attributeDeleteEvent.attributeName.toUri()
         )
 }

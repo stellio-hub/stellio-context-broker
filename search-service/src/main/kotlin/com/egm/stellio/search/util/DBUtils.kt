@@ -64,6 +64,7 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.execute(): Either<APIExcep
 fun toUri(entry: Any?): URI = (entry as String).toUri()
 fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
 fun toUuid(entry: Any?): UUID = entry as UUID
+fun toBoolean(entry: Any?): Boolean = entry as Boolean
 fun toZonedDateTime(entry: Any?): ZonedDateTime =
     (entry as OffsetDateTime).atZoneSameInstant(ZoneOffset.UTC)
 fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =

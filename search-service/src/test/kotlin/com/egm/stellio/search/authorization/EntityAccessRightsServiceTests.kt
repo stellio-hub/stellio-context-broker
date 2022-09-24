@@ -2,7 +2,6 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.Some
 import arrow.core.right
-import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException

@@ -1,7 +1,10 @@
 package com.egm.stellio.search.authorization
 
-import arrow.core.*
-import com.egm.stellio.shared.model.*
+import arrow.core.Either
+import arrow.core.Option
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
@@ -16,4 +19,16 @@ interface AuthorizationService {
     suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
+
+    suspend fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        contextLink: String,
+        sub: Option<Sub>,
+    ): Pair<Int, List<JsonLdEntity>>
+
+    suspend fun getGroupsMemberships(
+        offset: Int,
+        limit: Int,
+        sub: Option<Sub>
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
 }

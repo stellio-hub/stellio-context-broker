@@ -15,18 +15,17 @@ guidelines only, and this section may be revised to provide newer information at
 
 The following list of features is planned to be addressed in the short term, and incorporated in one upcoming release:
 
-- [In progress] Complete the requirements to become an approved full Generic Enabler
-- [In progress] Implement support for multi-typing (#641)
-- Align implementation of the aggregated temporal representation of entities with the version 1.4.1 of the NGSI-LD specification (#368)
+- [In progress] Align implementation of the aggregated temporal representation of entities with the version 1.4.1 of the NGSI-LD specification (#368)
+- Implement support for multi-tenants and scopes
 - Fix the currently [identified issues](https://github.com/stellio-hub/stellio-context-broker/issues?q=is%3Aissue+is%3Aopen+label%3Afix)
 
 ## Medium term
 
 The following list of features are planned to be addressed in the medium term, typically within the subsequent
 release(s) generated in the next **9 months** after next planned release:
+
 - Implement full support for geospatial features (geo-queries on entities, GeoJSON rendering, ...)
-- Improve support for NGSI-LD Query Language
-- Implement support for multi-tenants and scopes
+- Implement full support for NGSI-LD Query Language (only partial support currently)
 
 ## Long term
 
@@ -37,4 +36,3 @@ wish to get involved in the implementation or influence the roadmap.
 - Implement multi-attributes support for GeoProperties [#101](https://github.com/stellio-hub/stellio-context-broker/issues/101)
 - Implement distributed capabilities (via support of Context Source as defined in the NGSI-LD specification)
 - Full implementation of the NGSI-LD specification
-

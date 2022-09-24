@@ -22,8 +22,6 @@ object AuthContextModel {
 
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
-    const val USER_PREFIX = "urn:ngsi-ld:User:"
-
     const val USER_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "User"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Group"
     const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Client"

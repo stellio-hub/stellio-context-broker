@@ -283,6 +283,36 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
+    fun `it should retrieve the temporal attributes of entities with parameter q`() = runTest {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    q = "incoming==1543",
+                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(3, temporalEntityAttributes.size)
+        assertThat(temporalEntityAttributes)
+            .allMatch {
+                it.attributeName in setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            }
+    }
+
+    @Test
     fun `it should retrieve the temporal attributes of entities without queryParams attrs`() = runTest {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")

@@ -198,7 +198,10 @@ class EntityOperationHandler(
                 entityOperationService.splitEntitiesIdsByExistence(body.toListOfUri())
 
             val entitiesIdsToDelete = existingEntities.toSet()
-            val entitiesBeforeDelete = entityPayloadService.retrieve(entitiesIdsToDelete.toList())
+            val entitiesBeforeDelete =
+                if(entitiesIdsToDelete.isNotEmpty())
+                    entityPayloadService.retrieve(entitiesIdsToDelete.toList())
+                else emptyList()
 
             val (entitiesUserCannotAdmin, entitiesUserCanAdmin) =
                 entitiesBeforeDelete.partition {
@@ -224,8 +227,8 @@ class EntityOperationHandler(
                     )
                 }
 
-                batchOperationResult.errors.addAll(deleteOperationResult.errors)
-                batchOperationResult.success.addAll(deleteOperationResult.success)
+                batchOperationResult.errors.addAll(deleteOperationResult.errors.toSet())
+                batchOperationResult.success.addAll(deleteOperationResult.success.toSet())
             }
 
             if (batchOperationResult.errors.isEmpty())

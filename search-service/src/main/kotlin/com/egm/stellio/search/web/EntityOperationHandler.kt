@@ -227,8 +227,8 @@ class EntityOperationHandler(
                     )
                 }
 
-                batchOperationResult.errors.addAll(deleteOperationResult.errors.toSet())
-                batchOperationResult.success.addAll(deleteOperationResult.success.toSet())
+                batchOperationResult.errors.addAll(deleteOperationResult.errors)
+                batchOperationResult.success.addAll(deleteOperationResult.success)
             }
 
             if (batchOperationResult.errors.isEmpty())

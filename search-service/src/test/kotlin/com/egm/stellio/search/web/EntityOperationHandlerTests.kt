@@ -736,13 +736,12 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(emptyList(), allEntitiesUris)
         }
-        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns emptyList()
         coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } answers { Unit.right() }
 
         performBatchDeleteAndCheck207Response(ENTITY_DOES_NOT_EXIST_MESSAGE)
 
         coVerify { entityOperationService.splitEntitiesIdsByExistence(allEntitiesUris) }
-        coVerify { entityPayloadService.retrieve(emptyList()) }
+        coVerify { entityPayloadService wasNot called }
         coVerify { entityOperationService.delete(any()) wasNot Called }
         verify { entityEventService wasNot called }
     }

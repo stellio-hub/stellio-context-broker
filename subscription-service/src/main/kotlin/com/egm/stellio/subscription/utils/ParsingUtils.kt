@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.mapper
@@ -13,6 +14,7 @@ import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
+import com.github.jsonldjava.core.JsonLdError
 import org.slf4j.LoggerFactory
 
 object ParsingUtils {
@@ -30,8 +32,20 @@ object ParsingUtils {
                 checkSubscriptionValidity(subscription).bind()
             }
         } catch (e: Exception) {
-            logger.error("Error while parsing a subscription: ${e.message}", e)
-            BadRequestDataException(e.message ?: "Failed to parse subscription").left()
+            when (e) {
+                is JsonLdError ->
+                    if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED) {
+                        logger.error("Unable to load remote context (cause was: $e)")
+                        LdContextNotAvailableException("Unable to load remote context (cause was: $e)").left()
+                    } else {
+                        logger.error("Error while parsing a subscription: ${e.message}", e)
+                        BadRequestDataException(e.message ?: "Failed to parse subscription").left()
+                    }
+                else -> {
+                    logger.error("Error while parsing a subscription: ${e.message}", e)
+                    BadRequestDataException(e.message ?: "Failed to parse subscription").left()
+                }
+            }
         }
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {

@@ -199,7 +199,7 @@ class EntityOperationHandler(
 
             val entitiesIdsToDelete = existingEntities.toSet()
             val entitiesBeforeDelete =
-                if(entitiesIdsToDelete.isNotEmpty())
+                if (entitiesIdsToDelete.isNotEmpty())
                     entityPayloadService.retrieve(entitiesIdsToDelete.toList())
                 else emptyList()
 

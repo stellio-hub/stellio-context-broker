@@ -188,23 +188,13 @@ object JsonLdUtils {
             // ensure there is no @context in the payload since it overrides the one from JsonLdOptions
             JsonLdProcessor.expand(parsedFragment.minus(JSONLD_CONTEXT), jsonLdOptions)
         } catch (e: JsonLdError) {
-            throw messageError(e)
+            throw e.toAPIException()
         }
         if (expandedFragment.isEmpty())
             throw BadRequestDataException("Unable to expand input payload")
 
         return expandedFragment[0] as Map<String, Any>
     }
-
-    fun messageError(e: Exception): APIException =
-        when (e) {
-            is JsonLdError ->
-                if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
-                    LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
-                else BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
-
-            else -> BadRequestDataException(e.message ?: "Failed to parse subscription")
-        }
 
     fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
         val updatedPayload = deserializeListOfObjects(listOfElements)

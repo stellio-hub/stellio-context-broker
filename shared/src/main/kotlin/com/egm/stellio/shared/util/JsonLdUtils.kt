@@ -188,10 +188,7 @@ object JsonLdUtils {
             // ensure there is no @context in the payload since it overrides the one from JsonLdOptions
             JsonLdProcessor.expand(parsedFragment.minus(JSONLD_CONTEXT), jsonLdOptions)
         } catch (e: JsonLdError) {
-            if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
-                throw LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
-            else
-                throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
+            throw e.toAPIException()
         }
         if (expandedFragment.isEmpty())
             throw BadRequestDataException("Unable to expand input payload")
@@ -279,13 +276,16 @@ object JsonLdUtils {
                             else -> firstListEntry[JSONLD_VALUE_KW]
                         }
                     }
+
                     firstListEntry[JSONLD_VALUE_KW] != null ->
                         firstListEntry[JSONLD_VALUE_KW]
+
                     firstListEntry[JSONLD_ID] != null -> {
                         // Used to get the value of datasetId property,
                         // since it is mapped to "@id" key rather than "@value"
                         firstListEntry[JSONLD_ID]
                     }
+
                     else -> {
                         // it is a map / JSON object, keep it as is
                         // {https://uri.etsi.org/ngsi-ld/default-context/key=[{@value=value}], ...}

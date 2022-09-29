@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.mapper
@@ -13,11 +14,8 @@ import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
-import org.slf4j.LoggerFactory
 
 object ParsingUtils {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun parseSubscription(input: Map<String, Any>, context: List<String>): Either<APIException, Subscription> =
         try {
@@ -30,8 +28,7 @@ object ParsingUtils {
                 checkSubscriptionValidity(subscription).bind()
             }
         } catch (e: Exception) {
-            logger.error("Error while parsing a subscription: ${e.message}", e)
-            BadRequestDataException(e.message ?: "Failed to parse subscription").left()
+            e.toAPIException().left()
         }
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {

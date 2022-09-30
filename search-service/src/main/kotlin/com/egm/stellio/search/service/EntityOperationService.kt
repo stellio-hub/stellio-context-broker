@@ -66,7 +66,9 @@ class EntityOperationService(
         val creationResults = entities.map {
             val ngsiLdEntity = it
             either<BatchEntityError, BatchEntitySuccess> {
-                val jsonLdEntity = jsonLdEntities.find { ngsiLdEntity.id.toString() == it.id }!!
+                val jsonLdEntity = jsonLdEntities.find { jsonLdEntity ->
+                    ngsiLdEntity.id.toString() == jsonLdEntity.id
+                }!!
                 ngsiLdEntity.prepareTemporalAttributes()
                     .flatMap { attributesMetadata ->
                         temporalEntityAttributeService.createEntityTemporalReferences(

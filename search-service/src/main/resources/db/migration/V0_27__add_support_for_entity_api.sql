@@ -1,4 +1,3 @@
--- TODO populate missing new columns
 alter table entity_payload
     add column types text[],
     add column created_at timestamp with time zone,
@@ -25,6 +24,12 @@ update entity_payload
         where entity_payload.entity_id = temporal_entity_attribute.entity_id
         limit 1
     );
+
+-- extract data from payloads stored in entity_payload
+update entity_payload
+    set created_at = (jsonb_path_query_first(payload, '$.createdAt')::text)::timestamp with time zone,
+        modified_at =  (jsonb_path_query_first(payload, '$.modifiedAt')::text)::timestamp with time zone,
+        contexts = ARRAY(select jsonb_array_elements_text(jsonb_path_query_first(payload, '$."@context"')));
 
 -- TODO populate new columns
 alter table temporal_entity_attribute

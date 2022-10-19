@@ -113,6 +113,10 @@ object JsonLdUtils {
                 expandContext = mapOf(JSONLD_CONTEXT to addCoreContext(contexts))
             }
 
+    fun expandDeserializedPayload(deserializedPayload: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+        return doJsonLdExpansion(deserializedPayload, contexts)
+    }
+
     fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
         JsonLdEntity(doJsonLdExpansion(input, contexts), contexts)
 

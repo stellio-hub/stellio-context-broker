@@ -12,7 +12,7 @@ buildscript {
 }
 
 extra["springCloudVersion"] = "2021.0.3"
-extra["testcontainersVersion"] = "1.16.2"
+extra["testcontainersVersion"] = "1.17.5"
 
 plugins {
     java // why did I have to add that ?!

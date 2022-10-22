@@ -20,6 +20,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -110,7 +111,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertThat(it)
                     .hasFieldOrPropertyWithValue("entityId", entityUri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
-                    .hasFieldOrPropertyWithValue("createdAt", now)
+                    .hasFieldOrPropertyWithValue("createdAt", now.truncatedTo(ChronoUnit.MICROS))
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
                     .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
@@ -133,7 +134,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertThat(it)
                     .hasFieldOrPropertyWithValue("entityId", entityUri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
-                    .hasFieldOrPropertyWithValue("createdAt", now)
+                    .hasFieldOrPropertyWithValue("createdAt", now.truncatedTo(ChronoUnit.MICROS))
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
                     .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", SpecificAccessPolicy.AUTH_READ)

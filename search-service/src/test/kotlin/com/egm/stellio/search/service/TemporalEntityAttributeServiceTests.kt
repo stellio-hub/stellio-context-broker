@@ -36,6 +36,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     @SpykBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
+    @Autowired
+    private lateinit var entityPayloadService: EntityPayloadService
+
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
@@ -446,6 +449,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
+        entityPayloadService.updateSpecificAccessPolicy(
+            beehiveTestCId,
+            AuthContextModel.SpecificAccessPolicy.AUTH_READ
+        )
+
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
@@ -488,6 +496,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             temporalEntityAttributeService.createEntityTemporalReferences(
                 secondRawEntity,
                 listOf(APIC_COMPOUND_CONTEXT)
+            )
+
+            entityPayloadService.updateSpecificAccessPolicy(
+                beehiveTestCId,
+                AuthContextModel.SpecificAccessPolicy.AUTH_READ
             )
 
             val temporalEntityAttributes =

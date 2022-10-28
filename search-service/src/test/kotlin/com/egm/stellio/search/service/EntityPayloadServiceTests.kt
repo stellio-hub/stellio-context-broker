@@ -34,7 +34,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS)
 
     @AfterEach
     fun clearEntityPayloadTable() {
@@ -111,7 +111,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertThat(it)
                     .hasFieldOrPropertyWithValue("entityId", entityUri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
-                    .hasFieldOrPropertyWithValue("createdAt", now.truncatedTo(ChronoUnit.MICROS))
+                    .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
                     .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
@@ -134,7 +134,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertThat(it)
                     .hasFieldOrPropertyWithValue("entityId", entityUri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
-                    .hasFieldOrPropertyWithValue("createdAt", now.truncatedTo(ChronoUnit.MICROS))
+                    .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
                     .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", SpecificAccessPolicy.AUTH_READ)

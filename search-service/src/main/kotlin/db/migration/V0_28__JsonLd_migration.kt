@@ -1,8 +1,13 @@
 package db.migration
 
+import arrow.core.Either
+import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.util.toTemporalAttributeMetadata
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdAttributeInstance
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
@@ -15,96 +20,207 @@ import org.flywaydb.core.api.migration.Context
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
+import java.net.URI
+import java.time.ZonedDateTime
 import java.util.UUID
 
+@Suppress("unused")
 class V0_28__JsonLd_migration : BaseJavaMigration() {
 
+    // not so nice since it is specific to deployments
+    // but no other easy way to migrate terms that are actually stored compacted in entities payloads
+    private val keysToTransform = mapOf(
+        "https://uri.etsi.org/ngsi-ld/default-context/dcDescription" to "http://purl.org/dc/terms/description",
+        "https://uri.etsi.org/ngsi-ld/default-context/dcTitle" to "http://purl.org/dc/terms/title"
+    )
+
     private val logger = LoggerFactory.getLogger(javaClass)
+    private lateinit var jdbcTemplate: JdbcTemplate
 
     override fun migrate(context: Context) {
-        val jdbcTemplate = JdbcTemplate(SingleConnectionDataSource(context.connection, true))
+        jdbcTemplate = JdbcTemplate(SingleConnectionDataSource(context.connection, true))
+        // use the stored entity payloads to populate and fix the stored data
         jdbcTemplate.queryForStream(
             """
             select entity_id, payload
             from entity_payload
             """.trimMargin()
         ) { resultSet, _ ->
-            Pair(resultSet.getString("entity_id"), resultSet.getString("payload"))
+            Pair(resultSet.getString("entity_id").toUri(), resultSet.getString("payload"))
         }.forEach { (entityId, payload) ->
             logger.debug("Migrating entity $entityId")
-            // store the expanded entity payload instead of the compacted one
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
             val expandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
-            logger.debug("Expanded entity is $expandedEntity")
-            val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
-            logger.debug(expandedEntity.toString())
-            val serializedJsonLdEntity = "$$${serializeObject(expandedEntity)}$$"
+                .mapKeys {
+                    // replace the faulty expanded terms (only at the rool level of the entity)
+                    if (keysToTransform.containsKey(it.key))
+                        keysToTransform[it.key]!!
+                    else it.key
+                }
+
+            // store the expanded entity payload instead of the compacted one
+            val serializedJsonLdEntity = serializeObject(expandedEntity).replace("'", "''")
             jdbcTemplate.execute(
                 """
                 update entity_payload
-                set payload = $serializedJsonLdEntity
+                set payload = '$serializedJsonLdEntity'
                 where entity_id = '$entityId'
                 """.trimIndent()
             )
 
-            updateTeaPayloadAndDates(jdbcTemplate, entityId, jsonLdEntity)
+            val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
+            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+            // in current implementation, geoproperties do not have a creation date as they are stored
+            // as a property of the entity node, so we give them the creation date of the entity
+            val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
+                expandedEntity as Map<String, List<Any>>,
+                NGSILD_CREATED_AT_PROPERTY
+            )!!
 
-            // TODO create attributes that do not exist yet
+            ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
+                val attributeName = ngsiLdAttribute.name
+                ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
+                    val datasetId = ngsiLdAttributeInstance.datasetId
+                    val attributePayload = getAttributeFromExpandedAttributes(
+                        jsonLdEntity.properties,
+                        attributeName,
+                        datasetId
+                    )!! as Map<String, List<Any>>
+
+                    if (entityHasAttribute(entityId, attributeName, datasetId)) {
+                        logger.debug("Attribute $attributeName ($datasetId) exists, adding metadata and payload")
+                        updateTeaPayloadAndDates(
+                            entityId,
+                            attributeName,
+                            datasetId,
+                            attributePayload,
+                            ngsiLdAttributeInstance
+                        )
+                    } else {
+                        // create attributes that do not exist
+                        //   - non observed attributes created before we kept track of their history
+                        //   - attributes of type GeoProperty
+                        logger.debug("Attribute $attributeName ($datasetId) does not exist, bootstrapping entry")
+                        createTeaEntry(
+                            entityId,
+                            attributeName,
+                            datasetId,
+                            attributePayload,
+                            ngsiLdAttributeInstance,
+                            defaultCreatedAt
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun createTeaEntry(
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI?,
+        attributePayload: Map<String, List<Any>>,
+        ngsiLdAttributeInstance: NgsiLdAttributeInstance,
+        defaultCreatedAt: ZonedDateTime
+    ) {
+        when (val temporalAttributesMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata()) {
+            is Either.Left ->
+                logger.warn("Unable to process attribute $attributeName ($datasetId) from entity $entityId")
+            is Either.Right -> {
+                val createdAt = ngsiLdAttributeInstance.createdAt ?: defaultCreatedAt
+                val modifiedAt = ngsiLdAttributeInstance.modifiedAt
+                val atributeType = temporalAttributesMetadata.value.type
+                val attributeValueType = temporalAttributesMetadata.value.valueType
+                val serializedAttributePayload = serializeObject(attributePayload)
+                val teaId = UUID.randomUUID()
+                jdbcTemplate.update(
+                    """
+                    INSERT INTO temporal_entity_attribute
+                        (id, entity_id, attribute_name, attribute_type, attribute_value_type, 
+                            created_at, modified_at, dataset_id, payload)
+                    VALUES 
+                        ('$teaId', '$entityId', '$attributeName', '$atributeType', '$attributeValueType', 
+                            '$createdAt', ${modifiedAt.toSQLValue()}, ${datasetId.toSQLValue()},
+                            '$serializedAttributePayload')
+                    """.trimIndent()
+                )
+                val attributeInstanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+                val attributeInstanceQuery = if (temporalAttributesMetadata.value.geoValue != null)
+                    """
+                    INSERT INTO attribute_instance_audit
+                        (time, time_property, measured_value, value, geo_value, 
+                            temporal_entity_attribute, instance_id, payload)
+                    VALUES
+                        ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
+                            ${temporalAttributesMetadata.value.measuredValue}, 
+                            ${temporalAttributesMetadata.value.value.toSQLValue()}, 
+                            ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
+                            '$teaId', '$attributeInstanceId', '$serializedAttributePayload')
+                    """.trimIndent()
+                else
+                    """
+                    INSERT INTO attribute_instance_audit
+                        (time, time_property, measured_value, value, 
+                            temporal_entity_attribute, instance_id, payload)
+                    VALUES
+                        ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
+                            ${temporalAttributesMetadata.value.measuredValue}, 
+                            ${temporalAttributesMetadata.value.value.toSQLValue()}, 
+                            '$teaId', '$attributeInstanceId', '$serializedAttributePayload')
+                    """.trimIndent()
+                jdbcTemplate.update(attributeInstanceQuery)
+            }
         }
     }
 
     private fun updateTeaPayloadAndDates(
-        jdbcTemplate: JdbcTemplate,
-        entityId: String,
-        jsonLdEntity: JsonLdEntity
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI?,
+        attributePayload: Map<String, List<Any>>,
+        ngsiLdAttributeInstance: NgsiLdAttributeInstance
     ) {
-        jdbcTemplate.queryForStream(
+        val createdAt = ngsiLdAttributeInstance.createdAt
+        val modifiedAt = ngsiLdAttributeInstance.modifiedAt
+        val serializedAttributePayload = serializeObject(attributePayload).replace("'", "''")
+        jdbcTemplate.execute(
             """
-            select id, attribute_name, dataset_id
+            update temporal_entity_attribute
+            set payload = '$serializedAttributePayload',
+                created_at = '$createdAt',
+                modified_at = ${modifiedAt.toSQLValue()}
+            where entity_id = '$entityId'
+            and attribute_name = '$attributeName'
+            and dataset_id = ${datasetId.toSQLValue()}
+            """.trimIndent()
+        )
+    }
+
+    private fun entityHasAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?
+    ): Boolean {
+        val datasetQuery =
+            if (datasetId == null)
+                "and dataset_id is null"
+            else
+                "and dataset_id = '$datasetId'"
+        return jdbcTemplate.queryForStream(
+            """
+            select count(*) as count
             from temporal_entity_attribute
             where entity_id = '$entityId'
+            and attribute_name = '$attributeName'
+            $datasetQuery
             """.trimIndent()
-        ) { teaResultSet, _ ->
-            val teaUuid = UUID.fromString(teaResultSet.getString("id"))
-            val attributeName = teaResultSet.getString("attribute_name")
-            val datasetId = teaResultSet.getString("dataset_id")?.toUri()
-            logger.debug("Searching attribute $attributeName ($datasetId) from $teaUuid in entity $entityId")
-            val attributePayload = getAttributeFromExpandedAttributes(
-                jsonLdEntity.properties,
-                attributeName,
-                datasetId
-            )
-            Pair(teaUuid, attributePayload)
-        }.forEach { (teaUuid, teaExpandedPayload) ->
-            if (teaExpandedPayload != null) {
-                val createdAt =
-                    getPropertyValueFromMapAsDateTime(teaExpandedPayload as Map<String, List<Any>>, NGSILD_CREATED_AT_PROPERTY)
-                val modifiedAt =
-                    getPropertyValueFromMapAsDateTime(teaExpandedPayload, NGSILD_MODIFIED_AT_PROPERTY)
-                val serializedAttributePayload = "$$${serializeObject(teaExpandedPayload)}$$"
-                if (modifiedAt != null)
-                    jdbcTemplate.execute(
-                        """
-                        update temporal_entity_attribute
-                        set payload = $serializedAttributePayload,
-                            created_at = '$createdAt',
-                            modified_at = '$modifiedAt'
-                        where id = '$teaUuid'
-                        """.trimIndent()
-                    )
-                else
-                    jdbcTemplate.execute(
-                        """
-                        update temporal_entity_attribute
-                        set payload = $serializedAttributePayload,
-                            created_at = '$createdAt'
-                        where id = '$teaUuid'
-                        """.trimIndent()
-                    )
-            } else {
-                logger.warn("Did not find payload for attribute $teaUuid of entity $entityId")
-            }
-        }
+        ) { resultSet, _ ->
+            resultSet.getLong("count") > 0
+        }.toList().first()
     }
+
+    private fun Any?.toSQLValue(): String? =
+        if (this == null) null
+        else "'$this'"
 }

@@ -134,7 +134,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 val attributeValueType = temporalAttributesMetadata.value.valueType
                 val serializedAttributePayload = serializeObject(attributePayload)
                 val teaId = UUID.randomUUID()
-                jdbcTemplate.update(
+                jdbcTemplate.execute(
                     """
                     INSERT INTO temporal_entity_attribute
                         (id, entity_id, attribute_name, attribute_type, attribute_value_type, 
@@ -169,7 +169,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                             ${temporalAttributesMetadata.value.value.toSQLValue()}, 
                             '$teaId', '$attributeInstanceId', '$serializedAttributePayload')
                     """.trimIndent()
-                jdbcTemplate.update(attributeInstanceQuery)
+                jdbcTemplate.execute(attributeInstanceQuery)
             }
         }
     }
@@ -192,7 +192,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 modified_at = ${modifiedAt.toSQLValue()}
             where entity_id = '$entityId'
             and attribute_name = '$attributeName'
-            and dataset_id = ${datasetId.toSQLValue()}
+            ${datasetId.toSQLFilter()}
             """.trimIndent()
         )
     }
@@ -202,23 +202,24 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         attributeName: ExpandedTerm,
         datasetId: URI?
     ): Boolean {
-        val datasetQuery =
-            if (datasetId == null)
-                "and dataset_id is null"
-            else
-                "and dataset_id = '$datasetId'"
         return jdbcTemplate.queryForStream(
             """
             select count(*) as count
             from temporal_entity_attribute
             where entity_id = '$entityId'
             and attribute_name = '$attributeName'
-            $datasetQuery
+            ${datasetId.toSQLFilter()}
             """.trimIndent()
         ) { resultSet, _ ->
             resultSet.getLong("count") > 0
         }.toList().first()
     }
+
+    private fun URI?.toSQLFilter(): String =
+        if (this == null)
+            "and dataset_id is null"
+        else
+            "and dataset_id = '$this'"
 
     private fun Any?.toSQLValue(): String? =
         if (this == null) null

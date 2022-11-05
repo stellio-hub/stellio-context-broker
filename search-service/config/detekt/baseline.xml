@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>ClassNaming:V0_28__JsonLd_migration.kt$V0_28__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntityHandler.kt$EntityHandler$queryParams.ids.isEmpty() &amp;&amp; queryParams.q.isNullOrEmpty() &amp;&amp; queryParams.types.isEmpty() &amp;&amp; queryParams.attrs.isEmpty()</ID>
     <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>LargeClass:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
@@ -12,6 +13,7 @@
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$@Transactional suspend fun appendEntityAttributes( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, jsonLdAttributes: Map&lt;String, Any&gt;, disallowOverwrite: Boolean, sub: Sub? ): Either&lt;APIException, UpdateResult&gt;</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$@Transactional suspend fun partialUpdateEntityAttribute( entityId: URI, expandedPayload: Map&lt;String, List&lt;Map&lt;String, List&lt;Any&gt;&gt;&gt;&gt;, sub: Sub? ): Either&lt;APIException, UpdateResult&gt;</ID>
+    <ID>LongMethod:V0_28__JsonLd_migration.kt$V0_28__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, geoValue: WKTCoordinates? = null, jsonNode: JsonNode, sub: String? = null )</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, geoValue: WKTCoordinates? = null, payload: Map&lt;String, Any&gt;, sub: String? = null )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
@@ -20,6 +22,8 @@
     <ID>LongParameterList:EntityPayloadService.kt$EntityPayloadService$( entityId: URI, types: List&lt;ExpandedTerm&gt;, createdAt: ZonedDateTime, entityPayload: String?, contexts: List&lt;String&gt;, specificAccessPolicy: SpecificAccessPolicy? = null )</ID>
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityId: URI, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: Map&lt;String, Any&gt;, sub: Sub? )</ID>
     <ID>LongParameterList:TemporalEntityService.kt$TemporalEntityService$( entityPayload: EntityPayload, attributeAndResultsMap: TemporalEntityAttributeInstancesResult, temporalQuery: TemporalQuery, contexts: List&lt;String&gt;, withTemporalValues: Boolean, withAudit: Boolean )</ID>
+    <ID>LongParameterList:V0_28__JsonLd_migration.kt$V0_28__JsonLd_migration$( entityId: URI, attributeName: String, datasetId: URI?, attributePayload: Map&lt;String, List&lt;Any&gt;&gt;, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>NestedBlockDepth:V0_28__JsonLd_migration.kt$V0_28__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>

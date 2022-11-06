@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import java.net.URI
@@ -49,8 +50,10 @@ data class EntityPayload(
             resultEntity[JSONLD_TYPE] = types
             specificAccessPolicy?.run {
                 resultEntity[AuthContextModel.AUTH_PROP_SAP] = mapOf(
-                    JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE,
-                    JsonLdUtils.JSONLD_VALUE_KW to this
+                    JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        JsonLdUtils.JSONLD_VALUE_KW to this
+                    )
                 )
             }
             if (withSysAttrs) {

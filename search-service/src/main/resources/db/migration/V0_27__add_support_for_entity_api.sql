@@ -31,7 +31,7 @@ update entity_payload
         modified_at =  (jsonb_path_query_first(payload, '$.modifiedAt')::text)::timestamp with time zone,
         contexts = ARRAY(select jsonb_array_elements_text(jsonb_path_query_first(payload, '$."@context"')));
 
--- TODO populate new columns
+-- columns will be populated with the 0.28 programmatic migration script
 alter table temporal_entity_attribute
     drop column types,
     drop column specific_access_policy,
@@ -52,6 +52,9 @@ alter table temporal_entity_attribute
 
 alter table temporal_entity_attribute
     alter column id drop default;
+
+delete from temporal_entity_attribute
+    where attribute_name = 'https://ontology.eglobalmark.com/authorization#specificAccessPolicy';
 
 alter table attribute_instance
     add column geo_value geometry;

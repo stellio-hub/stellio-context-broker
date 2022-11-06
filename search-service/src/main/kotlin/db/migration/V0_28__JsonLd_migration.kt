@@ -7,11 +7,15 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
@@ -51,7 +55,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             logger.debug("Migrating entity $entityId")
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
-            val expandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
+            val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
                     // replace the faulty expanded terms (only at the rool level of the entity)
                     if (keysToTransform.containsKey(it.key))
@@ -59,12 +63,27 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                     else it.key
                 }
 
+            // extract specific access policy (if any) from the payload to be able to store it in entity_payload
+            // then remove it from the expanded payload
+            val specificAccessPolicy =
+                getAttributeFromExpandedAttributes(originalExpandedEntity, AUTH_PROP_SAP, null)?.let {
+                    getPropertyValueFromMapAsString(it as Map<String, List<Any>>, NGSILD_PROPERTY_VALUE)
+                }?.let {
+                    AuthContextModel.SpecificAccessPolicy.valueOf(it)
+                }
+            val expandedEntity = originalExpandedEntity
+                .filterKeys { attributeName ->
+                    // remove specific access policy attribute as it is not a "normal" attribute
+                    attributeName != AUTH_PROP_SAP
+                }
+
             // store the expanded entity payload instead of the compacted one
             val serializedJsonLdEntity = serializeObject(expandedEntity).replace("'", "''")
             jdbcTemplate.execute(
                 """
                 update entity_payload
-                set payload = '$serializedJsonLdEntity'
+                set payload = '$serializedJsonLdEntity',
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
                 where entity_id = '$entityId'
                 """.trimIndent()
             )

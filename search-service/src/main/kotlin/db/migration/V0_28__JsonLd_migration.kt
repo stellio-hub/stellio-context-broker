@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
@@ -64,6 +65,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 }
 
             // extract specific access policy (if any) from the payload to be able to store it in entity_payload
+            // do the same things for creation and modication dates
             // then remove it from the expanded payload
             val specificAccessPolicy =
                 getAttributeFromExpandedAttributes(originalExpandedEntity, AUTH_PROP_SAP, null)?.let {
@@ -71,10 +73,18 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 }?.let {
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
                 }
+            // in current implementation, geoproperties do not have a creation date as they are stored
+            // as a property of the entity node, so we give them the creation date of the entity
+            val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
+                originalExpandedEntity as Map<String, List<Any>>,
+                NGSILD_CREATED_AT_PROPERTY
+            )!!
             val expandedEntity = originalExpandedEntity
                 .filterKeys { attributeName ->
                     // remove specific access policy attribute as it is not a "normal" attribute
                     attributeName != AUTH_PROP_SAP
+                    attributeName != NGSILD_CREATED_AT_PROPERTY
+                    attributeName != NGSILD_MODIFIED_AT_PROPERTY
                 }
 
             // store the expanded entity payload instead of the compacted one
@@ -90,12 +100,6 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
 
             val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
-            // in current implementation, geoproperties do not have a creation date as they are stored
-            // as a property of the entity node, so we give them the creation date of the entity
-            val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
-                expandedEntity as Map<String, List<Any>>,
-                NGSILD_CREATED_AT_PROPERTY
-            )!!
 
             ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
                 val attributeName = ngsiLdAttribute.name
@@ -107,13 +111,19 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         datasetId
                     )!! as Map<String, List<Any>>
 
+                    val attributePayloadFiltered = attributePayload
+                        .filterKeys { attributeName ->
+                            attributeName != NGSILD_CREATED_AT_PROPERTY
+                            attributeName != NGSILD_MODIFIED_AT_PROPERTY
+                        }
+
                     if (entityHasAttribute(entityId, attributeName, datasetId)) {
                         logger.debug("Attribute $attributeName ($datasetId) exists, adding metadata and payload")
                         updateTeaPayloadAndDates(
                             entityId,
                             attributeName,
                             datasetId,
-                            attributePayload,
+                            attributePayloadFiltered,
                             ngsiLdAttributeInstance
                         )
                     } else {
@@ -125,7 +135,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                             entityId,
                             attributeName,
                             datasetId,
-                            attributePayload,
+                            attributePayloadFiltered,
                             ngsiLdAttributeInstance,
                             defaultCreatedAt
                         )

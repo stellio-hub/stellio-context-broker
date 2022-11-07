@@ -95,7 +95,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             // in current implementation, geoproperties do not have a creation date as they are stored
             // as a property of the entity node, so we give them the creation date of the entity
             val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
-                originalExpandedEntity as Map<String, List<Any>>,
+                expandedEntity as Map<String, List<Any>>,
                 NGSILD_CREATED_AT_PROPERTY
             )!!
 
@@ -112,8 +112,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                     val attributePayloadFiltered = attributePayload
                         .filterKeys { attributeName ->
                             // remove createdAt and modifiedAt in attribute's payload
-                            attributeName != NGSILD_CREATED_AT_PROPERTY
-                            attributeName != NGSILD_MODIFIED_AT_PROPERTY
+                            attributeName != NGSILD_CREATED_AT_PROPERTY && attributeName != NGSILD_MODIFIED_AT_PROPERTY
                         }
 
                     if (entityHasAttribute(entityId, attributeName, datasetId)) {

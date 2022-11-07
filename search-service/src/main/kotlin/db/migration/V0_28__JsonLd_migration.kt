@@ -111,7 +111,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
 
                     val attributePayloadFiltered = attributePayload
                         .filterKeys { attributeName ->
-                            //remove createdAt and modifiedAt in attribute's payload
+                            // remove createdAt and modifiedAt in attribute's payload
                             attributeName != NGSILD_CREATED_AT_PROPERTY
                             attributeName != NGSILD_MODIFIED_AT_PROPERTY
                         }

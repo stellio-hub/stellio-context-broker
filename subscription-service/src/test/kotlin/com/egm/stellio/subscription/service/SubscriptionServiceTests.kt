@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
@@ -20,6 +21,7 @@ import io.mockk.verify
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -60,6 +62,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
+
+    private val contexts = listOf(
+        "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/apic/jsonld-contexts/apic.jsonld",
+        "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/shared-jsonld-contexts/egm.jsonld",
+        JsonLdUtils.NGSILD_CORE_CONTEXT
+    )
+    private val jsonldEntity = JsonLdUtils.expandJsonLdEntity(entity, contexts)
 
     @BeforeAll
     fun bootstrapSubscriptions() {
@@ -837,74 +846,65 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return true if query is null`() {
+    fun `it should return true if query is null`() = runTest {
         val query = null
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 
     @Test
-    fun `it should return false if query is invalid`() {
+    fun `it should return false if query is invalid`() = runTest {
         val query = "foodQuantity.invalidAttribute>=150"
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, false)
     }
 
     @Test
-    fun `it should return true if entity matches query`() {
+    fun `it should return true if entity matches query`() = runTest {
         val query = "foodQuantity<150"
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 
     @Test
-    fun `it should return false if entity don't matches query`() {
+    fun `it should return false if entity don't matches query`() = runTest {
         val query = "foodQuantity>=150"
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, false)
     }
 
     @Test
-    fun `it should support multiple predicates query`() {
+    fun `it should support multiple predicates query`() = runTest {
         val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes==\"urn:ngsi-ld:Feeder:018z5\""
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 
     @Test
-    fun `it should support single quoted predicates query`() {
+    fun `it should support single quoted predicates query`() = runTest {
         val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes=='urn:ngsi-ld:Feeder:018z5'"
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 
     @Test
-    fun `it should support multiple predicates query with logical operator`() {
+    fun `it should support multiple predicates query with logical operator`() = runTest {
         val query = "foodQuantity>150;executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, false)
     }
 
     @Test
-    fun `it should support multiple predicates query with or logical operator`() {
+    fun `it should support multiple predicates query with or logical operator`() = runTest {
         val query = "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 
     @Test
-    fun `it should support boolean value type`() {
+    fun `it should support boolean value type`() = runTest {
         val query = "foodName[isHealthy]!=false"
-        val res = subscriptionService.isMatchingQuery(query, entity)
-
+        val res = subscriptionService.isMatchingQuery(query, jsonldEntity, contexts).awaitFirst()
         assertEquals(res, true)
     }
 

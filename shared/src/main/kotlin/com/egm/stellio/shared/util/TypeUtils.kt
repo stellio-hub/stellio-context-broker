@@ -28,3 +28,10 @@ fun String.isTime(): Boolean =
     } catch (e: DateTimeParseException) {
         false
     }
+
+// FIXME kinda weak ... better options?
+fun String.isRelationshipTarget(): Boolean =
+    this.removePrefix("\"").startsWith("urn:")
+
+fun String.isFloat(): Boolean =
+    this.matches("-?\\d+(\\.\\d+)?".toRegex())

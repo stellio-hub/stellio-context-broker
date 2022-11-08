@@ -2,12 +2,14 @@ package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToListOfElements
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
+import com.fasterxml.jackson.annotation.JsonIgnore
 import org.springframework.data.annotation.Id
 import org.springframework.http.MediaType
 import java.net.URI
@@ -24,13 +26,15 @@ data class Subscription(
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
-    val watchedAttributes: List<String>? = null,
+    var watchedAttributes: List<String>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams,
     val isActive: Boolean = true,
-    val expiresAt: ZonedDateTime? = null
+    val expiresAt: ZonedDateTime? = null,
+    @JsonIgnore
+    val contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
 ) {
     fun expandTypes(context: List<String>) {
         this.entities.forEach {
@@ -40,6 +44,7 @@ data class Subscription(
             JsonLdUtils.expandJsonLdTerm(it, context)
         }
         this.geoQ?.geoproperty = this.geoQ?.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, context) }
+        this.watchedAttributes = this.watchedAttributes?.map { JsonLdUtils.expandJsonLdTerm(it, context) }
     }
 
     fun compact(contexts: List<String>): Subscription =

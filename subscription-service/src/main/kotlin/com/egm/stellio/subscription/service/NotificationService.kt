@@ -39,14 +39,18 @@ class NotificationService(
         val id = ngsiLdEntity.id
         val types = ngsiLdEntity.types
         return subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes.joinToString(separator = ","))
-            .filter {
-                subscriptionService.isMatchingQuery(it.q?.decode(), rawEntity)
+            .filterWhen {
+                subscriptionService.isMatchingQuery(
+                    it.q?.decode(),
+                    expandJsonLdEntity(rawEntity, it.contexts),
+                    it.contexts
+                )
             }
             .filterWhen {
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getGeoProperty(it.geoQ?.geoproperty))
             }
             .flatMap {
-                callSubscriber(it, id, expandJsonLdEntity(rawEntity, ngsiLdEntity.contexts))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity, it.contexts))
             }
             .collectList()
     }

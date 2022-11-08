@@ -2,13 +2,11 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>LongParameterList:FixtureUtils.kt$( withQueryAndGeoQuery: Pair&lt;Boolean, Boolean&gt; = Pair(true, true), withEndpointInfo: Boolean = true, withNotifParams: Pair&lt;FormatType, List&lt;String&gt;&gt; = Pair(FormatType.NORMALIZED, emptyList()), withModifiedAt: Boolean = false, georel: String = "within", coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]", timeInterval: Int? = null )</ID>
-    <ID>SwallowedException:QueryUtils.kt$QueryUtils$e: Exception</ID>
+    <ID>LongParameterList:FixtureUtils.kt$( withQueryAndGeoQuery: Pair&lt;Boolean, Boolean&gt; = Pair(true, true), withEndpointInfo: Boolean = true, withNotifParams: Pair&lt;FormatType, List&lt;String&gt;&gt; = Pair(FormatType.NORMALIZED, emptyList()), withModifiedAt: Boolean = false, georel: String = "within", coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]", timeInterval: Int? = null, contexts: List&lt;String&gt; = listOf(JsonLdUtils.NGSILD_CORE_CONTEXT) )</ID>
     <ID>SwallowedException:SubscriptionService.kt$SubscriptionService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FCMInitializer.kt$FCMInitializer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FCMService.kt$FCMService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$ParsingUtils$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:QueryUtils.kt$QueryUtils$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SubscriptionService.kt$SubscriptionService$e: Exception</ID>
     <ID>TooManyFunctions:SubscriptionService.kt$SubscriptionService</ID>
   </CurrentIssues>

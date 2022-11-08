@@ -24,9 +24,8 @@
     "type": "GeoProperty",
     "value": {
       "type": "Point",
-      "coordinates": [
+      "coordinates":
         [100.0, 0.0]
-      ]
     }
   },
   "@context": [

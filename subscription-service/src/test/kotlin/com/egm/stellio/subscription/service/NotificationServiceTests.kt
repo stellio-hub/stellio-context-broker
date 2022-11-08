@@ -114,7 +114,7 @@ class NotificationServiceTests {
         val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
@@ -151,7 +151,7 @@ class NotificationServiceTests {
                 "name"
             )
         }
-        verify { subscriptionService.isMatchingQuery(subscription.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription.q, any(), any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
 
@@ -164,12 +164,13 @@ class NotificationServiceTests {
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
                 listOf("https://uri.etsi.org/ngsi-ld/default-context/name", "https://uri.etsi.org/ngsi-ld/location")
-            )
+            ),
+            contexts = contexts
         )
         val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
@@ -203,7 +204,7 @@ class NotificationServiceTests {
         val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
@@ -240,7 +241,7 @@ class NotificationServiceTests {
                 "name"
             )
         }
-        verify { subscriptionService.isMatchingQuery(subscription.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription.q, any(), any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
 
@@ -256,7 +257,7 @@ class NotificationServiceTests {
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
         }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
@@ -283,8 +284,8 @@ class NotificationServiceTests {
                 "name"
             )
         }
-        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
-        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -316,7 +317,7 @@ class NotificationServiceTests {
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
         }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
@@ -346,8 +347,8 @@ class NotificationServiceTests {
                 "name"
             )
         }
-        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
-        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -363,7 +364,7 @@ class NotificationServiceTests {
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
         }
-        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingQuery(any(), any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -391,8 +392,8 @@ class NotificationServiceTests {
                 "name"
             )
         }
-        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
-        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }

@@ -19,10 +19,10 @@ object ParsingUtils {
         try {
             either {
                 val subscription = mapper.convertValue(
-                    input.minus(JSONLD_CONTEXT),
+                    input.plus(JSONLD_CONTEXT to contexts),
                     Subscription::class.java
-                ).copy(contexts = contexts)
-                subscription.expandTypes(contexts)
+                )
+                subscription.expand(contexts)
                 subscription
             }
         } catch (e: Exception) {

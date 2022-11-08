@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
@@ -14,7 +15,8 @@ fun gimmeRawSubscription(
     withModifiedAt: Boolean = false,
     georel: String = "within",
     coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
-    timeInterval: Int? = null
+    timeInterval: Int? = null,
+    contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
 ): Subscription {
     val q =
         if (withQueryAndGeoQuery.first)
@@ -61,6 +63,7 @@ fun gimmeRawSubscription(
             lastNotification = null,
             lastFailure = null,
             lastSuccess = null
-        )
+        ),
+        contexts = contexts
     )
 }

@@ -1,15 +1,16 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
-import com.egm.stellio.shared.util.toUri
 import com.jayway.jsonpath.JsonPath.read
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
-import java.time.Instant
-import java.time.ZoneOffset
 
 class SubscriptionTest {
 
@@ -23,59 +24,69 @@ class SubscriptionTest {
             EntityInfo(
                 id = null,
                 idPattern = null,
-                type = "https://uri.etsi.org/ngsi-ld/default-context/type"
+                type = BEEHIVE_COMPACT_TYPE
             )
         ),
-        createdAt = Instant.now().atZone(ZoneOffset.UTC),
-        modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
+        geoQ = GeoQuery(
+            georel = "within",
+            geometry = "Polygon",
+            coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
+            pgisGeometry = "100000101000101010100010100054300",
+            geoproperty = "operationSpace"
+        ),
+        watchedAttributes = listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY),
         notification = NotificationParams(
-            attributes = listOf("https://uri.etsi.org/ngsi-ld/default-context/incoming"),
+            attributes = listOf(INCOMING_COMPACT_PROPERTY),
             format = NotificationParams.FormatType.KEY_VALUES,
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 info = endpointInfo
-            ),
-            status = null,
-            lastNotification = null,
-            lastFailure = null,
-            lastSuccess = null
-        )
+            )
+        ),
+        contexts = listOf(APIC_COMPOUND_CONTEXT)
     )
 
     @Test
     fun `it should expand a subscription`() {
-        val subscription = subscription.copy(
-            geoQ = GeoQuery(
-                georel = "within",
-                geometry = "Polygon",
-                coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
-                pgisGeometry = "100000101000101010100010100054300",
-                geoproperty = "operationSpace"
+        val subscription = subscription.copy()
+        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+
+        assertThat(subscription)
+            .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
+            .containsExactly(
+                NGSILD_OPERATION_SPACE_PROPERTY,
+                listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                listOf(INCOMING_PROPERTY)
             )
-        )
-        assertTrue(subscription.geoQ?.geoproperty == "operationSpace")
-        subscription.expandTypes(listOf(NGSILD_CORE_CONTEXT))
-        assertTrue(subscription.geoQ?.geoproperty == "https://uri.etsi.org/ngsi-ld/operationSpace")
+        assertThat(subscription.entities)
+            .allMatch { it.type == BEEHIVE_TYPE }
+            .hasSize(1)
     }
 
     @Test
-    fun `it should compact a subscription when serializing as JSON`() {
-        val subscription = subscription.copy(
-            geoQ = GeoQuery(
-                georel = "within",
-                geometry = "Polygon",
-                coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
-                pgisGeometry = "100000101000101010100010100054300",
-                geoproperty = "https://uri.etsi.org/ngsi-ld/operationSpace"
+    fun `it should compact a subscription`() {
+        val subscription = subscription.copy()
+        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+
+        val serializedSub = subscription.compact(APIC_COMPOUND_CONTEXT)
+
+        assertThat(serializedSub)
+            .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
+            .containsExactly(
+                NGSILD_OPERATION_SPACE_TERM,
+                listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY),
+                listOf(INCOMING_COMPACT_PROPERTY)
             )
-        )
-        val serializedSub = subscription.toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
-        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/type"))
-        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/incoming"))
-        assertTrue(serializedSub.contains("incoming"))
-        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/operationSpace"))
-        assertTrue(serializedSub.contains("operationSpace"))
+        assertThat(subscription.entities)
+            .allMatch { it.type == BEEHIVE_COMPACT_TYPE }
+            .hasSize(1)
+//
+//        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/type"))
+//        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/default-context/incoming"))
+//        assertTrue(serializedSub.contains("incoming"))
+//        assertFalse(serializedSub.contains("https://uri.etsi.org/ngsi-ld/operationSpace"))
+//        assertTrue(serializedSub.contains("operationSpace"))
     }
 
     @Test

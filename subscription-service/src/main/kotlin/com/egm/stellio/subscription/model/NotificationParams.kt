@@ -9,12 +9,12 @@ data class NotificationParams(
     var attributes: List<String>?,
     val format: FormatType = FormatType.NORMALIZED,
     val endpoint: Endpoint,
-    var status: StatusType?,
+    var status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
-    val lastNotification: ZonedDateTime?,
-    val lastFailure: ZonedDateTime?,
-    val lastSuccess: ZonedDateTime?
+    val lastNotification: ZonedDateTime? = null,
+    val lastFailure: ZonedDateTime? = null,
+    val lastSuccess: ZonedDateTime? = null
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")

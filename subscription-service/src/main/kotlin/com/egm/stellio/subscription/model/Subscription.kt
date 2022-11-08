@@ -1,11 +1,11 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToListOfElements
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.fasterxml.jackson.annotation.JsonFilter
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -25,7 +25,7 @@ data class Subscription(
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
-    val watchedAttributes: List<String>? = null,
+    var watchedAttributes: List<String>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQuery? = null,
@@ -33,7 +33,7 @@ data class Subscription(
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = JsonBooleanFilter::class)
     val isActive: Boolean = true,
     val expiresAt: ZonedDateTime? = null,
-    @JsonIgnore
+    @JsonProperty(value = JSONLD_CONTEXT)
     val contexts: List<String>
 ) {
 
@@ -46,14 +46,15 @@ data class Subscription(
         else
             SubscriptionStatus.ACTIVE
 
-    fun expandTypes(context: List<String>) {
+    fun expand(contexts: List<String>) {
         this.entities.forEach {
-            it.type = JsonLdUtils.expandJsonLdTerm(it.type, context)
+            it.type = JsonLdUtils.expandJsonLdTerm(it.type, contexts)
         }
         this.notification.attributes = this.notification.attributes?.map {
-            JsonLdUtils.expandJsonLdTerm(it, context)
+            JsonLdUtils.expandJsonLdTerm(it, contexts)
         }
-        this.geoQ?.geoproperty = this.geoQ?.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, context) }
+        this.geoQ?.geoproperty = this.geoQ?.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts) }
+        this.watchedAttributes = this.watchedAttributes?.map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
     }
 
     fun compact(contexts: List<String>): Subscription =

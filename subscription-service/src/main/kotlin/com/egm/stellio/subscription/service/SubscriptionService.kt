@@ -21,10 +21,9 @@ import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntityInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
-import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
+import com.egm.stellio.subscription.utils.QueryUtils.createQueryStatement
 import com.egm.stellio.subscription.utils.execute
-import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirst
@@ -530,23 +529,19 @@ class SubscriptionService(
             .all()
     }
 
-    fun isMatchingQuery(query: String?, entity: String): Boolean {
+    fun isMatchingQuery(query: String?, jsonLdEntity: JsonLdEntity, contexts: List<String>): Mono<Boolean> {
         // TODO Add support for REGEX
         return if (query == null)
-            true
+            Mono.just(true)
         else {
-            try {
-                runQuery(query, entity)
-            } catch (e: Exception) {
-                false
-            }
+            runQuery(query, jsonLdEntity, contexts)
         }
     }
 
-    fun runQuery(query: String, entity: String): Boolean {
-        val jsonPathQuery = QueryUtils.createQueryStatement(query, entity)
-        val res: List<String> = read(entity, "$[?($jsonPathQuery)]")
-        return res.isNotEmpty()
+    fun runQuery(query: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): Mono<Boolean> {
+        return databaseClient.sql(createQueryStatement(query, jsonLdEntity, contexts))
+            .map(matchesQuery)
+            .first()
     }
 
     fun isMatchingGeoQuery(subscriptionId: URI, geoProperty: NgsiLdGeoProperty?): Mono<Boolean> {
@@ -578,7 +573,7 @@ class SubscriptionService(
 
     fun runGeoQueryStatement(geoQueryStatement: String): Mono<Boolean> {
         return databaseClient.sql(geoQueryStatement.trimIndent())
-            .map(matchesGeoQuery)
+            .map(matchesQuery)
             .first()
     }
 
@@ -681,7 +676,7 @@ class SubscriptionService(
             null
     }
 
-    private var matchesGeoQuery: ((Row) -> Boolean) = { row ->
+    private var matchesQuery: ((Row) -> Boolean) = { row ->
         row.get("match", Object::class.java).toString() == "true"
     }
 

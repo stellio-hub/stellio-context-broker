@@ -286,7 +286,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should retrieve the temporal attributes of entities with parameter q`() = runTest {
+    fun `it should retrieve the temporal attributes of entities with parameter q by equal query`() = runTest {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
@@ -312,6 +312,35 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         assertThat(temporalEntityAttributes)
             .allMatch {
                 it.attributeName in setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            }
+    }
+
+    @Test
+    fun `it should retrieve the temporal attributes of entities with parameter q by regex query`() = runTest {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    q = "name=~\"(?i)Paris.*\"",
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf(NAME_PROPERTY),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(1, temporalEntityAttributes.size)
+        assertThat(temporalEntityAttributes)
+            .allMatch {
+                it.attributeName in setOf(NAME_PROPERTY)
             }
     }
 

@@ -13,7 +13,7 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
-    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:1.13.3")
+    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:1.14.0")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation(project(":shared"))
 

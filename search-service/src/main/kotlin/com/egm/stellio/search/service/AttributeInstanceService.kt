@@ -125,6 +125,7 @@ class AttributeInstanceService(
                     """
                     FROM attribute_instance
                     WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    AND value is not null
                     """
                 )
             else

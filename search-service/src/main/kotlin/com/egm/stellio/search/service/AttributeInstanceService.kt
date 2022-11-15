@@ -121,13 +121,21 @@ class AttributeInstanceService(
 
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
-                selectQuery.plus(
-                    """
+                if (temporalQuery.timeBucket != null)
+                    selectQuery.plus(
+                        """
+                        FROM attribute_instance
+                        WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                        AND measured_value is not null
+                        """
+                    )
+                else
+                    selectQuery.plus(
+                        """
                     FROM attribute_instance
                     WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
-                    AND value is not null
                     """
-                )
+                    )
             else
                 selectQuery.plus(
                     """

@@ -303,11 +303,11 @@ object JsonLdUtils {
         } else
             null
 
-    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): ZonedDateTime {
+    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): ZonedDateTime? {
         val observedAt = ZonedDateTime::class.safeCast(getPropertyValueFromMap(values, propertyKey))
         return observedAt?.run {
             ZonedDateTime.parse(this.toString())
-        } ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
+        }
     }
 
     fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =

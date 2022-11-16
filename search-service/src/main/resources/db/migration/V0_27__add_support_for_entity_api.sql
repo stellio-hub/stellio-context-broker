@@ -29,7 +29,7 @@ update entity_payload
 update entity_payload
     set created_at = (jsonb_path_query_first(payload, '$.createdAt')::text)::timestamp with time zone,
         modified_at =  (jsonb_path_query_first(payload, '$.modifiedAt')::text)::timestamp with time zone,
-        contexts = ARRAY(select jsonb_path_query_first(payload, '$."@context"'));
+        contexts = ARRAY(select jsonb_array_elements_text(jsonb_path_query_first(payload, '$."@context"')));
 
 -- columns will be populated with the 0.28 programmatic migration script
 alter table temporal_entity_attribute

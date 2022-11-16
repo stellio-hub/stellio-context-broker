@@ -413,7 +413,7 @@ class TemporalEntityAttributeService(
                 .replace("##", "(")
                 .replace("//", ")")
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.quoteIfNeeded()
+            val targetValue = query.third.convertInDateTimeIfNeeded()
             """
             EXISTS(
                SELECT 1
@@ -466,9 +466,9 @@ class TemporalEntityAttributeService(
         }
     }
 
-    private fun String.quoteIfNeeded() =
+    private fun String.convertInDateTimeIfNeeded() =
         if (this.isDate() || this.isDateTime() || this.isTime())
-            "\"".plus(this).plus("\"")
+            "\"".plus(this).plus("\"").plus(".datetime()")
         else
             this
 

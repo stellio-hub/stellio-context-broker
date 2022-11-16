@@ -99,7 +99,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         ).shouldSucceed()
 
         val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
-        assertEquals(3, teas.size)
+        assertEquals(4, teas.size)
 
         coVerify {
             attributeInstanceService.create(
@@ -345,6 +345,35 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
+    fun `it should retrieve the temporal attributes of entities with parameter q (datatime like value)`() = runTest {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    q = "dateOfFirstBee==\"2020-10-26T21:32:52.98601Z\"",
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(1, temporalEntityAttributes.size)
+        assertThat(temporalEntityAttributes)
+            .allMatch {
+                it.attributeName in setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee")
+            }
+    }
+
+    @Test
     fun `it should retrieve the temporal attributes of entities without queryParams attrs`() = runTest {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")
@@ -365,13 +394,14 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 )
             ) { null }
 
-        assertEquals(3, temporalEntityAttributes.size)
+        assertEquals(4, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
                 it.attributeName in setOf(
                     INCOMING_PROPERTY,
                     "https://ontology.eglobalmark.com/egm#connectsTo",
-                    "https://schema.org/name"
+                    "https://schema.org/name",
+                    "https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"
                 )
             }
     }

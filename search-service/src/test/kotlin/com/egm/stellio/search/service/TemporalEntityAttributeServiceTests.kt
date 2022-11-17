@@ -330,7 +330,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "name=~\"(?i)Paris.*\"",
+                    q = "name=~\"(?i)paris.*\"",
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT

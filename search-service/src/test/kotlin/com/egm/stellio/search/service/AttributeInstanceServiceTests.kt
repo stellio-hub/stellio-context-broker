@@ -615,17 +615,17 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
-                            it.value == "false" &&
-                            it.measuredValue == null &&
-                            it.payload.matchContent(
-                                """
+                        it.value == "false" &&
+                        it.measuredValue == null &&
+                        it.payload.matchContent(
+                            """
                             {
                                 "value": false, 
                                 "observedAt": "2015-10-18T11:20:30.000001Z",
                                 "instanceId": "${it.instanceId}"
                             }
                             """.trimIndent()
-                            )
+                        )
                 }
             )
         }

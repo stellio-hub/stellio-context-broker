@@ -97,7 +97,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
                 expandedEntity as Map<String, List<Any>>,
                 NGSILD_CREATED_AT_PROPERTY
-            )!!
+            ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
 
             ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
                 val attributeName = ngsiLdAttribute.name

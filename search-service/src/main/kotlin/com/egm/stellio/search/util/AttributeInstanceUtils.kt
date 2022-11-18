@@ -10,5 +10,6 @@ fun valueToDoubleOrNull(value: Any): Double? =
 fun valueToStringOrNull(value: Any): String? =
     when (value) {
         is String -> value
+        is Boolean -> value.toString()
         else -> null
     }

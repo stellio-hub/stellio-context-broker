@@ -3,7 +3,6 @@ package com.egm.stellio.search.model
 import java.time.ZonedDateTime
 
 data class TemporalQuery(
-    val expandedAttrs: Set<String> = emptySet(),
     val timerel: Timerel? = null,
     val timeAt: ZonedDateTime? = null,
     val endTimeAt: ZonedDateTime? = null,

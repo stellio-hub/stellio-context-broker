@@ -23,22 +23,24 @@ class QueryService(
 ) {
     suspend fun queryTemporalEntity(
         entityId: URI,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean,
-        withAudit: Boolean,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         contextLink: String
     ): Either<APIException, CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId,
-            temporalQuery.expandedAttrs
+            temporalEntitiesQuery.queryParams.attrs
         ).ifEmpty {
             return ResourceNotFoundException(
-                entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
+                entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.queryParams.attrs)
             ).left()
         }
 
         val temporalEntityAttributesWithMatchingInstances =
-            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
+            searchInstancesForTemporalEntityAttributes(
+                temporalEntityAttributes,
+                temporalEntitiesQuery.temporalQuery,
+                temporalEntitiesQuery.withTemporalValues
+            )
 
         val temporalEntityAttributesWithInstances =
             fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -46,10 +48,10 @@ class QueryService(
         return temporalEntityService.buildTemporalEntity(
             entityId,
             temporalEntityAttributesWithInstances,
-            temporalQuery,
+            temporalEntitiesQuery.temporalQuery,
             listOf(contextLink),
-            withTemporalValues,
-            withAudit
+            temporalEntitiesQuery.withTemporalValues,
+            temporalEntitiesQuery.withAudit
         ).right()
     }
 

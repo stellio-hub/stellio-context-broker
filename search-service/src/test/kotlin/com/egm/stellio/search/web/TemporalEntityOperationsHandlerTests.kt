@@ -66,13 +66,16 @@ class TemporalEntityOperationsHandlerTests {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
-            expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 1, offset = 0),
+                queryParams = QueryParams(
+                    types = setOf("BeeHive", "Apiary"),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    limit = 1, offset = 0
+                ),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
@@ -109,6 +112,7 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
                         temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
@@ -123,14 +127,14 @@ class TemporalEntityOperationsHandlerTests {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
-            expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
                     types = setOf("BeeHive", "Apiary"),
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 0,
                     offset = 1,
                     count = true
@@ -172,6 +176,7 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.queryParams.offset == 1 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
                         temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
                 },

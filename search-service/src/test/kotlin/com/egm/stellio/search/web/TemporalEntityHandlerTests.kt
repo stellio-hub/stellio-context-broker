@@ -308,7 +308,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } returns emptyMap<String, Any>().right()
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         webClient.get()
@@ -451,7 +451,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 404 if temporal entity attribute does not exist`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
 
         webClient.get()
@@ -476,7 +476,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } returns emptyMap<String, Any>().right()
 
         webClient.get()
@@ -491,12 +491,14 @@ class TemporalEntityHandlerTests {
         coVerify {
             queryService.queryTemporalEntity(
                 eq(entityUri),
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
+                            ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        ) &&
+                        !temporalEntitiesQuery.withTemporalValues &&
+                        !temporalEntitiesQuery.withAudit
                 },
-                withTemporalValues = false,
-                withAudit = false,
                 eq(APIC_COMPOUND_CONTEXT)
             )
         }
@@ -507,7 +509,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } returns emptyMap<String, Any>().right()
 
         webClient.get()
@@ -531,7 +533,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } returns emptyMap<String, Any>().right()
 
         webClient.get()
@@ -654,7 +656,7 @@ class TemporalEntityHandlerTests {
         }
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any())
         } returns entityWith2temporalEvolutions.right()
     }
 

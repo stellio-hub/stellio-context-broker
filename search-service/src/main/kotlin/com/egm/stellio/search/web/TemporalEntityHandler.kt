@@ -135,9 +135,7 @@ class TemporalEntityHandler(
 
             val temporalEntity = queryService.queryTemporalEntity(
                 entityId.toUri(),
-                temporalEntitiesQuery.temporalQuery,
-                temporalEntitiesQuery.withTemporalValues,
-                temporalEntitiesQuery.withAudit,
+                temporalEntitiesQuery,
                 contextLink
             ).bind()
 

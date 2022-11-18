@@ -44,13 +44,19 @@ class QueryServiceTests {
 
         queryService.queryTemporalEntity(
             entityUri,
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
-                timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-                expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                queryParams = QueryParams(
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                    limit = 0,
+                    offset = 50
+                ),
+                withTemporalValues = false,
+                withAudit = false
             ),
-            withTemporalValues = false,
-            withAudit = false,
             APIC_COMPOUND_CONTEXT
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
@@ -89,12 +95,18 @@ class QueryServiceTests {
 
         queryService.queryTemporalEntity(
             entityUri,
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
-                timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                queryParams = QueryParams(
+                    limit = 0,
+                    offset = 50
+                ),
+                withTemporalValues = false,
+                withAudit = false
             ),
-            withTemporalValues = false,
-            withAudit = false,
             APIC_COMPOUND_CONTEXT
         )
 
@@ -149,7 +161,6 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                 TemporalQuery(
-                    expandedAttrs = emptySet(),
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -210,7 +221,6 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(types = setOf(BEEHIVE_TYPE, APIARY_TYPE), offset = 2, limit = 2),
                 TemporalQuery(
-                    expandedAttrs = emptySet(),
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),

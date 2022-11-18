@@ -161,7 +161,6 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                 TemporalQuery(
-                    expandedAttrs = emptySet(),
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -222,7 +221,6 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(types = setOf(BEEHIVE_TYPE, APIARY_TYPE), offset = 2, limit = 2),
                 TemporalQuery(
-                    expandedAttrs = emptySet(),
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),

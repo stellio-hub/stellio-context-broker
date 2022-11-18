@@ -588,6 +588,50 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should create an attribute instance with boolean value`() = runTest {
+        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeValues = mapOf(
+            NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                mapOf(
+                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                )
+            ),
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    JSONLD_VALUE_KW to false
+                )
+            )
+        )
+
+        attributeInstanceService.addAttributeInstance(
+            temporalEntityAttribute.id,
+            "https://uri.etsi.org/ngsi-ld/default-context/hasBee",
+            attributeValues,
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        verify {
+            attributeInstanceService["create"](
+                match<AttributeInstance> {
+                    it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
+                            it.value == "false" &&
+                            it.measuredValue == null &&
+                            it.payload.matchContent(
+                                """
+                            {
+                                "value": false, 
+                                "observedAt": "2015-10-18T11:20:30.000001Z",
+                                "instanceId": "${it.instanceId}"
+                            }
+                            """.trimIndent()
+                            )
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should not create an attribute instance if it has a null value and null measuredValue`() = runTest {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
         val attributeValues = mapOf(

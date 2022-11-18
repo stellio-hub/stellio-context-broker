@@ -413,7 +413,7 @@ class TemporalEntityAttributeService(
                 .replace("##", "(")
                 .replace("//", ")")
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.convertInDateTimeIfNeeded()
+            val targetValue = query.third.convertInDateTimeIfNeeded(query.second)
             """
             EXISTS(
                SELECT 1
@@ -425,10 +425,12 @@ class TemporalEntityAttributeService(
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_PROPERTY_VALUE" ? 
                                     (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
-                        WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN 
-                            jsonb_path_exists(temporal_entity_attribute.payload,
-                                '$."$NGSILD_PROPERTY_VALUE" ? 
-                                    (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue)')
+                        WHEN attribute_type = 'Property' 
+                            AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME')
+                            AND '${query.second}' != 'like_regex' THEN
+                                jsonb_path_exists(temporal_entity_attribute.payload,
+                                    '$."$NGSILD_PROPERTY_VALUE" ? 
+                                        (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue)')
                         WHEN attribute_type = 'Relationship' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_RELATIONSHIP_HAS_OBJECT" ? 
@@ -466,9 +468,11 @@ class TemporalEntityAttributeService(
         }
     }
 
-    private fun String.convertInDateTimeIfNeeded() =
+    private fun String.convertInDateTimeIfNeeded(regexPattern: String) =
         if (this.isDate() || this.isDateTime() || this.isTime())
-            "\"".plus(this).plus("\"").plus(".datetime()")
+            if(regexPattern != "like_regex")
+                "\"".plus(this).plus("\"").plus(".datetime()")
+            else  "\"".plus(this).plus("\"")
         else
             this
 

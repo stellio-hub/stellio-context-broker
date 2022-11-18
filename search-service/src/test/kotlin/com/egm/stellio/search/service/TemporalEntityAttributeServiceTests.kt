@@ -9,6 +9,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
@@ -345,7 +346,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should retrieve the temporal attributes of entities with parameter q (datatime like value)`() = runTest {
+    fun `it should retrieve the temporal attributes of entities with parameter q with datetime value`() = runTest {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
@@ -359,7 +360,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "dateOfFirstBee==\"2020-10-26T21:32:52.98601Z\"",
+                    q = "dateOfFirstBee==\"2018-12-04T12:00:00Z\"",
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
                     context = APIC_COMPOUND_CONTEXT
@@ -367,6 +368,35 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ) { null }
 
         assertEquals(1, temporalEntityAttributes.size)
+        assertThat(temporalEntityAttributes)
+            .allMatch {
+                it.attributeName in setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee")
+            }
+    }
+
+    @Test
+    fun `it should no matching entities when do a regex on the parameter q with datetime value`() = runTest {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    q = "dateOfFirstBee=~\"2020-10-26T21:32:52.98601Z\"",
+                    types = setOf(BEEHIVE_TYPE),
+                    attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(0, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
                 it.attributeName in setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee")

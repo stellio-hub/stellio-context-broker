@@ -470,9 +470,9 @@ class TemporalEntityAttributeService(
 
     private fun String.convertInDateTimeIfNeeded(regexPattern: String) =
         if (this.isDate() || this.isDateTime() || this.isTime())
-            if(regexPattern != "like_regex")
+            if (regexPattern != "like_regex")
                 "\"".plus(this).plus("\"").plus(".datetime()")
-            else  "\"".plus(this).plus("\"")
+            else "\"".plus(this).plus("\"")
         else
             this
 

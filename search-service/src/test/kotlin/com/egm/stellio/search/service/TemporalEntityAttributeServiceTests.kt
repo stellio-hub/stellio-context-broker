@@ -359,7 +359,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "dateOfFirstBee==\"2018-12-04T12:00:00Z\"",
+                    q = "dateOfFirstBee==2018-12-04T12:00:00Z",
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
                     context = APIC_COMPOUND_CONTEXT
@@ -388,7 +388,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "dateOfFirstBee=~\"2020-10-26T21:32:52.98601Z\"",
+                    q = "dateOfFirstBee=~2020-10-26T21:32:52.98601Z",
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
                     context = APIC_COMPOUND_CONTEXT

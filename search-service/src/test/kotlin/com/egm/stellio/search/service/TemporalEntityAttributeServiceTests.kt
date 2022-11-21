@@ -359,9 +359,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "dateOfFirstBee==2018-12-04T12:00:00Z",
+                    q = "dateOfFirstBee==2018-12-04T12:00:00.00Z",
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
+                    attrs = setOf(DATE_OF_FIRST_BEE_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -369,38 +369,42 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         assertEquals(1, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.attributeName in setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee")
+                it.attributeName in setOf(DATE_OF_FIRST_BEE_PROPERTY)
             }
     }
 
     @Test
-    fun `it should no matching entities when do a regex on the parameter q with datetime value`() = runTest {
-        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
-        val secondRawEntity = loadSampleData("beehive.jsonld")
+    fun `it should not retrieve the temporal attributes of entities when doing a regex query on a datetime`() =
+        runTest {
+            val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+            val secondRawEntity = loadSampleData("beehive.jsonld")
 
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+            coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
-        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                secondRawEntity,
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
 
-        val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
-                QueryParams(
-                    offset = 0,
-                    limit = 2,
-                    q = "dateOfFirstBee=~2020-10-26T21:32:52.98601Z",
-                    types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"),
-                    context = APIC_COMPOUND_CONTEXT
-                )
-            ) { null }
+            val temporalEntityAttributes =
+                temporalEntityAttributeService.getForEntities(
+                    QueryParams(
+                        offset = 0,
+                        limit = 2,
+                        q = "dateOfFirstBee=~2018-12-04T12:00:00.00Z",
+                        types = setOf(BEEHIVE_TYPE),
+                        attrs = setOf(DATE_OF_FIRST_BEE_PROPERTY),
+                        context = APIC_COMPOUND_CONTEXT
+                    )
+                ) { null }
 
-        assertEquals(0, temporalEntityAttributes.size)
-        assertThat(temporalEntityAttributes)
-            .allMatch {
-                it.attributeName in setOf("https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee")
-            }
-    }
+            assertEquals(0, temporalEntityAttributes.size)
+            assertThat(temporalEntityAttributes)
+                .allMatch {
+                    it.attributeName in setOf(DATE_OF_FIRST_BEE_PROPERTY)
+                }
+        }
 
     @Test
     fun `it should retrieve the temporal attributes of entities without queryParams attrs`() = runTest {
@@ -430,7 +434,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     INCOMING_PROPERTY,
                     "https://ontology.eglobalmark.com/egm#connectsTo",
                     "https://schema.org/name",
-                    "https://uri.etsi.org/ngsi-ld/default-context/dateOfFirstBee"
+                    DATE_OF_FIRST_BEE_PROPERTY
                 )
             }
     }

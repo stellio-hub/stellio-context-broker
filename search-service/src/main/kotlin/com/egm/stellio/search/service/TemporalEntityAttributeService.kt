@@ -421,13 +421,14 @@ class TemporalEntityAttributeService(
                WHERE tea1.entity_id = temporal_entity_attribute.entity_id
                AND (attribute_name = '${expandJsonLdTerm(query.first, listOf(context))}'
                     AND CASE 
-                        WHEN attribute_type = 'Property' 
-                            AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME')
-                            AND '${query.second}' != 'like_regex' THEN
-                                jsonb_path_exists(temporal_entity_attribute.payload,
-                                    '$."$NGSILD_PROPERTY_VALUE" ? 
-                                        (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue)')
-                        WHEN attribute_type = 'Property' THEN 
+                        WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN
+                            CASE 
+                                WHEN '${query.second}' != 'like_regex' THEN
+                                    jsonb_path_exists(temporal_entity_attribute.payload,
+                                        '$."$NGSILD_PROPERTY_VALUE" ? 
+                                            (@."$JSONLD_VALUE_KW".datetime($TEMPLATE) ${query.second} $targetValue)')
+                            END
+                        WHEN attribute_type = 'Property' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_PROPERTY_VALUE" ? 
                                     (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
@@ -852,7 +853,7 @@ class TemporalEntityAttributeService(
 fun String.convertInDateTimeIfNeeded(regexPattern: String) =
     if (this.isDate() || this.isDateTime() || this.isTime())
         if (regexPattern != "like_regex")
-            "\"".plus(this).plus("\"").plus(".datetime()")
+            "\"".plus(this).plus("\"").plus(".datetime($TEMPLATE)")
         else "\"".plus(this).plus("\"")
     else
         this

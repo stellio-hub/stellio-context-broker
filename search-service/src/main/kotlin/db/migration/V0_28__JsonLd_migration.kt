@@ -208,7 +208,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         attributePayload: Map<String, List<Any>>,
         ngsiLdAttributeInstance: NgsiLdAttributeInstance
     ) {
-        val createdAt = ngsiLdAttributeInstance.createdAt
+        val createdAt = ngsiLdAttributeInstance.createdAt ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
         val modifiedAt = ngsiLdAttributeInstance.modifiedAt
         val serializedAttributePayload = serializeObject(attributePayload).replace("'", "''")
         jdbcTemplate.execute(

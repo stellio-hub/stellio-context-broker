@@ -122,7 +122,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                             attributeName,
                             datasetId,
                             attributePayloadFiltered,
-                            ngsiLdAttributeInstance
+                            ngsiLdAttributeInstance,
+                            defaultCreatedAt
                         )
                     } else {
                         // create attributes that do not exist
@@ -206,9 +207,10 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         attributeName: String,
         datasetId: URI?,
         attributePayload: Map<String, List<Any>>,
-        ngsiLdAttributeInstance: NgsiLdAttributeInstance
+        ngsiLdAttributeInstance: NgsiLdAttributeInstance,
+        defaultCreatedAt: ZonedDateTime
     ) {
-        val createdAt = ngsiLdAttributeInstance.createdAt
+        val createdAt = ngsiLdAttributeInstance.createdAt ?: defaultCreatedAt
         val modifiedAt = ngsiLdAttributeInstance.modifiedAt
         val serializedAttributePayload = serializeObject(attributePayload).replace("'", "''")
         jdbcTemplate.execute(

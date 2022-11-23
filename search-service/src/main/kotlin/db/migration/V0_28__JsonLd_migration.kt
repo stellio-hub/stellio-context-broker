@@ -100,7 +100,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                     getPropertyValueFromMapAsDateTime(
                         expandedEntity as Map<String, List<Any>>,
                         NGSILD_CREATED_AT_PROPERTY
-                    )?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                    ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
                 } catch (e: DateTimeParseException) {
                     ZonedDateTime.parse("1970-01-01T00:00:00Z")
                 }

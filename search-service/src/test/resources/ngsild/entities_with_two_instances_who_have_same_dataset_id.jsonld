@@ -1,0 +1,857 @@
+{
+    "id": "urn:ngsi-ld:WeatherInformation:Forecasted:daily:4378-4379-749-750",
+    "kind": {
+        "type": "Property",
+        "value": "forecasted",
+        "createdAt": "2022-06-01T08:32:30.800322521Z"
+    },
+    "type": "WeatherInformation",
+    "title": {
+        "type": "Property",
+        "value": "Weather Measure API",
+        "createdAt": "2022-06-01T08: 32: 30.897195728Z"
+    },
+    "source": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:DataSource:WeatherMeasuresApi:ccmto_forecast_fr_daily",
+        "createdAt": "2022-06-01T08: 32: 30.593665372Z"
+    },
+    "@context": [
+        "https: //raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/irrigation/jsonld-contexts/irrigation.jsonld"
+    ],
+    "dewPoint": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07:28:21.459529276Z"
+            },
+            "type": "Property",
+            "value": 17.25,
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07:28:21.457519851Z",
+            "datasetId": "urn:ngsi-ld:Dataset:2MTR:Mean",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "DEWT2M_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.458665429Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07: 28: 21.465546301Z"
+            },
+            "type": "Property",
+            "value": 1.15,
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07:28:21.462324885Z",
+            "datasetId": "urn:ngsi-ld:Dataset:2MTR:Min",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "DEWT2M_MIN",
+                "createdAt": "2022-07-01T07:28:21.464612052Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07:28:21.476608655Z"
+            },
+            "type": "Property",
+            "value": 18.35,
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07:28:21.474275184Z",
+            "datasetId": "urn:ngsi-ld:Dataset:2MTR:Max",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "DEWT2M_MAX",
+                "createdAt": "2022-07-01T07:28:21.475584290Z"
+            }
+        }
+    ],
+    "location": {
+        "type": "GeoProperty",
+        "value": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [
+                        7.49,
+                        43.78
+                    ],
+                    [
+                        7.5,
+                        43.78
+                    ],
+                    [
+                        7.5,
+                        43.79
+                    ],
+                    [
+                        7.49,
+                        43.79
+                    ],
+                    [
+                        7.49,
+                        43.78
+                    ]
+                ]
+            ]
+        }
+    },
+    "createdAt": "2022-06-01T08: 32: 30.331269816Z",
+    "windSpeed": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07: 28: 21.749927054Z"
+            },
+            "type": "Property",
+            "value": 1.2,
+            "height": {
+                "type": "Property",
+                "value": 10,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.735973705Z"
+            },
+            "createdAt": "2022-07-01T07: 28: 21.732417502Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 10MTR:Min",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent minimal à 10m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.734984571Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS10M_MIN",
+                "createdAt": "2022-07-01T07:28:21.746999833Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07:28:21.689759415Z"
+            },
+            "type": "Property",
+            "value": 3.4,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.686331496Z"
+            },
+            "createdAt": "2022-07-01T07: 28: 21.678691572Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent maximal à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.683116767Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS2M_MAX",
+                "createdAt": "2022-07-01T07:28:21.688741432Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07:28:21.699133757Z"
+            },
+            "type": "Property",
+            "value": 2.0,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.696309482Z"
+            },
+            "createdAt": "2022-07-01T07: 28: 21.694167700Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Mean",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.695449768Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS2M_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.697090836Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07: 28: 21.709394646Z"
+            },
+            "type": "Property",
+            "value": 0.9,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.704852418Z"
+            },
+            "createdAt": "2022-07-01T07: 28: 21.702760608Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Min",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent minimal à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.703755615Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS2M_MIN",
+                "createdAt": "2022-07-01T07: 28: 21.708032385Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.723098483Z"
+            },
+            "type": "Property",
+            "value": 4.6,
+            "height": {
+                "type": "Property",
+                "value": 10,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07:28:21.720437166Z"
+            },
+            "createdAt": "2022-07-01T07:28:21.712174961Z",
+            "datasetId": "urn:ngsi-ld:Dataset:10MTR:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent maximal à 10m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.714310311Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS10M_MAX",
+                "createdAt": "2022-07-01T07: 28: 21.722048079Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 21.729821870Z"
+            },
+            "type": "Property",
+            "value": 2.7,
+            "height": {
+                "type": "Property",
+                "value": 10,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.728235660Z"
+            },
+            "createdAt": "2022-07-01T07: 28: 21.726301296Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 10MTR:Mean",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "vitesse du vent à 10m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.727443782Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "WS10M_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.729027070Z"
+            }
+        }
+    ],
+    "modifiedAt": "2022-07-01T07: 28: 21.751531584Z",
+    "description": {
+        "type": "Property",
+        "value": "this is entity contains daily forecasted weather",
+        "createdAt": "2022-06-01T08: 32: 30.704965035Z"
+    },
+    "temperature": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.599399596Z"
+            },
+            "type": "Property",
+            "value": 26.05,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.597423446Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.594358707Z",
+            "datasetId": "urn:ngsi-ld:Dataset:2MTR:Max",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "description": {
+                "type": "Property",
+                "value": "température à 2m de hauteur",
+                "createdAt": "2022-07-01T07:28:21.596396041Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_MAX",
+                "createdAt": "2022-07-01T07: 28: 21.598425797Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 21.606736881Z"
+            },
+            "type": "Property",
+            "value": 25.15,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.604652287Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.602369382Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Mean",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.603664751Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.605668845Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07: 28: 21.622606191Z"
+            },
+            "type": "Property",
+            "value": 24.15,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.612771097Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.610656567Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Min",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.611713438Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_MIN",
+                "createdAt": "2022-07-01T07: 28: 21.621427273Z"
+            }
+        }
+    ],
+    "cloudCoverage": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 21.454416786Z"
+            },
+            "type": "Property",
+            "value": 48.0,
+            "unitCode": "P1",
+            "createdAt": "2022-07-01T07: 28: 21.450768829Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Total:Mean",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "couverture nuageuse (nébulosité)",
+                "createdAt": "2022-07-01T07: 28: 21.452288506Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "CLDC",
+                "createdAt": "2022-07-01T07: 28: 21.453528466Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 20.460690451Z"
+            },
+            "type": "Property",
+            "value": 22.0,
+            "unitCode": "P1",
+            "createdAt": "2022-07-01T07: 28: 20.450498707Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Total:Mean",
+            "observedAt": "2022-07-03T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "couverture nuageuse (nébulosité)",
+                "createdAt": "2022-07-01T07: 28: 20.452575346Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "CLDC",
+                "createdAt": "2022-07-01T07: 28: 20.454778623Z"
+            }
+        }
+    ],
+    "precipitation": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.537778250Z"
+            },
+            "type": "Property",
+            "value": 0.0,
+            "unitCode": "MM",
+            "createdAt": "2022-07-01T07: 28: 21.535483038Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "PRECIP_MAX",
+                "createdAt": "2022-07-01T07: 28: 21.536724500Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "sum",
+                "createdAt": "2022-07-01T07: 28: 21.542683815Z"
+            },
+            "type": "Property",
+            "value": 0.0,
+            "unitCode": "MM",
+            "createdAt": "2022-07-01T07: 28: 21.540543088Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Sum",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "PRECIP_SUM",
+                "createdAt": "2022-07-01T07: 28: 21.541694050Z"
+            }
+        }
+    ],
+    "windDirection": {
+        "stat": {
+            "type": "Property",
+            "value": "mean",
+            "createdAt": "2022-07-01T07:28:21.673011589Z"
+        },
+        "type": "Property",
+        "value": 184.5,
+        "height": {
+            "type": "Property",
+            "value": 10,
+            "unitCode": "MTR",
+            "createdAt": "2022-07-01T07:28:21.669348814Z"
+        },
+        "unitCode": "DEG",
+        "createdAt": "2022-07-01T07: 28: 21.664809055Z",
+        "datasetId": "urn:ngsi-ld:Dataset: 10MTR:Mean",
+        "observedAt": "2022-07-09T00: 00: 00Z",
+        "description": {
+            "type": "Property",
+            "value": "direction du vent à 10m de hauteur",
+            "createdAt": "2022-07-01T07: 28:21667840016Z"
+        },
+        "sourceParameterCode": {
+            "type": "Property",
+            "value": "WD_MEAN",
+            "createdAt": "2022-07-01T07: 28: 21.670263697Z"
+        }
+    },
+    "solarRadiation": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.584302898Z"
+            },
+            "type": "Property",
+            "value": 1200.0,
+            "unitCode": "D54",
+            "createdAt": "2022-07-01T07: 28: 21.581083446Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "rayonnement de surface à ondes courtes maximal",
+                "createdAt": "2022-07-01T07:28:21.582239629Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "SSI_MAX",
+                "createdAt": "2022-07-01T07:28:21.583154674Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 21.591094727Z"
+            },
+            "type": "Property",
+            "value": 537.0,
+            "unitCode": "D54",
+            "createdAt": "2022-07-01T07: 28: 21.587151894Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Mean",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "description": {
+                "type": "Property",
+                "value": "rayonnement de surface à ondes courtes",
+                "createdAt": "2022-07-01T07:28:21.588224449Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "SSI_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.589253845Z"
+            }
+        }
+    ],
+    "relativeHumidity": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07: 28: 21.550881280Z"
+            },
+            "type": "Property",
+            "value": 62.0,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07:28:21.549077131Z"
+            },
+            "unitCode": "P1",
+            "createdAt": "2022-07-01T07:28:21.546991306Z",
+            "datasetId": "urn:ngsi-ld:Dataset:2MTR:Mean",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "description": {
+                "type": "Property",
+                "value": "humidité relative à 2m de hauteur",
+                "createdAt": "2022-07-01T07:28:21.548207888Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "RH2M_MEAN",
+                "createdAt": "2022-07-01T07:28:21.549920556Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07: 28: 21.558343382Z"
+            },
+            "type": "Property",
+            "value": 54.0,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.555788184Z"
+            },
+            "unitCode": "P1",
+            "createdAt": "2022-07-01T07: 28: 21.553740899Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Min",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "humidité relative minimale à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.554692490Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "RH2M_MIN",
+                "createdAt": "2022-07-01T07: 28: 21.556853349Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.565629648Z"
+            },
+            "type": "Property",
+            "value": 67.0,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.563303685Z"
+            },
+            "unitCode": "P1",
+            "createdAt": "2022-07-01T07: 28: 21.561304679Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "humidité relative maximale à 2m de hauteur",
+                "createdAt": "2022-07-01T07: 28: 21.562345988Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "RH2M_MAX",
+                "createdAt": "2022-07-01T07:28:21.564180739Z"
+            }
+        }
+    ],
+    "growingDegreeDays": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "B0",
+                "createdAt": "2022-07-01T07:28:21.487316018Z"
+            },
+            "type": "Property",
+            "value": 603.1,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.485539095Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.483721499Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:B0",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température base 0 à 2m de hauteur en degrés Celsius",
+                "createdAt": "2022-07-01T07: 28: 21.484746263Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_B0_SUM",
+                "createdAt": "2022-07-01T07: 28: 21.486377734Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "B6",
+                "createdAt": "2022-07-01T07: 28: 21.501040418Z"
+            },
+            "type": "Property",
+            "value": 459.1,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.499358297Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.497318065Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:B6",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température base 0 à 2m de hauteur en degrés Celsius",
+                "createdAt": "2022-07-01T07: 28: 21.498388752Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_B6_SUM",
+                "createdAt": "2022-07-01T07: 28: 21.500209515Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "B10",
+                "createdAt": "2022-07-01T07: 28: 21.521758930Z"
+            },
+            "type": "Property",
+            "value": 363.1,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07: 28: 21.514641844Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.504573571Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:B10",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température base 0 à 2m de hauteur en degrés Celsius",
+                "createdAt": "2022-07-01T07: 28: 21.505805216Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_B10_SUM",
+                "createdAt": "2022-07-01T07: 28: 21.520016902Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "B12",
+                "createdAt": "2022-07-01T07:28:21.531062986Z"
+            },
+            "type": "Property",
+            "value": 315.1,
+            "height": {
+                "type": "Property",
+                "value": 2,
+                "unitCode": "MTR",
+                "createdAt": "2022-07-01T07:28:21.528881991Z"
+            },
+            "unitCode": "CEL",
+            "createdAt": "2022-07-01T07: 28: 21.526113762Z",
+            "datasetId": "urn:ngsi-ld:Dataset: 2MTR:B12",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "température base 0 à 2m de hauteur en degrés Celsius",
+                "createdAt": "2022-07-01T07: 28: 21.527786893Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "T2M_B12_SUM",
+                "createdAt": "2022-07-01T07: 28: 21.530078409Z"
+            }
+        }
+    ],
+    "observationPeriod": {
+        "type": "Property",
+        "value": 1,
+        "unitCode": "DAY",
+        "createdAt": "2022-06-01T08: 32: 30.801842605Z"
+    },
+    "sensibleWeatherId": {
+        "type": "Property",
+        "value": 61442,
+        "unitCode": "D54",
+        "createdAt": "2022-07-01T07: 28: 21.572874187Z",
+        "datasetId": "urn:ngsi-ld:Dataset:total",
+        "observedAt": "2022-07-09T00: 00: 00Z",
+        "description": {
+            "type": "Property",
+            "value": "rayonnement de surface à ondes courtes",
+            "createdAt": "2022-07-01T07: 28: 21.575010626Z"
+        },
+        "sourceParameterCode": {
+            "type": "Property",
+            "value": "SW_ID",
+            "createdAt": "2022-07-01T07: 28: 21.576360864Z"
+        }
+    },
+    "evapotranspiration": {
+        "type": "Property",
+        "value": 8.4,
+        "unitCode": "MM",
+        "createdAt": "2022-07-01T07: 28: 21.479410358Z",
+        "datasetId": "urn:ngsi-ld:Dataset:total",
+        "observedAt": "2022-07-09T00: 00: 00Z",
+        "description": {
+            "type": "Property",
+            "value": "évapotranspiration de référence",
+            "createdAt": "2022-07-01T07: 28: 21.480266208Z"
+        },
+        "sourceParameterCode": {
+            "type": "Property",
+            "value": "ETP",
+            "createdAt": "2022-07-01T07: 28: 21.481106849Z"
+        }
+    },
+    "vapourPressureDeficit": [
+        {
+            "stat": {
+                "type": "Property",
+                "value": "max",
+                "createdAt": "2022-07-01T07: 28: 21.633039735Z"
+            },
+            "type": "Property",
+            "value": 1.5,
+            "unitCode": "KPA",
+            "createdAt": "2022-07-01T07: 28: 21.628691099Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Max",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "déficit de pression de vapeur maximale",
+                "createdAt": "2022-07-01T07: 28: 21.630102629Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "VPD_MAX",
+                "createdAt": "2022-07-01T07:28:21.631145470Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "mean",
+                "createdAt": "2022-07-01T07:28:21.641832099Z"
+            },
+            "type": "Property",
+            "value": 1.2,
+            "unitCode": "KPA",
+            "createdAt": "2022-07-01T07: 28: 21.638562814Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Mean",
+            "observedAt": "2022-07-09T00: 00: 00Z",
+            "description": {
+                "type": "Property",
+                "value": "déficit de pression de vapeur maximale",
+                "createdAt": "2022-07-01T07: 28: 21.640074269Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "VPD_MEAN",
+                "createdAt": "2022-07-01T07: 28: 21.641007952Z"
+            }
+        },
+        {
+            "stat": {
+                "type": "Property",
+                "value": "min",
+                "createdAt": "2022-07-01T07:28:21.659362397Z"
+            },
+            "type": "Property",
+            "value": 1.0,
+            "unitCode": "KPA",
+            "createdAt": "2022-07-01T07:28:21.650764145Z",
+            "datasetId": "urn:ngsi-ld:Dataset:Min",
+            "observedAt": "2022-07-09T00:00:00Z",
+            "description": {
+                "type": "Property",
+                "value": "déficit de pression de vapeur maximale",
+                "createdAt": "2022-07-01T07: 28: 21.652785615Z"
+            },
+            "sourceParameterCode": {
+                "type": "Property",
+                "value": "VPD_MIN",
+                "createdAt": "2022-07-01T07: 28: 21.657496524Z"
+            }
+        }
+    ]
+}

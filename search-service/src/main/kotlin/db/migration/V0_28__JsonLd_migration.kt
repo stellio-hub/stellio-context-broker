@@ -55,7 +55,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             Pair(resultSet.getString("entity_id").toUri(), resultSet.getString("payload"))
         }.forEach { (entityId, payload) ->
             logger.debug("Migrating entity $entityId")
-            val deserializedPayload = payload.deserializeAsMap()
+            val deserializedPayload = payload.deserializeAsMap().keepOnlyOneInstanceByDatsetId()
             val contexts = extractContextFromInput(deserializedPayload)
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
@@ -262,4 +262,16 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
     private fun Any?.toSQLValue(): String? =
         if (this == null) null
         else "'$this'"
+}
+
+fun Map<String, Any>.keepOnlyOneInstanceByDatsetId(): Map<String, Any> {
+    val newPayload = mutableMapOf<String, Any>()
+    this.map {
+        val instance =
+            if (it.key != "@context" && it.value is List<*>) {
+                (it.value as List<Map<String, Any>>).distinctBy { it.entries.filter { it.key == "datasetId" } }
+            } else it.value
+        newPayload.put(it.key, instance)
+    }
+    return newPayload.toMap()
 }

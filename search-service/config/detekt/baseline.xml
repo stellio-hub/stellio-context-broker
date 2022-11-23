@@ -3,6 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>ClassNaming:V0_28__JsonLd_migration.kt$V0_28__JsonLd_migration : BaseJavaMigration</ID>
+    <ID>ClassNaming:VO_28_JsonLd_migrationTests.kt$VO_28_JsonLd_migrationTests</ID>
     <ID>ComplexCondition:EntityHandler.kt$EntityHandler$queryParams.ids.isEmpty() &amp;&amp; queryParams.q.isNullOrEmpty() &amp;&amp; queryParams.types.isEmpty() &amp;&amp; queryParams.attrs.isEmpty()</ID>
     <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>LargeClass:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>

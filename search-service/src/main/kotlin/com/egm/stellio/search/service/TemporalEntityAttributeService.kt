@@ -426,7 +426,7 @@ class TemporalEntityAttributeService(
                                 WHEN '${query.second}' != 'like_regex' THEN
                                     jsonb_path_exists(temporal_entity_attribute.payload,
                                         '$."$NGSILD_PROPERTY_VALUE" ? 
-                                            (@."$JSONLD_VALUE_KW".datetime($TEMPLATE) ${query.second} $targetValue)')
+                                            (@."$JSONLD_VALUE_KW".datetime($DATETIME_TEMPLATE) ${query.second} $targetValue)')
                             END
                         WHEN attribute_type = 'Property' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
@@ -853,7 +853,7 @@ class TemporalEntityAttributeService(
 fun String.convertInDateTimeIfNeeded(regexPattern: String) =
     if (this.isDate() || this.isDateTime() || this.isTime())
         if (regexPattern != "like_regex")
-            "\"".plus(this).plus("\"").plus(".datetime($TEMPLATE)")
+            "\"".plus(this).plus("\"").plus(".datetime($DATETIME_TEMPLATE)")
         else "\"".plus(this).plus("\"")
     else
         this

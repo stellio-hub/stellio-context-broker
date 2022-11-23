@@ -6,8 +6,6 @@ import java.time.format.DateTimeFormatter
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
-const val TEMPLATE: String = "\"YYYY-MM-DD\\\"T\\\"HH24:MI:SS.US\\\"Z\\\"\""
-
 fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)
 

@@ -27,6 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
 import java.net.URI
 import java.time.ZonedDateTime
+import java.time.format.DateTimeParseException
 import java.util.UUID
 
 @Suppress("unused")
@@ -94,10 +95,18 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
 
             // in current implementation, geoproperties do not have a creation date as they are stored
             // as a property of the entity node, so we give them the creation date of the entity
-            val defaultCreatedAt = getPropertyValueFromMapAsDateTime(
-                expandedEntity as Map<String, List<Any>>,
-                NGSILD_CREATED_AT_PROPERTY
-            ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
+            val defaultCreatedAt =
+                try {
+                    getPropertyValueFromMapAsDateTime(
+                        expandedEntity as Map<String, List<Any>>,
+                        NGSILD_CREATED_AT_PROPERTY
+                    ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                } catch (e: DateTimeParseException) {
+                    logger.warn(
+                        "Unable to parse creation date (${e.message}) for entity $entityId, using default date"
+                    )
+                    ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                }
 
             ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
                 val attributeName = ngsiLdAttribute.name

@@ -22,6 +22,8 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
+const val DATETIME_TEMPLATE: String = "\"YYYY-MM-DD\\\"T\\\"HH24:MI:SS.US\\\"Z\\\"\""
+
 fun DatabaseClient.GenericExecuteSpec.allToFlow(): Flow<Map<String, Any>> =
     this.fetch().all().asFlow()
 

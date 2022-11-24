@@ -32,6 +32,7 @@
     "usbCount": "https://ontology.eglobalmark.com/apic#usbCount",
     "resetCount": "https://ontology.eglobalmark.com/apic#resetCount",
     "movementCount": "https://ontology.eglobalmark.com/apic#movementCount",
-    "hornetCount": "https://ontology.eglobalmark.com/apic#hornetCount"
+    "hornetCount": "https://ontology.eglobalmark.com/apic#hornetCount",
+    "dateOfFirstBee": "https://ontology.eglobalmark.com/apic#dateOfFirstBee"
   }
 }

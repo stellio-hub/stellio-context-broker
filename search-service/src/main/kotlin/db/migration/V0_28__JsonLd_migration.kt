@@ -102,7 +102,10 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         NGSILD_CREATED_AT_PROPERTY
                     ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
                 } catch (e: DateTimeParseException) {
-                    logger.warn("Unable to parse datetime with message \"${e.message}\" so we use default date")
+                    logger.warn(
+                        "For the entity ($entityId): unable to parse datetime with message \"${e.message}\"." +
+                            "So we use default date"
+                    )
                     ZonedDateTime.parse("1970-01-01T00:00:00Z")
                 }
 

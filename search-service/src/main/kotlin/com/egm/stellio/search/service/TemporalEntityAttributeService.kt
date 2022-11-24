@@ -413,7 +413,7 @@ class TemporalEntityAttributeService(
                 .replace("##", "(")
                 .replace("//", ")")
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.convertInDateTimeIfNeeded(query.second)
+            val targetValue = query.third.prepareDateValue(query.second)
             """
             EXISTS(
                SELECT 1
@@ -850,7 +850,7 @@ class TemporalEntityAttributeService(
         }
 }
 
-fun String.convertInDateTimeIfNeeded(regexPattern: String) =
+fun String.prepareDateValue(regexPattern: String) =
     if (this.isDate() || this.isDateTime() || this.isTime())
         if (regexPattern != "like_regex")
             "\"".plus(this).plus("\"").plus(".datetime($DATETIME_TEMPLATE)")

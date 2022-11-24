@@ -400,10 +400,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 ) { null }
 
             assertEquals(0, temporalEntityAttributes.size)
-            assertThat(temporalEntityAttributes)
-                .allMatch {
-                    it.attributeName in setOf(DATE_OF_FIRST_BEE_PROPERTY)
-                }
         }
 
     @Test

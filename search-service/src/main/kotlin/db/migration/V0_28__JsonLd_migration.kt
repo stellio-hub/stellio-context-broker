@@ -85,9 +85,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             jdbcTemplate.execute(
                 """
                 update entity_payload
-                set payload = '$serializedJsonLdEntity',
+                set payload = $$$serializedJsonLdEntity$$,
                     specific_access_policy = ${specificAccessPolicy.toSQLValue()}
-                where entity_id = '$entityId'
+                where entity_id = $$$entityId$$
                 """.trimIndent()
             )
 
@@ -178,9 +178,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         (id, entity_id, attribute_name, attribute_type, attribute_value_type, 
                             created_at, modified_at, dataset_id, payload)
                     VALUES 
-                        ('$teaId', '$entityId', '$attributeName', '$atributeType', '$attributeValueType', 
-                            '$createdAt', ${modifiedAt.toSQLValue()}, ${datasetId.toSQLValue()},
-                            '$serializedAttributePayload')
+                        ($$$teaId$$, $$$entityId$$, $$$attributeName$$, $$$atributeType$$, $$$attributeValueType$$, 
+                            $$$createdAt$$, ${modifiedAt.toSQLValue()}, ${datasetId.toSQLValue()},
+                            $$$serializedAttributePayload$$)
                     """.trimIndent()
                 )
                 val attributeInstanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
@@ -190,11 +190,11 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         (time, time_property, measured_value, value, geo_value, 
                             temporal_entity_attribute, instance_id, payload)
                     VALUES
-                        ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
+                        ($$$createdAt$$, $$${AttributeInstance.TemporalProperty.CREATED_AT}$$, 
                             ${temporalAttributesMetadata.value.measuredValue}, 
                             ${temporalAttributesMetadata.value.value.toSQLValue()}, 
-                            ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
-                            '$teaId', '$attributeInstanceId', '$serializedAttributePayload')
+                            ST_GeomFromText($$${temporalAttributesMetadata.value.geoValue!!.value}$$), 
+                            $$$teaId$$, $$$attributeInstanceId$$, $$$serializedAttributePayload$$)
                     """.trimIndent()
                 else
                     """
@@ -202,10 +202,10 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         (time, time_property, measured_value, value, 
                             temporal_entity_attribute, instance_id, payload)
                     VALUES
-                        ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
+                        ($$$createdAt$$, $$${AttributeInstance.TemporalProperty.CREATED_AT}$$, 
                             ${temporalAttributesMetadata.value.measuredValue}, 
                             ${temporalAttributesMetadata.value.value.toSQLValue()}, 
-                            '$teaId', '$attributeInstanceId', '$serializedAttributePayload')
+                            $$$teaId$$, $$$attributeInstanceId$$, $$$serializedAttributePayload$$)
                     """.trimIndent()
                 jdbcTemplate.execute(attributeInstanceQuery)
             }
@@ -226,11 +226,11 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         jdbcTemplate.execute(
             """
             update temporal_entity_attribute
-            set payload = '$serializedAttributePayload',
-                created_at = '$createdAt',
+            set payload = $$$serializedAttributePayload$$,
+                created_at = $$$createdAt$$,
                 modified_at = ${modifiedAt.toSQLValue()}
-            where entity_id = '$entityId'
-            and attribute_name = '$attributeName'
+            where entity_id = $$$entityId$$
+            and attribute_name = $$$attributeName$$
             ${datasetId.toSQLFilter()}
             """.trimIndent()
         )
@@ -245,8 +245,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             """
             select count(*) as count
             from temporal_entity_attribute
-            where entity_id = '$entityId'
-            and attribute_name = '$attributeName'
+            where entity_id = $$$entityId$$
+            and attribute_name = $$$attributeName$$
             ${datasetId.toSQLFilter()}
             """.trimIndent()
         ) { resultSet, _ ->
@@ -258,11 +258,11 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         if (this == null)
             "and dataset_id is null"
         else
-            "and dataset_id = '$this'"
+            "and dataset_id = $$$this$$"
 
     private fun Any?.toSQLValue(): String? =
         if (this == null) null
-        else "'$this'"
+        else "$$$this$$"
 }
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =

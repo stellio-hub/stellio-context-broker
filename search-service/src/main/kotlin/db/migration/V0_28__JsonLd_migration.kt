@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -55,7 +56,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             Pair(resultSet.getString("entity_id").toUri(), resultSet.getString("payload"))
         }.forEach { (entityId, payload) ->
             logger.debug("Migrating entity $entityId")
-            val deserializedPayload = payload.deserializeAsMap()
+            val deserializedPayload = payload.deserializeAsMap().keepOnlyOneInstanceByDatasetId()
             val contexts = extractContextFromInput(deserializedPayload)
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
@@ -263,3 +264,14 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         if (this == null) null
         else "'$this'"
 }
+
+internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =
+    this.mapValues {
+        val instance =
+            if (it.key != JSONLD_CONTEXT && it.value is List<*>) {
+                (it.value as List<Map<String, Any>>).distinctBy {
+                    it["datasetId"]
+                }
+            } else it.value
+        instance
+    }

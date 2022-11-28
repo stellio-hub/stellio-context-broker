@@ -194,7 +194,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                             ${temporalAttributesMetadata.value.measuredValue}, 
                             ${temporalAttributesMetadata.value.value.toSQLValue()}, 
                             ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
-                            '$teaId', $$$attributeInstanceId$$, '$serializedAttributePayload')
+                            '$teaId', '$attributeInstanceId', $$$serializedAttributePayload$)
                     """.trimIndent()
                 else
                     """
@@ -205,7 +205,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
                             ${temporalAttributesMetadata.value.measuredValue}, 
                             ${temporalAttributesMetadata.value.value.toSQLValue()}, 
-                            '$teaId', $$$attributeInstanceId$$, $$$serializedAttributePayload$$)
+                            '$teaId', '$attributeInstanceId', $$$serializedAttributePayload$$)
                     """.trimIndent()
                 jdbcTemplate.execute(attributeInstanceQuery)
             }

@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY

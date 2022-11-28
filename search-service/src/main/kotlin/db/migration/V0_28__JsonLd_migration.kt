@@ -56,7 +56,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             Pair(resultSet.getString("entity_id").toUri(), resultSet.getString("payload"))
         }.forEach { (entityId, payload) ->
             logger.debug("Migrating entity $entityId")
-            val deserializedPayload = payload.deserializeAsMap().keepOnlyOneInstanceByDatasetId()
+            val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
@@ -65,6 +65,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                         keysToTransform[it.key]!!
                     else it.key
                 }
+                .keepOnlyOneInstanceByDatasetId()
 
             // extract specific access policy (if any) from the payload to be able to store it in entity_payload
             // then remove it from the expanded payload

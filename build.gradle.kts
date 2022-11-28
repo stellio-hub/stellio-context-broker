@@ -18,14 +18,14 @@ plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.7.3" apply false
-    id("io.spring.dependency-management") version "1.0.13.RELEASE" apply false
+    id("org.springframework.boot") version "2.7.5" apply false
+    id("io.spring.dependency-management") version "1.1.0" apply false
     kotlin("jvm") version "1.6.21" apply false
     kotlin("plugin.spring") version "1.6.21" apply false
     id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
     id("com.google.cloud.tools.jib") version "3.3.0" apply false
     id("io.gitlab.arturbosch.detekt") version "1.21.0" apply false
-    id("org.sonarqube") version "3.4.0.2513"
+    id("org.sonarqube") version "3.5.0.2730"
     jacoco
 }
 
@@ -68,7 +68,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.2")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.3")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 
@@ -82,7 +82,7 @@ subprojects {
             exclude(module = "mockito-core")
         }
         testImplementation("com.ninja-squad:springmockk:3.1.1")
-        testImplementation("io.mockk:mockk:1.12.7")
+        testImplementation("io.mockk:mockk:1.13.2")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")

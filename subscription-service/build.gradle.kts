@@ -20,7 +20,7 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.7.0")
     implementation(project(":shared"))
     // firebase SDK
-    implementation("com.google.firebase:firebase-admin:9.0.0")
+    implementation("com.google.firebase:firebase-admin:9.1.1")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")

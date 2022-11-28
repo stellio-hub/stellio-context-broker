@@ -30,6 +30,7 @@ class EntityEventService(
 ) {
 
     private val catchAllTopic = "cim.entity._CatchAll"
+    private val iamTopic = "cim.iam.rights"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -53,13 +54,15 @@ class EntityEventService(
                 topics.forEach { topic ->
                     kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
                 }
-                kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
+                // don't send IAM related events to the catch-all topic
+                if (!topics.contains(iamTopic))
+                    kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
                 true as java.lang.Boolean
             }
 
-    private fun entityChannelName(entityType: String, attributeName: String?) =
+    private fun entityChannelName(entityType: String, attributeName: String?): String =
         if (IAM_COMPACTED_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)
-            "cim.iam.rights"
+            iamTopic
         else
             "cim.entity.$entityType"
 

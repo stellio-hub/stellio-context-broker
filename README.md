@@ -1,7 +1,7 @@
 # Stellio context broker
 
 [![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://www.fiware.org/developers/catalogue/)
-![Status](https://nexus.lab.fiware.org/static/badges/statuses/incubating.svg)
+![Status](https://nexus.lab.fiware.org/static/badges/statuses/full.svg)
 [![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.01_60/gs_CIM009v010201p.pdf)
 [![SOF support badge](https://nexus.lab.fiware.org/repository/raw/public/badges/stackoverflow/fiware.svg)](http://stackoverflow.com/questions/tagged/fiware)
 <br>
@@ -154,6 +154,15 @@ docker run stellio/stellio-entity-service:latest
 ## Usage
 
 To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).
+
+## Further resources
+
+For more detailed explanations on NGSI-LD or FIWARE:
+
+-  [NGSI-LD v1.6.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
+-  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.01.01_60/gr_CIM008v010101p.pdf)
+-  [NGSI-LD Tutorials](https://ngsi-ld-tutorials.readthedocs.io/en/latest/)
+-  [FIWARE Training](https://fiware-academy.readthedocs.io/en/latest/integrated-courses/fiware-training/index.html)
 
 ## License
 

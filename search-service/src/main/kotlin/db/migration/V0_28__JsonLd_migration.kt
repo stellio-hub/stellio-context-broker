@@ -10,7 +10,9 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
@@ -269,9 +271,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =
     this.mapValues {
         val instance =
-            if (it.key != JSONLD_CONTEXT && it.value is List<*>) {
+            if (!JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) && it.value is List<*>) {
                 (it.value as List<Map<String, Any>>).distinctBy {
-                    it["datasetId"]
+                    it[NGSILD_DATASET_ID_PROPERTY]
                 }
             } else it.value
         instance

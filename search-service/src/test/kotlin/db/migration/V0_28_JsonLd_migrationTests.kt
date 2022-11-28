@@ -77,4 +77,23 @@ class V0_28_JsonLd_migrationTests {
 
         assertEquals(expectedPayload, payload)
     }
+
+    @Test
+    fun `it should remove instance when attribute has two default instances`() {
+        val payload = loadSampleData("fragments/attribute_with_two_default_instances.jsonld")
+            .deserializeAsMap()
+            .keepOnlyOneInstanceByDatasetId()
+
+        val expectedPayload =
+            mapOf(
+                "cloudCoverage" to listOf(
+                    mapOf(
+                        "createdAt" to "2022-07-01T07:28:21.450768829Z",
+                        "observedAt" to "2022-07-09T00:00:00Z"
+                    ),
+                )
+            )
+
+        assertEquals(expectedPayload, payload)
+    }
 }

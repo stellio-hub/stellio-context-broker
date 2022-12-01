@@ -42,6 +42,10 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         "https://uri.etsi.org/ngsi-ld/default-context/dcTitle" to "http://purl.org/dc/terms/title"
     )
 
+    private val contextToTransform = mapOf(
+        "https://schema.lab.fiware.org/ld/context.jsonld" to "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/fiware/jsonld-contexts/labFiware-compound.jsonld"
+    )
+
     private val logger = LoggerFactory.getLogger(javaClass)
     private lateinit var jdbcTemplate: JdbcTemplate
 
@@ -59,6 +63,12 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             logger.debug("Migrating entity $entityId")
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
+                .map {
+                    if (contextToTransform.containsKey(it)){
+                        contextToTransform[it]!!
+                    }
+                    else it
+                }
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
                     // replace the faulty expanded terms (only at the rool level of the entity)
@@ -88,7 +98,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 """
                 update entity_payload
                 set payload = $$$serializedJsonLdEntity$$,
-                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()},
+                    contexts = $$$contexts$$
                 where entity_id = $$$entityId$$
                 """.trimIndent()
             )

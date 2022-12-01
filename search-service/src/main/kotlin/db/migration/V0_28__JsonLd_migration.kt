@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -43,7 +44,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
     )
 
     private val contextToTransform = mapOf(
-        "https://schema.lab.fiware.org/ld/context.jsonld" to "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/fiware/jsonld-contexts/labFiware-compound.jsonld"
+        "https://schema.lab.fiware.org/ld/context.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld"
     )
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -64,10 +66,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
                 .map {
-                    if (contextToTransform.containsKey(it)){
+                    if (contextToTransform.containsKey(it)) {
                         contextToTransform[it]!!
-                    }
-                    else it
+                    } else it
                 }
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {

@@ -100,7 +100,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 update entity_payload
                 set payload = $$$serializedJsonLdEntity$$,
                     specific_access_policy = ${specificAccessPolicy.toSQLValue()},
-                    contexts = $$$contexts$$
+                    contexts = ${contexts.toSqlArray()}
                 where entity_id = $$$entityId$$
                 """.trimIndent()
             )
@@ -278,6 +278,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         if (this == null) null
         else "$$$this$$"
 }
+
+internal fun List<String>.toSqlArray(): String =
+    "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =
     this.mapValues {

@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -42,6 +43,11 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         "https://uri.etsi.org/ngsi-ld/default-context/dcTitle" to "http://purl.org/dc/terms/title"
     )
 
+    private val contextsToTransform = mapOf(
+        "https://schema.lab.fiware.org/ld/context.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld"
+    )
+
     private val logger = LoggerFactory.getLogger(javaClass)
     private lateinit var jdbcTemplate: JdbcTemplate
 
@@ -59,6 +65,11 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             logger.debug("Migrating entity $entityId")
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
+                .map {
+                    if (contextsToTransform.containsKey(it)) {
+                        contextsToTransform[it]!!
+                    } else it
+                }
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
                 .mapKeys {
                     // replace the faulty expanded terms (only at the rool level of the entity)
@@ -88,7 +99,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                 """
                 update entity_payload
                 set payload = $$$serializedJsonLdEntity$$,
-                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()},
+                    contexts = ${contexts.toSqlArray()}
                 where entity_id = $$$entityId$$
                 """.trimIndent()
             )
@@ -265,6 +277,9 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
     private fun Any?.toSQLValue(): String? =
         if (this == null) null
         else "$$$this$$"
+
+    private fun List<String>.toSqlArray(): String =
+        "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
 }
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =

@@ -53,8 +53,10 @@ class EntityModelTest {
             entityPayload.copy(specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
         val serializedEntity = entityPayloadWithSAP.serializeProperties(false)
         val specificAccessPolicy = mapOf(
-            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE,
-            JsonLdUtils.JSONLD_VALUE_KW to AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
+            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                JsonLdUtils.JSONLD_VALUE_KW to AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
+            )
         )
         Assertions.assertTrue(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
         Assertions.assertEquals(specificAccessPolicy, serializedEntity[AuthContextModel.AUTH_PROP_SAP])

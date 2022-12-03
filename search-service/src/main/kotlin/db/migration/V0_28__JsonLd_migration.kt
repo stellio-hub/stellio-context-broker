@@ -43,7 +43,7 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
         "https://uri.etsi.org/ngsi-ld/default-context/dcTitle" to "http://purl.org/dc/terms/title"
     )
 
-    private val contextToTransform = mapOf(
+    private val contextsToTransform = mapOf(
         "https://schema.lab.fiware.org/ld/context.jsonld" to
             "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld"
     )
@@ -66,8 +66,8 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
                 .map {
-                    if (contextToTransform.containsKey(it)) {
-                        contextToTransform[it]!!
+                    if (contextsToTransform.containsKey(it)) {
+                        contextsToTransform[it]!!
                     } else it
                 }
             val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
@@ -277,10 +277,10 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
     private fun Any?.toSQLValue(): String? =
         if (this == null) null
         else "$$$this$$"
-}
 
-internal fun List<String>.toSqlArray(): String =
-    "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
+    private fun List<String>.toSqlArray(): String =
+        "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
+}
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =
     this.mapValues {

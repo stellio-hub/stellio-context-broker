@@ -7,7 +7,6 @@ import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
-import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
@@ -37,7 +36,6 @@ object JsonLdUtils {
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
-    const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
     const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
     val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
@@ -60,24 +58,15 @@ object JsonLdUtils {
     const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_OBSERVATION_SPACE_TERM = "observationSpace"
-    const val NGSILD_OBSERVATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/observationSpace"
     const val NGSILD_OPERATION_SPACE_TERM = "operationSpace"
     const val NGSILD_OPERATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/operationSpace"
     val NGSILD_GEO_PROPERTIES_TERMS =
         setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
-    val NGSILD_GEO_PROPERTIES_PROPERTIES =
-        setOf(NGSILD_LOCATION_PROPERTY, NGSILD_OBSERVATION_SPACE_PROPERTY, NGSILD_OPERATION_SPACE_PROPERTY)
-    const val NGSILD_COORDINATES_PROPERTY = "https://purl.org/geojson/vocab#coordinates"
-    const val NGSILD_POINT_PROPERTY = "https://purl.org/geojson/vocab#Point"
-    const val NGSILD_COMPACT_POINT_PROPERTY = "Point"
-    const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
-
-    const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
 
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
 
@@ -157,19 +146,8 @@ object JsonLdUtils {
     fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         doJsonLdExpansion(fragment, contexts)
 
-    fun expandJsonLdFragment(
-        attributeName: String,
-        attributePayload: Map<String, Any>,
-        contexts: List<String>
-    ): Map<String, List<Map<String, List<Any>>>> =
-        expandJsonLdFragment(mapOf(attributeName to attributePayload), contexts)
-            as Map<String, List<Map<String, List<Any>>>>
-
     fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
-
-    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> =
-        expandJsonLdFragment(fragment, listOf(context))
 
     fun expandJsonLdFragment(
         attributeName: String,
@@ -212,12 +190,6 @@ object JsonLdUtils {
         return serializeObject(parsedPayload)
     }
 
-    fun addContextsToEntity(
-        compactedJsonLdEntity: CompactedJsonLdEntity,
-        contexts: List<String>
-    ): CompactedJsonLdEntity =
-        compactedJsonLdEntity.plus(Pair(JSONLD_CONTEXT, contexts))
-
     fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =
         if (mediaType == MediaType.APPLICATION_JSON)
             element
@@ -237,9 +209,6 @@ object JsonLdUtils {
 
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
-
-    fun expandValueAsMap(value: Any): Map<String, List<Any>> =
-        (value as List<Any>)[0] as Map<String, List<Any>>
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
         value as List<Map<String, List<Any>>>
@@ -429,13 +398,6 @@ object JsonLdUtils {
     ): String =
         serializeObject(compact(jsonLdEntity, contexts, mediaType))
 
-    fun compactedGeoPropertyKey(geoPropertyName: ExpandedTerm): String =
-        NGSILD_GEO_PROPERTIES_PROPERTIES
-            .zip(NGSILD_GEO_PROPERTIES_TERMS)
-            .filter { it.first == geoPropertyName }
-            .map { it.second }
-            .first()
-
     fun filterCompactedEntityOnAttributes(
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>
@@ -561,25 +523,4 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
         }
     }
     return jsonFragment
-}
-
-// TODO to be removed once the migration to PG is finished
-fun extractAttributeInstanceFromCompactedEntity(
-    compactedJsonLdEntity: CompactedJsonLdEntity,
-    attributeName: String,
-    datasetId: URI?
-): CompactedJsonLdAttribute {
-    return if (compactedJsonLdEntity[attributeName] is List<*>) {
-        val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
-        attributePayload.first { it["datasetId"] as? String == datasetId?.toString() }
-    } else if (compactedJsonLdEntity[attributeName] != null)
-        compactedJsonLdEntity[attributeName] as CompactedJsonLdAttribute
-    else {
-        // Since some attributes cannot be well compacted, to be improved later
-        logger.warn(
-            "Could not find entry for attribute: $attributeName, " +
-                "trying on the 'guessed' short form instead: ${attributeName.extractShortTypeFromExpanded()}"
-        )
-        compactedJsonLdEntity[attributeName.extractShortTypeFromExpanded()] as CompactedJsonLdAttribute
-    }
 }

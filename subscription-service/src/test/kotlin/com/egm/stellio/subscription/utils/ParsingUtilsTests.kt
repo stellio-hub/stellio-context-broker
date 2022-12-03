@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.subscription.model.EndpointInfo
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.fail
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ParsingUtils::class])
 @ActiveProfiles("test")
 class ParsingUtilsTests {

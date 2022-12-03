@@ -93,21 +93,6 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                     attributeName != AUTH_PROP_SAP
                 }
 
-            // store the expanded entity payload instead of the compacted one
-            val serializedJsonLdEntity = serializeObject(expandedEntity).replace("'", "''")
-            jdbcTemplate.execute(
-                """
-                update entity_payload
-                set payload = $$$serializedJsonLdEntity$$,
-                    specific_access_policy = ${specificAccessPolicy.toSQLValue()},
-                    contexts = ${contexts.toSqlArray()}
-                where entity_id = $$$entityId$$
-                """.trimIndent()
-            )
-
-            val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
-            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
-
             // in current implementation, geoproperties do not have a creation date as they are stored
             // as a property of the entity node, so we give them the creation date of the entity
             val defaultCreatedAt =
@@ -122,6 +107,22 @@ class V0_28__JsonLd_migration : BaseJavaMigration() {
                     )
                     ZonedDateTime.parse("1970-01-01T00:00:00Z")
                 }
+
+            // store the expanded entity payload instead of the compacted one
+            val serializedJsonLdEntity = serializeObject(expandedEntity)
+            jdbcTemplate.execute(
+                """
+                update entity_payload
+                set created_at = '$defaultCreatedAt',
+                    payload = $$$serializedJsonLdEntity$$,
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
+                    contexts = ${contexts.toSqlArray()}
+                where entity_id = $$$entityId$$
+                """.trimIndent()
+            )
+
+            val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
+            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
             ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
                 val attributeName = ngsiLdAttribute.name

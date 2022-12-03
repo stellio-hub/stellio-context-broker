@@ -413,7 +413,7 @@ class TemporalEntityAttributeService(
                 .replace("##", "(")
                 .replace("//", ")")
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.quoteIfNeeded()
+            val targetValue = query.third.prepareDateValue(query.second)
             """
             EXISTS(
                SELECT 1
@@ -421,14 +421,17 @@ class TemporalEntityAttributeService(
                WHERE tea1.entity_id = temporal_entity_attribute.entity_id
                AND (attribute_name = '${expandJsonLdTerm(query.first, listOf(context))}'
                     AND CASE 
-                        WHEN attribute_type = 'Property' THEN 
+                        WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN
+                            CASE 
+                                WHEN '${query.second}' != 'like_regex' THEN
+                                    jsonb_path_exists(temporal_entity_attribute.payload,
+                                        '$."$NGSILD_PROPERTY_VALUE" ? 
+                                            (@."$JSONLD_VALUE_KW".datetime($DATETIME_TEMPLATE) ${query.second} $targetValue)')
+                            END
+                        WHEN attribute_type = 'Property' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_PROPERTY_VALUE" ? 
                                     (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
-                        WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN 
-                            jsonb_path_exists(temporal_entity_attribute.payload,
-                                '$."$NGSILD_PROPERTY_VALUE" ? 
-                                    (@."$JSONLD_VALUE_KW".datetime() ${query.second} $targetValue.datetime())')
                         WHEN attribute_type = 'Relationship' THEN
                             jsonb_path_exists(temporal_entity_attribute.payload,
                                 '$."$NGSILD_RELATIONSHIP_HAS_OBJECT" ? 
@@ -461,16 +464,10 @@ class TemporalEntityAttributeService(
             queryTerm.contains("<") ->
                 Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
             queryTerm.contains("=~") ->
-                Triple(queryTerm.split("=~")[0], "=~", queryTerm.split("=~")[1])
+                Triple(queryTerm.split("=~")[0], "like_regex", queryTerm.split("=~")[1])
             else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
         }
     }
-
-    private fun String.quoteIfNeeded() =
-        if (this.isDate() || this.isDateTime() || this.isTime())
-            "\"".plus(this).plus("\"")
-        else
-            this
 
     suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {
         val selectQuery =
@@ -852,3 +849,11 @@ class TemporalEntityAttributeService(
                 )
         }
 }
+
+fun String.prepareDateValue(regexPattern: String) =
+    if (this.isDate() || this.isDateTime() || this.isTime())
+        if (regexPattern != "like_regex")
+            "\"".plus(this).plus("\"").plus(".datetime($DATETIME_TEMPLATE)")
+        else "\"".plus(this).plus("\"")
+    else
+        this

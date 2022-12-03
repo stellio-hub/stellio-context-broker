@@ -58,7 +58,8 @@ class QueryServiceTests {
                 queryParams = QueryParams(
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 0,
-                    offset = 50
+                    offset = 50,
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
                 withAudit = false
@@ -112,7 +113,8 @@ class QueryServiceTests {
                 ),
                 queryParams = QueryParams(
                     limit = 0,
-                    offset = 50
+                    offset = 50,
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
                 withAudit = false

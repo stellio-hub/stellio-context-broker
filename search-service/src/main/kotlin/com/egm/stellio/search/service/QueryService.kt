@@ -88,7 +88,8 @@ class QueryService(
                 searchInstancesForTemporalEntityAttributes(
                     temporalEntityAttributes,
                     temporalEntitiesQuery.temporalQuery,
-                    temporalEntitiesQuery.withTemporalValues)
+                    temporalEntitiesQuery.withTemporalValues
+                )
 
             val temporalEntityAttributesWithInstances =
                 fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)

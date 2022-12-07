@@ -144,13 +144,17 @@ class EntityHandler(
     /**
      * Implements 6.5.3.1 - Retrieve Entity
      */
-    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping("/", "/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable(required = false) entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
@@ -193,11 +197,15 @@ class EntityHandler(
     /**
      * Implements 6.5.3.2 - Delete Entity
      */
-    @DeleteMapping("/{entityId}")
+    @DeleteMapping("/", "/{entityId}")
     suspend fun delete(
-        @PathVariable entityId: String
+        @PathVariable(required = false) entityId: String
     ): ResponseEntity<*> {
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
@@ -223,15 +231,19 @@ class EntityHandler(
      * Implements 6.6.3.1 - Append Entity Attributes
      *
      */
-    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping("/attrs", "/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun appendEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable(required = false) entityId: String,
         @RequestParam options: Optional<String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         return either<APIException, ResponseEntity<*>> {
@@ -284,16 +296,20 @@ class EntityHandler(
      *
      */
     @PatchMapping(
-        "/{entityId}/attrs",
+        "/attrs", "/{entityId}/attrs",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable(required = false) entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
@@ -343,17 +359,24 @@ class EntityHandler(
      *
      */
     @PatchMapping(
-        "/{entityId}/attrs/{attrId}",
+        "/attrs/", "/attrs/{attrId}", "/{entityId}/attrs/", "/{entityId}/attrs/{attrId}",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun partialAttributeUpdate(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
-        @PathVariable attrId: String,
+        @PathVariable(required = false) entityId: String,
+        @PathVariable(required = false) attrId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
+
+        if (attrId.isNullOrEmpty())
+            throw BadRequestDataException("AttrId is missing. You must provide a path variable for attrId")
 
         return either<APIException, ResponseEntity<*>> {
             entityPayloadService.checkEntityExistence(entityUri).bind()
@@ -403,17 +426,24 @@ class EntityHandler(
     /**
      * Implements 6.7.3.2 - Delete Entity Attribute
      */
-    @DeleteMapping("/{entityId}/attrs/{attrId}")
+    @DeleteMapping("/attrs/", "/attrs/{attrId}", "/{entityId}/attrs/", "/{entityId}/attrs/{attrId}")
     suspend fun deleteEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
-        @PathVariable attrId: String,
+        @PathVariable(required = false) entityId: String,
+        @PathVariable(required = false) attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
+        val entityUri =
+            if (!entityId.isNullOrEmpty())
+                entityId.toUri()
+            else
+                throw BadRequestDataException("EntityId is missing. You must provide a path variable for entityId")
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
+
+        if (attrId.isNullOrEmpty())
+            throw BadRequestDataException("AttrId is missing. You must provide a path variable for attrId")
 
         return either<APIException, ResponseEntity<*>> {
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))

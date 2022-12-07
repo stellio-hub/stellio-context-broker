@@ -425,6 +425,24 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should return 400 when entityId are not present`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
@@ -985,7 +1003,7 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/entities/?type=Beehive" +
+                "/ngsi-ld/v1/entities?type=Beehive" +
                     "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=1"
             )
             .exchange()
@@ -1016,7 +1034,7 @@ class EntityHandlerTests {
         } returns Pair(emptyList<JsonLdEntity>(), 0).right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&offset=9")
+            .uri("/ngsi-ld/v1/entities?type=Beehive&limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -1025,7 +1043,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if limit is equal or less than zero`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&offset=1")
+            .uri("/ngsi-ld/v1/entities?type=Beehive&limit=-1&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1042,7 +1060,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if limit is greater than the maximum authorized limit`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&offset=1")
+            .uri("/ngsi-ld/v1/entities?type=Beehive&limit=200&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1103,7 +1121,7 @@ class EntityHandlerTests {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 3).right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&offset=1&count=true")
+            .uri("/ngsi-ld/v1/entities?type=Beehive&limit=0&offset=1&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
@@ -1113,7 +1131,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if the number of results is requested with a limit less than zero`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&offset=1&count=true")
+            .uri("/ngsi-ld/v1/entities?type=Beehive&limit=-1&offset=1&count=true")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1132,7 +1150,7 @@ class EntityHandlerTests {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 0).right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?attrs=myProp")
+            .uri("/ngsi-ld/v1/entities?attrs=myProp")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -1385,6 +1403,23 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `append entity attribute should return a 400 if entityId are not present`() {
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities//attrs")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `append entity attribute should return a 404 if entity does not exist`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
@@ -1602,6 +1637,61 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `partial attribute update should return a 400 if entityId and attrId are not present`() {
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities//attrs/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `partial attribute update should return a 400 if entityId are not present`() {
+        val attrId = "fishNumber"
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities//attrs/$attrId")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `partial attribute update should return a 400 if attrId are not present`() {
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"AttrId is missing. You must provide a path variable for attrId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `partial attribute update should return a 404 if entity does not exist`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
@@ -1807,6 +1897,23 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `entity attributes update should return a 400 if entityId are not present`() {
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities//attrs")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     @SuppressWarnings("MaxLineLength")
     fun `entity attributes update should return a 503 if JSON-LD context is not correct`() {
         val payload =
@@ -1930,6 +2037,23 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
+    }
+
+    @Test
+    fun `delete entity should return a 400 if entityId are not present`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -2121,6 +2245,57 @@ class EntityHandlerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
+    }
+
+    @Test
+    fun `delete entity attribute should return a 400 if entityId and attrId are not present`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities//attrs/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete entity attribute should return a 400 if entityId are not present`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities//attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"EntityId is missing. You must provide a path variable for entityId"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete entity attribute should return a 400 if attrId are not present`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"AttrId is missing. You must provide a path variable for attrId"
+                }
+                """.trimIndent()
+            )
     }
 
     @Test

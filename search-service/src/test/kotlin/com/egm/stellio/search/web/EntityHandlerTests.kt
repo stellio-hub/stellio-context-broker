@@ -1404,8 +1404,12 @@ class EntityHandlerTests {
 
     @Test
     fun `append entity attribute should return a 400 if entityId are not present`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
+
         webClient.post()
             .uri("/ngsi-ld/v1/entities//attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1638,8 +1642,12 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 400 if entityId and attrId are not present`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+
         webClient.patch()
             .uri("/ngsi-ld/v1/entities//attrs/")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1655,10 +1663,13 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 400 if entityId are not present`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val attrId = "fishNumber"
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities//attrs/$attrId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1674,10 +1685,13 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 400 if attrId are not present`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1898,8 +1912,12 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 400 if entityId are not present`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
+
         webClient.patch()
             .uri("/ngsi-ld/v1/entities//attrs")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

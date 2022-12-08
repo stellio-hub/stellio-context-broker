@@ -57,6 +57,15 @@ pipeline {
         }
         /* Jib only allows to add tags and always set the "latest" tag on the Docker images created.
         It's unavoidable to create separate stages for Dockerizing dev services and specify the full to.image path */
+        stage('Dockerize V2-RC Api Gateway') {
+            when {
+                branch 'core-api-migration'
+                changeset "api-gateway/**"
+            }
+            steps {
+                sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:v2-RC -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
+            }
+        }
         stage('Dockerize Dev Api Gateway') {
             when {
                 branch 'develop'
@@ -73,6 +82,18 @@ pipeline {
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
+            }
+        }
+        stage('Dockerize V2-RC Subscription Service') {
+            when {
+                branch 'core-api-migration'
+                anyOf {
+                    changeset "subscription-service/**"
+                    changeset "shared/**"
+                }
+            }
+            steps {
+                sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:v2-RC -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
             }
         }
         stage('Dockerize Dev Subscription Service') {
@@ -97,6 +118,18 @@ pipeline {
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
+            }
+        }
+        stage('Dockerize V2-RC Search Service') {
+            when {
+                branch 'core-api-migration'
+                anyOf {
+                    changeset "search-service/**"
+                    changeset "shared/**"
+                }
+            }
+            steps {
+                sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:v2-RC -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
             }
         }
         stage('Dockerize Dev Search Service') {

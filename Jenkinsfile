@@ -153,6 +153,8 @@ pipeline {
                     build job: '../DataHub.Int.Launcher'
                 else if (env.BRANCH_NAME == 'develop')
                     build job: '../DataHub.Api-Tests.Launcher'
+                else if (env.BRANCH_NAME == "feature/core-api-migration")
+                    build job: '../DataHub.NGSI-LD-Test-Suite.Launcher'
             }
             slackSend (color: '#36b37e', message: "Success: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }

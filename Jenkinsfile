@@ -59,7 +59,7 @@ pipeline {
         It's unavoidable to create separate stages for Dockerizing dev services and specify the full to.image path */
         stage('Dockerize V2-RC Api Gateway') {
             when {
-                branch 'core-api-migration'
+                branch 'feature/core-api-migration'
                 changeset "api-gateway/**"
             }
             steps {
@@ -86,7 +86,7 @@ pipeline {
         }
         stage('Dockerize V2-RC Subscription Service') {
             when {
-                branch 'core-api-migration'
+                branch 'feature/core-api-migration'
                 anyOf {
                     changeset "subscription-service/**"
                     changeset "shared/**"
@@ -122,7 +122,7 @@ pipeline {
         }
         stage('Dockerize V2-RC Search Service') {
             when {
-                branch 'core-api-migration'
+                branch 'feature/core-api-migration'
                 anyOf {
                     changeset "search-service/**"
                     changeset "shared/**"

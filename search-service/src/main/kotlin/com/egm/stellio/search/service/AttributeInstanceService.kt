@@ -39,7 +39,8 @@ class AttributeInstanceService(
                     (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
                 VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
-                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
+                              instance_id = :instance_id
                 """.trimIndent()
             else
                 """

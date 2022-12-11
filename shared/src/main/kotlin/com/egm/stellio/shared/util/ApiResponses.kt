@@ -58,10 +58,15 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
     }
 
 private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
-    logger.error("Returning error ${exception.type} (${exception.detail})")
+    logger.info("Returning error ${exception.type} (${exception.detail})")
     return ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
         .body(serializeObject(exception))
+}
+
+fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
+    logger.info("Bad Request: $errorMessage")
+    return BadRequestDataException(errorMessage).toErrorResponse()
 }
 
 fun buildQueryResponse(

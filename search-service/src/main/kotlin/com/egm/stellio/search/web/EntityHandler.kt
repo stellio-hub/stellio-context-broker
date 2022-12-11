@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -38,6 +39,8 @@ class EntityHandler(
     private val entityAccessRightsService: EntityAccessRightsService,
     private val entityEventService: EntityEventService
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Implements 6.4.3.1 - Create Entity
@@ -219,6 +222,10 @@ class EntityHandler(
         )
     }
 
+    @DeleteMapping("/", "")
+    suspend fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to delete an entity")
+
     /**
      * Implements 6.6.3.1 - Append Entity Attributes
      *
@@ -278,6 +285,10 @@ class EntityHandler(
             { it }
         )
     }
+
+    @PostMapping("/attrs")
+    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
      * Implements 6.6.3.2 - Update Entity Attributes
@@ -437,5 +448,14 @@ class EntityHandler(
             { it.toErrorResponse() },
             { it }
         )
+    }
+
+    @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
+    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
+
+    private suspend fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
+        logger.error("Bad Request: $errorMessage")
+        return BadRequestDataException(errorMessage).toErrorResponse()
     }
 }

@@ -166,6 +166,10 @@ class SubscriptionHandler(
         )
     }
 
+    @PatchMapping("/", "")
+    suspend fun handleMissingIdOnUpdate(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing id when trying to update a subscription")
+
     /**
      * Implements 6.11.3.3 - Delete Subscription
      */

@@ -9,7 +9,9 @@ import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.Instant
@@ -34,6 +36,16 @@ data class Subscription(
     val isActive: Boolean = true,
     val expiresAt: ZonedDateTime? = null
 ) {
+
+    @Transient
+    val status: SubscriptionStatus =
+        if (!isActive)
+            SubscriptionStatus.PAUSED
+        else if (expiresAt != null && expiresAt.isBefore(ZonedDateTime.now()))
+            SubscriptionStatus.EXPIRED
+        else
+            SubscriptionStatus.ACTIVE
+
     fun expandTypes(context: List<String>) {
         this.entities.forEach {
             it.type = JsonLdUtils.expandJsonLdTerm(it.type, context)
@@ -92,6 +104,17 @@ class JsonBooleanFilter {
     }
 
     override fun hashCode(): Int = javaClass.hashCode()
+}
+
+enum class SubscriptionStatus(val status: String) {
+    @JsonProperty("active")
+    ACTIVE("active"),
+
+    @JsonProperty("paused")
+    PAUSED("paused"),
+
+    @JsonProperty("expired")
+    EXPIRED("expired")
 }
 
 fun List<Subscription>.toJson(

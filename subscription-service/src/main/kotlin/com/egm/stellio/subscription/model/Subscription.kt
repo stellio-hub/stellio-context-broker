@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
+import com.fasterxml.jackson.annotation.JsonInclude
 import org.springframework.data.annotation.Id
 import org.springframework.http.MediaType
 import java.net.URI
@@ -29,6 +30,7 @@ data class Subscription(
     val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams,
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = JsonBooleanFilter::class)
     val isActive: Boolean = true,
     val expiresAt: ZonedDateTime? = null
 ) {
@@ -75,6 +77,21 @@ data class Subscription(
 
     fun toJson(context: String, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false): String =
         toJson(listOf(context), mediaType, includeSysAttrs)
+}
+
+// Default for booleans is false, so add a simple filter to only include "isActive" is it is false
+// see https://github.com/FasterXML/jackson-databind/issues/1331 for instance
+class JsonBooleanFilter {
+
+    override fun equals(obj: Any?): Boolean {
+        if (obj == null || obj !is Boolean) {
+            return false
+        }
+
+        return obj == true
+    }
+
+    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 fun List<Subscription>.toJson(

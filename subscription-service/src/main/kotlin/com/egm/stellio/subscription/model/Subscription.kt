@@ -21,7 +21,7 @@ import java.util.UUID
 
 data class Subscription(
     @Id val id: URI = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}".toUri(),
-    val type: String = "Subscription",
+    val type: String,
     val subscriptionName: String? = null,
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,

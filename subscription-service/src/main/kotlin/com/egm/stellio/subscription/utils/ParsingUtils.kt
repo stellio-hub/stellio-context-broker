@@ -23,6 +23,7 @@ object ParsingUtils {
                 val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
                 subscription.expandTypes(context)
 
+                checkTypeIsSubscription(subscription).bind()
                 checkIdIsValid(subscription).bind()
                 checkTimeIntervalGreaterThanZero(subscription).bind()
                 checkSubscriptionValidity(subscription).bind()
@@ -49,7 +50,7 @@ object ParsingUtils {
 
     fun parseGeoQuery(input: Map<String, Any>, contexts: List<String>): GeoQuery {
         val geoQuery = mapper.convertValue(input, GeoQuery::class.java)
-        geoQuery?.geoproperty = geoQuery.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts!!) }
+        geoQuery?.geoproperty = geoQuery.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts) }
         return geoQuery
     }
 
@@ -84,7 +85,12 @@ object ParsingUtils {
             ).left()
         else subscription.right()
 
-    fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Subscription> =
+    private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Subscription> =
+        if (subscription.type != "Subscription")
+            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
+        else subscription.right()
+
+    private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Subscription> =
         if (subscription.watchedAttributes != null && subscription.timeInterval != null)
             BadRequestDataException(
                 "You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
@@ -92,7 +98,7 @@ object ParsingUtils {
                 .left()
         else subscription.right()
 
-    fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Subscription> =
+    private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Subscription> =
         if (subscription.timeInterval != null && subscription.timeInterval < 1)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
         else subscription.right()

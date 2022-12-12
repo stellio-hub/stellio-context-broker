@@ -40,6 +40,7 @@ fun gimmeRawSubscription(
 
     val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
     return Subscription(
+        type = "Subscription",
         subscriptionName = "My Subscription",
         modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",

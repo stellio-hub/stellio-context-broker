@@ -17,6 +17,7 @@ class SubscriptionTest {
 
     private val subscription = Subscription(
         id = "urn:ngsi-ld:Subscription:01".toUri(),
+        type = "Subscription",
         entities = setOf(
             EntityInfo(
                 id = null,

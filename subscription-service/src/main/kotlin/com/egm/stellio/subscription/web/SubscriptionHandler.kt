@@ -192,6 +192,10 @@ class SubscriptionHandler(
         )
     }
 
+    @DeleteMapping("/", "")
+    suspend fun handleMissingIdOnDelete(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing id when trying to delete a subscription")
+
     private fun checkSubscriptionExists(subscriptionId: URI): Mono<Either<APIException, URI>> =
         subscriptionService.exists(subscriptionId)
             .flatMap {

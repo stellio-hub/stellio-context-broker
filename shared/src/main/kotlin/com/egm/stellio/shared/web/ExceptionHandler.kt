@@ -63,7 +63,7 @@ class ExceptionHandler {
         }
 
     private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<String> {
-        logger.error("Returning error ${exception.type} (${exception.detail})")
+        logger.info("Returning error ${exception.type} (${exception.detail})")
         return ResponseEntity.status(status)
             .contentType(MediaType.APPLICATION_JSON)
             .body(serializeObject(exception))

@@ -95,12 +95,12 @@ data class Subscription(
 // see https://github.com/FasterXML/jackson-databind/issues/1331 for instance
 class JsonBooleanFilter {
 
-    override fun equals(obj: Any?): Boolean {
-        if (obj == null || obj !is Boolean) {
+    override fun equals(other: Any?): Boolean {
+        if (other == null || other !is Boolean) {
             return false
         }
 
-        return obj == true
+        return other == true
     }
 
     override fun hashCode(): Int = javaClass.hashCode()

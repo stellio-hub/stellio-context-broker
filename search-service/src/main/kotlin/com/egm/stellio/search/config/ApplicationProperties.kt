@@ -2,12 +2,10 @@ package com.egm.stellio.search.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConstructorBinding
-import java.net.URI
 
 @ConstructorBinding
 @ConfigurationProperties("application")
 data class ApplicationProperties(
-    val entity: Entity,
     val authentication: Authentication,
     val pagination: Pagination
 ) {
@@ -15,9 +13,6 @@ data class ApplicationProperties(
         val enabled: Boolean
     )
 
-    data class Entity(
-        val serviceUrl: URI
-    )
     data class Pagination(
         val limitDefault: Int,
         val limitMax: Int

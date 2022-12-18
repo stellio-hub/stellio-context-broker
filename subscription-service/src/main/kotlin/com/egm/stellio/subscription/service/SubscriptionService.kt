@@ -1,8 +1,13 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.Either
 import arrow.core.Option
+import arrow.core.continuations.either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQuery
@@ -17,6 +22,7 @@ import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
 import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
+import com.egm.stellio.subscription.utils.execute
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
@@ -32,7 +38,6 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -47,98 +52,145 @@ class SubscriptionService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @Transactional
-    fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
-        val insertStatement =
-            """
-        INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
-            time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-            times_sent, is_active, expires_at, sub)
-        VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, :time_interval, :q,
-            :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active,
-            :expires_at, :sub)
-            """.trimIndent()
+    suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> {
+        return either {
+            checkTypeIsSubscription(subscription).bind()
+            checkIdIsValid(subscription).bind()
+            checkTimeIntervalGreaterThanZero(subscription).bind()
+            checkSubscriptionValidity(subscription).bind()
+            checkExpiresAtInTheFuture(subscription).bind()
+        }
+    }
 
-        return databaseClient.sql(insertStatement)
-            .bind("id", subscription.id)
-            .bind("type", subscription.type)
-            .bind("subscription_name", subscription.subscriptionName)
-            .bind("created_at", subscription.createdAt)
-            .bind("description", subscription.description)
-            .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
-            .bind("time_interval", subscription.timeInterval)
-            .bind("q", subscription.q)
-            .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
-            .bind("notif_format", subscription.notification.format.name)
-            .bind("endpoint_uri", subscription.notification.endpoint.uri)
-            .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
-            .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
-            .bind("times_sent", subscription.notification.timesSent)
-            .bind("is_active", subscription.isActive)
-            .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub.toStringValue())
-            .fetch()
-            .rowsUpdated()
-            .flatMap {
-                createGeometryQuery(subscription.geoQ, subscription.id)
+    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
+        if (!subscription.id.isAbsolute)
+            BadRequestDataException(
+                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
+            ).left()
+        else Unit.right()
+
+    private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
+        if (subscription.type != "Subscription")
+            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
+        else Unit.right()
+
+    private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Unit> =
+        if (subscription.watchedAttributes != null && subscription.timeInterval != null)
+            BadRequestDataException(
+                "You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
+            )
+                .left()
+        else Unit.right()
+
+    private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
+        if (subscription.timeInterval != null && subscription.timeInterval < 1)
+            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
+        else Unit.right()
+
+    private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
+        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ZonedDateTime.now()))
+            BadRequestDataException("'expiresAt' must be in the future").left()
+        else Unit.right()
+
+    private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
+        runCatching { ZonedDateTime.parse(expiresAt) }.fold({
+            if (it.isBefore(ZonedDateTime.now()))
+                BadRequestDataException("'expiresAt' must be in the future").left()
+            else it.right()
+        }, {
+            BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
+        })
+
+    @Transactional
+    suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> {
+        return either {
+            validateNewSubscription(subscription).bind()
+
+            val insertStatement =
+                """
+                INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
+                    time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
+                    endpoint_info, times_sent, is_active, expires_at, sub)
+                VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
+                    :time_interval, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
+                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+                """.trimIndent()
+
+            databaseClient.sql(insertStatement)
+                .bind("id", subscription.id)
+                .bind("type", subscription.type)
+                .bind("subscription_name", subscription.subscriptionName)
+                .bind("created_at", subscription.createdAt)
+                .bind("description", subscription.description)
+                .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
+                .bind("time_interval", subscription.timeInterval)
+                .bind("q", subscription.q)
+                .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
+                .bind("notif_format", subscription.notification.format.name)
+                .bind("endpoint_uri", subscription.notification.endpoint.uri)
+                .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
+                .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
+                .bind("times_sent", subscription.notification.timesSent)
+                .bind("is_active", subscription.isActive)
+                .bind("expires_at", subscription.expiresAt)
+                .bind("sub", sub.toStringValue())
+                .execute().bind()
+
+            createGeometryQuery(subscription.geoQ, subscription.id).bind()
+
+            subscription.entities.forEach {
+                createEntityInfo(it, subscription.id).bind()
             }
-            .flatMapIterable {
-                subscription.entities
-            }
-            .flatMap {
-                createEntityInfo(it, subscription.id)
-            }
-            .collectList()
-            .map {
-                it.size
-            }
+        }
     }
 
     fun exists(subscriptionId: URI): Mono<Boolean> =
         subscriptionRepository.existsById(subscriptionId.toString())
 
-    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Mono<Int> =
-        databaseClient.sql(
-            """
-            INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
-            VALUES (:id, :id_pattern, :type, :subscription_id)
-            """.trimIndent()
-        )
-            .bind("id", entityInfo.id)
-            .bind("id_pattern", entityInfo.idPattern)
-            .bind("type", entityInfo.type)
-            .bind("subscription_id", subscriptionId)
-            .fetch()
-            .rowsUpdated()
-
-    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Mono<Int> =
-        if (geoQuery != null) {
-            val storedCoordinates: String =
-                when (geoQuery.coordinates) {
-                    is String -> geoQuery.coordinates
-                    is List<*> -> geoQuery.coordinates.toString()
-                    else -> geoQuery.coordinates.toString()
-                }
-            val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
-
+    private suspend fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Either<APIException, Unit> =
+        either {
             databaseClient.sql(
                 """
-                INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, geoproperty, subscription_id) 
-                VALUES (
-                    :georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :geoproperty, :subscription_id
-                )
-                """
+                INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
+                VALUES (:id, :id_pattern, :type, :subscription_id)
+                """.trimIndent()
             )
-                .bind("georel", geoQuery.georel)
-                .bind("geometry", geoQuery.geometry)
-                .bind("geoproperty", geoQuery.geoproperty)
-                .bind("coordinates", storedCoordinates)
-                .bind("wkt_coordinates", wktCoordinates)
+                .bind("id", entityInfo.id)
+                .bind("id_pattern", entityInfo.idPattern)
+                .bind("type", entityInfo.type)
                 .bind("subscription_id", subscriptionId)
-                .fetch()
-                .rowsUpdated()
-        } else
-            Mono.just(0)
+                .execute()
+        }
+
+    private suspend fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Either<APIException, Unit> =
+        either {
+            if (geoQuery != null) {
+                val storedCoordinates: String =
+                    when (geoQuery.coordinates) {
+                        is String -> geoQuery.coordinates
+                        is List<*> -> geoQuery.coordinates.toString()
+                        else -> geoQuery.coordinates.toString()
+                    }
+                val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
+
+                databaseClient.sql(
+                    """
+                    INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, 
+                        geoproperty, subscription_id) 
+                    VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), 
+                        :geoproperty, :subscription_id)
+                """
+                )
+                    .bind("georel", geoQuery.georel)
+                    .bind("geometry", geoQuery.geometry)
+                    .bind("geoproperty", geoQuery.geoproperty)
+                    .bind("coordinates", storedCoordinates)
+                    .bind("wkt_coordinates", wktCoordinates)
+                    .bind("subscription_id", subscriptionId)
+                    .execute()
+            } else
+                Unit.right()
+        }
 
     fun getById(id: URI): Mono<Subscription> {
         val selectStatement =
@@ -179,72 +231,86 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: URI, input: Map<String, Any>, contexts: List<String>): Mono<Int> {
-        val updates = mutableListOf<Mono<Int>>()
+    suspend fun update(
+        subscriptionId: URI,
+        input: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, Unit> {
+        return either {
+            val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
 
-        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+            if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
+                subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != "Subscription"
+            )
+                BadRequestDataException("type attribute must be present and equal to 'Subscription'")
+                    .left().bind<Unit>()
 
-        subscriptionInputWithModifiedAt.filterKeys {
-            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
-        }.forEach {
-            when {
-                it.key == "geoQ" -> {
-                    val geoQuery = ParsingUtils.parseGeoQuery(it.value as Map<String, Any>, contexts)
-                    updates.add(updateGeometryQuery(subscriptionId, geoQuery))
-                }
-                it.key == "notification" -> {
-                    val notification = it.value as Map<String, Any>
-                    updates.add(updateNotification(subscriptionId, notification, contexts))
-                }
-                it.key == "entities" -> {
-                    val entities = it.value as List<Map<String, Any>>
-                    updates.add(updateEntities(subscriptionId, entities, contexts))
-                }
-                listOf(
-                    "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
-                    "modifiedAt", "expiresAt"
-                ).contains(it.key) -> {
-                    val columnName = it.key.toSqlColumnName()
-                    val value = it.value.toSqlValue(it.key)
-                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
-                }
-                listOf("csf", "throttling", "temporalQ").contains(it.key) -> {
-                    logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
-                    throw NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
-                }
-                else -> {
-                    logger.warn("Subscription $subscriptionId has invalid attribute: ${it.key}")
-                    throw BadRequestDataException("Subscription $subscriptionId has invalid attribute: ${it.key}")
+            subscriptionInputWithModifiedAt.filterKeys {
+                it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+            }.forEach {
+                when {
+                    it.key == "geoQ" -> {
+                        val geoQuery = ParsingUtils.parseGeoQuery(it.value as Map<String, Any>, contexts)
+                        updateGeometryQuery(subscriptionId, geoQuery).bind()
+                    }
+
+                    it.key == "notification" -> {
+                        val notification = it.value as Map<String, Any>
+                        updateNotification(subscriptionId, notification, contexts).bind()
+                    }
+
+                    it.key == "entities" -> {
+                        val entities = it.value as List<Map<String, Any>>
+                        updateEntities(subscriptionId, entities, contexts).bind()
+                    }
+
+                    it.key == "expiresAt" -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
+                        updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
+                    }
+
+                    listOf(
+                        "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
+                        "modifiedAt"
+                    ).contains(it.key) -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val value = it.value.toSqlValue(it.key)
+                        updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
+                    }
+
+                    listOf("csf", "throttling", "temporalQ").contains(it.key) -> {
+                        logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
+                        NotImplementedException(
+                            "Subscription $subscriptionId has unsupported attribute: ${it.key}"
+                        ).left().bind<Unit>()
+                    }
+
+                    else -> {
+                        logger.warn("Subscription $subscriptionId has invalid attribute: ${it.key}")
+                        BadRequestDataException(
+                            "Subscription $subscriptionId has invalid attribute: ${it.key}"
+                        ).left().bind<Unit>()
+                    }
                 }
             }
         }
-
-        return updates.toFlux()
-            .flatMap { updateOperation ->
-                updateOperation.map { it }
-            }
-            .collectList()
-            .map { it.size }
     }
 
-    private fun updateSubscriptionAttribute(
+    private suspend fun updateSubscriptionAttribute(
         subscriptionId: URI,
-        attributeName: String,
         columnName: String,
         value: Any?
-    ): Mono<Int> {
+    ): Either<APIException, Unit> {
         val updateStatement = Update.update(columnName, value)
         return r2dbcEntityTemplate.update(Subscription::class.java)
             .matching(query(where("id").`is`(subscriptionId)))
             .apply(updateStatement)
-            .doOnError { e ->
-                throw BadRequestDataException(
-                    e.message ?: "Could not update attribute $attributeName"
-                )
-            }
+            .map { Unit.right() }
+            .awaitFirst()
     }
 
-    fun updateGeometryQuery(subscriptionId: URI, geoQuery: GeoQuery): Mono<Int> {
+    suspend fun updateGeometryQuery(subscriptionId: URI, geoQuery: GeoQuery): Either<APIException, Unit> {
         val storedCoordinates: String =
             when (val coordinates = geoQuery.coordinates) {
                 is String -> coordinates
@@ -267,11 +333,14 @@ class SubscriptionService(
             .bind("wkt_coordinates", wktCoordinates)
             .bind("geoproperty", geoQuery.geoproperty)
             .bind("subscription_id", subscriptionId)
-            .fetch()
-            .rowsUpdated()
+            .execute()
     }
 
-    fun updateNotification(subscriptionId: URI, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
+    suspend fun updateNotification(
+        subscriptionId: URI,
+        notification: Map<String, Any>,
+        contexts: List<String>?
+    ): Either<APIException, Unit> {
         try {
             val firstValue = notification.entries.iterator().next()
             val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
@@ -293,11 +362,10 @@ class SubscriptionService(
                 updateStatement,
                 Subscription::class.java
             )
-                .doOnError { e ->
-                    throw BadRequestDataException(e.message ?: "Could not update the Notification")
-                }
+                .map { Unit.right() }
+                .awaitFirst()
         } catch (e: Exception) {
-            throw BadRequestDataException(e.message ?: "No values provided for the Notification attribute")
+            return BadRequestDataException(e.message ?: "No values provided for the Notification attribute").left()
         }
     }
 
@@ -340,10 +408,15 @@ class SubscriptionService(
         }
     }
 
-    fun updateEntities(subscriptionId: URI, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
-        return deleteEntityInfo(subscriptionId).doOnNext {
+    suspend fun updateEntities(
+        subscriptionId: URI,
+        entities: List<Map<String, Any>>,
+        contexts: List<String>?
+    ): Either<APIException, Unit> {
+        return either {
+            deleteEntityInfo(subscriptionId).bind()
             entities.forEach {
-                createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).subscribe {}
+                createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).bind()
             }
         }
     }
@@ -354,11 +427,15 @@ class SubscriptionService(
             Subscription::class.java
         )
 
-    fun deleteEntityInfo(subscriptionId: URI): Mono<Int> =
-        r2dbcEntityTemplate.delete(
-            query(where("subscription_id").`is`(subscriptionId)),
-            EntityInfo::class.java
+    suspend fun deleteEntityInfo(subscriptionId: URI): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            DELETE FROM entity_info
+            WHERE subscription_id = :subscription_id
+            """.trimIndent()
         )
+            .bind("subscription_id", subscriptionId)
+            .execute()
 
     fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): Flux<Subscription> {
         val selectStatement =

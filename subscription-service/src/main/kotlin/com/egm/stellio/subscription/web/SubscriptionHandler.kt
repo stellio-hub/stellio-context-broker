@@ -52,9 +52,10 @@ class SubscriptionHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val parsedSubscription = parseSubscription(body, contexts).bind()
+            subscriptionService.validateNewSubscription(parsedSubscription).bind()
             checkSubscriptionNotExists(parsedSubscription).awaitFirst().bind()
 
-            subscriptionService.create(parsedSubscription, sub).awaitFirst()
+            subscriptionService.create(parsedSubscription, sub).bind()
             subscriptionEventService.publishSubscriptionCreateEvent(
                 sub.orNull(),
                 parsedSubscription.id,
@@ -151,7 +152,7 @@ class SubscriptionHandler(
             checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
-            subscriptionService.update(subscriptionIdUri, body, contexts).awaitFirst()
+            subscriptionService.update(subscriptionIdUri, body, contexts).bind()
 
             subscriptionEventService.publishSubscriptionUpdateEvent(
                 sub.orNull(),

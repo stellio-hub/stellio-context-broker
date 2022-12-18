@@ -3,9 +3,7 @@ package com.egm.stellio.subscription.utils
 import arrow.core.Either
 import arrow.core.continuations.either
 import arrow.core.left
-import arrow.core.right
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -22,11 +20,7 @@ object ParsingUtils {
             either {
                 val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
                 subscription.expandTypes(context)
-
-                checkTypeIsSubscription(subscription).bind()
-                checkIdIsValid(subscription).bind()
-                checkTimeIntervalGreaterThanZero(subscription).bind()
-                checkSubscriptionValidity(subscription).bind()
+                subscription
             }
         } catch (e: Exception) {
             e.toAPIException().left()
@@ -77,29 +71,4 @@ object ParsingUtils {
             }
             else -> this
         }
-
-    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Subscription> =
-        if (!subscription.id.isAbsolute)
-            BadRequestDataException(
-                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
-            ).left()
-        else subscription.right()
-
-    private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Subscription> =
-        if (subscription.type != "Subscription")
-            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
-        else subscription.right()
-
-    private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Subscription> =
-        if (subscription.watchedAttributes != null && subscription.timeInterval != null)
-            BadRequestDataException(
-                "You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
-            )
-                .left()
-        else subscription.right()
-
-    private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Subscription> =
-        if (subscription.timeInterval != null && subscription.timeInterval < 1)
-            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
-        else subscription.right()
 }

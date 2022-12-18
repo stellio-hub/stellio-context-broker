@@ -1,7 +1,10 @@
 package com.egm.stellio.subscription.web
 
 import arrow.core.Some
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -143,8 +146,9 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
+        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any(), any()) } returns Mono.just(1)
+        coEvery { subscriptionService.create(any(), any()) } returns Unit.right()
         coEvery { subscriptionEventService.publishSubscriptionCreateEvent(any(), any(), any()) } just Runs
 
         webClient.post()
@@ -167,6 +171,7 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 409 if the subscription already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
+        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         every { subscriptionService.exists(any()) } returns Mono.just(true)
 
         webClient.post()
@@ -187,8 +192,9 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 500 error if internal server Error`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
+        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
+        coEvery { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -228,8 +234,12 @@ class SubscriptionHandlerTests {
     }
 
     @Test
-    fun `create subscription should return a 400 if JSON-LD payload contains 'timeInterval' & 'watchAttributes'`() {
+    fun `create subscription should return a 400 if validation of the subscription fails`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_with_conflicting_timeInterval_watchedAttributes.json")
+
+        coEvery {
+            subscriptionService.validateNewSubscription(any())
+        } returns BadRequestDataException("You can't use 'timeInterval' with 'watchedAttributes' in conjunction").left()
 
         @Suppress("MaxLineLength")
         webClient.post()
@@ -243,27 +253,6 @@ class SubscriptionHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":"You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
-                } 
-                """.trimIndent()
-            )
-    }
-
-    @Test
-    fun `create subscription should return a 400 if JSON-LD payload contains 'timeInterval' less than 0'`() {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_with_time_interval_less_than_0.json")
-
-        @Suppress("MaxLineLength")
-        webClient.post()
-            .uri("/ngsi-ld/v1/subscriptions")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"The value of 'timeInterval' must be greater than zero (int)"
                 } 
                 """.trimIndent()
             )
@@ -469,7 +458,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
+        coEvery { subscriptionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
@@ -480,7 +469,7 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
+        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
         coVerify {
             subscriptionEventService.publishSubscriptionUpdateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -503,7 +492,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
+        coEvery { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -522,7 +511,7 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
+        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
         verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)

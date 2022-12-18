@@ -1,0 +1,16 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "type": "BeeHive",
+  "name": {
+    "type": "Property",
+    "value": "ParisBeehive12"
+  },
+  "specificAccessPolicy": {
+    "type": "Property",
+    "value": "AUTH_READ"
+  },
+  "@context": [
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

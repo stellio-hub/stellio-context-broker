@@ -2,13 +2,13 @@ package db.migration
 
 import arrow.core.Either
 import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.util.guessPropertyValueType
 import com.egm.stellio.search.util.toTemporalAttributeMetadata
-import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdAttributeInstance
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -33,6 +33,9 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
 
+const val EGM_NO_BRANCH_BASE_CONTEXT_URL =
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models"
+
 @Suppress("unused")
 class V0_29__JsonLd_migration : BaseJavaMigration() {
 
@@ -45,8 +48,16 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private val contextsToTransform = mapOf(
         "https://schema.lab.fiware.org/ld/context.jsonld" to
-            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld"
+            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld",
+        "$EGM_NO_BRANCH_BASE_CONTEXT_URL/feature/mlaas-models/mlaas/jsonld-contexts/mlaas-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/mlaas/jsonld-contexts/mlaas-ngsild-compound.jsonld",
+        "$EGM_NO_BRANCH_BASE_CONTEXT_URL/ngsi-ld-v1.2/mapping/jsonld-contexts/mapping-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/mapping/jsonld-contexts/mapping-compound.jsonld",
+        "$EGM_BASE_CONTEXT_URL/agriMushroom/jsonld-contexts/agri-mushroom-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/graced/jsonld-contexts/graced.jsonld"
     )
+
+    private val defaultZonedDateTime = ZonedDateTime.parse("1970-01-01T00:00:00Z")
 
     private val logger = LoggerFactory.getLogger(javaClass)
     private lateinit var jdbcTemplate: JdbcTemplate
@@ -83,7 +94,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             // then remove it from the expanded payload
             val specificAccessPolicy =
                 getAttributeFromExpandedAttributes(originalExpandedEntity, AUTH_PROP_SAP, null)?.let {
-                    getPropertyValueFromMapAsString(it as Map<String, List<Any>>, NGSILD_PROPERTY_VALUE)
+                    getPropertyValueFromMapAsString(it, NGSILD_PROPERTY_VALUE)
                 }?.let {
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
                 }
@@ -95,17 +106,17 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
             // in current implementation, geoproperties do not have a creation date as they are stored
             // as a property of the entity node, so we give them the creation date of the entity
-            val defaultCreatedAt =
+            val entityCreationDate =
                 try {
                     getPropertyValueFromMapAsDateTime(
                         expandedEntity as Map<String, List<Any>>,
                         NGSILD_CREATED_AT_PROPERTY
-                    ) ?: ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                    ) ?: defaultZonedDateTime
                 } catch (e: DateTimeParseException) {
                     logger.warn(
                         "Unable to parse creation date (${e.message}) for entity $entityId, using default date"
                     )
-                    ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                    defaultZonedDateTime
                 }
 
             // store the expanded entity payload instead of the compacted one
@@ -113,9 +124,9 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             jdbcTemplate.execute(
                 """
                 update entity_payload
-                set created_at = '$defaultCreatedAt',
+                set created_at = '$entityCreationDate',
                     payload = $$$serializedJsonLdEntity$$,
-                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()},
                     contexts = ${contexts.toSqlArray()}
                 where entity_id = $$$entityId$$
                 """.trimIndent()
@@ -132,11 +143,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         jsonLdEntity.properties,
                         attributeName,
                         datasetId
-                    )!! as Map<String, List<Any>>
+                    )!!
 
                     val attributePayloadFiltered = attributePayload
                         .filterKeys { attributeName ->
-                            // remove createdAt and modifiedAt in attribute's payload
+                            // remove createdAt and modifiedAt from attribute payload
                             attributeName != NGSILD_CREATED_AT_PROPERTY && attributeName != NGSILD_MODIFIED_AT_PROPERTY
                         }
 
@@ -148,7 +159,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                             datasetId,
                             attributePayloadFiltered,
                             ngsiLdAttributeInstance,
-                            defaultCreatedAt
+                            entityCreationDate
                         )
                     } else {
                         // create attributes that do not exist
@@ -161,7 +172,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                             datasetId,
                             attributePayloadFiltered,
                             ngsiLdAttributeInstance,
-                            defaultCreatedAt
+                            entityCreationDate
                         )
                     }
                 }
@@ -171,9 +182,9 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private fun createTeaEntry(
         entityId: URI,
-        attributeName: String,
+        attributeName: ExpandedTerm,
         datasetId: URI?,
-        attributePayload: Map<String, List<Any>>,
+        attributePayload: ExpandedAttributePayloadEntry,
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {
@@ -202,12 +213,10 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 val attributeInstanceQuery = if (temporalAttributesMetadata.value.geoValue != null)
                     """
                     INSERT INTO attribute_instance_audit
-                        (time, time_property, measured_value, value, geo_value, 
+                        (time, time_property, geo_value, 
                             temporal_entity_attribute, instance_id, payload)
                     VALUES
                         ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
-                            ${temporalAttributesMetadata.value.measuredValue}, 
-                            ${temporalAttributesMetadata.value.value.toSQLValue()}, 
                             ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
                             '$teaId', '$attributeInstanceId', $$$serializedAttributePayload$$)
                     """.trimIndent()
@@ -229,21 +238,29 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private fun updateTeaPayloadAndDates(
         entityId: URI,
-        attributeName: String,
+        attributeName: ExpandedTerm,
         datasetId: URI?,
-        attributePayload: Map<String, List<Any>>,
+        attributePayload: ExpandedAttributePayloadEntry,
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {
         val createdAt = ngsiLdAttributeInstance.createdAt ?: defaultCreatedAt
         val modifiedAt = ngsiLdAttributeInstance.modifiedAt
-        val serializedAttributePayload = serializeObject(attributePayload).replace("'", "''")
+        val serializedAttributePayload = serializeObject(attributePayload)
+
+        val valueType = when (ngsiLdAttributeInstance) {
+            is NgsiLdPropertyInstance -> guessPropertyValueType(ngsiLdAttributeInstance).first
+            is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeValueType.URI
+            is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
+        }
+
         jdbcTemplate.execute(
             """
             update temporal_entity_attribute
             set payload = $$$serializedAttributePayload$$,
                 created_at = '$createdAt',
-                modified_at = ${modifiedAt.toSQLValue()}
+                modified_at = ${modifiedAt.toSQLValue()},
+                attribute_value_type = '$valueType'
             where entity_id = $$$entityId$$
             and attribute_name = $$$attributeName$$
             ${datasetId.toSQLFilter()}

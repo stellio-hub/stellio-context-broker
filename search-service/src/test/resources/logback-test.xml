@@ -15,10 +15,10 @@
     </appender>
 
     <logger name="com.egm.stellio.search" level="DEBUG"/>
-    <logger name="org.springframework.kafka" level="WARN" />
-    <logger name="org.apache.zookeeper" level="WARN"/>
+    <logger name="org.springframework.kafka" level="ERROR" />
     <logger name="kafka" level="WARN"/>
     <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.springframework.r2dbc.core.DefaultDatabaseClient" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

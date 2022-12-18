@@ -7,11 +7,10 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.instanceNotFoundMessage
@@ -100,14 +99,13 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
-        attributeKey: String,
-        attributeValues: Map<String, List<Any>>,
-        contexts: List<String>
+        attributeName: ExpandedTerm,
+        attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
+            ?: throw BadRequestDataException("Attribute $attributeName has an instance without a value")
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without an observed date")
+            ?: throw BadRequestDataException("Attribute $attributeName has an instance without an observed date")
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
@@ -115,7 +113,7 @@ class AttributeInstanceService(
             time = observedAt,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = compactFragment(attributeValues, contexts).minus(JSONLD_CONTEXT)
+            payload = attributeValues
         )
         return create(attributeInstance)
     }
@@ -199,17 +197,19 @@ class AttributeInstanceService(
                    time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
-        // temporal entity attributes are grouped by attribute type by calling services
-        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
-            temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, value "
-        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
-            temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, value, sub "
-        temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, measured_value as value, sub "
-        else ->
-            "SELECT temporal_entity_attribute, time, measured_value as value "
+        else -> {
+            val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
+                TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"
+                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "ST_AsText(geo_value) as value"
+                else -> "value"
+            }
+            val subColumn = when (temporalQuery.timeproperty) {
+                AttributeInstance.TemporalProperty.OBSERVED_AT -> null
+                else -> "sub"
+            }
+            "SELECT " + listOfNotNull("temporal_entity_attribute", "time", valueColumn, subColumn)
+                .joinToString(",")
+        }
     }
 
     suspend fun selectOldestDate(
@@ -252,12 +252,16 @@ class AttributeInstanceService(
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
-                value = row["value"]!!,
+                // the type of the value of a property may have changed in the history (e.g., from number to string)
+                // in this case, just display an empty value (something happened, but we can't display it)
+                value = row["value"] ?: "",
                 time = toOptionalZonedDateTime(row["time_bucket"]) ?: toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
             payload = toJsonString(row["payload"]),
+            time = toZonedDateTime(row["time"]),
+            timeproperty = temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
     }

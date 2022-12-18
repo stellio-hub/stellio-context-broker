@@ -8,12 +8,17 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import java.net.URI
 
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
 
 fun typeNotFoundMessage(type: String) = "Type $type was not found"
 
-fun attributeNotFoundMessage(attributeName: String) = "Attribute $attributeName was not found"
+fun attributeNotFoundMessage(attributeName: String, datasetId: URI? = null) =
+    if (datasetId == null)
+        "Attribute $attributeName (default datasetId) was not found"
+    else
+        "Attribute $attributeName (datasetId: $datasetId) was not found"
 
 fun instanceNotFoundMessage(instanceId: String) = "Instance $instanceId was not found"
 

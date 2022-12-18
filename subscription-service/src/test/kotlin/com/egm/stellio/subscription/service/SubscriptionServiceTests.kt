@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
@@ -211,7 +212,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should not allow a subscription with an empty id`() = runTest {
         val payload = mapOf(
             "id" to "",
-            "type" to "Subscription",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
             "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
@@ -228,7 +229,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should not allow a subscription with an invalid id`() = runTest {
         val payload = mapOf(
             "id" to "invalidId",
-            "type" to "Subscription",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
             "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
@@ -679,7 +680,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should update a subscription`() = runTest {
         val parsedInput = mapOf(
-            "type" to "Subscription",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
             "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
@@ -779,7 +780,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should activate a subscription`() = runTest {
         subscriptionService.update(
             subscription3Id,
-            mapOf("type" to "Subscription", "isActive" to true),
+            mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to true),
             listOf(APIC_COMPOUND_CONTEXT)
         )
         val updateResult = subscriptionService.getById(subscription3Id)
@@ -794,7 +795,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should deactivate a subscription`() = runTest {
         subscriptionService.update(
             subscription1Id,
-            mapOf("type" to "Subscription", "isActive" to false),
+            mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to false),
             listOf(APIC_COMPOUND_CONTEXT)
         )
         val updateResult = subscriptionService.getById(subscription1Id)
@@ -809,7 +810,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should update a subscription watched attributes`() = runTest {
         val parsedInput = mapOf(
-            "type" to "Subscription",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
             "watchedAttributes" to arrayListOf("incoming", "temperature")
         )
 

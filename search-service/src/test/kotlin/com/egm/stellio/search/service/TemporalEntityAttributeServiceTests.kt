@@ -2,17 +2,20 @@ package com.egm.stellio.search.service
 
 import arrow.core.right
 import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.buildSapAttribute
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.coEvery
-import io.mockk.coVerify
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -26,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -84,6 +88,31 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(temporalEntityAttributes[0].attributeName))
 
         coVerify(exactly = 6) { attributeInstanceService.create(any()) }
+    }
+
+    @Test
+    fun `it should only create an entity payload for a minimal entity`() = runTest {
+        val rawEntity = loadSampleData("beehive_minimal.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            rawEntity,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
+        assertEquals(0, teas.size)
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+            }
+
+        coVerify {
+            attributeInstanceService.create(any()) wasNot Called
+        }
     }
 
     @Test
@@ -211,6 +240,53 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
+    fun `it should replace a temporal entity attribute`() = runTest {
+        val rawEntity = loadSampleData()
+
+        val temporalEntityAttribute = mockkClass(TemporalEntityAttribute::class) {
+            every { id } returns UUID.randomUUID()
+            every { entityId } returns beehiveTestCId
+        }
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceed()
+
+        val createdAt = ZonedDateTime.now()
+        val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val newNgsiLdProperty = parseToNgsiLdAttributes(jsonLdAttribute.toMap())
+        temporalEntityAttributeService.replaceAttribute(
+            temporalEntityAttribute,
+            newNgsiLdProperty[0],
+            AttributeMetadata(
+                null,
+                "It's a string now",
+                null,
+                TemporalEntityAttribute.AttributeValueType.STRING,
+                null,
+                TemporalEntityAttribute.AttributeType.Property,
+                ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
+            ),
+            createdAt,
+            jsonLdAttribute as Map<String, List<Any>>,
+            null
+        )
+
+        temporalEntityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY
+        ).shouldSucceedWith {
+            it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
+                it.attributeValueType == TemporalEntityAttribute.AttributeValueType.STRING &&
+                it.entityId == beehiveTestCId &&
+                it.payload == serializeObject(jsonLdAttribute) &&
+                it.createdAt.isBefore(createdAt) &&
+                it.modifiedAt == createdAt
+        }
+    }
+
+    @Test
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() = runTest {
         val rawEntity = loadSampleData()
 
@@ -267,7 +343,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
@@ -296,7 +372,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
@@ -326,7 +402,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
@@ -355,7 +431,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
@@ -388,7 +464,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             )
 
             val temporalEntityAttributes =
-                temporalEntityAttributeService.getForEntities(
+                temporalEntityAttributeService.getForTemporalEntities(
                     QueryParams(
                         offset = 0,
                         limit = 2,
@@ -413,7 +489,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 1,
@@ -446,7 +522,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 1,
@@ -471,7 +547,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 1,
@@ -501,7 +577,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 30,
@@ -515,7 +591,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                        (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                     )
                 """.trimIndent()
             }
@@ -539,11 +615,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         entityPayloadService.updateSpecificAccessPolicy(
             beehiveTestCId,
-            AuthContextModel.SpecificAccessPolicy.AUTH_READ
+            buildSapAttribute(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
         )
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 0,
                     limit = 30,
@@ -557,7 +633,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     (
                         (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                         OR
-                        (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                        (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
                     )
                 """.trimIndent()
             }
@@ -588,11 +664,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
             entityPayloadService.updateSpecificAccessPolicy(
                 beehiveTestCId,
-                AuthContextModel.SpecificAccessPolicy.AUTH_READ
+                buildSapAttribute(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
             )
 
             val temporalEntityAttributes =
-                temporalEntityAttributeService.getForEntities(
+                temporalEntityAttributeService.getForTemporalEntities(
                     QueryParams(
                         offset = 0,
                         limit = 30,
@@ -606,7 +682,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                         (
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                            (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
                         )
                     """.trimIndent()
                 }
@@ -654,7 +730,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 types = setOf(BEEHIVE_TYPE),
                 context = APIC_COMPOUND_CONTEXT
             )
-        ) { "tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
+        ) { "tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
             .shouldSucceedWith { assertEquals(0, it) }
 
         temporalEntityAttributeService.getCountForEntities(
@@ -665,7 +741,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 types = setOf(BEEHIVE_TYPE),
                 context = APIC_COMPOUND_CONTEXT
             )
-        ) { "tea1.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+        ) { "tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
             .shouldSucceedWith { assertEquals(1, it) }
     }
 
@@ -680,7 +756,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 10,
                     limit = 2,
@@ -712,7 +788,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             )
 
             val temporalEntityAttributes =
-                temporalEntityAttributeService.getForEntities(
+                temporalEntityAttributeService.getForTemporalEntities(
                     QueryParams(
                         offset = 10,
                         limit = 2,
@@ -809,7 +885,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val result = temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed")
 
         result.fold(
-            { assertEquals("Attribute speed was not found", it.message) },
+            { assertEquals("Attribute speed (default datasetId) was not found", it.message) },
             { fail("The referred resource should have not been found") }
         )
     }

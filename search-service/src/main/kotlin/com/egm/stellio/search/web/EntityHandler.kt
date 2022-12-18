@@ -15,7 +15,9 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -124,7 +126,11 @@ class EntityHandler(
                 queryParams.useSimplifiedRepresentation,
                 contextLink,
                 mediaType
-            )
+            ).map {
+                if (!queryParams.includeSysAttrs)
+                    it.withoutSysAttrs()
+                else it
+            }
 
             buildQueryResponse(
                 compactedEntities,
@@ -166,8 +172,7 @@ class EntityHandler(
 
             authorizationService.userCanReadEntity(entityUri, sub).bind()
 
-            val jsonLdEntity =
-                queryService.queryEntity(entityUri, listOf(contextLink), queryParams.includeSysAttrs).bind()
+            val jsonLdEntity = queryService.queryEntity(entityUri, listOf(contextLink)).bind()
 
             jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
@@ -177,13 +182,14 @@ class EntityHandler(
             )
             val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-            prepareGetSuccessResponse(mediaType, contextLink)
-                .let {
-                    if (queryParams.useSimplifiedRepresentation)
-                        it.body(JsonUtils.serializeObject(compactedEntity.toKeyValues()))
-                    else
-                        it.body(JsonUtils.serializeObject(compactedEntity))
-                }
+            prepareGetSuccessResponse(mediaType, contextLink).body(
+                serializeObject(
+                    compactedEntity.toFinalRepresentation(
+                        queryParams.includeSysAttrs,
+                        queryParams.useSimplifiedRepresentation
+                    )
+                )
+            )
         }.fold(
             { it.toErrorResponse() },
             { it }
@@ -204,7 +210,7 @@ class EntityHandler(
             entityPayloadService.checkEntityExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
-            authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
+            authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalEntityReferences(entityUri).bind()
 
@@ -369,43 +375,37 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             entityPayloadService.checkEntityExistence(entityUri).bind()
-
-            val body = mapOf(attrId to JsonUtils.deserializeAs<Any>(requestBody.awaitFirst()))
-            val contexts = checkAndGetContext(httpHeaders, body)
-            val expandedPayload = expandJsonLdFragment(body, contexts)
-            val expandedAttrId = expandedPayload.keys.first()
-
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            when (expandedAttrId) {
-                JsonLdUtils.JSONLD_TYPE ->
-                    entityPayloadService.updateTypes(
-                        entityUri,
-                        expandedPayload[JsonLdUtils.JSONLD_TYPE] as List<ExpandedTerm>,
-                        false
-                    ).bind()
-                else ->
-                    temporalEntityAttributeService.partialUpdateEntityAttribute(
-                        entityUri,
-                        expandedPayload as Map<String, List<Map<String, List<Any>>>>,
-                        sub.orNull()
-                    ).bind()
-            }.let {
-                if (it.updated.isEmpty())
-                    ResourceNotFoundException("Unknown attribute in entity $entityId").left()
-                else {
-                    entityEventService.publishAttributeChangeEvents(
-                        sub.orNull(),
-                        entityUri,
-                        expandedPayload,
-                        it,
-                        false,
-                        contexts
-                    )
+            // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val contexts = checkAndGetContext(httpHeaders, body)
 
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
-                }
-            }.bind()
+            val rawPayload = mapOf(attrId to removeContextFromInput(body))
+            val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
+
+            temporalEntityAttributeService.partialUpdateEntityAttribute(
+                entityUri,
+                expandedPayload as Map<String, List<Map<String, List<Any>>>>,
+                sub.orNull()
+            )
+                .bind()
+                .let {
+                    if (it.updated.isEmpty())
+                        ResourceNotFoundException("Unknown attribute in entity $entityId").left()
+                    else {
+                        entityEventService.publishAttributeChangeEvents(
+                            sub.orNull(),
+                            entityUri,
+                            expandedPayload,
+                            it,
+                            false,
+                            contexts
+                        )
+
+                        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
+                    }
+                }.bind()
         }.fold(
             { it.toErrorResponse() },
             { it }

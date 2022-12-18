@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
@@ -47,13 +48,19 @@ object JsonLdUtils {
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
+    const val JSONLD_OBJECT = "object"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
 
+    const val NGSILD_CREATED_AT_TERM = "createdAt"
+    const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
+    val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
-    const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/observedAt"
+    val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+    const val NGSILD_OBSERVED_AT_TERM = "observedAt"
+    const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
@@ -63,12 +70,22 @@ object JsonLdUtils {
     val NGSILD_GEO_PROPERTIES_TERMS =
         setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
+    const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
+
+    const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
+    const val NGSILD_SUBSCRIPTION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Subscription"
+    const val NGSILD_NOTIFICATION_TERM = "Notification"
+    const val NGSILD_NOTIFICATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Notification"
+    const val NGSILD_NOTIFICATION_ATTR_TERM = "notification"
+    const val NGSILD_NOTIFICATION_ATTR_PROPERTY = "https://uri.etsi.org/ngsi-ld/notification"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
+
+    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -286,19 +303,16 @@ object JsonLdUtils {
         expandedAttributes: Map<String, Any>,
         expandedAttributeName: String,
         datasetId: URI?
-    ): Map<String, Any>? {
+    ): ExpandedAttributePayloadEntry? {
         if (!expandedAttributes.containsKey(expandedAttributeName))
             return null
 
-        return (expandedAttributes[expandedAttributeName]!! as List<Map<String, Any>>)
+        return (expandedAttributes[expandedAttributeName]!! as List<Map<String, List<Any>>>)
             .find {
                 if (datasetId == null)
                     !it.containsKey(NGSILD_DATASET_ID_PROPERTY)
                 else
-                    getPropertyValueFromMap(
-                        it as Map<String, List<Any>>,
-                        NGSILD_DATASET_ID_PROPERTY
-                    ) == datasetId.toString()
+                    getPropertyValueFromMap(it, NGSILD_DATASET_ID_PROPERTY) == datasetId.toString()
             }
     }
 
@@ -315,9 +329,23 @@ object JsonLdUtils {
 
     private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
-            val geoValues = it.value as MutableMap<String, Any>
-            geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
-            geoValues
+            when (it.value) {
+                is Map<*, *> -> {
+                    val geoValues = it.value as MutableMap<String, Any>
+                    if (geoValues.isNotEmpty()) {
+                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues
+                    } else geoValues
+                }
+                // case of a multi-instance geoproperty or when retrieving the history of a geoproperty
+                is List<*> ->
+                    (it.value as List<Map<String, Any>>).map { geoInstance ->
+                        val geoValues = geoInstance.toMutableMap()
+                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues
+                    }
+                else -> it.value
+            }
         } else it.value
     }
 
@@ -390,6 +418,7 @@ object JsonLdUtils {
 
     fun compactFragment(value: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
+            .mapValues(restoreGeoPropertyValue())
 
     fun compactAndSerialize(
         jsonLdEntity: JsonLdEntity,
@@ -456,27 +485,109 @@ object JsonLdUtils {
             }
     }
 
-    fun buildJsonLdExpandedProperty(value: Any): Map<String, Any> =
-        mapOf(
-            JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
-            NGSILD_PROPERTY_VALUE to mapOf(
-                JSONLD_VALUE_KW to value
+    /**
+     * Build the expanded payload of a property.
+     *
+     * For instance:
+     *
+     * "https://uri.etsi.org/ngsi-ld/default-context/aProperty": [
+     *   {
+     *     "@type": [
+     *       "https://uri.etsi.org/ngsi-ld/Property"
+     *     ],
+     *     "https://uri.etsi.org/ngsi-ld/hasValue": [
+     *       {
+     *         "@value": "Hop"
+     *       }
+     *     ]
+     *   }
+     * ]
+     */
+    fun buildExpandedProperty(value: Any): ExpandedAttributePayload =
+        listOf(
+            mapOf(
+                JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to value))
             )
         )
 
-    fun buildJsonLdExpandedRelationship(value: URI): Map<String, Any> =
-        mapOf(
-            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
-                JSONLD_ID to value.toString()
+    /**
+     * Build the expanded payload of a property.
+     *
+     * "https://uri.etsi.org/ngsi-ld/default-context/aRelationship": [
+     *   {
+     *     "https://uri.etsi.org/ngsi-ld/hasObject": [
+     *       {
+     *         "@id": "urn:ngsi-ld:Entity02"
+     *       }
+     *     ],
+     *     "@type": [
+     *       "https://uri.etsi.org/ngsi-ld/Relationship"
+     *     ]
+     *   }
+     * ]
+     */
+    fun buildExpandedRelationship(value: URI): ExpandedAttributePayload =
+        listOf(
+            mapOf(
+                JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
+                NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(mapOf(JSONLD_ID to value.toString()))
             )
         )
 
-    fun buildJsonLdExpandedDateTime(value: ZonedDateTime): Map<String, Any> =
-        mapOf(
-            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-            JSONLD_VALUE_KW to value.toNgsiLdFormat()
+    /**
+     * Build the expanded payload of a non-reified temporal property (createdAt, modifiedAt,...).
+     *
+     * For instance:
+     *
+     * "https://uri.etsi.org/ngsi-ld/createdAt": [
+     *   {
+     *     "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+     *     "@value": "2022-12-01T00:00:00Z"
+     *   }
+     * ]
+     */
+    fun buildNonReifiedDateTime(value: ZonedDateTime): List<Map<String, Any>> =
+        listOf(
+            mapOf(
+                JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
+                JSONLD_VALUE_KW to value.toNgsiLdFormat()
+            )
         )
+
+    /**
+     * Build the expanded payload of a non-reified core property.
+     *
+     * For instance:
+     *
+     * "https://uri.etsi.org/ngsi-ld/datasetId": [
+     *   {
+     *     "@id": "urn:ngsi-ld:Dataset:01"
+     *   }
+     * ]
+     */
+    fun buildNonReifiedProperty(value: String): List<Map<String, Any>> =
+        listOf(
+            mapOf(JSONLD_ID to value)
+        )
+}
+
+typealias ExpandedAttributePayload = List<ExpandedAttributePayloadEntry>
+typealias ExpandedAttributePayloadEntry = Map<String, List<Any>>
+
+fun ExpandedAttributePayload.addSubAttribute(
+    subAttributeName: ExpandedTerm,
+    subAttributePayload: List<Map<String, Any>>
+): ExpandedAttributePayload {
+    if (this.isEmpty() || this.size > 1)
+        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+    return listOf(this[0].plus(subAttributeName to subAttributePayload))
+}
+
+fun ExpandedAttributePayload.getSingleEntry(): ExpandedAttributePayloadEntry {
+    if (this.isEmpty() || this.size > 1)
+        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+    return this[0]
 }
 
 fun String.extractShortTypeFromExpanded(): String =
@@ -513,6 +624,35 @@ private fun simplifyValue(value: Map<*, *>): Any {
     }
 }
 
+fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
+    this.filter {
+        !NGSILD_SYSATTRS_TERMS.contains(it.key)
+    }.mapValues {
+        when (it.value) {
+            is Map<*, *> -> (it.value as Map<*, *>).minus(NGSILD_SYSATTRS_TERMS)
+            is List<*> -> (it.value as List<*>).map { valueInstance ->
+                when (valueInstance) {
+                    is Map<*, *> -> valueInstance.minus(NGSILD_SYSATTRS_TERMS)
+                    // we keep @context value as it is (List<String>)
+                    else -> valueInstance
+                }
+            }
+            else -> it.value
+        }
+    }
+
+fun CompactedJsonLdEntity.toFinalRepresentation(
+    includeSysAttrs: Boolean,
+    useSimplifiedRepresentation: Boolean
+): CompactedJsonLdEntity =
+    this.let {
+        if (!includeSysAttrs) it.withoutSysAttrs()
+        else it
+    }.let {
+        if (useSimplifiedRepresentation) it.toKeyValues()
+        else it
+    }
+
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
@@ -524,3 +664,13 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     }
     return jsonFragment
 }
+
+fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
+    if (dateTime != null)
+        this.plus(
+            propertyKey to mapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                JsonLdUtils.JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+            )
+        )
+    else this

@@ -13,10 +13,11 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -210,11 +211,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 value = "some value",
                 timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
                 time = observedAt,
-                payload = mapOf(
-                    "type" to "Property",
-                    "value" to "some value",
-                    "observedAt" to observedAt
-                )
+                payload = buildExpandedProperty("some value")
+                    .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
+                    .getSingleEntry()
             )
             attributeInstanceService.create(attributeInstance)
         }
@@ -561,9 +560,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
-            OUTGOING_COMPACT_PROPERTY,
-            attributeValues,
-            listOf(NGSILD_CORE_CONTEXT)
+            OUTGOING_PROPERTY,
+            attributeValues
         )
 
         verify {
@@ -575,9 +573,16 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                         it.payload.matchContent(
                             """
                             {
-                                "value": 550.0, 
-                                "observedAt": "2015-10-18T11:20:30.000001Z",
-                                "instanceId": "${it.instanceId}"
+                                "https://uri.etsi.org/ngsi-ld/observedAt":[{
+                                    "@value":"2015-10-18T11:20:30.000001Z",
+                                    "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/hasValue":[{
+                                    "@value":550.0
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/instanceId":[{
+                                    "@id":"${it.instanceId}"
+                                }]
                             }
                             """.trimIndent()
                         )
@@ -606,8 +611,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
             "https://uri.etsi.org/ngsi-ld/default-context/hasBee",
-            attributeValues,
-            listOf(NGSILD_CORE_CONTEXT)
+            attributeValues
         )
 
         verify {
@@ -619,9 +623,16 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                         it.payload.matchContent(
                             """
                             {
-                                "value": false, 
-                                "observedAt": "2015-10-18T11:20:30.000001Z",
-                                "instanceId": "${it.instanceId}"
+                                "https://uri.etsi.org/ngsi-ld/observedAt":[{
+                                    "@value":"2015-10-18T11:20:30.000001Z",
+                                    "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/hasValue":[{
+                                    "@value":false
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/instanceId":[{
+                                    "@id":"${it.instanceId}"
+                                }]
                             }
                             """.trimIndent()
                         )
@@ -645,12 +656,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
             attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
-                OUTGOING_COMPACT_PROPERTY,
-                attributeValues,
-                listOf(NGSILD_CORE_CONTEXT)
+                OUTGOING_PROPERTY,
+                attributeValues
             )
         }
-        assertEquals("Attribute outgoing has an instance without a value", exception.message)
+        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", exception.message)
     }
 
     @Test
@@ -667,12 +677,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
             attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
-                "outgoing",
-                attributeValues,
-                listOf(NGSILD_CORE_CONTEXT)
+                OUTGOING_PROPERTY,
+                attributeValues
             )
         }
-        assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
+        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", exception.message)
     }
 
     @Test
@@ -714,11 +723,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             measuredValue = measuredValue,
             timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
             time = observedAt,
-            payload = mapOf(
-                "type" to "Property",
-                "value" to measuredValue,
-                "observedAt" to observedAt
-            )
+            payload = buildExpandedProperty(measuredValue)
+                .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
+                .getSingleEntry()
         )
     }
 

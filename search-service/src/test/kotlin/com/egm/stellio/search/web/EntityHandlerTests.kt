@@ -16,7 +16,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -31,6 +30,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.Job
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -116,7 +116,7 @@ class EntityHandlerTests {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -319,7 +319,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -480,7 +480,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         mockkDefaultBehaviorForGetEntityById()
-        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -751,7 +751,7 @@ class EntityHandlerTests {
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -1162,7 +1162,9 @@ class EntityHandlerTests {
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
     }
 
     @Test
@@ -1499,7 +1501,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
         } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1514,81 +1518,6 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             temporalEntityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), sub.orNull())
         }
-        verify {
-            entityEventService.publishAttributeChangeEvents(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(entityId),
-                any(),
-                eq(updateResult),
-                eq(false),
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
-            )
-        }
-    }
-
-    @Test
-    fun `partial attribute update should return a 204 if type could be appended`() {
-        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialTypeUpdate.json")
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.UPDATED)
-            ),
-            notUpdated = arrayListOf()
-        )
-
-        mockkDefaultBehaviorForPartialUpdateAttribute()
-        coEvery { entityPayloadService.updateTypes(any(), any(), any()) } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$JSONLD_TYPE_TERM")
-            .header("Link", aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
-        coVerify {
-            entityPayloadService.updateTypes(eq(entityId), listOf(breedingServiceType), false)
-        }
-    }
-
-    @Test
-    fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val attrId = "fishNumber"
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.UPDATED
-                ),
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    "urn:ngsi-ld:Dataset:1".toUri(),
-                    UpdateOperationResult.UPDATED
-                )
-            ),
-            notUpdated = arrayListOf()
-        )
-
-        mockkDefaultBehaviorForPartialUpdateAttribute()
-        coEvery {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
-        } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
         verify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -1714,7 +1643,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
         } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1762,7 +1693,9 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1790,7 +1723,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1904,10 +1839,10 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
-        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1918,7 +1853,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
-            authorizationService.userIsAdminOfEntity(eq(beehiveId), eq(sub))
+            authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(beehiveId))
             entityAccessRightsService.removeRolesOnEntity(eq(beehiveId))
         }
@@ -1961,7 +1896,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.deleteTemporalEntityReferences(any())
         } throws RuntimeException("Unexpected server error")
@@ -1988,7 +1923,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(beehiveId) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            authorizationService.userIsAdminOfEntity(beehiveId, sub)
+            authorizationService.userCanAdminEntity(beehiveId, sub)
         } returns AccessDeniedException("User forbidden admin access to entity $beehiveId").left()
 
         webClient.delete()
@@ -2011,7 +1946,9 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
+        } returns Job()
     }
 
     @Test

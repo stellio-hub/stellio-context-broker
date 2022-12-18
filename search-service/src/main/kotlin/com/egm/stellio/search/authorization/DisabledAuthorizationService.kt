@@ -26,7 +26,7 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
     override suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
@@ -39,9 +39,9 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>
-    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
 
     override suspend fun getGroupsMemberships(
         offset: Int,

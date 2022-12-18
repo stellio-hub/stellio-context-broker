@@ -1,0 +1,73 @@
+{
+  "https://ontology.eglobalmark.com/egm#connectsTo": [
+    {
+      "https://uri.etsi.org/ngsi-ld/hasObject": [
+        {
+          "@id": "urn:ngsi-ld:Beekeeper:Pascal"
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Relationship"
+      ]
+    }
+  ],
+  "https://ontology.eglobalmark.com/apic#dateOfFirstBee": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2018-12-04T12:00:00.00Z"
+        }
+      ]
+    }
+  ],
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "https://ontology.eglobalmark.com/apic#incoming": [
+    {
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-01-24T14:01:22.066Z"
+        }
+      ],
+      "https://ontology.eglobalmark.com/egm#observedBy": [
+        {
+          "https://uri.etsi.org/ngsi-ld/hasObject": [
+            {
+              "@id": "urn:ngsi-ld:Sensor:IncomingSensor"
+            }
+          ],
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/Relationship"
+          ]
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 1543
+        }
+      ]
+    }
+  ],
+  "https://schema.org/name": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "ParisBeehive12"
+        }
+      ]
+    }
+  ],
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ]
+}

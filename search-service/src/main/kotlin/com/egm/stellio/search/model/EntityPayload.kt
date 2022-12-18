@@ -3,15 +3,16 @@ package com.egm.stellio.search.model
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.toNgsiLdFormat
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -23,7 +24,7 @@ data class EntityPayload(
     // creation time contexts
     // FIXME only stored because needed to compact types at deletion time...
     val contexts: List<String>,
-    val entityPayload: String? = null,
+    val entityPayload: String,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
     fun serializeProperties(
@@ -32,10 +33,12 @@ data class EntityPayload(
         contexts: List<String> = emptyList()
     ): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        // as we are "manually" compacting the type, handle the case where there is just one of it
-        // and convey it as a string (instead of a list of 1)
+        // "manual" compaction is used for temporal entities where temporalValues representation and aggregations
+        // are badly handled by the normal JSON-LD compaction process (lists of lists are lost mainly)
         if (withCompactTerms) {
             resultEntity[JSONLD_ID_TERM] = entityId.toString()
+            // as we are "manually" compacting the type, handle the case where there is just one of it
+            // and convey it as a string (instead of a list of 1)
             resultEntity[JSONLD_TYPE_TERM] =
                 types.map { compactTerm(it, contexts) }
                     .let { if (it.size > 1) it else it.first() }
@@ -49,24 +52,13 @@ data class EntityPayload(
             resultEntity[JSONLD_ID] = entityId.toString()
             resultEntity[JSONLD_TYPE] = types
             specificAccessPolicy?.run {
-                resultEntity[AuthContextModel.AUTH_PROP_SAP] = mapOf(
-                    JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        JsonLdUtils.JSONLD_VALUE_KW to this
-                    )
-                )
+                resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedProperty(this)
             }
             if (withSysAttrs) {
-                resultEntity[JsonLdUtils.NGSILD_CREATED_AT_PROPERTY] = mapOf(
-                    JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                    JsonLdUtils.JSONLD_VALUE_KW to createdAt.toNgsiLdFormat()
-                )
+                resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedDateTime(createdAt)
 
                 modifiedAt?.run {
-                    resultEntity[JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
-                        JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                        JsonLdUtils.JSONLD_VALUE_KW to this.toNgsiLdFormat()
-                    )
+                    resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedDateTime(this)
                 }
             }
         }

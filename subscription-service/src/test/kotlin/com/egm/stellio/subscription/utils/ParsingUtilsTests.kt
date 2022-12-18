@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.EndpointInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -38,7 +39,7 @@ class ParsingUtilsTests {
         val contextNonExisting = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
         val subscription = mapOf(
             "id" to "urn:ngsi-ld:BeeHive:01",
-            "type" to "Subscription",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
             "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )

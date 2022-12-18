@@ -77,7 +77,7 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
     ).right()
 }
 
-private fun guessPropertyValueType(
+fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
 ): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
     when (val value = ngsiLdPropertyInstance.value) {

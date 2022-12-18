@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
@@ -40,7 +41,7 @@ fun gimmeRawSubscription(
 
     val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
     return Subscription(
-        type = "Subscription",
+        type = NGSILD_SUBSCRIPTION_TERM,
         subscriptionName = "My Subscription",
         modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",

@@ -1,6 +1,9 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -28,12 +31,15 @@ data class AttributeInstance private constructor(
             value: String? = null,
             measuredValue: Double? = null,
             geoValue: WKTCoordinates? = null,
-            payload: Map<String, Any>,
+            payload: ExpandedAttributePayloadEntry,
             sub: String? = null
         ): AttributeInstance {
             val parsedPayload = payload.toMutableMap()
             val attributeInstanceId = instanceId ?: generateRandomInstanceId()
-            parsedPayload.putIfAbsent("instanceId", attributeInstanceId)
+            parsedPayload.putIfAbsent(
+                NGSILD_INSTANCE_ID_PROPERTY,
+                buildNonReifiedProperty(attributeInstanceId.toString())
+            )
 
             return AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute,

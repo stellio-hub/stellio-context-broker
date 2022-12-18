@@ -2,9 +2,17 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.toNgsiLdFormat
+import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
@@ -15,43 +23,41 @@ class TemporalEntityService {
 
     fun buildTemporalEntities(
         queryResult: List<Pair<EntityPayload, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): List<CompactedJsonLdEntity> {
         return queryResult.map {
-            buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues, withAudit)
+            buildTemporalEntity(it.first, it.second, temporalEntitiesQuery, contexts)
         }
     }
 
     fun buildTemporalEntity(
         entityPayload: EntityPayload,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
             attributeAndResultsMap,
-            temporalQuery,
-            contexts,
-            withTemporalValues,
-            withAudit
+            temporalEntitiesQuery,
+            contexts
         )
-        return entityPayload.serializeProperties(false, true, contexts)
-            .plus(temporalAttributes)
+        return entityPayload.serializeProperties(
+            withSysAttrs = temporalEntitiesQuery.queryParams.includeSysAttrs,
+            withCompactTerms = true,
+            contexts
+        ).plus(temporalAttributes)
     }
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): Map<String, Any> {
-        return if (withTemporalValues || temporalQuery.timeBucket != null) {
+        return if (
+            temporalEntitiesQuery.withTemporalValues ||
+            temporalEntitiesQuery.temporalQuery.timeBucket != null
+        ) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
@@ -62,19 +68,46 @@ class TemporalEntityService {
         } else {
             mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
-                .mapValues {
-                    it.value.map { attributeInstanceResult ->
-                        attributeInstanceResult as FullAttributeInstanceResult
+                .mapValues { (_, attributeInstanceResults) ->
+                    attributeInstanceResults.map { attributeInstanceResult ->
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
-                            .let { jsonMap ->
-                                if (withAudit)
-                                    jsonMap.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
-                                else jsonMap
-                            }
+                            .let { instancePayload ->
+                                injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
+                            }.let { instancePayload ->
+                                compactAttributeInstance(instancePayload, contexts)
+                            }.let { instancePayload ->
+                                convertGeoProperty(instancePayload)
+                            }.plus(
+                                attributeInstanceResult.timeproperty to attributeInstanceResult.time.toNgsiLdFormat()
+                            )
                     }
                 }
         }
     }
+
+    // FIXME in the history of attributes, we have a mix of
+    //   - compacted fragments (before v2)
+    //   - expanded fragments (since v2)
+    //  to avoid un-necessary (expensive) compactions, quick check to see if the fragment
+    //  is already compacted
+    private fun compactAttributeInstance(instancePayload: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+        if (instancePayload.containsKey(JSONLD_TYPE))
+            compactFragment(instancePayload, contexts).minus(JSONLD_CONTEXT)
+        else instancePayload
+
+    private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =
+        if (instancePayload[JSONLD_TYPE_TERM] == "GeoProperty")
+            instancePayload.plus(JSONLD_VALUE to wktToGeoJson(instancePayload[JSONLD_VALUE]!! as String))
+        else instancePayload
+
+    private fun injectSub(
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        attributeInstanceResult: FullAttributeInstanceResult,
+        instancePayload: Map<String, Any>
+    ): Map<String, Any> =
+        if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
+            instancePayload.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
+        else instancePayload
 
     /**
      * Creates the simplified representation for each temporal entity attribute in the input map.
@@ -91,12 +124,13 @@ class TemporalEntityService {
             val attributeInstance = mutableMapOf<String, Any>(
                 "type" to it.key.attributeType.toString()
             )
-            val valuesKey =
-                if (it.key.attributeType == TemporalEntityAttribute.AttributeType.Property)
-                    "values"
-                else
-                    "objects"
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+            val valuesKey =
+                when (it.key.attributeType) {
+                    TemporalEntityAttribute.AttributeType.Property -> "values"
+                    TemporalEntityAttribute.AttributeType.Relationship -> "objects"
+                    TemporalEntityAttribute.AttributeType.GeoProperty -> "values"
+                }
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
                 listOf(attributeInstanceResult.value, attributeInstanceResult.time)
@@ -112,7 +146,7 @@ class TemporalEntityService {
      */
     private fun mergeFullTemporalAttributesOnAttributeName(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult
-    ): Map<String, List<AttributeInstanceResult>> =
+    ): Map<ExpandedTerm, List<FullAttributeInstanceResult>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->
                 temporalEntityAttribute.attributeName
@@ -120,7 +154,7 @@ class TemporalEntityService {
             .toMap()
             .mapValues {
                 it.value.map { (_, attributeInstancesResults) ->
-                    attributeInstancesResults
+                    attributeInstancesResults as List<FullAttributeInstanceResult>
                 }.flatten()
             }
 
@@ -131,7 +165,7 @@ class TemporalEntityService {
      */
     private fun mergeSimplifiedTemporalAttributesOnAttributeName(
         attributeAndResultsMap: Map<TemporalEntityAttribute, SimplifiedTemporalAttribute>
-    ): Map<String, List<SimplifiedTemporalAttribute>> =
+    ): Map<ExpandedTerm, List<SimplifiedTemporalAttribute>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->
                 temporalEntityAttribute.attributeName

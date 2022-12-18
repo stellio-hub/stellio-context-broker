@@ -8,7 +8,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -27,7 +27,7 @@ class EnabledAuthorizationService(
     override suspend fun userCanCreateEntities(sub: Option<Sub>): Either<APIException, Unit> =
         userIsOneOfGivenRoles(CREATION_ROLES, sub)
 
-    private suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
+    internal suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
         val matchingRoles = subjectReferentialService.getGlobalRoles(sub)
             .flattenOption()
             .intersect(roles)
@@ -61,7 +61,7 @@ class EnabledAuthorizationService(
             sub
         ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
-    override suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
             listOf(AccessRight.R_CAN_ADMIN),
@@ -92,10 +92,48 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>
-    ): Pair<Int, List<JsonLdEntity>> {
-        TODO("Not yet implemented")
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).orNull() }
+        val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
+            sub,
+            accessRights,
+            queryParams.types,
+            queryParams.limit,
+            queryParams.offset
+        ).bind()
+
+        // for each entity user is admin of, retrieve the full details of rights other users have on it
+
+        val entitiesWithAdminRight = entitiesAccessControl.filter {
+            it.right == AccessRight.R_CAN_ADMIN
+        }.map { it.id }
+
+        val rightsForEntities =
+            entityAccessRightsService.getAccessRightsForEntities(sub, entitiesWithAdminRight).bind()
+
+        val entitiesAccessControlWithSubjectRights = entitiesAccessControl
+            .map { entityAccessControl ->
+                if (rightsForEntities.containsKey(entityAccessControl.id)) {
+                    val rightsForEntity = rightsForEntities[entityAccessControl.id]!!
+                    entityAccessControl.copy(
+                        rCanReadUsers = rightsForEntity[AccessRight.R_CAN_READ],
+                        rCanWriteUsers = rightsForEntity[AccessRight.R_CAN_WRITE],
+                        rCanAdminUsers = rightsForEntity[AccessRight.R_CAN_ADMIN]
+                    )
+                } else entityAccessControl
+            }
+            .map { it.serializeProperties() }
+            .map { JsonLdEntity(it, listOf(context)) }
+
+        val count = entityAccessRightsService.getSubjectAccessRightsCount(
+            sub,
+            accessRights,
+            queryParams.types,
+        ).bind()
+
+        Pair(count, entitiesAccessControlWithSubjectRights)
     }
 
     override suspend fun getGroupsMemberships(
@@ -123,7 +161,7 @@ class EnabledAuthorizationService(
             val jsonLdEntities = groups.second.map {
                 JsonLdEntity(
                     it.serializeProperties(),
-                    listOf(NGSILD_AUTHORIZATION_CONTEXT)
+                    listOf(AUTHORIZATION_CONTEXT)
                 )
             }
 
@@ -145,7 +183,7 @@ class EnabledAuthorizationService(
                         ( 
                             (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                             OR
-                            (tea1.entity_id IN (
+                            (tea.entity_id IN (
                                 SELECT entity_id
                                 FROM entity_access_rights
                                 WHERE subject_id IN (${it.toListOfString()})
@@ -154,7 +192,7 @@ class EnabledAuthorizationService(
                             """.trimIndent()
                         }
                     }
-                }.getOrElse { { null } }
+                }.getOrElse { { "1 = 0" } }
         }
     }
 

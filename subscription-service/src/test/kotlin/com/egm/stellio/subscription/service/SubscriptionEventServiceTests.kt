@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_TERM
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
@@ -93,7 +94,7 @@ class SubscriptionEventServiceTests {
         val notificationUri = "urn:ngsi-ld:Notification:1".toUri()
 
         every { notification.id } returns notificationUri
-        every { notification.type } returns "Notification"
+        every { notification.type } returns NGSILD_NOTIFICATION_TERM
         every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 

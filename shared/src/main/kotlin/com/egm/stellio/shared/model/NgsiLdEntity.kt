@@ -366,6 +366,11 @@ fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
 fun Map<String, List<Any>>.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
+fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
+    this.flatMap { ngsiLdAttribute ->
+        ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) }
+    }
+
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
     JSONLD_ID,
     JSONLD_TYPE,

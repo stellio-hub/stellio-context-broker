@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.toUri
 import com.jayway.jsonpath.JsonPath.read
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -17,7 +18,7 @@ class SubscriptionTest {
 
     private val subscription = Subscription(
         id = "urn:ngsi-ld:Subscription:01".toUri(),
-        type = "Subscription",
+        type = NGSILD_SUBSCRIPTION_TERM,
         entities = setOf(
             EntityInfo(
                 id = null,

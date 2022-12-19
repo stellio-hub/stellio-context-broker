@@ -64,6 +64,13 @@ object JsonLdUtils {
         setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
+    const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
+    const val NGSILD_SUBSCRIPTION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Subscription"
+    const val NGSILD_NOTIFICATION_TERM = "Notification"
+    const val NGSILD_NOTIFICATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Notification"
+    const val NGSILD_NOTIFICATION_ATTR_TERM = "notification"
+    const val NGSILD_NOTIFICATION_ATTR_PROPERTY = "https://uri.etsi.org/ngsi-ld/notification"
+
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"

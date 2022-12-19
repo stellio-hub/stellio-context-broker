@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
@@ -70,7 +71,7 @@ class SubscriptionService(
         else Unit.right()
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.type != "Subscription")
+        if (subscription.type != NGSILD_SUBSCRIPTION_TERM)
             BadRequestDataException("type attribute must be equal to 'Subscription'").left()
         else Unit.right()
 
@@ -240,7 +241,7 @@ class SubscriptionService(
             val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
 
             if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
-                subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != "Subscription"
+                subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM
             )
                 BadRequestDataException("type attribute must be present and equal to 'Subscription'")
                     .left().bind<Unit>()

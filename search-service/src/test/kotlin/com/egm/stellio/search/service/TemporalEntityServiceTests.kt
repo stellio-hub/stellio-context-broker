@@ -3,6 +3,8 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -29,7 +31,7 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+            attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_PAYLOAD
@@ -39,7 +41,7 @@ class TemporalEntityServiceTests {
         )
         val entityPayload = EntityPayload(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+            types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
@@ -106,7 +108,7 @@ class TemporalEntityServiceTests {
     fun `it should return a temporal entity with values aggregated`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+            attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_PAYLOAD
@@ -131,7 +133,7 @@ class TemporalEntityServiceTests {
         )
         val entityPayload = EntityPayload(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+            types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )

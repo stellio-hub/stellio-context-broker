@@ -6,6 +6,8 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -60,14 +62,14 @@ class SubscriptionEventListenerServiceTest {
         coVerify {
             entityPayloadService.createEntityPayload(
                 eq("urn:ngsi-ld:Subscription:04".toUri()),
-                listOf("https://uri.etsi.org/ngsi-ld/Subscription"),
+                listOf(NGSILD_SUBSCRIPTION_PROPERTY),
                 isNull(true),
                 any(),
                 listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
             )
             temporalEntityAttributeService.create(
                 match { entityTemporalProperty ->
-                    entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
+                    entityTemporalProperty.attributeName == NGSILD_NOTIFICATION_ATTR_PROPERTY &&
                         entityTemporalProperty.attributeValueType == AttributeValueType.STRING &&
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri()
                 }

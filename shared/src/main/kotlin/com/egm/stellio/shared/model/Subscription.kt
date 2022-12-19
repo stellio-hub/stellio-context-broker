@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.net.URI
 import java.time.Instant
@@ -10,7 +11,7 @@ import java.time.ZonedDateTime
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Subscription(
     val id: URI,
-    val type: String = "Subscription",
+    val type: String = NGSILD_SUBSCRIPTION_TERM,
     val name: String? = null,
     val description: String? = null,
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),

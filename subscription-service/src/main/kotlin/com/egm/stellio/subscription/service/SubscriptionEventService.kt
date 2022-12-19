@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.EntityUpdateEvent
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.MediaType
@@ -66,7 +67,7 @@ class SubscriptionEventService(
         val event = EntityDeleteEvent(
             sub,
             subscriptionId,
-            listOf("Subscription"),
+            listOf(NGSILD_SUBSCRIPTION_TERM),
             contexts
         )
 

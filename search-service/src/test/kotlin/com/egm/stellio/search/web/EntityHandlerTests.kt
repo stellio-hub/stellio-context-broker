@@ -16,7 +16,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -1514,81 +1513,6 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             temporalEntityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), sub.orNull())
         }
-        verify {
-            entityEventService.publishAttributeChangeEvents(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(entityId),
-                any(),
-                eq(updateResult),
-                eq(false),
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
-            )
-        }
-    }
-
-    @Test
-    fun `partial attribute update should return a 204 if type could be appended`() {
-        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialTypeUpdate.json")
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.UPDATED)
-            ),
-            notUpdated = arrayListOf()
-        )
-
-        mockkDefaultBehaviorForPartialUpdateAttribute()
-        coEvery { entityPayloadService.updateTypes(any(), any(), any()) } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$JSONLD_TYPE_TERM")
-            .header("Link", aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
-        coVerify {
-            entityPayloadService.updateTypes(eq(entityId), listOf(breedingServiceType), false)
-        }
-    }
-
-    @Test
-    fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val attrId = "fishNumber"
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.UPDATED
-                ),
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    "urn:ngsi-ld:Dataset:1".toUri(),
-                    UpdateOperationResult.UPDATED
-                )
-            ),
-            notUpdated = arrayListOf()
-        )
-
-        mockkDefaultBehaviorForPartialUpdateAttribute()
-        coEvery {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
-        } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
         verify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),

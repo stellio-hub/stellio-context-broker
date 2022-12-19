@@ -753,18 +753,18 @@ class TemporalEntityAttributeService(
     ): Either<APIException, UpdateResult> =
         either {
             val expandedAttributeName = expandedPayload.keys.first()
-            val attributeValues = expandedPayload.values.first()
+            val attributeValues = expandedPayload.values.first()[0]
             val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
             logger.debug("Updating attribute $expandedAttributeName of entity $entityId with values: $attributeValues")
 
-            attributeValues.parTraverseEither { attributeInstanceValues ->
-                val datasetId = attributeInstanceValues.getDatasetId()
-                val exists = hasAttribute(entityId, expandedAttributeName, datasetId).bind()
+            val datasetId = attributeValues.getDatasetId()
+            val exists = hasAttribute(entityId, expandedAttributeName, datasetId).bind()
+            val updateAttributeResult =
                 if (exists) {
                     // first update payload in temporal entity attribute
                     val tea = getForEntityAndAttribute(entityId, expandedAttributeName, datasetId).bind()
                     val jsonSourceObject = JSONObject(tea.payload)
-                    val jsonUpdateObject = JSONObject(attributeInstanceValues)
+                    val jsonUpdateObject = JSONObject(attributeValues)
                     val jsonMerger = JsonMerger(
                         arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
@@ -774,12 +774,12 @@ class TemporalEntityAttributeService(
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
-                    val isNewObservation = attributeInstanceValues.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
+                    val isNewObservation = attributeValues.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
                     val timeAndProperty =
                         if (isNewObservation)
                             Pair(
                                 getPropertyValueFromMap(
-                                    attributeInstanceValues, NGSILD_OBSERVED_AT_PROPERTY
+                                    attributeValues, NGSILD_OBSERVED_AT_PROPERTY
                                 )!! as ZonedDateTime,
                                 AttributeInstance.TemporalProperty.OBSERVED_AT
                             )
@@ -804,24 +804,20 @@ class TemporalEntityAttributeService(
                         datasetId,
                         UpdateOperationResult.UPDATED,
                         null
-                    ).right()
+                    )
                 } else {
                     UpdateAttributeResult(
                         expandedAttributeName,
                         datasetId,
                         UpdateOperationResult.IGNORED,
                         "Unknown attribute $expandedAttributeName with datasetId $datasetId in entity $entityId"
-                    ).right()
+                    )
                 }
-            }.tap { updateAttributeResults ->
-                // update modifiedAt in entity if at least one attribute has been added
-                if (updateAttributeResults.any { it.isSuccessfullyUpdated() })
-                    entityPayloadService.updateLastModificationDate(entityId, modifiedAt).bind()
-            }.fold({
-                it
-            }, {
-                updateResultFromDetailedResult(it)
-            })
+
+            if (updateAttributeResult.isSuccessfullyUpdated())
+                entityPayloadService.updateLastModificationDate(entityId, modifiedAt).bind()
+
+            updateResultFromDetailedResult(listOf(updateAttributeResult))
         }
 
     private fun getValueFromPartialAttributePayload(

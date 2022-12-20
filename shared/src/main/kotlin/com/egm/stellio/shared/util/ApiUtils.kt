@@ -172,7 +172,14 @@ fun parseAndCheckParams(
 
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
-    val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)
+    val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
+        runCatching {
+            Pattern.compile(idPattern)
+        }.onFailure {
+            throw BadRequestDataException("Invalid value for idPattern: $idPattern ($it)")
+        }
+    }
+
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values

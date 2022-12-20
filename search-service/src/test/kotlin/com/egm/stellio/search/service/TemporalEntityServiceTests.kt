@@ -43,6 +43,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
+            entityPayload = EMPTY_PAYLOAD,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
         val temporalEntity = temporalEntityService.buildTemporalEntity(
@@ -72,6 +73,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
+            entityPayload = EMPTY_PAYLOAD,
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
 
@@ -135,6 +137,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
+            entityPayload = EMPTY_PAYLOAD,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
 

@@ -25,6 +25,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -48,6 +49,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -75,6 +77,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -103,6 +106,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -135,6 +139,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -172,6 +177,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
+                        entityPayload = EMPTY_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(

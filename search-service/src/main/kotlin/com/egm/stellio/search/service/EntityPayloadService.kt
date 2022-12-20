@@ -10,7 +10,11 @@ import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.addDateTimeProperty
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
@@ -38,7 +42,7 @@ class EntityPayloadService(
             entityId,
             types,
             createdAt,
-            serializeObject(jsonLdEntity),
+            serializeObject(jsonLdEntity.properties.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
             jsonLdEntity.contexts,
             specificAccessPolicy
         )
@@ -47,7 +51,7 @@ class EntityPayloadService(
         entityId: URI,
         types: List<ExpandedTerm>,
         createdAt: ZonedDateTime,
-        entityPayload: String?,
+        entityPayload: String,
         contexts: List<String>,
         specificAccessPolicy: SpecificAccessPolicy? = null
     ): Either<APIException, Unit> =
@@ -60,9 +64,9 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .bind("types", types.toTypedArray())
             .bind("created_at", createdAt)
-            .bind("payload", entityPayload?.let { Json.of(entityPayload) })
+            .bind("payload", Json.of(entityPayload))
             .bind("contexts", contexts.toTypedArray())
-            .bind("specific_access_policy", specificAccessPolicy?.let { it.toString() })
+            .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
 
     suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
@@ -92,6 +96,7 @@ class EntityPayloadService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"]),
+            entityPayload = toJsonString(row["payload"]),
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )
 
@@ -175,16 +180,17 @@ class EntityPayloadService(
     @Transactional
     suspend fun updateTypes(
         entityId: URI,
-        types: List<ExpandedTerm>,
+        newTypes: List<ExpandedTerm>,
         allowEmptyListOfTypes: Boolean = true
     ): Either<APIException, UpdateResult> =
         either {
-            val currentTypes = getTypes(entityId).bind()
+            val entityPayload = retrieve(entityId).bind()
+            val currentTypes = entityPayload.types
             // when dealing with an entity update, list of types can be empty if no change of type is requested
-            if (currentTypes.sorted() == types.sorted() || types.isEmpty() && allowEmptyListOfTypes)
+            if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
                 return@either UpdateResult(emptyList(), emptyList())
-            if (!types.containsAll(currentTypes)) {
-                val removedTypes = currentTypes.minus(types)
+            if (!newTypes.containsAll(currentTypes)) {
+                val removedTypes = currentTypes.minus(newTypes)
                 return@either updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
@@ -196,17 +202,26 @@ class EntityPayloadService(
                 )
             }
 
+            val updatedPayload = entityPayload.entityPayload.deserializeExpandedPayload()
+                .mapValues {
+                    if (it.key == JSONLD_TYPE)
+                        newTypes
+                    else it
+                }
+
             databaseClient.sql(
                 """
                 UPDATE entity_payload
                 SET types = :types,
-                    modified_at = :modified_at
+                    modified_at = :modified_at,
+                    payload = :payload
                 WHERE entity_id = :entity_id
                 """.trimIndent()
             )
                 .bind("entity_id", entityId)
-                .bind("types", types.toTypedArray())
+                .bind("types", newTypes.toTypedArray())
                 .bind("modified_at", ZonedDateTime.now(ZoneOffset.UTC))
+                .bind("payload", Json.of(serializeObject(updatedPayload)))
                 .execute()
                 .map {
                     updateResultFromDetailedResult(
@@ -221,17 +236,46 @@ class EntityPayloadService(
         }
 
     @Transactional
-    suspend fun updateLastModificationDate(entityUri: URI, modifiedAt: ZonedDateTime): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE entity_payload
-            SET modified_at = :modified_at
-            WHERE entity_id = :entity_id
-            """.trimIndent()
-        )
-            .bind("entity_id", entityUri)
-            .bind("modified_at", modifiedAt)
-            .execute()
+    suspend fun updateState(
+        entityUri: URI,
+        modifiedAt: ZonedDateTime,
+        temporalEntityAttributes: List<TemporalEntityAttribute>
+    ): Either<APIException, Unit> =
+        retrieve(entityUri)
+            .map { entityPayload ->
+                val payload = buildJsonLdEntity(temporalEntityAttributes, entityPayload)
+                databaseClient.sql(
+                    """
+                    UPDATE entity_payload
+                    SET modified_at = :modified_at,
+                        payload = :payload
+                    WHERE entity_id = :entity_id
+                    """.trimIndent()
+                )
+                    .bind("entity_id", entityUri)
+                    .bind("modified_at", modifiedAt)
+                    .bind("payload", Json.of(serializeObject(payload)))
+                    .execute()
+            }
+
+    private fun buildJsonLdEntity(
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        entityPayload: EntityPayload
+    ): Map<String, Any> {
+        val entityCoreAttributes = entityPayload.serializeProperties(withSysAttrs = true)
+        val expandedAttributes = temporalEntityAttributes
+            .groupBy {
+                it.attributeName
+            }
+            .mapValues { teas ->
+                teas.value.map { tea ->
+                    tea.payload.deserializeExpandedPayload()
+                        .addSysAttrs(withSysAttrs = true, tea.createdAt, tea.modifiedAt)
+                }
+            }
+
+        return entityCoreAttributes.plus(expandedAttributes)
+    }
 
     suspend fun updateSpecificAccessPolicy(
         entityId: URI,

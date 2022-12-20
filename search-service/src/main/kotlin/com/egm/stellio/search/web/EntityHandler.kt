@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -125,7 +126,11 @@ class EntityHandler(
                 queryParams.useSimplifiedRepresentation,
                 contextLink,
                 mediaType
-            )
+            ).map {
+                if (!queryParams.includeSysAttrs)
+                    it.withoutSysAttrs()
+                else it
+            }
 
             buildQueryResponse(
                 compactedEntities,
@@ -167,8 +172,7 @@ class EntityHandler(
 
             authorizationService.userCanReadEntity(entityUri, sub).bind()
 
-            val jsonLdEntity =
-                queryService.queryEntity(entityUri, listOf(contextLink), queryParams.includeSysAttrs).bind()
+            val jsonLdEntity = queryService.queryEntity(entityUri, listOf(contextLink)).bind()
 
             jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
@@ -178,13 +182,14 @@ class EntityHandler(
             )
             val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-            prepareGetSuccessResponse(mediaType, contextLink)
-                .let {
-                    if (queryParams.useSimplifiedRepresentation)
-                        it.body(JsonUtils.serializeObject(compactedEntity.toKeyValues()))
-                    else
-                        it.body(JsonUtils.serializeObject(compactedEntity))
-                }
+            prepareGetSuccessResponse(mediaType, contextLink).body(
+                serializeObject(
+                    compactedEntity.toFinalRepresentation(
+                        queryParams.includeSysAttrs,
+                        queryParams.useSimplifiedRepresentation
+                    )
+                )
+            )
         }.fold(
             { it.toErrorResponse() },
             { it }

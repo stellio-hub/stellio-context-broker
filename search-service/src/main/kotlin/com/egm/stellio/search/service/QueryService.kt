@@ -6,9 +6,8 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.addSysAttrs
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -22,14 +21,11 @@ class QueryService(
 ) {
     suspend fun queryEntity(
         entityId: URI,
-        contexts: List<String>,
-        withSysAttrs: Boolean = false
+        contexts: List<String>
     ): Either<APIException, JsonLdEntity> =
         either {
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
-            val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, emptySet())
-
-            buildJsonLdEntity(temporalEntityAttributes, entityPayload, withSysAttrs, contexts)
+            toJsonLdEntity(entityPayload, contexts)
         }
 
     suspend fun queryEntities(
@@ -37,33 +33,23 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<JsonLdEntity>, Int>> =
         either {
-            val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+            val entitiesIds = temporalEntityAttributeService.getForEntities(
                 queryParams,
                 accessRightFilter
             )
-            if (temporalEntityAttributes.isEmpty())
+            if (entitiesIds.isEmpty())
                 return@either Pair<List<JsonLdEntity>, Int>(emptyList(), 0)
 
             val count = temporalEntityAttributeService.getCountForEntities(
                 queryParams,
                 accessRightFilter
             ).bind()
-            val entitesPayloads = entityPayloadService.retrieve(
-                temporalEntityAttributes.map { it.entityId }
-            )
 
-            val jsonLdEntities = temporalEntityAttributes
-                .groupBy { it.entityId }
-                .mapValues { (entityId, teas) ->
-                    buildJsonLdEntity(
-                        teas,
-                        entitesPayloads.find { it.entityId == entityId }!!,
-                        queryParams.includeSysAttrs,
-                        listOf(queryParams.context)
-                    )
-                }.values
+            val entitiesPayloads =
+                entityPayloadService.retrieve(entitiesIds)
+                    .map { toJsonLdEntity(it, listOf(queryParams.context)) }
 
-            Pair(jsonLdEntities.toList(), count).right().bind()
+            Pair(entitiesPayloads, count).right().bind()
         }
 
     suspend fun queryTemporalEntity(
@@ -109,7 +95,7 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
-            val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+            val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
                 temporalEntitiesQuery.queryParams,
                 accessRightFilter
             )
@@ -195,24 +181,11 @@ class QueryService(
         )
     }
 
-    private fun buildJsonLdEntity(
-        temporalEntityAttributes: List<TemporalEntityAttribute>,
+    private fun toJsonLdEntity(
         entityPayload: EntityPayload,
-        withSysAttrs: Boolean,
         contexts: List<String>
     ): JsonLdEntity {
-        val expandedAttributes = temporalEntityAttributes
-            .groupBy {
-                it.attributeName
-            }
-            .mapValues { teas ->
-                teas.value.map { tea ->
-                    tea.payload.deserializeExpandedPayload()
-                        .addSysAttrs(withSysAttrs, tea.createdAt, tea.modifiedAt)
-                }
-            }
-            .plus(entityPayload.serializeProperties(withSysAttrs))
-
-        return JsonLdEntity(expandedAttributes, contexts)
+        val deserializedEntity = deserializeObject(entityPayload.entityPayload)
+        return JsonLdEntity(deserializedEntity, contexts)
     }
 }

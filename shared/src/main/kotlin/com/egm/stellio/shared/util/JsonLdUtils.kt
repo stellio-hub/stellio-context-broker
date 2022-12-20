@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
@@ -51,8 +52,12 @@ object JsonLdUtils {
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
 
+    const val NGSILD_CREATED_AT_TERM = "createdAt"
+    const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
+    val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
+    val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/observedAt"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_TERM = "location"
@@ -520,6 +525,35 @@ private fun simplifyValue(value: Map<*, *>): Any {
     }
 }
 
+fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
+    this.filter {
+        !NGSILD_SYSATTRS_TERMS.contains(it.key)
+    }.mapValues {
+        when (it.value) {
+            is Map<*, *> -> (it.value as Map<*, *>).minus(NGSILD_SYSATTRS_TERMS)
+            is List<*> -> (it.value as List<*>).map { valueInstance ->
+                when (valueInstance) {
+                    is Map<*, *> -> valueInstance.minus(NGSILD_SYSATTRS_TERMS)
+                    // we keep @context value as it is (List<String>)
+                    else -> valueInstance
+                }
+            }
+            else -> it.value
+        }
+    }
+
+fun CompactedJsonLdEntity.toFinalRepresentation(
+    includeSysAttrs: Boolean,
+    useSimplifiedRepresentation: Boolean
+): CompactedJsonLdEntity =
+    this.let {
+        if (!includeSysAttrs) it.withoutSysAttrs()
+        else it
+    }.let {
+        if (useSimplifiedRepresentation) it.toKeyValues()
+        else it
+    }
+
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
@@ -531,3 +565,13 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     }
     return jsonFragment
 }
+
+fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
+    if (dateTime != null)
+        this.plus(
+            propertyKey to mapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                JsonLdUtils.JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+            )
+        )
+    else this

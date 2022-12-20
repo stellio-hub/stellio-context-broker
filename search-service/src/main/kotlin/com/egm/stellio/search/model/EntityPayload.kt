@@ -23,7 +23,7 @@ data class EntityPayload(
     // creation time contexts
     // FIXME only stored because needed to compact types at deletion time...
     val contexts: List<String>,
-    val entityPayload: String? = null,
+    val entityPayload: String,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
     fun serializeProperties(

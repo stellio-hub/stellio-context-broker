@@ -239,6 +239,7 @@ class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
             entityId = toUri(id),
             types = types,
             createdAt = now,
+            entityPayload = EMPTY_PAYLOAD,
             contexts = listOf(contexts)
         )
 }

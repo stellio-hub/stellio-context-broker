@@ -15,6 +15,7 @@ class EntityModelTest {
         types = listOf(BEEHIVE_TYPE),
         createdAt = now,
         modifiedAt = now,
+        entityPayload = EMPTY_PAYLOAD,
         contexts = DEFAULT_CONTEXTS
     )
 

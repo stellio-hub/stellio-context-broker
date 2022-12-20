@@ -237,7 +237,7 @@ class EntityEventService(
         entityId: URI,
         contexts: List<String>
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
-        queryService.queryEntity(entityId, contexts, true)
+        queryService.queryEntity(entityId, contexts)
             .map {
                 Pair(it.types, compactAndSerialize(it, contexts, MediaType.APPLICATION_JSON))
             }

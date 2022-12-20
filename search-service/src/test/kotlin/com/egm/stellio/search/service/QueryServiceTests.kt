@@ -147,7 +147,7 @@ class QueryServiceTests {
             payload = EMPTY_PAYLOAD
         )
         coEvery {
-            temporalEntityAttributeService.getForEntities(any(), any())
+            temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
@@ -183,7 +183,7 @@ class QueryServiceTests {
         ) { null }
 
         coVerify {
-            temporalEntityAttributeService.getForEntities(
+            temporalEntityAttributeService.getForTemporalEntities(
                 QueryParams(
                     offset = 2,
                     limit = 2,
@@ -230,7 +230,7 @@ class QueryServiceTests {
         )
 
         coEvery {
-            temporalEntityAttributeService.getForEntities(any(), any())
+            temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()

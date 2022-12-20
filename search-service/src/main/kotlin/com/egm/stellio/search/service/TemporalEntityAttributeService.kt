@@ -94,53 +94,49 @@ class TemporalEntityAttributeService(
         jsonLdEntity: JsonLdEntity,
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
         sub: String? = null
-    ): Either<APIException, Unit> {
-        logger.debug("Creating entity ${ngsiLdEntity.id}")
-
+    ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         logger.debug("Creating ${attributesMetadata.size} attributes in entity: ${ngsiLdEntity.id}")
 
-        return attributesMetadata.parTraverseEither {
-            either<APIException, Unit> {
-                val (expandedAttributeName, attributeMetadata) = it
-                val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdEntity.properties,
-                    expandedAttributeName,
-                    attributeMetadata.datasetId
-                )!!
-                val temporalEntityAttribute = TemporalEntityAttribute(
-                    entityId = ngsiLdEntity.id,
-                    attributeName = expandedAttributeName,
-                    attributeType = attributeMetadata.type,
-                    attributeValueType = attributeMetadata.valueType,
-                    datasetId = attributeMetadata.datasetId,
-                    createdAt = createdAt,
-                    payload = serializeObject(attributePayload)
-                )
-                create(temporalEntityAttribute).bind()
+        entityPayloadService.createEntityPayload(ngsiLdEntity.id, ngsiLdEntity.types, createdAt, jsonLdEntity).bind()
 
-                val attributeCreatedAtInstance = AttributeInstance(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
-                    timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                    time = createdAt,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
-                    payload = attributePayload,
-                    sub = sub
-                )
-                attributeInstanceService.create(attributeCreatedAtInstance).bind()
+        attributesMetadata.forEach {
+            val (expandedAttributeName, attributeMetadata) = it
+            val attributePayload = getAttributeFromExpandedAttributes(
+                jsonLdEntity.properties,
+                expandedAttributeName,
+                attributeMetadata.datasetId
+            )!!
+            val temporalEntityAttribute = TemporalEntityAttribute(
+                entityId = ngsiLdEntity.id,
+                attributeName = expandedAttributeName,
+                attributeType = attributeMetadata.type,
+                attributeValueType = attributeMetadata.valueType,
+                datasetId = attributeMetadata.datasetId,
+                createdAt = createdAt,
+                payload = serializeObject(attributePayload)
+            )
+            create(temporalEntityAttribute).bind()
 
-                if (attributeMetadata.observedAt != null) {
-                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
-                        time = attributeMetadata.observedAt,
-                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
-                    )
-                    attributeInstanceService.create(attributeObservedAtInstance).bind()
-                }
+            val attributeCreatedAtInstance = AttributeInstance(
+                temporalEntityAttribute = temporalEntityAttribute.id,
+                timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+                time = createdAt,
+                measuredValue = attributeMetadata.measuredValue,
+                value = attributeMetadata.value,
+                geoValue = attributeMetadata.geoValue,
+                payload = attributePayload,
+                sub = sub
+            )
+            attributeInstanceService.create(attributeCreatedAtInstance).bind()
+
+            if (attributeMetadata.observedAt != null) {
+                val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
+                    time = attributeMetadata.observedAt,
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                )
+                attributeInstanceService.create(attributeObservedAtInstance).bind()
             }
-        }.map {
-            entityPayloadService.createEntityPayload(ngsiLdEntity.id, ngsiLdEntity.types, createdAt, jsonLdEntity)
         }
     }
 
@@ -237,7 +233,11 @@ class TemporalEntityAttributeService(
                 deleteTemporalAttributeAllInstancesReferences(entityId, attributeName).bind()
             else
                 deleteTemporalAttributeReferences(entityId, attributeName, datasetId).bind()
-            entityPayloadService.updateLastModificationDate(entityId, ZonedDateTime.now(ZoneOffset.UTC)).bind()
+            entityPayloadService.updateState(
+                entityId,
+                ZonedDateTime.now(ZoneOffset.UTC),
+                getForEntity(entityId, emptySet())
+            ).bind()
         }
 
     suspend fun deleteTemporalAttributeReferences(
@@ -279,6 +279,38 @@ class TemporalEntityAttributeService(
     suspend fun getForEntities(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
+    ): List<URI> {
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
+            else it
+        }
+
+        val selectQuery =
+            """
+            SELECT DISTINCT(entity_payload.entity_id)
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
+            WHERE $filterQuery
+            ORDER BY entity_id
+            LIMIT :limit
+            OFFSET :offset   
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("limit", queryParams.limit)
+            .bind("offset", queryParams.offset)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
+    suspend fun getForTemporalEntities(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
     ): List<TemporalEntityAttribute> {
         val filterQuery = buildEntitiesQueryFilter(
             queryParams,
@@ -298,9 +330,9 @@ class TemporalEntityAttributeService(
         val selectQuery =
             """
                 WITH entities AS (
-                    SELECT DISTINCT(tea1.entity_id)
-                    FROM temporal_entity_attribute tea1
-                    JOIN entity_payload ON tea1.entity_id = entity_payload.entity_id
+                    SELECT DISTINCT(tea.entity_id)
+                    FROM temporal_entity_attribute tea
+                    JOIN entity_payload ON tea.entity_id = entity_payload.entity_id
                     WHERE $filterQuery
                     ORDER BY entity_id
                     LIMIT :limit
@@ -336,9 +368,10 @@ class TemporalEntityAttributeService(
 
         val countQuery =
             """
-            SELECT count(distinct(tea1.entity_id)) as count_entity
-            FROM temporal_entity_attribute tea1
-            JOIN entity_payload ON tea1.entity_id = entity_payload.entity_id
+            SELECT count(distinct(entity_payload.entity_id)) as count_entity
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
             WHERE $filterQuery
             """.trimIndent()
 
@@ -357,13 +390,13 @@ class TemporalEntityAttributeService(
             if (queryParams.ids.isNotEmpty())
                 queryParams.ids.joinToString(
                     separator = ",",
-                    prefix = "tea1.entity_id in(",
+                    prefix = "entity_payload.entity_id in(",
                     postfix = ")"
                 ) { "'$it'" }
             else null
         val formattedIdPattern =
             if (!queryParams.idPattern.isNullOrEmpty())
-                "tea1.entity_id ~ '${queryParams.idPattern}'"
+                "entity_payload.entity_id ~ '${queryParams.idPattern}'"
             else null
         val formattedTypes =
             if (queryParams.types.isNotEmpty())
@@ -418,7 +451,7 @@ class TemporalEntityAttributeService(
             EXISTS(
                SELECT 1
                FROM temporal_entity_attribute
-               WHERE tea1.entity_id = temporal_entity_attribute.entity_id
+               WHERE tea.entity_id = temporal_entity_attribute.entity_id
                AND (attribute_name = '${expandJsonLdTerm(query.first, listOf(context))}'
                     AND CASE 
                         WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN
@@ -670,8 +703,10 @@ class TemporalEntityAttributeService(
                 }
             }.tap {
                 // update modifiedAt in entity if at least one attribute has been added
-                if (it.isNotEmpty())
-                    entityPayloadService.updateLastModificationDate(entityUri, createdAt).bind()
+                if (it.hasSuccessfulUpdate()) {
+                    val teas = getForEntity(entityUri, emptySet())
+                    entityPayloadService.updateState(entityUri, createdAt, teas).bind()
+                }
             }.fold({
                 it
             }, {
@@ -736,8 +771,10 @@ class TemporalEntityAttributeService(
                 }
             }.tap {
                 // update modifiedAt in entity if at least one attribute has been added
-                if (it.isNotEmpty())
-                    entityPayloadService.updateLastModificationDate(entityUri, createdAt).bind()
+                if (it.hasSuccessfulUpdate()) {
+                    val teas = getForEntity(entityUri, emptySet())
+                    entityPayloadService.updateState(entityUri, createdAt, teas).bind()
+                }
             }.fold({
                 it
             }, {
@@ -814,8 +851,10 @@ class TemporalEntityAttributeService(
                     )
                 }
 
-            if (updateAttributeResult.isSuccessfullyUpdated())
-                entityPayloadService.updateLastModificationDate(entityId, modifiedAt).bind()
+            if (updateAttributeResult.isSuccessfullyUpdated()) {
+                val teas = getForEntity(entityId, emptySet())
+                entityPayloadService.updateState(entityId, modifiedAt, teas).bind()
+            }
 
             updateResultFromDetailedResult(listOf(updateAttributeResult))
         }

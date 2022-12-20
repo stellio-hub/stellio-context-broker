@@ -705,10 +705,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
-            val attributeInstances = ngsiLdAttributes
-                .flatMap { ngsiLdAttribute ->
-                    ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) }
-                }
+            val attributeInstances = ngsiLdAttributes.flatOnInstances()
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Appending attribute ${ngsiLdAttribute.name} in entity $entityUri")
@@ -782,23 +779,20 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
-            val attributeInstances = ngsiLdAttributes
-                .flatMap { ngsiLdAttribute ->
-                    ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) }
-                }
+            val attributeInstances = ngsiLdAttributes.flatOnInstances()
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Updating attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val currentTea =
                     getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                         .fold({ null }, { it })
-                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-                val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdAttributes,
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId
-                )!!
                 if (currentTea != null) {
+                    val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+                    val attributePayload = getAttributeFromExpandedAttributes(
+                        jsonLdAttributes,
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId
+                    )!!
                     replaceAttribute(
                         currentTea,
                         ngsiLdAttribute,

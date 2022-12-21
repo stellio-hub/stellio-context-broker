@@ -17,7 +17,7 @@ import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.toJson
+import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
@@ -90,7 +90,7 @@ class SubscriptionHandler(
             contextLink
         )
         val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
-            .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
+            .collectList().awaitFirst().serialize(contextLink, mediaType, queryParams.includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
 
         return buildQueryResponse(
@@ -126,7 +126,7 @@ class SubscriptionHandler(
             val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
 
             prepareGetSuccessResponse(mediaType, contextLink)
-                .body(subscription.toJson(contextLink, mediaType, includeSysAttrs))
+                .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
         }.fold(
             { it.toErrorResponse() },
             { it }

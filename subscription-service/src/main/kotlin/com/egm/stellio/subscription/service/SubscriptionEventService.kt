@@ -35,7 +35,7 @@ class SubscriptionEventService(
             sub,
             subscription.id,
             listOf(subscription.type),
-            subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
+            subscription.serialize(contexts, MediaType.APPLICATION_JSON, true),
             contexts
         )
 
@@ -55,7 +55,7 @@ class SubscriptionEventService(
             subscriptionId,
             listOf(subscription.type),
             operationPayload,
-            subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
+            subscription.serialize(contexts, MediaType.APPLICATION_JSON, true),
             contexts
         )
 

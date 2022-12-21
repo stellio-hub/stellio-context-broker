@@ -34,6 +34,7 @@ class NotificationService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    // TODO : attributes should be expanded here
     fun notifyMatchingSubscribers(
         rawEntity: String,
         ngsiLdEntity: NgsiLdEntity,

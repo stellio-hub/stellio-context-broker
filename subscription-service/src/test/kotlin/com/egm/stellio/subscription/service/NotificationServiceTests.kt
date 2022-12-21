@@ -2,7 +2,6 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -55,12 +54,6 @@ class NotificationServiceTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
 
-    private val contexts = listOf(
-        "$EGM_BASE_CONTEXT_URL/apic/jsonld-contexts/apic.jsonld",
-        "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld",
-        NGSILD_CORE_CONTEXT
-    )
-
     private val rawEntity =
         """
             {
@@ -85,7 +78,7 @@ class NotificationServiceTests {
                   }
                },
                "@context":[
-                  "${contexts.joinToString("\",\"")}"                  
+                  "$APIC_COMPOUND_CONTEXT"                  
                ]
             } 
         """.trimIndent()
@@ -163,9 +156,9 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
-                listOf("https://uri.etsi.org/ngsi-ld/default-context/name", "https://uri.etsi.org/ngsi-ld/location")
+                listOf("https://schema.org/name", "https://uri.etsi.org/ngsi-ld/location")
             ),
-            contexts = contexts
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
         val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
@@ -181,7 +174,7 @@ class NotificationServiceTests {
         )
 
         val notificationResult =
-            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("https://schema.org/name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {

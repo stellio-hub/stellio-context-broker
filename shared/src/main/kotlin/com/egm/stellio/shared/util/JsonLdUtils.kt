@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdError
@@ -49,7 +48,6 @@ object JsonLdUtils {
     const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
     const val JSONLD_OBJECT = "object"
-    const val JSON_CONTEXT = "contexts"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
@@ -193,19 +191,6 @@ object JsonLdUtils {
             throw BadRequestDataException("Unable to expand input payload")
 
         return expandedFragment[0] as Map<String, Any>
-    }
-
-    fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
-        val updatedPayload = deserializeListOfObjects(listOfElements)
-            .map {
-                it.minus(JSON_CONTEXT).plus(Pair(JSONLD_CONTEXT, contexts))
-            }
-        return serializeObject(updatedPayload)
-    }
-
-    fun addContextToElement(element: String, contexts: List<String>): String {
-        val parsedPayload = deserializeObject(element).minus(JSON_CONTEXT).plus(Pair(JSONLD_CONTEXT, contexts))
-        return serializeObject(parsedPayload)
     }
 
     fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =

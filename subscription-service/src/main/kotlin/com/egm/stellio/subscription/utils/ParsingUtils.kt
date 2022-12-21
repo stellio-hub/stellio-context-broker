@@ -15,14 +15,14 @@ import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
 
-    suspend fun parseSubscription(input: Map<String, Any>, context: List<String>): Either<APIException, Subscription> =
+    suspend fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         try {
             either {
                 val subscription = mapper.convertValue(
                     input.minus(JSONLD_CONTEXT),
                     Subscription::class.java
-                ).copy(contexts = context)
-                subscription.expandTypes(context)
+                ).copy(contexts = contexts)
+                subscription.expandTypes(contexts)
                 subscription
             }
         } catch (e: Exception) {

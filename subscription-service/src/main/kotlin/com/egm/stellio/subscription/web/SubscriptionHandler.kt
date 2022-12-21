@@ -143,15 +143,17 @@ class SubscriptionHandler(
     suspend fun getSubscriptionContext(
         @PathVariable subscriptionId: String
     ): ResponseEntity<*> {
-        val subscriptionIdUri = subscriptionId.toUri()
-        checkSubscriptionExists(subscriptionIdUri).awaitFirst()
+        return either<APIException, ResponseEntity<*>> {
+            val subscriptionIdUri = subscriptionId.toUri()
+            checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
+            val contexts = subscriptionService.getContextsBySubscriptionId(subscriptionIdUri).awaitFirst()
 
-        val contexts = subscriptionService.getContextsBySubscriptionId(subscriptionIdUri).awaitFirst()
-
-        return ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
+            ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**

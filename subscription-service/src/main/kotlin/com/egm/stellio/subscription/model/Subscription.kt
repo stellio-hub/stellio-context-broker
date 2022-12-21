@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToListOfElements
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -35,7 +34,7 @@ data class Subscription(
     val isActive: Boolean = true,
     val expiresAt: ZonedDateTime? = null,
     @JsonIgnore
-    val contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
+    val contexts: List<String>
 ) {
 
     @Transient

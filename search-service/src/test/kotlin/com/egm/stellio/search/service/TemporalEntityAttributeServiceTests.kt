@@ -2,18 +2,23 @@ package com.egm.stellio.search.service
 
 import arrow.core.right
 import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkClass
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -27,6 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -234,6 +240,53 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val teas = temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri(), emptySet())
         assertTrue(teas.isEmpty())
+    }
+
+    @Test
+    fun `it should replace a temporal entity attribute`() = runTest {
+        val rawEntity = loadSampleData()
+
+        val temporalEntityAttribute = mockkClass(TemporalEntityAttribute::class) {
+            every { id } returns UUID.randomUUID()
+            every { entityId } returns beehiveTestCId
+        }
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceed()
+
+        val createdAt = ZonedDateTime.now()
+        val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val newNgsiLdProperty = parseToNgsiLdAttributes(jsonLdAttribute.toMap())
+        temporalEntityAttributeService.replaceAttribute(
+            temporalEntityAttribute,
+            newNgsiLdProperty[0],
+            AttributeMetadata(
+                null,
+                "It's a string now",
+                null,
+                TemporalEntityAttribute.AttributeValueType.STRING,
+                null,
+                TemporalEntityAttribute.AttributeType.Property,
+                ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
+            ),
+            createdAt,
+            jsonLdAttribute.toMap(),
+            null
+        )
+
+        temporalEntityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY
+        ).shouldSucceedWith {
+            it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
+                it.attributeValueType == TemporalEntityAttribute.AttributeValueType.STRING &&
+                it.entityId == beehiveTestCId &&
+                it.payload == serializeObject(jsonLdAttribute) &&
+                it.createdAt.isBefore(createdAt) &&
+                it.modifiedAt == createdAt
+        }
     }
 
     @Test

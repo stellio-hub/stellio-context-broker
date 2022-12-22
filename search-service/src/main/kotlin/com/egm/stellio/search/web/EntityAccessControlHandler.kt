@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
@@ -267,9 +266,8 @@ class EntityAccessControlHandler(
             val body = requestBody.awaitFirst()
             val expandedPayload = expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-            val specificAccessPolicy = checkSpecificAccessPolicyPayload(ngsiLdAttributes).bind()
 
-            entityPayloadService.updateSpecificAccessPolicy(entityId.toUri(), specificAccessPolicy).bind()
+            entityPayloadService.updateSpecificAccessPolicy(entityId.toUri(), ngsiLdAttributes[0]).bind()
 
             entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),
@@ -288,22 +286,6 @@ class EntityAccessControlHandler(
             { it.toErrorResponse() },
             { it }
         )
-    }
-
-    private fun checkSpecificAccessPolicyPayload(
-        ngsiLdAttributes: List<NgsiLdAttribute>
-    ): Either<APIException, SpecificAccessPolicy> {
-        val ngsiLdAttributeInstances = ngsiLdAttributes[0].getAttributeInstances()
-        if (ngsiLdAttributeInstances.size > 1)
-            return BadRequestDataException("Payload must only contain a single attribute instance").left()
-        val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
-        if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
-            return BadRequestDataException("Payload must be a property").left()
-        return try {
-            SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString()).right()
-        } catch (e: java.lang.IllegalArgumentException) {
-            BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE (${e.message})").left()
-        }
     }
 
     @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")

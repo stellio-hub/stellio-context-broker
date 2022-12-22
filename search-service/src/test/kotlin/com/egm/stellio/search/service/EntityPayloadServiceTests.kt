@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.buildSapAttribute
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -33,7 +34,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
+    private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
+    private val entity02Uri = "urn:ngsi-ld:Entity:02".toUri()
     private val now = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS)
 
     @AfterEach
@@ -44,16 +46,23 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should create an entity payload if none existed yet`() = runTest {
+    fun `it should create an entity payload from string if none existed yet`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
     }
 
     @Test
-    fun `it should create an entity payload with specificAccessPolicy`() = runTest {
+    fun `it should create an entity payload from an NGSI-LD Entity if none existed yet`() = runTest {
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `it should create an entity payload from string with specificAccessPolicy`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri,
+            entity01Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
@@ -61,7 +70,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             SpecificAccessPolicy.AUTH_READ
         )
         entityPayloadService.createEntityPayload(
-            "urn:ngsi-ld:Entity:02".toUri(),
+            entity02Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
@@ -69,33 +78,53 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             SpecificAccessPolicy.AUTH_WRITE
         )
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
+            entity01Uri,
             listOf(SpecificAccessPolicy.AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
+            entity01Uri,
             listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceedWith { assertFalse(it) }
 
         entityPayloadService.hasSpecificAccessPolicies(
-            "urn:ngsi-ld:Entity:02".toUri(),
+            entity02Uri,
             listOf(SpecificAccessPolicy.AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
         entityPayloadService.hasSpecificAccessPolicies(
-            "urn:ngsi-ld:Entity:02".toUri(),
+            entity02Uri,
             listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
+    fun `it should create an entity payload from an NGSI-LD Entity with specificAccessPolicy`() = runTest {
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData("beehive_with_sap.jsonld").sampleDataToNgsiLdEntity()
+
+        entityPayloadService.createEntityPayload(
+            ngsiLdEntity,
+            now,
+            jsonLdEntity
+        )
+
+        entityPayloadService.hasSpecificAccessPolicies(
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            listOf(SpecificAccessPolicy.AUTH_READ)
+        ).shouldSucceedWith { assertTrue(it) }
+        entityPayloadService.hasSpecificAccessPolicies(
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            listOf(SpecificAccessPolicy.AUTH_WRITE)
+        ).shouldSucceedWith { assertFalse(it) }
+    }
+
+    @Test
     fun `it should not create an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         )
 
         assertThrows<DataIntegrityViolationException> {
             entityPayloadService.createEntityPayload(
-                entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+                entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
             )
         }
     }
@@ -103,13 +132,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve an entity payload`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
 
-        entityPayloadService.retrieve(entityUri)
+        entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
                 assertThat(it)
-                    .hasFieldOrPropertyWithValue("entityId", entityUri)
+                    .hasFieldOrPropertyWithValue("entityId", entity01Uri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
@@ -121,7 +150,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri,
+            entity01Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
@@ -129,14 +158,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             SpecificAccessPolicy.AUTH_READ
         )
 
-        entityPayloadService.retrieve(entityUri)
+        entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
                 assertThat(it)
-                    .hasFieldOrPropertyWithValue("entityId", entityUri)
-                    .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
-                    .hasFieldOrPropertyWithValue("createdAt", now)
-                    .hasFieldOrPropertyWithValue("modifiedAt", null)
-                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", SpecificAccessPolicy.AUTH_READ)
             }
     }
@@ -144,25 +168,25 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should upsert an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         )
 
-        entityPayloadService.upsertEntityPayload(entityUri, EMPTY_PAYLOAD)
+        entityPayloadService.upsertEntityPayload(entity01Uri, EMPTY_PAYLOAD)
             .shouldSucceed()
     }
 
     @Test
     fun `it should update the types of a temporal entity`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         )
 
-        entityPayloadService.updateTypes(entityUri, listOf(BEEHIVE_TYPE, APIARY_TYPE))
+        entityPayloadService.updateTypes(entity01Uri, listOf(BEEHIVE_TYPE, APIARY_TYPE))
             .shouldSucceedWith {
                 it.isSuccessful()
             }
 
-        entityPayloadService.retrieve(entityUri)
+        entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
                 assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
             }
@@ -171,7 +195,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should update a specific access policy for a temporal entity`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri,
+            entity01Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
@@ -179,7 +203,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             SpecificAccessPolicy.AUTH_READ
         )
         entityPayloadService.createEntityPayload(
-            "urn:ngsi-ld:Entity:02".toUri(),
+            entity02Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
@@ -188,20 +212,20 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
 
         entityPayloadService.updateSpecificAccessPolicy(
-            entityUri,
-            SpecificAccessPolicy.AUTH_WRITE
+            entity01Uri,
+            buildSapAttribute(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceed()
 
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
+            entity01Uri,
             listOf(SpecificAccessPolicy.AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
+            entity01Uri,
             listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.hasSpecificAccessPolicies(
-            "urn:ngsi-ld:Entity:02".toUri(),
+            entity02Uri,
             listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceedWith { assertFalse(it) }
     }
@@ -209,37 +233,37 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should delete an entity payload`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val deleteResult = entityPayloadService.deleteEntityPayload(entityUri)
+        val deleteResult = entityPayloadService.deleteEntityPayload(entity01Uri)
         assertTrue(deleteResult.isRight())
 
         // if correctly deleted, we should be able to create a new one
         entityPayloadService.createEntityPayload(
-            entityUri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
     }
 
     @Test
     fun `it should remove a specific access policy from a entity payload`() = runTest {
         entityPayloadService.createEntityPayload(
-            entityUri,
+            entity01Uri,
             listOf(BEEHIVE_TYPE),
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            AuthContextModel.SpecificAccessPolicy.AUTH_READ
+            SpecificAccessPolicy.AUTH_READ
         )
 
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
+            entity01Uri,
+            listOf(SpecificAccessPolicy.AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
-        entityPayloadService.removeSpecificAccessPolicy(entityUri).shouldSucceed()
+        entityPayloadService.removeSpecificAccessPolicy(entity01Uri).shouldSucceed()
         entityPayloadService.hasSpecificAccessPolicies(
-            entityUri,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
+            entity01Uri,
+            listOf(SpecificAccessPolicy.AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
     }
 }

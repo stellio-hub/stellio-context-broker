@@ -123,46 +123,50 @@ class TemporalEntityAttributeService(
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         logger.debug("Creating ${attributesMetadata.size} attributes in entity: ${ngsiLdEntity.id}")
 
-        entityPayloadService.createEntityPayload(ngsiLdEntity.id, ngsiLdEntity.types, createdAt, jsonLdEntity).bind()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity).bind()
 
-        attributesMetadata.forEach {
-            val (expandedAttributeName, attributeMetadata) = it
-            val attributePayload = getAttributeFromExpandedAttributes(
-                jsonLdEntity.properties,
-                expandedAttributeName,
-                attributeMetadata.datasetId
-            )!!
-            val temporalEntityAttribute = TemporalEntityAttribute(
-                entityId = ngsiLdEntity.id,
-                attributeName = expandedAttributeName,
-                attributeType = attributeMetadata.type,
-                attributeValueType = attributeMetadata.valueType,
-                datasetId = attributeMetadata.datasetId,
-                createdAt = createdAt,
-                payload = serializeObject(attributePayload)
-            )
-            create(temporalEntityAttribute).bind()
-
-            val attributeCreatedAtInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
-                payload = attributePayload,
-                sub = sub
-            )
-            attributeInstanceService.create(attributeCreatedAtInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
-                    time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
-                )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
+        attributesMetadata
+            .filter {
+                it.first != AuthContextModel.AUTH_PROP_SAP
             }
-        }
+            .forEach {
+                val (expandedAttributeName, attributeMetadata) = it
+                val attributePayload = getAttributeFromExpandedAttributes(
+                    jsonLdEntity.properties,
+                    expandedAttributeName,
+                    attributeMetadata.datasetId
+                )!!
+                val temporalEntityAttribute = TemporalEntityAttribute(
+                    entityId = ngsiLdEntity.id,
+                    attributeName = expandedAttributeName,
+                    attributeType = attributeMetadata.type,
+                    attributeValueType = attributeMetadata.valueType,
+                    datasetId = attributeMetadata.datasetId,
+                    createdAt = createdAt,
+                    payload = serializeObject(attributePayload)
+                )
+                create(temporalEntityAttribute).bind()
+
+                val attributeCreatedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+                    time = createdAt,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
+                    geoValue = attributeMetadata.geoValue,
+                    payload = attributePayload,
+                    sub = sub
+                )
+                attributeInstanceService.create(attributeCreatedAtInstance).bind()
+
+                if (attributeMetadata.observedAt != null) {
+                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
+                        time = attributeMetadata.observedAt,
+                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    )
+                    attributeInstanceService.create(attributeObservedAtInstance).bind()
+                }
+            }
     }
 
     @Transactional

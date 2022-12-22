@@ -8,15 +8,12 @@ import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.addDateTimeProperty
-import com.egm.stellio.shared.util.entityAlreadyExistsMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -32,20 +29,22 @@ class EntityPayloadService(
 ) {
     @Transactional
     suspend fun createEntityPayload(
-        entityId: URI,
-        types: List<ExpandedTerm>,
+        ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime,
-        jsonLdEntity: JsonLdEntity,
-        specificAccessPolicy: SpecificAccessPolicy? = null
-    ): Either<APIException, Unit> =
+        jsonLdEntity: JsonLdEntity
+    ): Either<APIException, Unit> = either {
+        val specificAccessPolicy = ngsiLdEntity.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }
+            ?.let { getSpecificAccessPolicy(it) }
+            ?.bind()
         createEntityPayload(
-            entityId,
-            types,
+            ngsiLdEntity.id,
+            ngsiLdEntity.types,
             createdAt,
             serializeObject(jsonLdEntity.properties.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
             jsonLdEntity.contexts,
             specificAccessPolicy
-        )
+        ).bind()
+    }
 
     suspend fun createEntityPayload(
         entityId: URI,
@@ -277,21 +276,6 @@ class EntityPayloadService(
         return entityCoreAttributes.plus(expandedAttributes)
     }
 
-    suspend fun updateSpecificAccessPolicy(
-        entityId: URI,
-        specificAccessPolicy: SpecificAccessPolicy
-    ): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE entity_payload
-            SET specific_access_policy = :specific_access_policy
-            WHERE entity_id = :entity_id
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("specific_access_policy", specificAccessPolicy.toString())
-            .execute()
-
     @Transactional
     suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
         databaseClient.sql(
@@ -316,6 +300,23 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .execute()
 
+    suspend fun updateSpecificAccessPolicy(
+        entityId: URI,
+        ngsiLdAttribute: NgsiLdAttribute
+    ): Either<APIException, Unit> = either {
+        val specificAccessPolicy = getSpecificAccessPolicy(ngsiLdAttribute).bind()
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET specific_access_policy = :specific_access_policy
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policy", specificAccessPolicy.toString())
+            .execute()
+    }
+
     suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
@@ -326,4 +327,20 @@ class EntityPayloadService(
         )
             .bind("entity_id", entityId)
             .execute()
+
+    private fun getSpecificAccessPolicy(
+        ngsiLdAttribute: NgsiLdAttribute
+    ): Either<APIException, SpecificAccessPolicy> {
+        val ngsiLdAttributeInstances = ngsiLdAttribute.getAttributeInstances()
+        if (ngsiLdAttributeInstances.size > 1)
+            return BadRequestDataException("Payload must contain a single attribute instance").left()
+        val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
+        if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
+            return BadRequestDataException("Payload must be a property").left()
+        return try {
+            SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString()).right()
+        } catch (e: java.lang.IllegalArgumentException) {
+            BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE (${e.message})").left()
+        }
+    }
 }

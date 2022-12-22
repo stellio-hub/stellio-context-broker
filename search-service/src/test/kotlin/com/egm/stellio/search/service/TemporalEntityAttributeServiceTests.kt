@@ -7,6 +7,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.buildSapAttribute
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
@@ -14,11 +15,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.Called
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockkClass
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -618,7 +615,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         entityPayloadService.updateSpecificAccessPolicy(
             beehiveTestCId,
-            AuthContextModel.SpecificAccessPolicy.AUTH_READ
+            buildSapAttribute(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
         )
 
         val temporalEntityAttributes =
@@ -667,7 +664,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
             entityPayloadService.updateSpecificAccessPolicy(
                 beehiveTestCId,
-                AuthContextModel.SpecificAccessPolicy.AUTH_READ
+                buildSapAttribute(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
             )
 
             val temporalEntityAttributes =

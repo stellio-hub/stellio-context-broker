@@ -63,6 +63,13 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.execute(): Either<APIExcep
         .map { Unit.right() }
         .awaitFirst()
 
+suspend fun ReactiveDeleteOperation.TerminatingDelete.executeExpected(
+    f: (value: Int) -> Either<APIException, Unit>
+): Either<APIException, Unit> =
+    this.all()
+        .map { f(it) }
+        .awaitFirst()
+
 fun toUri(entry: Any?): URI = (entry as String).toUri()
 fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
 fun toUuid(entry: Any?): UUID = entry as UUID

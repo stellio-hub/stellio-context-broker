@@ -4,9 +4,11 @@ import arrow.core.*
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.execute
+import com.egm.stellio.search.util.executeExpected
 import com.egm.stellio.search.util.oneToResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel
@@ -64,7 +66,11 @@ class EntityAccessRightsService(
                         .and(Criteria.where("entity_id").`is`(entityId))
                 )
             )
-            .execute()
+            .executeExpected {
+                if (it == 0)
+                    ResourceNotFoundException("No right found for $sub on $entityId").left()
+                else Unit.right()
+            }
 
     @Transactional
     suspend fun removeRolesOnEntity(entityId: URI): Either<APIException, Unit> =

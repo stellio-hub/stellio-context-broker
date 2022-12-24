@@ -267,7 +267,7 @@ class EntityAccessControlHandler(
             val expandedPayload = expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
 
-            entityPayloadService.updateSpecificAccessPolicy(entityId.toUri(), ngsiLdAttributes[0]).bind()
+            entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()
 
             entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),

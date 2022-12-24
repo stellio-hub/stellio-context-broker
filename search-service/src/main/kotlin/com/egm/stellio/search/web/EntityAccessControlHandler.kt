@@ -107,7 +107,7 @@ class EntityAccessControlHandler(
                 authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, sub).bind()
 
             if (countAndGroupEntities.first == -1) {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+                return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
 
             val compactedEntities = JsonLdUtils.compactEntities(

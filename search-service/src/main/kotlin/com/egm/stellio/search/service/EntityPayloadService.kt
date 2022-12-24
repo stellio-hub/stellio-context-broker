@@ -328,7 +328,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .execute()
 
-    private fun getSpecificAccessPolicy(
+    internal fun getSpecificAccessPolicy(
         ngsiLdAttribute: NgsiLdAttribute
     ): Either<APIException, SpecificAccessPolicy> {
         val ngsiLdAttributeInstances = ngsiLdAttribute.getAttributeInstances()

@@ -17,7 +17,7 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
-    val NGSILD_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
+    const val NGSILD_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
     val COMPOUND_AUTHZ_CONTEXT = listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
 
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
@@ -29,16 +29,23 @@ object AuthContextModel {
     val IAM_COMPACTED_TYPES = setOf("User", "Group", "Client")
 
     const val AUTH_TERM_SUB = "sub"
+    const val AUTH_TERM_CLIENT_ID = "clientId"
+    const val AUTH_TERM_NAME = "name"
     const val AUTH_TERM_SID = "serviceAccountId"
+    const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
     const val AUTH_PROP_SID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SID
     const val AUTH_TERM_ROLES = "roles"
     const val AUTH_PROP_ROLES: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_ROLES
     const val AUTH_TERM_USERNAME = "username"
     const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
+    const val AUTH_TERM_GIVEN_NAME = "givenName"
+    const val AUTH_TERM_FAMILY_NAME = "familyName"
     const val AUTH_TERM_SAP = "specificAccessPolicy"
     const val AUTH_PROP_SAP = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SAP
     const val AUTH_TERM_RIGHT = "right"
     const val AUTH_PROP_RIGHT: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_RIGHT
+    val AUTH_SUBJECT_INFO_MEMBERS: Set<String> =
+        setOf(AUTH_TERM_USERNAME, AUTH_TERM_GIVEN_NAME, AUTH_TERM_FAMILY_NAME, AUTH_TERM_CLIENT_ID, AUTH_TERM_NAME)
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF

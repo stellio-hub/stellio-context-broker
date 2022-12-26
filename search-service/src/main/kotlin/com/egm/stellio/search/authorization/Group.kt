@@ -14,7 +14,7 @@ data class Group(
 ) {
     fun serializeProperties(): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        resultEntity[JsonLdUtils.JSONLD_ID] = id.toString()
+        resultEntity[JsonLdUtils.JSONLD_ID] = id
         resultEntity[JsonLdUtils.JSONLD_TYPE] = type
 
         resultEntity[NGSILD_NAME_PROPERTY] = buildJsonLdExpandedProperty(name)

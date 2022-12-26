@@ -1,7 +1,7 @@
 package com.egm.stellio.search.support
 
+import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
-import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import kotlinx.coroutines.runBlocking
@@ -26,6 +26,9 @@ class ApiTestsBootstrapper(
                     val subjectReferential = SubjectReferential(
                         subjectId = apiTestUserId!!,
                         subjectType = SubjectType.USER,
+                        subjectInfo = """
+                            {"type":"Property","value":{"username":"api-tests-user@stellio.io"}}
+                        """.trimIndent(),
                         globalRoles = listOf(GlobalRole.STELLIO_CREATOR)
                     )
                     subjectReferentialService.create(subjectReferential)

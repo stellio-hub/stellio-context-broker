@@ -294,7 +294,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .shouldFail {
                 assertThat(it)
                     .isInstanceOf(BadRequestDataException::class.java)
-                    .hasFieldOrPropertyWithValue("message","Payload must contain a single attribute instance")
+                    .hasFieldOrPropertyWithValue("message", "Payload must contain a single attribute instance")
             }
     }
 

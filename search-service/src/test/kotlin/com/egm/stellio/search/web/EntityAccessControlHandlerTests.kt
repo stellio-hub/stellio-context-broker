@@ -7,7 +7,6 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
@@ -15,11 +14,8 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
@@ -40,6 +36,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -63,10 +60,8 @@ class EntityAccessControlHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
-    @MockkBean(relaxed = true)
-    private lateinit var entityEventService: EntityEventService
-
     private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+    private val otherUserSub = "D8916880-D0DC-4469-82F7-F294AEF7292D"
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
     private val entityUri2 = "urn:ngsi-ld:Entity:entityId2".toUri()
@@ -78,6 +73,7 @@ class EntityAccessControlHandlerTests {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
+            .responseTimeout(Duration.ofMinutes(5))
             .build()
     }
 
@@ -98,10 +94,9 @@ class EntityAccessControlHandlerTests {
         coEvery {
             entityAccessRightsService.setRoleOnEntity(any(), any(), any())
         } returns Unit.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs")
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isNoContent
@@ -110,20 +105,9 @@ class EntityAccessControlHandlerTests {
             authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
 
             entityAccessRightsService.setRoleOnEntity(
-                eq(sub.value),
-                match { it == entityUri1 },
-                match { it.name == AUTH_REL_CAN_READ }
-            )
-        }
-
-        verify {
-            entityEventService.publishAttributeChangeEvents(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(subjectId),
-                any(),
-                match { it.updated.size == 1 && it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED },
-                true,
-                eq(listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
+                eq(otherUserSub),
+                eq(entityUri1),
+                eq(AccessRight.R_CAN_READ)
             )
         }
     }
@@ -153,9 +137,10 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs")
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isNoContent
@@ -165,21 +150,23 @@ class EntityAccessControlHandlerTests {
                 match { listOf(entityUri1, entityUri2, entityUri3).contains(it) },
                 eq(sub)
             )
+        }
 
+        coVerify {
             entityAccessRightsService.setRoleOnEntity(
-                eq(sub.value),
-                match { it == entityUri1 },
-                match { it.name == AUTH_REL_CAN_READ }
+                eq(otherUserSub),
+                eq(entityUri1),
+                eq(AccessRight.R_CAN_READ)
             )
             entityAccessRightsService.setRoleOnEntity(
-                eq(sub.value),
-                match { it == entityUri2 },
-                match { it.name == AUTH_REL_CAN_READ }
+                eq(otherUserSub),
+                eq(entityUri2),
+                eq(AccessRight.R_CAN_READ)
             )
             entityAccessRightsService.setRoleOnEntity(
-                eq(sub.value),
-                match { it == entityUri3 },
-                match { it.name == AUTH_REL_CAN_WRITE }
+                eq(otherUserSub),
+                eq(entityUri3),
+                eq(AccessRight.R_CAN_WRITE)
             )
         }
     }
@@ -210,7 +197,7 @@ class EntityAccessControlHandlerTests {
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs")
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -230,9 +217,9 @@ class EntityAccessControlHandlerTests {
 
         coVerify(exactly = 1) {
             entityAccessRightsService.setRoleOnEntity(
-                eq(sub.value),
-                match { it == entityUri1 },
-                match { it.name == AUTH_REL_CAN_READ }
+                eq(otherUserSub),
+                eq(entityUri1),
+                eq(AccessRight.R_CAN_READ)
             )
         }
     }
@@ -256,7 +243,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs")
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -295,7 +282,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs")
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -321,10 +308,9 @@ class EntityAccessControlHandlerTests {
     fun `it should allow an authorized user to remove access to an entity`() {
         coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
             .exchange()
             .expectStatus().isNoContent
@@ -332,18 +318,7 @@ class EntityAccessControlHandlerTests {
         coVerify {
             authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
 
-            entityAccessRightsService.removeRoleOnEntity(eq(sub.value), eq(entityUri1))
-        }
-
-        verify {
-            entityEventService.publishAttributeDeleteEvent(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(subjectId),
-                eq(entityUri1.toString()),
-                null,
-                eq(false),
-                eq(listOf(NGSILD_AUTHORIZATION_CONTEXT))
-            )
+            entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1))
         }
     }
 
@@ -354,7 +329,7 @@ class EntityAccessControlHandlerTests {
         } returns AccessDeniedException("Access denied").left()
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
             .exchange()
             .expectStatus().isForbidden
 
@@ -369,7 +344,7 @@ class EntityAccessControlHandlerTests {
         } returns ResourceNotFoundException("No right found for $subjectId on $entityUri1").left()
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -395,9 +370,6 @@ class EntityAccessControlHandlerTests {
 
         coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
-        every {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
-        } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -417,24 +389,6 @@ class EntityAccessControlHandlerTests {
                         it.getAttributeInstances()[0] is NgsiLdPropertyInstance &&
                         (it.getAttributeInstances()[0] as NgsiLdPropertyInstance).value.toString() == "AUTH_READ"
                 }
-            )
-        }
-
-        verify {
-            entityEventService.publishAttributeChangeEvents(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(entityUri1),
-                match {
-                    it.containsKey(AUTH_PROP_SAP)
-                },
-                match {
-                    it.updated.size == 1 &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED &&
-                        it.updated[0].attributeName == AUTH_TERM_SAP &&
-                        it.updated[0].datasetId == null
-                },
-                eq(true),
-                eq(COMPOUND_AUTHZ_CONTEXT)
             )
         }
     }
@@ -502,7 +456,6 @@ class EntityAccessControlHandlerTests {
     fun `it should allow an authorized user to delete the specific access policy on an entity`() {
         coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.removeSpecificAccessPolicy(any()) } returns Unit.right()
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -514,17 +467,6 @@ class EntityAccessControlHandlerTests {
             authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
 
             entityPayloadService.removeSpecificAccessPolicy(eq(entityUri1))
-        }
-
-        verify {
-            entityEventService.publishAttributeDeleteEvent(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(entityUri1),
-                eq(AUTH_TERM_SAP),
-                null,
-                eq(false),
-                eq(COMPOUND_AUTHZ_CONTEXT)
-            )
         }
     }
 
@@ -566,7 +508,6 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
-                    "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -577,7 +518,6 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTD",
                     "Beehive",
-                    "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
                     AUTH_TERM_CAN_ADMIN,
                     AUTH_READ.toString(),
                     userUri.toUri(),
@@ -595,24 +535,20 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
             .expectBody().json(
-                """[
+                """[{
+                        "id": "urn:ngsi-ld:Beehive:TESTC",
+                        "type": "Beehive",
+                        "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    },
                     {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
-                            "type": "Beehive",
-                            "datasetId": "urn:ngsi-ld:Dataset:rCanRead:urn:ngsi-ld:Beehive:TESTC",
-                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        },
-                        {
-                            "id": "urn:ngsi-ld:Beehive:TESTD",
-                            "type": "Beehive",
-                            "datasetId": "urn:ngsi-ld:Dataset:rCanAdmin:urn:ngsi-ld:Beehive:TESTD",
-                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
-                            "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
-                            "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                        "id": "urn:ngsi-ld:Beehive:TESTD",
+                        "type": "Beehive",
+                        "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
+                        "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
+                        "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    }]
                 """.trimMargin()
             )
             .jsonPath("[0].createdAt").doesNotExist()
@@ -629,7 +565,6 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     "urn:ngsi-ld:Beehive:TESTC",
                     "Beehive",
-                    null,
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
@@ -797,7 +732,6 @@ class EntityAccessControlHandlerTests {
     private fun createJsonLdEntity(
         id: String,
         type: String,
-        datasetId: String? = null,
         right: String,
         specificAccessPolicy: String? = null,
         rCanReadUser: URI? = null,
@@ -808,11 +742,6 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        datasetId?.run {
-            jsonLdEntity[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
-                JsonLdUtils.JSONLD_ID to datasetId
-            )
-        }
         jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
         specificAccessPolicy?.run {
             jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)

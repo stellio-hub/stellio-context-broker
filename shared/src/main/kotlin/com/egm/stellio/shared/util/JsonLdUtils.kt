@@ -48,6 +48,7 @@ object JsonLdUtils {
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
+    const val JSONLD_OBJECT = "object"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)

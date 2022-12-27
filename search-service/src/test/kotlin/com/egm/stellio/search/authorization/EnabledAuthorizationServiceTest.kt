@@ -1,16 +1,24 @@
 package com.egm.stellio.search.authorization
 
+import arrow.core.Either
 import arrow.core.Some
 import arrow.core.right
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
+import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.shouldSucceedWith
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EnabledAuthorizationService::class])
@@ -59,5 +67,33 @@ class EnabledAuthorizationServiceTest {
             """.trimIndent(),
             accessRightFilter()
         )
+    }
+
+    @Test
+    fun `it should return serialized groups memberships along with a count`() = runTest {
+        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns listOf(Some(GlobalRole.STELLIO_ADMIN))
+        coEvery {
+            subjectReferentialService.getAllGroups(any(), any(), any())
+        } returns listOf(
+            Group(
+                id = UUID.randomUUID().toString(),
+                name = "Group 1"
+            ),
+            Group(
+                id = UUID.randomUUID().toString(),
+                name = "Group 2"
+            )
+        )
+        coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
+
+        enabledAuthorizationService.getGroupsMemberships(0, 2, Some(subjectUuid))
+            .shouldSucceedWith {
+                assertEquals(2, it.first)
+                it.second.forEach { jsonLdEntity ->
+                    assertEquals(1, jsonLdEntity.types.size)
+                    assertEquals(GROUP_TYPE, jsonLdEntity.types[0])
+                    assertTrue(jsonLdEntity.id.startsWith(GROUP_ENTITY_PREFIX))
+                }
+            }
     }
 }

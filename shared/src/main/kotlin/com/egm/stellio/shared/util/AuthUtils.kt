@@ -28,6 +28,8 @@ object AuthContextModel {
     val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
     val IAM_COMPACTED_TYPES = setOf("User", "Group", "Client")
 
+    const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
+
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_CLIENT_ID = "clientId"
     const val AUTH_TERM_NAME = "name"

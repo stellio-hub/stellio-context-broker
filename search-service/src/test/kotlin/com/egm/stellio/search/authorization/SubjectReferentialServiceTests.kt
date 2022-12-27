@@ -174,6 +174,85 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should get the groups memberships of an user`() = runTest {
+        val allGroupsUuids = List(3) {
+            val groupUuid = UUID.randomUUID().toString()
+            subjectReferentialService.create(
+                SubjectReferential(
+                    subjectId = groupUuid,
+                    subjectType = SubjectType.GROUP,
+                    subjectInfo = """
+                        { "type": "Property", "value": { "name": "$groupUuid" } }
+                    """.trimIndent()
+                )
+            )
+            groupUuid
+        }
+        val userGroupsUuids = allGroupsUuids.subList(0, 2)
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            subjectInfo = EMPTY_PAYLOAD,
+            groupsMemberships = userGroupsUuids
+        )
+
+        subjectReferentialService.create(subjectReferential)
+
+        val groups = subjectReferentialService.getGroups(Some(subjectUuid), 0, 10)
+
+        assertEquals(2, groups.size)
+        groups.forEach {
+            assertTrue(it.id in userGroupsUuids)
+            assertTrue(it.name in userGroupsUuids)
+            assertTrue(it.isMember)
+        }
+
+        subjectReferentialService.getCountGroups(Some(subjectUuid))
+            .shouldSucceedWith { assertEquals(2, it) }
+    }
+
+    @Test
+    fun `it should get all groups for an admin`() = runTest {
+        val allGroupsUuids = List(3) {
+            val groupUuid = UUID.randomUUID().toString()
+            subjectReferentialService.create(
+                SubjectReferential(
+                    subjectId = groupUuid,
+                    subjectType = SubjectType.GROUP,
+                    subjectInfo = """
+                        { "type": "Property", "value": { "name": "$groupUuid" } }
+                    """.trimIndent()
+                )
+            )
+            groupUuid
+        }
+        val userGroupsUuids = allGroupsUuids.subList(0, 2)
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            subjectInfo = EMPTY_PAYLOAD,
+            groupsMemberships = userGroupsUuids
+        )
+
+        subjectReferentialService.create(subjectReferential)
+
+        val groups = subjectReferentialService.getAllGroups(Some(subjectUuid), 0, 10)
+
+        assertEquals(3, groups.size)
+        groups.forEach {
+            assertTrue(it.id in allGroupsUuids)
+            assertTrue(it.name in allGroupsUuids)
+            if (it.id in userGroupsUuids)
+                assertTrue(it.isMember)
+            else
+                assertFalse(it.isMember)
+        }
+
+        subjectReferentialService.getCountAllGroups()
+            .shouldSucceedWith { assertEquals(3, it) }
+    }
+
+    @Test
     fun `it should update the global role of a subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,

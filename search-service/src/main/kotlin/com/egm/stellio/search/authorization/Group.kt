@@ -9,7 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
 data class Group(
     val id: String,
     val type: String = GROUP_TYPE,
-    val isMember: Boolean? = false,
+    val isMember: Boolean = false,
     val name: String
 ) {
     fun serializeProperties(): Map<String, Any> {
@@ -19,7 +19,7 @@ data class Group(
 
         resultEntity[NGSILD_NAME_PROPERTY] = buildJsonLdExpandedProperty(name)
 
-        isMember?.run {
+        isMember.run {
             resultEntity[AUTH_REL_IS_MEMBER_OF] = buildJsonLdExpandedProperty(isMember.toString())
         }
         return resultEntity

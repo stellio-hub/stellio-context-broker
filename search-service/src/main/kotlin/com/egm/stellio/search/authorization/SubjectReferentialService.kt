@@ -90,10 +90,9 @@ class SubjectReferentialService(
                     FROM subject_referential
                     WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 )
-                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
-                    (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
+                SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name
                 FROM subject_referential
-                WHERE subject_type = '${SubjectType.GROUP.name}'
+                WHERE subject_id IN (SELECT groups FROM groups_memberships)
                 ORDER BY name
                 LIMIT :limit
                 OFFSET :offset
@@ -114,8 +113,9 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT count(unnest(groups_memberships)) as count
+                SELECT count(sr.g_m) as count
                 FROM subject_referential
+                CROSS JOIN LATERAL unnest(subject_referential.groups_memberships) as sr(g_m)
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
@@ -127,11 +127,11 @@ class SubjectReferentialService(
             .sql(
                 """
                 WITH groups_memberships AS (
-                    SELECT unnest(groups_memberships) as groups
+                    SELECT distinct(unnest(groups_memberships)) as groups
                     FROM subject_referential 
                     WHERE subject_id = :subject_id
                 )
-                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
+                SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name,
                     (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
                 FROM subject_referential
                 WHERE subject_type = '${SubjectType.GROUP.name}'

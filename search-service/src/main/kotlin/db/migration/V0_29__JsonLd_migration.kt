@@ -33,6 +33,9 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
 
+const val EGM_NO_BRANCH_BASE_CONTEXT_URL =
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models"
+
 @Suppress("unused")
 class V0_29__JsonLd_migration : BaseJavaMigration() {
 
@@ -45,7 +48,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private val contextsToTransform = mapOf(
         "https://schema.lab.fiware.org/ld/context.jsonld" to
-            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld"
+            "$EGM_BASE_CONTEXT_URL/fiware/jsonld-contexts/labFiware-compound.jsonld",
+        "$EGM_NO_BRANCH_BASE_CONTEXT_URL/feature/mlaas-models/mlaas/jsonld-contexts/mlaas-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/mlaas/jsonld-contexts/mlaas-ngsild-compound.jsonld",
+        "$EGM_NO_BRANCH_BASE_CONTEXT_URL/ngsi-ld-v1.2/mapping/jsonld-contexts/mapping-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/mapping/jsonld-contexts/mapping-compound.jsonld"
     )
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -115,7 +122,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 update entity_payload
                 set created_at = '$defaultCreatedAt',
                     payload = $$$serializedJsonLdEntity$$,
-                    specific_access_policy = ${specificAccessPolicy.toSQLValue()}
+                    specific_access_policy = ${specificAccessPolicy.toSQLValue()},
                     contexts = ${contexts.toSqlArray()}
                 where entity_id = $$$entityId$$
                 """.trimIndent()

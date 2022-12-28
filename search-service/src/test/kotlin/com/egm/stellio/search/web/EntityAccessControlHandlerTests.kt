@@ -473,8 +473,8 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), NGSILD_CORE_CONTEXT, any())
-        } returns Pair(3, emptyList())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
+        } returns Pair(3, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?&limit=0&offset=1&count=true")
@@ -487,8 +487,8 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), NGSILD_CORE_CONTEXT, any())
-        } returns Pair(0, emptyList())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
+        } returns Pair(0, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=9")
@@ -501,7 +501,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return entities I have a right on`() {
         val userUri = "urn:ngsi-ld:User:01"
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), NGSILD_CORE_CONTEXT, any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(
             2,
             listOf(
@@ -526,7 +526,7 @@ class EntityAccessControlHandlerTests {
                     NGSILD_CORE_CONTEXT
                 )
             )
-        )
+        ).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=1&count=true")
@@ -558,7 +558,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return entities I have a right on with system attributes`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), NGSILD_AUTHORIZATION_CONTEXT, any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -573,7 +573,7 @@ class EntityAccessControlHandlerTests {
                     NGSILD_AUTHORIZATION_CONTEXT
                 )
             )
-        )
+        ).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?options=sysAttrs")
@@ -596,9 +596,9 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 400 if q parameter is not valid`() {
+    fun `get authorized entities should return 400 if attrs parameter is not valid`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/entities?q=rcanwrite")
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?attrs=rcanwrite")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
@@ -612,8 +612,8 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), NGSILD_CORE_CONTEXT, any())
-        } returns Pair(-1, emptyList())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
+        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities")

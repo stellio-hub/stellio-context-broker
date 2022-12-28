@@ -39,49 +39,52 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-        val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        val queryParams = parseAndCheckParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-            params,
-            contextLink
-        )
+        return either<APIException, ResponseEntity<*>> {
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+            val mediaType = getApplicableMediaType(httpHeaders)
 
-        if (queryParams.q != null && !ALL_IAM_RIGHTS_TERMS.contains(queryParams.q))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "The parameter q only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
-                    )
-                )
+            val queryParams = parseAndCheckParams(
+                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+                params,
+                contextLink
+            )
 
-        val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
-            queryParams,
-            contextLink,
-            sub,
-        )
+            if (!queryParams.attrs.all { ALL_IAM_RIGHTS.contains(it) })
+                BadRequestDataException(
+                    "The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
+                ).left().bind<ResponseEntity<*>>()
 
-        if (countAndAuthorizedEntities.first == -1) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }
+            val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
+                queryParams,
+                contextLink,
+                sub,
+            ).bind()
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndAuthorizedEntities.second,
-            queryParams.useSimplifiedRepresentation,
-            contextLink,
-            mediaType
-        )
+            if (countAndAuthorizedEntities.first == -1) {
+                return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            }
 
-        return buildQueryResponse(
-            compactedEntities,
-            countAndAuthorizedEntities.first,
-            "/ngsi-ld/v1/entityAccessControl/entities",
-            queryParams,
-            params,
-            mediaType,
-            contextLink
+            val compactedEntities = JsonLdUtils.compactEntities(
+                countAndAuthorizedEntities.second,
+                queryParams.useSimplifiedRepresentation,
+                contextLink,
+                mediaType
+            )
+
+            buildQueryResponse(
+                compactedEntities,
+                countAndAuthorizedEntities.first,
+                "/ngsi-ld/v1/entityAccessControl/entities",
+                queryParams,
+                params,
+                mediaType,
+                contextLink
+            )
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
         )
     }
 

@@ -70,6 +70,9 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.executeExpected(
         .map { f(it) }
         .awaitFirst()
 
+fun Set<String>.toSqlArray(): String =
+    "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
+
 fun toUri(entry: Any?): URI = (entry as String).toUri()
 fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
 fun toUuid(entry: Any?): UUID = entry as UUID

@@ -92,10 +92,27 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>
-    ): Pair<Int, List<JsonLdEntity>> {
-        TODO("Not yet implemented")
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).orNull() }
+        val jsonLdEntities = entityAccessRightsService.getAccessRights(
+            sub,
+            accessRights,
+            queryParams.types,
+            queryParams.limit,
+            queryParams.offset
+        ).bind()
+            .map { it.serializeProperties(queryParams.includeSysAttrs) }
+            .map { JsonLdEntity(it, listOf(context)) }
+
+        val count = entityAccessRightsService.getCountAccessRights(
+            sub,
+            accessRights,
+            queryParams.types,
+        ).bind()
+
+        Pair(count, jsonLdEntities)
     }
 
     override suspend fun getGroupsMemberships(

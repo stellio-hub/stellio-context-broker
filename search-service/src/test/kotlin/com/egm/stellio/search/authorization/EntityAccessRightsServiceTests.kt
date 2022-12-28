@@ -2,12 +2,15 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.Some
 import arrow.core.right
+import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.util.shouldSucceed
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.ninjasquad.springmockk.MockkBean
+import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -24,6 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
+import java.time.ZonedDateTime
+import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -39,12 +46,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
 
-    @MockkBean
+    @SpykBean
     private lateinit var entityPayloadService: EntityPayloadService
 
     private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
     private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
-    private val entityId = "urn:ngsi-ld:Entity:1111".toUri()
+    private val entityId01 = "urn:ngsi-ld:Entity:01".toUri()
+    private val entityId02 = "urn:ngsi-ld:Entity:02".toUri()
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
@@ -59,13 +67,16 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .all()
             .block()
+        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+            .all()
+            .block()
     }
 
     @Test
     fun `it should add a new entity in the allowed list of read entities`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
 
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
 
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:1111".toUri())
             .shouldSucceed()
@@ -75,11 +86,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should remove an entity from the allowed list of read entities`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
-        entityAccessRightsService.removeRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
+        entityAccessRightsService.removeRoleOnEntity(subjectUuid, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
-            { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId"), it) },
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).fold(
+            { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId01"), it) },
             { fail("it should have not read right on entity") }
         )
     }
@@ -88,14 +99,14 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should remove an entity from the list of known entities`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setAdminRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setAdminRoleOnEntity(subjectUuid, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
 
-        entityAccessRightsService.removeRolesOnEntity(entityId)
+        entityAccessRightsService.removeRolesOnEntity(entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
-            { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId"), it) },
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).fold(
+            { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId01"), it) },
             { fail("it should have not read right on entity") }
         )
     }
@@ -104,10 +115,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should allow an user having a direct read role on a entity`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
         entityAccessRightsService.setWriteRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:6666".toUri())
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
@@ -127,9 +138,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } returns listOf(groupUuid, subjectUuid).right()
 
-        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
@@ -148,10 +159,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { listOf(groupUuid, subjectUuid).right() }
 
-        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId)
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
@@ -167,7 +178,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should allow an user having the stellio-admin role to read any entity`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).shouldSucceed()
 
         coVerify {
@@ -179,7 +190,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should delete entity access rights associated to an user`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
 
         entityAccessRightsService.delete(subjectUuid).shouldSucceed()
     }
@@ -188,18 +199,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should allow user who have read right on entity`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
     }
 
     @Test
     fun `it should allow user who have write right on entity`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setWriteRoleOnEntity(subjectUuid, entityId)
+        entityAccessRightsService.setWriteRoleOnEntity(subjectUuid, entityId01)
 
-        entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId01).shouldSucceed()
     }
 
     @Test
@@ -208,8 +219,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
             runBlocking {
-                entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
-                    { assertEquals("User forbidden read access to entity $entityId", it.message) },
+                entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).fold(
+                    { assertEquals("User forbidden read access to entity $entityId01", it.message) },
                     { fail("it should have not read right on entity") }
                 )
             }
@@ -220,8 +231,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         runTest {
             coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-            entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).fold(
-                { assertEquals("User forbidden write access to entity $entityId", it.message) },
+            entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId01).fold(
+                { assertEquals("User forbidden write access to entity $entityId01", it.message) },
                 { fail("it should have not write right on entity") }
             )
         }
@@ -230,9 +241,157 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should allow user it has no right on entity but entity has a specific access policy`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
 
-        entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).shouldSucceed()
+        entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) wasNot Called }
+    }
+
+    @Test
+    fun `it should get all entities an user has access to`() = runTest {
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            emptySet(),
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId01, entityAccessControl.id)
+            assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
+            assertNotNull(entityAccessControl.createdAt)
+            assertEquals(AccessRight.R_CAN_WRITE, entityAccessControl.right)
+            assertEquals(AUTH_READ, entityAccessControl.specificAccessPolicy)
+        }
+
+        entityAccessRightsService.getCountAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            emptySet()
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    @Test
+    fun `it should get all entities for a stellio-admin user`() = runTest {
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns true.right()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            emptySet(),
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(2, it.size)
+            it.forEach { entityAccessControl ->
+                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+            }
+        }
+
+        entityAccessRightsService.getCountAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            emptySet()
+        ).shouldSucceedWith {
+            assertEquals(2, it)
+        }
+    }
+
+    @Test
+    fun `it should get all entities an user has access to wrt types`() = runTest {
+        val entityId03 = "urn:ngsi-ld:Entity:03".toUri()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId03, setOf(APIARY_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            setOf(BEEHIVE_TYPE),
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId01, entityAccessControl.id)
+            assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
+        }
+
+        entityAccessRightsService.getCountAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            setOf(BEEHIVE_TYPE),
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    @Test
+    fun `it should get all entities an user has access to wrt access rights`() = runTest {
+        val entityId03 = "urn:ngsi-ld:Entity:03".toUri()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId03, setOf(APIARY_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getAccessRights(
+            Some(subjectUuid),
+            listOf(AccessRight.R_CAN_WRITE),
+            emptySet(),
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId03, entityAccessControl.id)
+        }
+
+        entityAccessRightsService.getCountAccessRights(
+            Some(subjectUuid),
+            listOf(AccessRight.R_CAN_WRITE),
+            emptySet(),
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    private suspend fun createEntityPayload(
+        entityId: URI,
+        types: Set<ExpandedTerm>,
+        specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
+    ) {
+        entityPayloadService.createEntityPayload(
+            entityId = entityId,
+            types = types.toList(),
+            createdAt = ZonedDateTime.now(),
+            contexts = listOf(APIC_COMPOUND_CONTEXT),
+            entityPayload = EMPTY_PAYLOAD,
+            specificAccessPolicy = specificAccessPolicy
+        )
     }
 }

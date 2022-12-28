@@ -1,17 +1,17 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.*
+import arrow.core.continuations.either
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.util.execute
-import com.egm.stellio.search.util.executeExpected
-import com.egm.stellio.search.util.oneToResult
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.*
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.Sub
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
@@ -86,7 +86,7 @@ class EntityAccessRightsService(
         checkHasRightOnEntity(
             sub,
             entityId,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
+            listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN)
         ).flatMap {
             if (!it)
@@ -98,7 +98,7 @@ class EntityAccessRightsService(
         checkHasRightOnEntity(
             sub,
             entityId,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
+            listOf(SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_WRITE, R_CAN_ADMIN)
         ).flatMap {
             if (!it)
@@ -109,7 +109,7 @@ class EntityAccessRightsService(
     internal suspend fun checkHasRightOnEntity(
         sub: Option<Sub>,
         entityId: URI,
-        specificAccessPolicies: List<AuthContextModel.SpecificAccessPolicy>,
+        specificAccessPolicies: List<SpecificAccessPolicy>,
         accessRights: List<AccessRight>
     ): Either<APIException, Boolean> {
         if (!applicationProperties.authentication.enabled)
@@ -149,9 +149,99 @@ class EntityAccessRightsService(
             .bind("access_rights", accessRights.map { it.attributeName })
             .oneToResult { it["count"] as Long >= 1L }
 
+    suspend fun getAccessRights(
+        sub: Option<Sub>,
+        accessRights: List<AccessRight>,
+        types: Set<ExpandedTerm>,
+        limit: Int,
+        offset: Int
+    ): Either<APIException, List<EntityAccessControl>> = either {
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
+        val subjectUuids =
+            if (isStellioAdmin) emptyList()
+            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        databaseClient
+            .sql(
+                """
+                    SELECT ep.entity_id, ep.types, ep.created_at, ear.access_right, ep.specific_access_policy
+                    FROM entity_access_rights ear
+                    LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
+                    WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
+                    ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                    ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                    ORDER BY entity_id
+                    LIMIT :limit
+                    OFFSET :offset;
+                """.trimIndent()
+            )
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .let {
+                if (subjectUuids.isNotEmpty())
+                    it.bind("subject_uuids", subjectUuids)
+                else it
+            }
+            .let {
+                if (accessRights.isNotEmpty())
+                    it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .allToMappedList { rowToEntityAccessControl(it, isStellioAdmin) }
+    }
+
+    suspend fun getCountAccessRights(
+        sub: Option<Sub>,
+        accessRights: List<AccessRight>,
+        types: Set<ExpandedTerm>
+    ): Either<APIException, Int> = either {
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
+        val subjectUuids =
+            if (isStellioAdmin) emptyList()
+            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        databaseClient
+            .sql(
+                """
+                    SELECT count(*) as count
+                    FROM entity_access_rights ear
+                    LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
+                    WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
+                    ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                    ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                """.trimIndent()
+            )
+            .let {
+                if (subjectUuids.isNotEmpty())
+                    it.bind("subject_uuids", subjectUuids)
+                else it
+            }
+            .let {
+                if (accessRights.isNotEmpty())
+                    it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .oneToResult { toInt(it["count"]) }
+            .bind()
+    }
+
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
             .execute()
+
+    private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessControl {
+        val accessRight =
+            if (isStellioAdmin) R_CAN_ADMIN
+            else (row["access_right"] as String).let { AccessRight.forAttributeName(it) }.orNull()!!
+
+        return EntityAccessControl(
+            id = toUri(row["entity_id"]),
+            types = toList(row["types"]),
+            createdAt = toZonedDateTime(row["created_at"]),
+            right = accessRight,
+            specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
+        )
+    }
 }

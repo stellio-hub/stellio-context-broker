@@ -22,9 +22,9 @@ interface AuthorizationService {
 
     suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>,
-    ): Pair<Int, List<JsonLdEntity>>
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
 
     suspend fun getGroupsMemberships(
         offset: Int,

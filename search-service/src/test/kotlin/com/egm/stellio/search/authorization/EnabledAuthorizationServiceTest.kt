@@ -3,10 +3,10 @@ package com.egm.stellio.search.authorization
 import arrow.core.Either
 import arrow.core.Some
 import arrow.core.right
+import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.shouldSucceedWith
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.ZonedDateTime
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,7 +54,7 @@ class EnabledAuthorizationServiceTest {
         } returns listOf(subjectUuid, groupUuid).right()
 
         val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
-        Assertions.assertEquals(
+        assertEquals(
             """
             ( 
                 (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
@@ -95,5 +96,37 @@ class EnabledAuthorizationServiceTest {
                     assertTrue(jsonLdEntity.id.startsWith(GROUP_ENTITY_PREFIX))
                 }
             }
+    }
+
+    @Test
+    fun `it should returned serialied access control entities with a count`() = runTest {
+        coEvery {
+            entityAccessRightsService.getAccessRights(any(), any(), any(), any(), any())
+        } returns listOf(
+            EntityAccessControl(
+                id = "urn:ngsi-ld:Beehive:01".toUri(),
+                types = listOf(BEEHIVE_TYPE),
+                right = AccessRight.R_CAN_WRITE,
+                createdAt = ZonedDateTime.now()
+            )
+        ).right()
+        coEvery { entityAccessRightsService.getCountAccessRights(any(), any(), any()) } returns Either.Right(1)
+
+        enabledAuthorizationService.getAuthorizedEntities(
+            QueryParams(
+                types = setOf(BEEHIVE_TYPE),
+                limit = 10,
+                offset = 0,
+                context = APIC_COMPOUND_CONTEXT
+            ),
+            context = APIC_COMPOUND_CONTEXT,
+            sub = Some(subjectUuid)
+        ).shouldSucceedWith {
+            assertEquals(1, it.first)
+            it.second.forEach { jsonLdEntity ->
+                assertEquals(1, jsonLdEntity.types.size)
+                assertEquals(BEEHIVE_TYPE, jsonLdEntity.types[0])
+            }
+        }
     }
 }

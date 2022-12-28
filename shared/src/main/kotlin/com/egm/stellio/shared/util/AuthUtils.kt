@@ -2,6 +2,9 @@ package com.egm.stellio.shared.util
 
 import arrow.core.*
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
@@ -116,5 +119,13 @@ enum class AccessRight(val attributeName: String) {
     companion object {
         fun forAttributeName(attributeName: String): Option<AccessRight> =
             values().find { it.attributeName == attributeName }.toOption()
+
+        fun forExpandedAttributeName(attributeName: ExpandedTerm): Option<AccessRight> =
+            when (attributeName) {
+                AUTH_REL_CAN_READ -> R_CAN_READ.some()
+                AUTH_REL_CAN_WRITE -> R_CAN_WRITE.some()
+                AUTH_REL_CAN_ADMIN -> R_CAN_ADMIN.some()
+                else -> None
+            }
     }
 }

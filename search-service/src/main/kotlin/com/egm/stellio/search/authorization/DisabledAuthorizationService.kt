@@ -39,9 +39,9 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>
-    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
 
     override suspend fun getGroupsMemberships(
         offset: Int,

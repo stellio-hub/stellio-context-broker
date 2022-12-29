@@ -92,10 +92,48 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
+        context: String,
         sub: Option<Sub>
-    ): Pair<Int, List<JsonLdEntity>> {
-        TODO("Not yet implemented")
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).orNull() }
+        val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
+            sub,
+            accessRights,
+            queryParams.types,
+            queryParams.limit,
+            queryParams.offset
+        ).bind()
+
+        // for each entity user is admin of, retrieve the full details of rights other users have on it
+
+        val entitiesWithAdminRight = entitiesAccessControl.filter {
+            it.right == AccessRight.R_CAN_ADMIN
+        }.map { it.id }
+
+        val rightsForEntities =
+            entityAccessRightsService.getAccessRightsForEntities(sub, entitiesWithAdminRight).bind()
+
+        val entitiesAccessControlWithSubjectRights = entitiesAccessControl
+            .map { entityAccessControl ->
+                if (rightsForEntities.containsKey(entityAccessControl.id)) {
+                    val rightsForEntity = rightsForEntities[entityAccessControl.id]!!
+                    entityAccessControl.copy(
+                        rCanReadUsers = rightsForEntity[AccessRight.R_CAN_READ],
+                        rCanWriteUsers = rightsForEntity[AccessRight.R_CAN_WRITE],
+                        rCanAdminUsers = rightsForEntity[AccessRight.R_CAN_ADMIN]
+                    )
+                } else entityAccessControl
+            }
+            .map { it.serializeProperties(queryParams.includeSysAttrs) }
+            .map { JsonLdEntity(it, listOf(context)) }
+
+        val count = entityAccessRightsService.getSubjectAccessRightsCount(
+            sub,
+            accessRights,
+            queryParams.types,
+        ).bind()
+
+        Pair(count, entitiesAccessControlWithSubjectRights)
     }
 
     override suspend fun getGroupsMemberships(

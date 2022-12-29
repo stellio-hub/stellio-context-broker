@@ -1,19 +1,32 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.*
+import arrow.core.continuations.either
+import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.util.execute
-import com.egm.stellio.search.util.oneToResult
+import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.*
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CLIENT_ID
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_COMPACT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
+import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.toUri
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,7 +36,6 @@ import java.net.URI
 class EntityAccessRightsService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val subjectReferentialService: SubjectReferentialService,
     private val entityPayloadService: EntityPayloadService
 ) {
@@ -57,30 +69,39 @@ class EntityAccessRightsService(
 
     @Transactional
     suspend fun removeRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
-            .matching(
-                Query.query(
-                    Criteria.where("subject_id").`is`(sub)
-                        .and(Criteria.where("entity_id").`is`(entityId))
-                )
+        databaseClient
+            .sql(
+                """
+                DELETE FROM entity_access_rights
+                WHERE entity_id = :entity_id
+                AND subject_id = :subject_id
+                """.trimIndent()
             )
-            .execute()
+            .bind("entity_id", entityId)
+            .bind("subject_id", sub)
+            .executeExpected {
+                if (it == 0)
+                    ResourceNotFoundException("No right found for $sub on $entityId").left()
+                else Unit.right()
+            }
 
     @Transactional
     suspend fun removeRolesOnEntity(entityId: URI): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
-            .matching(
-                Query.query(
-                    Criteria.where("entity_id").`is`(entityId)
-                )
+        databaseClient
+            .sql(
+                """
+                DELETE FROM entity_access_rights
+                WHERE entity_id = :entity_id
+                """.trimIndent()
             )
+            .bind("entity_id", entityId)
             .execute()
 
     suspend fun canReadEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> =
         checkHasRightOnEntity(
             sub,
             entityId,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
+            listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN)
         ).flatMap {
             if (!it)
@@ -92,7 +113,7 @@ class EntityAccessRightsService(
         checkHasRightOnEntity(
             sub,
             entityId,
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_WRITE),
+            listOf(SpecificAccessPolicy.AUTH_WRITE),
             listOf(R_CAN_WRITE, R_CAN_ADMIN)
         ).flatMap {
             if (!it)
@@ -103,7 +124,7 @@ class EntityAccessRightsService(
     internal suspend fun checkHasRightOnEntity(
         sub: Option<Sub>,
         entityId: URI,
-        specificAccessPolicies: List<AuthContextModel.SpecificAccessPolicy>,
+        specificAccessPolicies: List<SpecificAccessPolicy>,
         accessRights: List<AccessRight>
     ): Either<APIException, Boolean> {
         if (!applicationProperties.authentication.enabled)
@@ -143,9 +164,156 @@ class EntityAccessRightsService(
             .bind("access_rights", accessRights.map { it.attributeName })
             .oneToResult { it["count"] as Long >= 1L }
 
+    suspend fun getSubjectAccessRights(
+        sub: Option<Sub>,
+        accessRights: List<AccessRight>,
+        types: Set<ExpandedTerm>,
+        limit: Int,
+        offset: Int
+    ): Either<APIException, List<EntityAccessRights>> = either {
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
+        val subjectUuids =
+            if (isStellioAdmin) emptyList()
+            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        databaseClient
+            .sql(
+                """
+                SELECT ep.entity_id, ep.types, ep.created_at, ear.access_right, ep.specific_access_policy
+                FROM entity_access_rights ear
+                LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
+                WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
+                ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                ORDER BY entity_id
+                LIMIT :limit
+                OFFSET :offset;
+                """.trimIndent()
+            )
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .let {
+                if (subjectUuids.isNotEmpty())
+                    it.bind("subject_uuids", subjectUuids)
+                else it
+            }
+            .let {
+                if (accessRights.isNotEmpty())
+                    it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .allToMappedList { rowToEntityAccessControl(it, isStellioAdmin) }
+    }
+
+    suspend fun getSubjectAccessRightsCount(
+        sub: Option<Sub>,
+        accessRights: List<AccessRight>,
+        types: Set<ExpandedTerm>
+    ): Either<APIException, Int> = either {
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
+        val subjectUuids =
+            if (isStellioAdmin) emptyList()
+            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        databaseClient
+            .sql(
+                """
+                SELECT count(*) as count
+                FROM entity_access_rights ear
+                LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
+                WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
+                ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                """.trimIndent()
+            )
+            .let {
+                if (subjectUuids.isNotEmpty())
+                    it.bind("subject_uuids", subjectUuids)
+                else it
+            }
+            .let {
+                if (accessRights.isNotEmpty())
+                    it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .oneToResult { toInt(it["count"]) }
+            .bind()
+    }
+
+    suspend fun getAccessRightsForEntities(
+        sub: Option<Sub>,
+        entities: List<URI>
+    ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        databaseClient
+            .sql(
+                """
+                select entity_id, sr.subject_id, access_right, subject_type, subject_info, service_account_id
+                from entity_access_rights
+                left join subject_referential sr 
+                    on entity_access_rights.subject_id = sr.subject_id 
+                    or entity_access_rights.subject_id = sr.service_account_id
+                where entity_id in (:entities_ids)
+                and sr.subject_id not in (:excluded_subject_uuids);
+                """.trimIndent()
+            )
+            .bind("entities_ids", entities)
+            .bind("excluded_subject_uuids", subjectUuids)
+            .allToMappedList { it }
+            .groupBy { toUri(it["entity_id"]) }
+            .mapValues {
+                it.value
+                    .groupBy { AccessRight.forAttributeName(it["access_right"] as String).orNull()!! }
+                    .mapValues { (_, records) ->
+                        records.map { record ->
+                            val uuid = record["service_account_id"] ?: record["subject_id"]
+                            val subjectType = toEnum<SubjectType>(record["subject_type"]!!)
+                            val (uri, type) = when (subjectType) {
+                                SubjectType.USER -> Pair(USER_ENTITY_PREFIX + uuid, USER_COMPACT_TYPE)
+                                SubjectType.GROUP -> Pair(GROUP_ENTITY_PREFIX + uuid, GROUP_COMPACT_TYPE)
+                                SubjectType.CLIENT -> Pair(CLIENT_ENTITY_PREFIX + uuid, CLIENT_COMPACT_TYPE)
+                            }
+
+                            val subjectInfo = toJsonString(record["subject_info"])
+                                .deserializeAsMap()[JSONLD_VALUE] as Map<String, String>
+                            val subjectSpecificInfo = when (subjectType) {
+                                SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
+                                SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)
+                                SubjectType.CLIENT -> Pair(AUTH_TERM_CLIENT_ID, subjectInfo[AUTH_TERM_CLIENT_ID]!!)
+                            }
+                            SubjectRightInfo(
+                                uri = uri.toUri(),
+                                subjectInfo = mapOf("kind" to type).plus(subjectSpecificInfo)
+                            )
+                        }
+                    }
+            }
+    }
+
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
-            .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
+        databaseClient
+            .sql(
+                """
+                DELETE FROM entity_access_rights
+                WHERE subject_id = :subject_id
+                """.trimIndent()
+            )
+            .bind("subject_id", sub)
             .execute()
+
+    private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessRights {
+        val accessRight =
+            if (isStellioAdmin) R_CAN_ADMIN
+            else (row["access_right"] as String).let { AccessRight.forAttributeName(it) }.orNull()!!
+
+        return EntityAccessRights(
+            id = toUri(row["entity_id"]),
+            types = toList(row["types"]),
+            createdAt = toZonedDateTime(row["created_at"]),
+            right = accessRight,
+            specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
+        )
+    }
 }

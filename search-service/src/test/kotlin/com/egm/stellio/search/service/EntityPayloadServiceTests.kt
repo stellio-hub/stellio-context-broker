@@ -4,9 +4,16 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.buildSapAttribute
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -67,7 +74,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_READ
+            AUTH_READ
         )
         entityPayloadService.createEntityPayload(
             entity02Uri,
@@ -79,7 +86,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
@@ -88,7 +95,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.hasSpecificAccessPolicies(
             entity02Uri,
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
         entityPayloadService.hasSpecificAccessPolicies(
             entity02Uri,
@@ -108,7 +115,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.hasSpecificAccessPolicies(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.hasSpecificAccessPolicies(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -155,13 +162,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_READ
+            AUTH_READ
         )
 
         entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
                 assertThat(it)
-                    .hasFieldOrPropertyWithValue("specificAccessPolicy", SpecificAccessPolicy.AUTH_READ)
+                    .hasFieldOrPropertyWithValue("specificAccessPolicy", AUTH_READ)
             }
     }
 
@@ -200,7 +207,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_READ
+            AUTH_READ
         )
         entityPayloadService.createEntityPayload(
             entity02Uri,
@@ -208,7 +215,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_READ
+            AUTH_READ
         )
 
         entityPayloadService.updateSpecificAccessPolicy(
@@ -218,7 +225,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
@@ -253,17 +260,105 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
             EMPTY_PAYLOAD,
             listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_READ
+            AUTH_READ
         )
 
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.removeSpecificAccessPolicy(entity01Uri).shouldSucceed()
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
-            listOf(SpecificAccessPolicy.AUTH_READ)
+            listOf(AUTH_READ)
         ).shouldSucceedWith { assertFalse(it) }
+    }
+
+    @Test
+    fun `it should return a 400 if the payload contains a multi-instance property`() {
+        val requestPayload =
+            """
+            [{
+                "type": "Property",
+                "value": "AUTH_READ"
+            },{
+                "type": "Property",
+                "datasetId": "urn:ngsi-ld:Dataset:01",
+                "value": "AUTH_WRITE"
+            }]
+            """.trimIndent()
+        val ngsiLdAttributes =
+            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+            .shouldFail {
+                assertThat(it)
+                    .isInstanceOf(BadRequestDataException::class.java)
+                    .hasFieldOrPropertyWithValue("message", "Payload must contain a single attribute instance")
+            }
+    }
+
+    @Test
+    fun `it should ignore properties that are not part of the payload when setting a specific access policy`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "datasetId": "urn:ngsi-ld:Dataset:01",
+                "value": "AUTH_READ"
+            }
+            """.trimIndent()
+
+        val ngsiLdAttributes =
+            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+            .shouldSucceedWith { assertEquals(AUTH_READ, it) }
+    }
+
+    @Test
+    fun `it should return a 400 if the value is not one of the supported`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "someValue"
+            }
+            """.trimIndent()
+
+        val ngsiLdAttributes =
+            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+
+        val expectedMessage =
+            "Value must be one of AUTH_READ or AUTH_WRITE " +
+                "(No enum constant com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.someValue)"
+
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+            .shouldFail {
+                assertThat(it)
+                    .isInstanceOf(BadRequestDataException::class.java)
+                    .hasFieldOrPropertyWithValue("message", expectedMessage)
+            }
+    }
+
+    @Test
+    fun `it should return a 400 if the provided attribute is a relationship`() {
+        val requestPayload =
+            """
+            {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Entity:01"
+            }
+            """.trimIndent()
+
+        val ngsiLdAttributes =
+            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+            .shouldFail {
+                assertThat(it)
+                    .isInstanceOf(BadRequestDataException::class.java)
+                    .hasFieldOrPropertyWithValue("message", "Payload must be a property")
+            }
     }
 }

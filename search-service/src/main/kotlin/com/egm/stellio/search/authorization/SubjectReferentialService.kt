@@ -4,13 +4,13 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.getOrElse
-import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
@@ -31,8 +31,10 @@ class SubjectReferentialService(
             .sql(
                 """
                 INSERT INTO subject_referential
-                    (subject_id, subject_type, service_account_id, global_roles, groups_memberships)
-                    VALUES (:subject_id, :subject_type, :service_account_id, :global_roles, :groups_memberships)
+                    (subject_id, subject_type, subject_info, service_account_id, global_roles, 
+                        groups_memberships)
+                    VALUES (:subject_id, :subject_type, :subject_info, :service_account_id, :global_roles, 
+                        :groups_memberships)
                 ON CONFLICT (subject_id)
                     DO UPDATE SET service_account_id = :service_account_id,
                         global_roles = :global_roles,
@@ -41,6 +43,7 @@ class SubjectReferentialService(
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
+            .bind("subject_info", Json.of(subjectReferential.subjectInfo))
             .bind("service_account_id", subjectReferential.serviceAccountId)
             .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
@@ -87,10 +90,9 @@ class SubjectReferentialService(
                     FROM subject_referential
                     WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 )
-                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
-                    (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
+                SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name
                 FROM subject_referential
-                WHERE subject_type = '${SubjectType.GROUP.name}'
+                WHERE subject_id IN (SELECT groups FROM groups_memberships)
                 ORDER BY name
                 LIMIT :limit
                 OFFSET :offset
@@ -111,8 +113,9 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT count(unnest(groups_memberships)) as count
+                SELECT count(sr.g_m) as count
                 FROM subject_referential
+                CROSS JOIN LATERAL unnest(subject_referential.groups_memberships) as sr(g_m)
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
@@ -124,11 +127,11 @@ class SubjectReferentialService(
             .sql(
                 """
                 WITH groups_memberships AS (
-                    SELECT unnest(groups_memberships) as groups
+                    SELECT distinct(unnest(groups_memberships)) as groups
                     FROM subject_referential 
                     WHERE subject_id = :subject_id
                 )
-                SELECT subject_id AS group_id, (subject_info->'name'->'value') AS name,
+                SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name,
                     (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
                 FROM subject_referential
                 WHERE subject_type = '${SubjectType.GROUP.name}'
@@ -257,6 +260,24 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    suspend fun updateSubjectInfo(subjectId: Sub, newSubjectInfo: Pair<String, String>): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                UPDATE subject_referential
+                SET subject_info = jsonb_set(
+                    subject_info,
+                    '{value,${newSubjectInfo.first}}',
+                    '"${newSubjectInfo.second}"',
+                    true
+                )
+                WHERE subject_id = :subject_id
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectId)
+            .execute()
+
+    @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         r2dbcEntityTemplate.delete(SubjectReferential::class.java)
             .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
@@ -266,6 +287,7 @@ class SubjectReferentialService(
         SubjectReferential(
             subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
+            subjectInfo = toJsonString(row["subject_info"]),
             serviceAccountId = row["service_account_id"] as? Sub,
             globalRoles = toOptionalList<String>(row["global_roles"])
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },

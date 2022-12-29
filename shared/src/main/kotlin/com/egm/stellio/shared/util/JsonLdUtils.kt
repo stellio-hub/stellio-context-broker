@@ -48,6 +48,7 @@ object JsonLdUtils {
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
+    const val JSONLD_OBJECT = "object"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
@@ -81,6 +82,8 @@ object JsonLdUtils {
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
+
+    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 

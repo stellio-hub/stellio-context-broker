@@ -27,7 +27,7 @@ class IAMListenerTests {
     private lateinit var subjectReferentialService: SubjectReferentialService
 
     @Test
-    fun `it should handle a create event for a subject`() = runTest {
+    fun `it should handle a create event for an user`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -39,6 +39,56 @@ class IAMListenerTests {
                 match {
                     it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
                         it.subjectType == SubjectType.USER &&
+                        it.subjectInfo ==
+                        """
+                            {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
+                        """.trimIndent() &&
+                        it.globalRoles == null
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should handle a create event for a client`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEvent.json")
+
+        coEvery { subjectReferentialService.create(any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(subjectCreateEvent)
+
+        coVerify {
+            subjectReferentialService.create(
+                match {
+                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
+                        it.subjectType == SubjectType.CLIENT &&
+                        it.subjectInfo ==
+                        """
+                            {"type":"Property","value":{"clientId":"stellio-client"}}
+                        """.trimIndent() &&
+                        it.globalRoles == null
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should handle a create event for a group`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/GroupCreateEvent.json")
+
+        coEvery { subjectReferentialService.create(any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(subjectCreateEvent)
+
+        coVerify {
+            subjectReferentialService.create(
+                match {
+                    it.subjectId == "ab67edf3-238c-4f50-83f4-617c620c62eb" &&
+                        it.subjectType == SubjectType.GROUP &&
+                        it.subjectInfo ==
+                        """
+                            {"type":"Property","value":{"name":"EGM"}}
+                        """.trimIndent() &&
                         it.globalRoles == null
                 }
             )
@@ -207,6 +257,42 @@ class IAMListenerTests {
                 },
                 match {
                     it == "7cdad168-96ee-4649-b768-a060ac2ef435"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should handle a replace event changing the name of a group`() = runTest {
+        val roleAppendEvent = loadSampleData("events/authorization/GroupUpdateEvent.json")
+
+        coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(roleAppendEvent)
+
+        coVerify {
+            subjectReferentialService.updateSubjectInfo(
+                eq("ab67edf3-238c-4f50-83f4-617c620c62eb"),
+                match {
+                    it.first == "name" && it.second == "EGM Team"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should handle a replace event changing the given name of an user`() = runTest {
+        val roleAppendEvent = loadSampleData("events/authorization/UserUpdateEvent.json")
+
+        coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(roleAppendEvent)
+
+        coVerify {
+            subjectReferentialService.updateSubjectInfo(
+                eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"),
+                match {
+                    it.first == "givenName" && it.second == "Jonathan"
                 }
             )
         }

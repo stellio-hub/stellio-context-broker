@@ -4,8 +4,6 @@ import arrow.core.Either
 import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.IAM_COMPACTED_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -34,14 +32,13 @@ class EntityEventService(
 ) {
 
     private val catchAllTopic = "cim.entity._CatchAll"
-    private val iamTopic = "cim.iam.rights"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    internal fun composeTopicName(entityType: String, attributeName: String?): String? {
-        val topicName = entityChannelName(entityType, attributeName)
+    internal fun composeTopicName(entityType: String): String? {
+        val topicName = entityChannelName(entityType)
         return try {
             Topic.validate(topicName)
             topicName
@@ -55,22 +52,17 @@ class EntityEventService(
     internal fun publishEntityEvent(event: EntityEvent): java.lang.Boolean =
         event.entityTypes
             .mapNotNull {
-                composeTopicName(it, event.getAttribute())
+                composeTopicName(it)
             }.let { topics ->
                 topics.forEach { topic ->
                     kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
                 }
-                // don't send IAM related events to the catch-all topic
-                if (!topics.contains(iamTopic))
-                    kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
+                kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
                 true as java.lang.Boolean
             }
 
-    private fun entityChannelName(entityType: String, attributeName: String?): String =
-        if (IAM_COMPACTED_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)
-            iamTopic
-        else
-            "cim.entity.$entityType"
+    private fun entityChannelName(entityType: String): String =
+        "cim.entity.$entityType"
 
     fun publishEntityCreateEvent(
         sub: String?,

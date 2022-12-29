@@ -63,6 +63,9 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.execute(): Either<APIExcep
         .map { Unit.right() }
         .awaitFirst()
 
+fun Set<String>.toSqlArray(): String =
+    "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
+
 fun toUri(entry: Any?): URI = (entry as String).toUri()
 fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
 fun toUuid(entry: Any?): UUID = entry as UUID
@@ -74,6 +77,7 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
+inline fun <reified T : Enum<T>> toEnum(entry: Any) = enumValueOf<T>(entry as String)
 inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
     (entry as? String)?.let { enumValueOf<T>(it) }
 fun toInt(entry: Any?): Int = (entry as Long).toInt()

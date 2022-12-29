@@ -83,9 +83,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = """
-                { "type": "Property", "value": { "username": "stellio" } }
-            """.trimIndent(),
+            subjectInfo = getSubjectInfoForUser("stellio"),
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -181,9 +179,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
                 SubjectReferential(
                     subjectId = groupUuid,
                     subjectType = SubjectType.GROUP,
-                    subjectInfo = """
-                        { "type": "Property", "value": { "name": "$groupUuid" } }
-                    """.trimIndent()
+                    subjectInfo = getSubjectInfoForGroup(groupUuid)
                 )
             )
             groupUuid
@@ -219,9 +215,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
                 SubjectReferential(
                     subjectId = groupUuid,
                     subjectType = SubjectType.GROUP,
-                    subjectInfo = """
-                        { "type": "Property", "value": { "name": "$groupUuid" } }
-                    """.trimIndent()
+                    subjectInfo = getSubjectInfoForGroup(groupUuid)
                 )
             )
             groupUuid
@@ -393,9 +387,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = """
-                { "type": "Property", "value": { "username": "stellio" } }
-            """.trimIndent(),
+            subjectInfo = getSubjectInfoForUser("stellio"),
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()
@@ -416,9 +408,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = """
-                { "type": "Property", "value": { "username": "stellio" } }
-            """.trimIndent(),
+            subjectInfo = getSubjectInfoForUser("stellio"),
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()

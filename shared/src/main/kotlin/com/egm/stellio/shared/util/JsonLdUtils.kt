@@ -83,6 +83,8 @@ object JsonLdUtils {
 
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
 
+    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
+
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =

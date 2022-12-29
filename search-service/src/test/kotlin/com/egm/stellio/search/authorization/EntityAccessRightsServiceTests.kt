@@ -8,25 +8,27 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.ninjasquad.springmockk.MockkBean
+import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.confirmVerified
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.ZonedDateTime
@@ -43,7 +45,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    @MockkBean(relaxed = true)
+    @SpykBean
     private lateinit var subjectReferentialService: SubjectReferentialService
 
     @SpykBean
@@ -51,6 +53,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
     private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
+    private val clientUuid = "8C55EE65-94EC-407B-9003-33DC37A6A080"
     private val entityId01 = "urn:ngsi-ld:Entity:01".toUri()
     private val entityId02 = "urn:ngsi-ld:Entity:02".toUri()
 
@@ -64,9 +67,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @AfterEach
     fun clearEntityAccessRightsTable() {
-        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<SubjectAccessRight>().from("entity_access_rights").all().block()
         r2dbcEntityTemplate.delete(EntityPayload::class.java)
             .all()
             .block()
@@ -185,7 +186,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
             subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called
         }
-        confirmVerified(subjectReferentialService)
     }
 
     @Test
@@ -256,7 +256,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
             .shouldSucceed()
 
-        entityAccessRightsService.getAccessRights(
+        entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
             emptySet(),
@@ -272,7 +272,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             assertEquals(AUTH_READ, entityAccessControl.specificAccessPolicy)
         }
 
-        entityAccessRightsService.getCountAccessRights(
+        entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
             emptySet()
@@ -291,7 +291,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
             .shouldSucceed()
 
-        entityAccessRightsService.getAccessRights(
+        entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
             emptySet(),
@@ -304,7 +304,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             }
         }
 
-        entityAccessRightsService.getCountAccessRights(
+        entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
             emptySet()
@@ -325,7 +325,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
             .shouldSucceed()
 
-        entityAccessRightsService.getAccessRights(
+        entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
             setOf(BEEHIVE_TYPE),
@@ -338,7 +338,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
         }
 
-        entityAccessRightsService.getCountAccessRights(
+        entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
             setOf(BEEHIVE_TYPE),
@@ -359,7 +359,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
             .shouldSucceed()
 
-        entityAccessRightsService.getAccessRights(
+        entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
             emptySet(),
@@ -371,13 +371,86 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             assertEquals(entityId03, entityAccessControl.id)
         }
 
-        entityAccessRightsService.getCountAccessRights(
+        entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
             emptySet(),
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
+    }
+
+    @Test
+    fun `it should get other subject rights for one entity and a group`() = runTest {
+        createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+
+        entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01, entityId02))
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                val result = it.entries.first()
+                assertEquals(entityId01, result.key)
+                assertEquals(1, result.value.size)
+                assertTrue(result.value.containsKey(AccessRight.R_CAN_READ))
+                val rCanReadList = result.value[AccessRight.R_CAN_READ]!!
+                assertEquals(1, rCanReadList.size)
+                val subjectRightDetail = rCanReadList[0]
+                assertEquals(GROUP_ENTITY_PREFIX + groupUuid, subjectRightDetail.uri.toString())
+                assertEquals(DATASET_ID_PREFIX + groupUuid, subjectRightDetail.datasetId.toString())
+                assertEquals(2, subjectRightDetail.subjectInfo.size)
+                assertTrue(subjectRightDetail.subjectInfo.containsKey(AUTH_TERM_NAME))
+                assertEquals("Stellio Team", subjectRightDetail.subjectInfo[AUTH_TERM_NAME])
+                assertTrue(subjectRightDetail.subjectInfo.containsKey("kind"))
+            }
+    }
+
+    @Test
+    fun `it should get other subject rights for a set of entities`() = runTest {
+        createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
+
+        entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01, entityId02))
+            .shouldSucceedWith {
+                assertEquals(2, it.size)
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_READ))
+                assertTrue(it.getValue(entityId02).containsKey(AccessRight.R_CAN_WRITE))
+            }
+    }
+
+    @Test
+    fun `it should get other subject rights for all kinds of subjects`() = runTest {
+        createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+        createSubjectReferential(
+            UUID.randomUUID().toString(),
+            SubjectType.CLIENT,
+            getSubjectInfoForClient("IoT Device"),
+            clientUuid
+        )
+
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(clientUuid, entityId01, AccessRight.R_CAN_ADMIN).shouldSucceed()
+
+        entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01))
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                val result = it.entries.first()
+                assertEquals(2, result.value.size)
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_READ))
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_ADMIN))
+                val rCanAdminList = it.getValue(entityId01).getValue(AccessRight.R_CAN_ADMIN)
+                assertEquals(1, rCanAdminList.size)
+                assertEquals(CLIENT_ENTITY_PREFIX + clientUuid, rCanAdminList[0].uri.toString())
+            }
     }
 
     private suspend fun createEntityPayload(
@@ -392,6 +465,22 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             contexts = listOf(APIC_COMPOUND_CONTEXT),
             entityPayload = EMPTY_PAYLOAD,
             specificAccessPolicy = specificAccessPolicy
+        )
+    }
+
+    private suspend fun createSubjectReferential(
+        subjectId: String,
+        subjectType: SubjectType,
+        subjectInfo: String,
+        serviceAccountId: String? = null
+    ) {
+        subjectReferentialService.create(
+            SubjectReferential(
+                subjectId = subjectId,
+                subjectType = subjectType,
+                subjectInfo = subjectInfo,
+                serviceAccountId = serviceAccountId
+            )
         )
     }
 }

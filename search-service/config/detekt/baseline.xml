@@ -9,7 +9,9 @@
     <ID>LargeClass:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt; ): ResponseEntity&lt;*&gt;</ID>
-    <ID>LongMethod:EntityEventService.kt$EntityEventService$fun publishAttributeChangeEvents( sub: String?, entityId: URI, jsonLdAttributes: Map&lt;String, Any&gt;, updateResult: UpdateResult, overwrite: Boolean, contexts: List&lt;String&gt; )</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`()</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`()</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`()</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$@Transactional suspend fun appendEntityAttributes( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, jsonLdAttributes: Map&lt;String, Any&gt;, disallowOverwrite: Boolean, sub: Sub? ): Either&lt;APIException, UpdateResult&gt;</ID>

@@ -61,7 +61,7 @@ enum class UpdateOperationResult {
 }
 
 fun List<UpdateAttributeResult>.hasSuccessfulUpdate(): Boolean =
-    this.find { it.isSuccessfullyUpdated() } != null
+    this.any { it.isSuccessfullyUpdated() }
 
 fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
     val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }

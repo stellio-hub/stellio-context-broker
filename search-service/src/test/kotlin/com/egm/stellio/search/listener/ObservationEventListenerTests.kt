@@ -1,6 +1,7 @@
 package com.egm.stellio.search.listener
 
 import arrow.core.right
+import com.egm.stellio.search.model.NotUpdatedDetails
 import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
@@ -11,6 +12,7 @@ import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -80,7 +82,9 @@ class ObservationEventListenerTests {
             notUpdated = arrayListOf()
         ).right()
 
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+        } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
@@ -109,6 +113,22 @@ class ObservationEventListenerTests {
     }
 
     @Test
+    fun `it should not propagate an ATTRIBUTE_UPDATE event if nothing has been updated`() = runTest {
+        val observationEvent = loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
+
+        coEvery {
+            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
+        } returns UpdateResult(
+            emptyList(),
+            listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property does not exist"))
+        ).right()
+
+        observationEventListener.dispatchObservationMessage(observationEvent)
+
+        verify { entityEventService wasNot called }
+    }
+
+    @Test
     fun `it should parse and transmit an ATTRIBUTE_APPEND event`() = runTest {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
@@ -128,7 +148,7 @@ class ObservationEventListenerTests {
         every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
         every {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
-        } just Runs
+        } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
@@ -162,6 +182,22 @@ class ObservationEventListenerTests {
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
+    }
+
+    @Test
+    fun `it should not propagate an ATTRIBUTE_APPEND event if nothing has been appended`() = runTest {
+        val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
+
+        coEvery {
+            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+        } returns UpdateResult(
+            emptyList(),
+            listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property could not be appended"))
+        ).right()
+
+        observationEventListener.dispatchObservationMessage(observationEvent)
+
+        verify { entityEventService wasNot called }
     }
 
     @Test

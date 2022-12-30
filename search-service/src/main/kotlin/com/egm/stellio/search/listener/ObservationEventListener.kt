@@ -79,12 +79,12 @@ class ObservationEventListener(
             expandedPayload,
             observationEvent.sub
         ).map {
-            // TODO things could be more fine-grained (e.g., one instance updated and not the other one)
-            //  so we should also check the notUpdated data and remove them from the propagated payload
-            if (it.updated.isEmpty()) {
+            // there is only one result for an event, a success or a failure
+            if (it.notUpdated.isNotEmpty()) {
+                val notUpdatedDetails = it.notUpdated.first()
                 logger.info(
-                    "Nothing has been updated for attribute ${observationEvent.attributeName}" +
-                        " in entity ${observationEvent.entityId}, returning"
+                    "Nothing updated for attribute ${observationEvent.attributeName}" +
+                        " in entity ${observationEvent.entityId}: ${notUpdatedDetails.reason}"
                 )
             } else {
                 entityEventService.publishAttributeChangeEvents(
@@ -115,7 +115,11 @@ class ObservationEventListener(
             observationEvent.sub
         ).map {
             if (it.notUpdated.isNotEmpty()) {
-                logger.warn("Attribute could not be appended: ${it.notUpdated}")
+                val notUpdatedDetails = it.notUpdated.first()
+                logger.info(
+                    "Nothing appended for attribute ${observationEvent.attributeName}" +
+                        " in entity ${observationEvent.entityId}: ${notUpdatedDetails.reason}"
+                )
             } else {
                 entityEventService.publishAttributeChangeEvents(
                     observationEvent.sub,

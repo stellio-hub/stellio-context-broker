@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.apache.kafka.common.errors.InvalidTopicException
 import org.apache.kafka.common.internals.Topic
@@ -69,7 +70,7 @@ class EntityEventService(
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
-    ) {
+    ): Job =
         coroutineScope.launch {
             logger.debug("Sending create event for entity $entityId")
             getSerializedEntity(entityId, contexts)
@@ -80,14 +81,13 @@ class EntityEventService(
                 }
                 .logResults(EventsType.ENTITY_CREATE, entityId)
         }
-    }
 
     fun publishEntityReplaceEvent(
         sub: String?,
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
-    ) {
+    ): Job =
         coroutineScope.launch {
             logger.debug("Sending replace event for entity $entityId")
             getSerializedEntity(entityId, contexts)
@@ -98,21 +98,19 @@ class EntityEventService(
                 }
                 .logResults(EventsType.ENTITY_REPLACE, entityId)
         }
-    }
 
     fun publishEntityDeleteEvent(
         sub: String?,
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
-    ) {
+    ): Job =
         coroutineScope.launch {
             logger.debug("Sending delete event for entity $entityId")
             publishEntityEvent(
                 EntityDeleteEvent(sub, entityId, compactTerms(entityTypes, contexts), contexts)
             )
         }
-    }
 
     fun publishAttributeChangeEvents(
         sub: String?,
@@ -121,19 +119,14 @@ class EntityEventService(
         updateResult: UpdateResult,
         overwrite: Boolean,
         contexts: List<String>
-    ) {
+    ): Job =
         coroutineScope.launch {
             getSerializedEntity(entityId, contexts)
                 .map {
                     updateResult.updated.forEach { updatedDetails ->
                         val attributeName = updatedDetails.attributeName
                         val serializedAttribute =
-                            getSerializedAttribute(
-                                jsonLdAttributes,
-                                attributeName,
-                                updatedDetails.datasetId,
-                                contexts
-                            )
+                            getSerializedAttribute(jsonLdAttributes, attributeName, updatedDetails.datasetId, contexts)
                         when (updatedDetails.updateOperationResult) {
                             UpdateOperationResult.APPENDED ->
                                 publishEntityEvent(
@@ -184,7 +177,6 @@ class EntityEventService(
                     }
                 }
         }
-    }
 
     fun publishAttributeDeleteEvent(
         sub: String?,
@@ -193,7 +185,7 @@ class EntityEventService(
         datasetId: URI? = null,
         deleteAll: Boolean,
         contexts: List<String>
-    ) {
+    ): Job =
         coroutineScope.launch {
             logger.debug("Sending delete event for attribute $attributeName of entity $entityId")
             getSerializedEntity(entityId, contexts)
@@ -223,9 +215,8 @@ class EntityEventService(
                         )
                 }
         }
-    }
 
-    private suspend fun getSerializedEntity(
+    internal suspend fun getSerializedEntity(
         entityId: URI,
         contexts: List<String>
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =

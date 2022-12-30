@@ -30,6 +30,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.Job
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -115,7 +116,7 @@ class EntityHandlerTests {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -1161,7 +1162,9 @@ class EntityHandlerTests {
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
     }
 
     @Test
@@ -1498,7 +1501,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
         } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1638,7 +1643,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
         } returns updateResult.right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1686,7 +1693,9 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1714,7 +1723,9 @@ class EntityHandlerTests {
         coEvery {
             temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1831,7 +1842,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1935,7 +1946,9 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
+        } returns Job()
     }
 
     @Test

@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -273,7 +274,7 @@ class EntityOperationHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 any(), capture(capturedEntitiesIds), capture(capturedEntityTypes), any()
             )
-        } just Runs
+        } returns Job()
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -319,7 +320,7 @@ class EntityOperationHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 any(), capture(capturedEntitiesIds), capture(capturedEntityTypes), any()
             )
-        } just Runs
+        } returns Job()
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -427,11 +428,13 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
-        every { entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any()) } just Runs
+        every {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -552,7 +555,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -713,7 +716,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)

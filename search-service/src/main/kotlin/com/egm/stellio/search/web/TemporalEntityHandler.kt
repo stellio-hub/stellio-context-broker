@@ -147,7 +147,7 @@ class TemporalEntityHandler(
                 parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
 
             val temporalEntity = queryService.queryTemporalEntity(
-                entityId.toUri(),
+                entityUri,
                 temporalEntitiesQuery,
                 contextLink
             ).bind()

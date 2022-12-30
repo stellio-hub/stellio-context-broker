@@ -90,7 +90,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             // then remove it from the expanded payload
             val specificAccessPolicy =
                 getAttributeFromExpandedAttributes(originalExpandedEntity, AUTH_PROP_SAP, null)?.let {
-                    getPropertyValueFromMapAsString(it as Map<String, List<Any>>, NGSILD_PROPERTY_VALUE)
+                    getPropertyValueFromMapAsString(it, NGSILD_PROPERTY_VALUE)
                 }?.let {
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
                 }
@@ -139,7 +139,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         jsonLdEntity.properties,
                         attributeName,
                         datasetId
-                    )!! as Map<String, List<Any>>
+                    )!!
 
                     val attributePayloadFiltered = attributePayload
                         .filterKeys { attributeName ->

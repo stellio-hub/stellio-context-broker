@@ -9,11 +9,13 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.addSubAttribute
 import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.toNgsiLdFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -147,11 +149,9 @@ class SubscriptionEventListenerService(
                     .bind() ?: ResourceNotFoundException(entityNotFoundMessage(subscriptionId.toString()))
                     .left()
                     .bind<TemporalEntityAttribute>()
-            val payload = mapOf(
-                "type" to NGSILD_NOTIFICATION_TERM,
-                "value" to entitiesIds,
-                "observedAt" to notification.notifiedAt.toNgsiLdFormat()
-            )
+            val payload = buildExpandedProperty(entitiesIds)
+                .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(notification.notifiedAt))
+                .first()
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = tea.id,
                 timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,

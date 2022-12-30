@@ -4,6 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
+import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
@@ -95,7 +96,7 @@ class SubscriptionEventListenerServiceTest {
         )
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.updateStatus(any(), any(), any<Map<String, Any>>())
+            temporalEntityAttributeService.updateStatus(any(), any(), any<ExpandedAttributePayloadEntry>())
         } returns Unit.right()
 
         subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
@@ -109,10 +110,17 @@ class SubscriptionEventListenerServiceTest {
                         it.payload.matchContent(
                             """
                             {
-                                "type": "Notification",
-                                "value": "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD",
-                                "observedAt": "2020-03-10T00:00:00Z",
-                                "instanceId": "urn:ngsi-ld:Notification:1234"
+                                "@type":["https://uri.etsi.org/ngsi-ld/Property"],
+                                "https://uri.etsi.org/ngsi-ld/hasValue":[{
+                                    "@value":"urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/observedAt":[{
+                                    "@type":"https://uri.etsi.org/ngsi-ld/DateTime",
+                                    "@value":"2020-03-10T00:00:00Z"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/instanceId":[{
+                                    "@id":"urn:ngsi-ld:Notification:1234"
+                                }]
                             }
                             """.trimIndent()
                         )
@@ -121,7 +129,7 @@ class SubscriptionEventListenerServiceTest {
             temporalEntityAttributeService.updateStatus(
                 eq(temporalEntityAttributeUuid),
                 any(),
-                any<Map<String, Any>>()
+                any<ExpandedAttributePayloadEntry>()
             )
         }
     }

@@ -269,7 +269,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            jsonLdAttribute.toMap(),
+            jsonLdAttribute as Map<String, List<Any>>,
             null
         )
 

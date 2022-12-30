@@ -647,7 +647,7 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildJsonLdExpandedProperty("egm")
+                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildExpandedProperty("egm")
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
                 )
@@ -686,8 +686,8 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildJsonLdExpandedProperty("egm"),
-                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to JsonLdUtils.buildJsonLdExpandedProperty("true")
+                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildExpandedProperty("egm"),
+                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to JsonLdUtils.buildExpandedProperty("true")
                     ),
                     listOf(NGSILD_AUTHORIZATION_CONTEXT)
                 )
@@ -742,22 +742,22 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
+        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildExpandedProperty(right)
         specificAccessPolicy?.run {
-            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)
+            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildExpandedProperty(specificAccessPolicy)
         }
         rCanReadUser?.run {
             jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
-                JsonLdUtils.buildJsonLdExpandedRelationship(rCanReadUser)
+                JsonLdUtils.buildExpandedRelationship(rCanReadUser)
             )
         }
         createdAt?.run {
             jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] =
-                JsonLdUtils.buildJsonLdExpandedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
+                JsonLdUtils.buildNonReifiedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         modifiedAt?.run {
             jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] =
-                JsonLdUtils.buildJsonLdExpandedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
+                JsonLdUtils.buildNonReifiedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         return JsonLdEntity(jsonLdEntity, listOf(context))
     }

@@ -1,8 +1,7 @@
 package com.egm.stellio.search.authorization
 
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
@@ -15,11 +14,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
-import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
-import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedRelationship
-import com.egm.stellio.shared.util.extractSub
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationship
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -41,10 +39,10 @@ data class EntityAccessRights(
     ) {
         val datasetId: URI = (DATASET_ID_PREFIX + uri.extractSub()).toUri()
 
-        fun serializeProperties(): Map<String, Any> =
-            buildJsonLdExpandedRelationship(uri)
-                .plus(mapOf(NGSILD_DATASET_ID_PROPERTY to mapOf(JSONLD_ID to datasetId)))
-                .plus(mapOf(AUTH_PROP_SUBJECT_INFO to buildJsonLdExpandedProperty(subjectInfo)))
+        fun serializeProperties(): ExpandedAttributePayload =
+            buildExpandedRelationship(uri)
+                .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId))
+                .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedProperty(subjectInfo))
     }
 
     fun serializeProperties(includeSysAttrs: Boolean): Map<String, Any> {
@@ -52,32 +50,32 @@ data class EntityAccessRights(
 
         resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = types
-        resultEntity[AUTH_PROP_RIGHT] = buildJsonLdExpandedProperty(right.attributeName)
+        resultEntity[AUTH_PROP_RIGHT] = buildExpandedProperty(right.attributeName)
 
         if (includeSysAttrs) {
-            resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildJsonLdExpandedDateTime(createdAt)
+            resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedDateTime(createdAt)
             modifiedAt?.run {
-                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildJsonLdExpandedDateTime(this)
+                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedDateTime(this)
             }
         }
         specificAccessPolicy?.run {
-            resultEntity[AUTH_PROP_SAP] = buildJsonLdExpandedProperty(this)
+            resultEntity[AUTH_PROP_SAP] = buildExpandedProperty(this)
         }
 
         rCanAdminUsers?.run {
             resultEntity[AUTH_REL_CAN_ADMIN] = this.map {
                 it.serializeProperties()
-            }
+            }.flatten()
         }
         rCanWriteUsers?.run {
             resultEntity[AUTH_REL_CAN_WRITE] = this.map {
                 it.serializeProperties()
-            }
+            }.flatten()
         }
         rCanReadUsers?.run {
             resultEntity[AUTH_REL_CAN_READ] = this.map {
                 it.serializeProperties()
-            }
+            }.flatten()
         }
         return resultEntity
     }

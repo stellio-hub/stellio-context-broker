@@ -173,7 +173,7 @@ class TemporalEntityAttributeService(
     suspend fun updateStatus(
         teaUUID: UUID,
         modifiedAt: ZonedDateTime,
-        payload: Map<String, Any>
+        payload: ExpandedAttributePayloadEntry
     ): Either<APIException, Unit> =
         updateStatus(teaUUID, modifiedAt, serializeObject(payload))
 
@@ -201,7 +201,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: Map<String, Any>,
+        attributePayload: ExpandedAttributePayloadEntry,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -243,7 +243,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: Map<String, Any>,
+        attributePayload: ExpandedAttributePayloadEntry,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -862,7 +862,7 @@ class TemporalEntityAttributeService(
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
                     )
                     val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val deserializedPayload = jsonTargetObject.toMap() as Map<String, List<Any>>
+                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributePayloadEntry
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance

@@ -83,10 +83,8 @@ class QueryService(
             temporalEntityService.buildTemporalEntity(
                 entityPayload,
                 temporalEntityAttributesWithInstances,
-                temporalEntitiesQuery.temporalQuery,
-                listOf(contextLink),
-                temporalEntitiesQuery.withTemporalValues,
-                temporalEntitiesQuery.withAudit
+                temporalEntitiesQuery,
+                listOf(contextLink)
             )
         }
 
@@ -135,10 +133,8 @@ class QueryService(
             Pair(
                 temporalEntityService.buildTemporalEntities(
                     attributeInstancesPerEntityAndAttribute,
-                    temporalEntitiesQuery.temporalQuery,
-                    listOf(temporalEntitiesQuery.queryParams.context),
-                    temporalEntitiesQuery.withTemporalValues,
-                    temporalEntitiesQuery.withAudit
+                    temporalEntitiesQuery,
+                    listOf(temporalEntitiesQuery.queryParams.context)
                 ),
                 count
             )

@@ -49,10 +49,13 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
-            TemporalQuery(),
-            listOf(NGSILD_CORE_CONTEXT),
-            withTemporalValues = false,
-            withAudit = false
+            TemporalEntitiesQuery(
+                queryParams = buildDefaultQueryParams(),
+                temporalQuery = TemporalQuery(),
+                withTemporalValues = false,
+                withAudit = false
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
         )
         assertTrue(
             serializeObject(temporalEntity).matchContent(
@@ -80,10 +83,13 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
-            TemporalQuery(),
-            listOf(APIC_COMPOUND_CONTEXT),
-            withTemporalValues,
-            withAudit
+            TemporalEntitiesQuery(
+                queryParams = buildDefaultQueryParams(),
+                temporalQuery = TemporalQuery(),
+                withTemporalValues,
+                withAudit
+            ),
+            listOf(APIC_COMPOUND_CONTEXT)
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
     }
@@ -98,10 +104,13 @@ class TemporalEntityServiceTests {
     ) {
         val temporalEntity = temporalEntityService.buildTemporalEntities(
             queryResult,
-            TemporalQuery(),
-            listOf(APIC_COMPOUND_CONTEXT),
-            withTemporalValues,
-            withAudit
+            TemporalEntitiesQuery(
+                queryParams = buildDefaultQueryParams(),
+                temporalQuery = TemporalQuery(),
+                withTemporalValues,
+                withAudit
+            ),
+            listOf(APIC_COMPOUND_CONTEXT)
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
     }
@@ -144,10 +153,13 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             entityPayload,
             attributeAndResultsMap,
-            temporalQuery,
-            listOf(NGSILD_CORE_CONTEXT),
-            withTemporalValues = false,
-            withAudit = false
+            TemporalEntitiesQuery(
+                queryParams = buildDefaultQueryParams(),
+                temporalQuery = temporalQuery,
+                withTemporalValues = false,
+                withAudit = false
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
         assertJsonPayloadsAreEqual(

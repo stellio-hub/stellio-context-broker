@@ -99,7 +99,7 @@ class QueryServiceTests {
             )
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         every {
-            temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any(), any())
+            temporalEntityService.buildTemporalEntity(any(), any(), any(), any())
         } returns emptyMap()
 
         queryService.queryTemporalEntity(
@@ -130,9 +130,7 @@ class QueryServiceTests {
                 any(),
                 match { teaInstanceResult -> teaInstanceResult.size == 2 },
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
-                withTemporalValues = false,
-                withAudit = false
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
     }
@@ -162,7 +160,7 @@ class QueryServiceTests {
                 )
             )
         every {
-            temporalEntityService.buildTemporalEntities(any(), any(), any(), any(), any())
+            temporalEntityService.buildTemporalEntities(any(), any(), any())
         } returns emptyList()
 
         queryService.queryTemporalEntities(
@@ -212,9 +210,7 @@ class QueryServiceTests {
             temporalEntityService.buildTemporalEntities(
                 any(),
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
-                withTemporalValues = false,
-                withAudit = false
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
     }
@@ -238,7 +234,7 @@ class QueryServiceTests {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
         } returns emptyList()
         every {
-            temporalEntityService.buildTemporalEntities(any(), any(), any(), any(), any())
+            temporalEntityService.buildTemporalEntities(any(), any(), any())
         } returns emptyList()
 
         queryService.queryTemporalEntities(
@@ -271,9 +267,7 @@ class QueryServiceTests {
                         it.first().second.values.first().isEmpty()
                 },
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
-                withTemporalValues = false,
-                withAudit = false
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
     }

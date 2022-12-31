@@ -15,43 +15,41 @@ class TemporalEntityService {
 
     fun buildTemporalEntities(
         queryResult: List<Pair<EntityPayload, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): List<CompactedJsonLdEntity> {
         return queryResult.map {
-            buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues, withAudit)
+            buildTemporalEntity(it.first, it.second, temporalEntitiesQuery, contexts)
         }
     }
 
     fun buildTemporalEntity(
         entityPayload: EntityPayload,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
             attributeAndResultsMap,
-            temporalQuery,
-            contexts,
-            withTemporalValues,
-            withAudit
+            temporalEntitiesQuery,
+            contexts
         )
-        return entityPayload.serializeProperties(false, true, contexts)
-            .plus(temporalAttributes)
+        return entityPayload.serializeProperties(
+            withSysAttrs = temporalEntitiesQuery.queryParams.includeSysAttrs,
+            withCompactTerms = true,
+            contexts
+        ).plus(temporalAttributes)
     }
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
-        temporalQuery: TemporalQuery,
-        contexts: List<String>,
-        withTemporalValues: Boolean,
-        withAudit: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        contexts: List<String>
     ): Map<String, Any> {
-        return if (withTemporalValues || temporalQuery.timeBucket != null) {
+        return if (
+            temporalEntitiesQuery.withTemporalValues ||
+            temporalEntitiesQuery.temporalQuery.timeBucket != null
+        ) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
@@ -67,7 +65,7 @@ class TemporalEntityService {
                         attributeInstanceResult as FullAttributeInstanceResult
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
                             .let { jsonMap ->
-                                if (withAudit)
+                                if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
                                     jsonMap.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
                                 else jsonMap
                             }

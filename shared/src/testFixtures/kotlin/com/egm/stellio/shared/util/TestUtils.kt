@@ -1,7 +1,8 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import org.springframework.core.io.ClassPathResource
 
 const val EMPTY_PAYLOAD = "{}"
@@ -21,27 +22,3 @@ fun String.removeNoise(): String =
 
 fun String.matchContent(other: String?): Boolean =
     this.removeNoise() == other?.removeNoise()
-
-fun parseGeoFragmentToPointGeoProperty(
-    propertyKey: String,
-    longitude: Double,
-    latitude: Double
-): NgsiLdGeoProperty {
-    val locationFragment =
-        """
-            {
-                "$propertyKey": {
-                    "type": "GeoProperty",
-                    "value": {
-                        "type": "Point",
-                        "coordinates": [
-                            $longitude,
-                            $latitude
-                        ]
-                    }
-                }
-            }
-        """.trimIndent()
-
-    return parseToNgsiLdAttributes(expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS))[0] as NgsiLdGeoProperty
-}

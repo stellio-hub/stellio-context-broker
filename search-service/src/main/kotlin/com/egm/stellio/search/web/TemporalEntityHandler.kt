@@ -12,7 +12,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -69,12 +68,10 @@ class TemporalEntityHandler(
                             datasetId
                         ).bind()
 
-                        val compactedAttributeName = compactTerm(attributeEntry.key, contexts)
                         attributeInstanceService.addAttributeInstance(
                             temporalEntityAttribute.id,
-                            compactedAttributeName,
-                            attributeInstance,
-                            contexts
+                            attributeEntry.key,
+                            attributeInstance
                         ).bind()
                     }
                 }

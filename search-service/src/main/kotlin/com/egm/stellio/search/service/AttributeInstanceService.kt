@@ -7,11 +7,10 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.instanceNotFoundMessage
@@ -100,14 +99,13 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
-        attributeKey: String,
-        attributeValues: Map<String, List<Any>>,
-        contexts: List<String>
+        attributeName: ExpandedTerm,
+        attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
+            ?: throw BadRequestDataException("Attribute $attributeName has an instance without a value")
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without an observed date")
+            ?: throw BadRequestDataException("Attribute $attributeName has an instance without an observed date")
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
@@ -115,7 +113,7 @@ class AttributeInstanceService(
             time = observedAt,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = compactFragment(attributeValues, contexts).minus(JSONLD_CONTEXT)
+            payload = attributeValues
         )
         return create(attributeInstance)
     }

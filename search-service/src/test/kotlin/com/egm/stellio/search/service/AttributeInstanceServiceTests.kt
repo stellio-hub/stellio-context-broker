@@ -560,9 +560,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
-            OUTGOING_COMPACT_PROPERTY,
-            attributeValues,
-            listOf(NGSILD_CORE_CONTEXT)
+            OUTGOING_PROPERTY,
+            attributeValues
         )
 
         verify {
@@ -612,8 +611,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
             "https://uri.etsi.org/ngsi-ld/default-context/hasBee",
-            attributeValues,
-            listOf(NGSILD_CORE_CONTEXT)
+            attributeValues
         )
 
         verify {
@@ -658,12 +656,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
             attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
-                OUTGOING_COMPACT_PROPERTY,
-                attributeValues,
-                listOf(NGSILD_CORE_CONTEXT)
+                OUTGOING_PROPERTY,
+                attributeValues
             )
         }
-        assertEquals("Attribute outgoing has an instance without a value", exception.message)
+        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", exception.message)
     }
 
     @Test
@@ -680,12 +677,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
             attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
-                "outgoing",
-                attributeValues,
-                listOf(NGSILD_CORE_CONTEXT)
+                OUTGOING_PROPERTY,
+                attributeValues
             )
         }
-        assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
+        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", exception.message)
     }
 
     @Test

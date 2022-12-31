@@ -94,7 +94,7 @@ class TemporalEntityHandlerTests {
                 every { id } returns temporalEntityAttributeUuid
             }.right()
         }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -113,11 +113,10 @@ class TemporalEntityHandlerTests {
         coVerify {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
-                eq("incoming"),
+                eq(INCOMING_PROPERTY),
                 match {
                     it.size == 4
-                },
-                listOf(APIC_COMPOUND_CONTEXT)
+                }
             )
         }
     }
@@ -134,7 +133,7 @@ class TemporalEntityHandlerTests {
                 every { id } returns temporalEntityAttributeUuid
             }.right()
         }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -153,11 +152,10 @@ class TemporalEntityHandlerTests {
         coVerify(exactly = 2) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
-                eq("incoming"),
+                eq(INCOMING_PROPERTY),
                 match {
                     it.size == 4
-                },
-                listOf(APIC_COMPOUND_CONTEXT)
+                }
             )
         }
     }
@@ -174,7 +172,7 @@ class TemporalEntityHandlerTests {
                 every { id } returns temporalEntityAttributeUuid
             }.right()
         }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -193,11 +191,10 @@ class TemporalEntityHandlerTests {
         coVerify(exactly = 2) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
-                or("incoming", "outgoing"),
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
                     it.size == 4
-                },
-                listOf(APIC_COMPOUND_CONTEXT)
+                }
             )
         }
     }
@@ -214,7 +211,7 @@ class TemporalEntityHandlerTests {
                 every { id } returns temporalEntityAttributeUuid
             }.right()
         }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -233,11 +230,10 @@ class TemporalEntityHandlerTests {
         coVerify(exactly = 4) {
             attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
-                or("incoming", "outgoing"),
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
                     it.size == 4
-                },
-                listOf(APIC_COMPOUND_CONTEXT)
+                }
             )
         }
     }
@@ -284,7 +280,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isForbidden
 
         coVerify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
-        coVerify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
+        coVerify { attributeInstanceService.addAttributeInstance(any(), any(), any()) wasNot Called }
     }
 
     private fun buildDefaultMockResponsesForGetEntity() {

@@ -520,7 +520,7 @@ object JsonLdUtils {
         )
 
     /**
-     * Build the expanded payload of a non-reified temporal property.
+     * Build the expanded payload of a non-reified temporal property (createdAt, modifiedAt,...).
      *
      * For instance:
      *

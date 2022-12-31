@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 import java.util.Optional
@@ -121,10 +122,10 @@ fun Map<String, Any>.addSysAttrs(
     modifiedAt: ZonedDateTime?
 ): Map<String, Any> =
     if (withSysAttrs)
-        this.plus(createdAt.toExpandedDateTime(NGSILD_CREATED_AT_PROPERTY))
+        this.plus(NGSILD_CREATED_AT_PROPERTY to buildNonReifiedDateTime(createdAt))
             .let {
                 if (modifiedAt != null)
-                    it.plus(modifiedAt.toExpandedDateTime(NGSILD_MODIFIED_AT_PROPERTY))
+                    it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
                 else it
             }
     else this

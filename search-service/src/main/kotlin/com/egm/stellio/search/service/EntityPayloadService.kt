@@ -242,7 +242,10 @@ class EntityPayloadService(
     ): Either<APIException, Unit> =
         retrieve(entityUri)
             .map { entityPayload ->
-                val payload = buildJsonLdEntity(temporalEntityAttributes, entityPayload)
+                val payload = buildJsonLdEntity(
+                    temporalEntityAttributes,
+                    entityPayload.copy(modifiedAt = modifiedAt)
+                )
                 databaseClient.sql(
                     """
                     UPDATE entity_payload
@@ -263,11 +266,11 @@ class EntityPayloadService(
     ): Map<String, Any> {
         val entityCoreAttributes = entityPayload.serializeProperties(withSysAttrs = true)
         val expandedAttributes = temporalEntityAttributes
-            .groupBy {
-                it.attributeName
+            .groupBy { tea ->
+                tea.attributeName
             }
-            .mapValues { teas ->
-                teas.value.map { tea ->
+            .mapValues { (_, teas) ->
+                teas.map { tea ->
                     tea.payload.deserializeExpandedPayload()
                         .addSysAttrs(withSysAttrs = true, tea.createdAt, tea.modifiedAt)
                 }

@@ -9,6 +9,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
 
@@ -152,6 +153,18 @@ class QueryService(
                 it.attributeValueType
             }.mapValues {
                 attributeInstanceService.search(temporalQuery, it.value, withTemporalValues)
+            }
+            .mapValues {
+                // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
+                // transformed during compaction as it is not done for temporal values, so it is done now
+                if (it.key == TemporalEntityAttribute.AttributeValueType.GEOMETRY && withTemporalValues) {
+                    it.value.map { attributeInstanceResult ->
+                        attributeInstanceResult as SimplifiedAttributeInstanceResult
+                        attributeInstanceResult.copy(
+                            value = wktToGeoJson(attributeInstanceResult.value as String)
+                        )
+                    }
+                } else it.value
             }
             .values
             .flatten()

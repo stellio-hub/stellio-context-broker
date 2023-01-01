@@ -197,17 +197,19 @@ class AttributeInstanceService(
                    time_bucket('${temporalQuery.timeBucket}', time, TIMESTAMPTZ '${timestamp!!}') as time_bucket,
                    ${temporalQuery.aggregate}(measured_value) as value
             """.trimIndent()
-        // temporal entity attributes are grouped by attribute type by calling services
-        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
-            temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, value "
-        temporalEntityAttributes[0].attributeValueType != TemporalEntityAttribute.AttributeValueType.NUMBER &&
-            temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, value, sub "
-        temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
-            "SELECT temporal_entity_attribute, time, measured_value as value, sub "
-        else ->
-            "SELECT temporal_entity_attribute, time, measured_value as value "
+        else -> {
+            val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
+                TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"
+                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "ST_AsText(geo_value) as value"
+                else -> "value"
+            }
+            val subColumn = when (temporalQuery.timeproperty) {
+                AttributeInstance.TemporalProperty.OBSERVED_AT -> null
+                else -> "sub"
+            }
+            "SELECT " + listOfNotNull("temporal_entity_attribute", "time", valueColumn, subColumn)
+                .joinToString(",")
+        }
     }
 
     suspend fun selectOldestDate(

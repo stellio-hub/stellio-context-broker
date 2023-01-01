@@ -2,9 +2,16 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
@@ -60,13 +67,26 @@ class TemporalEntityService {
         } else {
             mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
-                .mapValues {
-                    it.value.map { attributeInstanceResult ->
+                .mapValues { (_, attributeInstanceResults) ->
+                    attributeInstanceResults.map { attributeInstanceResult ->
                         attributeInstanceResult as FullAttributeInstanceResult
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
                             .let { jsonMap ->
                                 if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
                                     jsonMap.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
+                                else jsonMap
+                            }.let { jsonMap ->
+                                // FIXME in the history of attributes, we have a mix of
+                                //   - compacted fragments (before v2)
+                                //   - expanded fragments (since v2)
+                                //  to avoid un-necessary (expensive) compactions, quick check to see if the fragment
+                                //  is already compacted
+                                if (jsonMap.containsKey(JSONLD_TYPE))
+                                    compactFragment(jsonMap, contexts).minus(JSONLD_CONTEXT)
+                                else jsonMap
+                            }.let { jsonMap ->
+                                if (jsonMap[JSONLD_TYPE_TERM] == "GeoProperty")
+                                    jsonMap.plus(JSONLD_VALUE to wktToGeoJson(jsonMap[JSONLD_VALUE]!! as String))
                                 else jsonMap
                             }
                     }
@@ -89,12 +109,13 @@ class TemporalEntityService {
             val attributeInstance = mutableMapOf<String, Any>(
                 "type" to it.key.attributeType.toString()
             )
-            val valuesKey =
-                if (it.key.attributeType == TemporalEntityAttribute.AttributeType.Property)
-                    "values"
-                else
-                    "objects"
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+            val valuesKey =
+                when (it.key.attributeType) {
+                    TemporalEntityAttribute.AttributeType.Property -> "values"
+                    TemporalEntityAttribute.AttributeType.Relationship -> "objects"
+                    TemporalEntityAttribute.AttributeType.GeoProperty -> "values"
+                }
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
                 listOf(attributeInstanceResult.value, attributeInstanceResult.time)
@@ -110,7 +131,7 @@ class TemporalEntityService {
      */
     private fun mergeFullTemporalAttributesOnAttributeName(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult
-    ): Map<String, List<AttributeInstanceResult>> =
+    ): Map<ExpandedTerm, List<AttributeInstanceResult>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->
                 temporalEntityAttribute.attributeName
@@ -129,7 +150,7 @@ class TemporalEntityService {
      */
     private fun mergeSimplifiedTemporalAttributesOnAttributeName(
         attributeAndResultsMap: Map<TemporalEntityAttribute, SimplifiedTemporalAttribute>
-    ): Map<String, List<SimplifiedTemporalAttribute>> =
+    ): Map<ExpandedTerm, List<SimplifiedTemporalAttribute>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->
                 temporalEntityAttribute.attributeName

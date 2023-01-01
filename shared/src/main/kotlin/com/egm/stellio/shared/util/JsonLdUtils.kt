@@ -328,9 +328,23 @@ object JsonLdUtils {
 
     private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
-            val geoValues = it.value as MutableMap<String, Any>
-            geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
-            geoValues
+            when (it.value) {
+                is Map<*, *> -> {
+                    val geoValues = it.value as MutableMap<String, Any>
+                    if (geoValues.isNotEmpty()) {
+                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues
+                    } else geoValues
+                }
+                // case of a multi-instance geoproperty or when retrieving the history of a geoproperty
+                is List<*> ->
+                    (it.value as List<Map<String, Any>>).map { geoInstance ->
+                        val geoValues = geoInstance.toMutableMap()
+                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues
+                    }
+                else -> it.value
+            }
         } else it.value
     }
 
@@ -403,6 +417,7 @@ object JsonLdUtils {
 
     fun compactFragment(value: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
+            .mapValues(restoreGeoPropertyValue())
 
     fun compactAndSerialize(
         jsonLdEntity: JsonLdEntity,

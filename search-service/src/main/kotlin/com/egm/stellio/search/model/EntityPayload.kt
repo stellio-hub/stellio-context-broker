@@ -33,10 +33,12 @@ data class EntityPayload(
         contexts: List<String> = emptyList()
     ): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        // as we are "manually" compacting the type, handle the case where there is just one of it
-        // and convey it as a string (instead of a list of 1)
+        // "manual" compaction is used for temporal entities where temporalValues representation and aggregations
+        // are badly handled by the normal JSON-LD compaction process (lists of lists are lost mainly)
         if (withCompactTerms) {
             resultEntity[JSONLD_ID_TERM] = entityId.toString()
+            // as we are "manually" compacting the type, handle the case where there is just one of it
+            // and convey it as a string (instead of a list of 1)
             resultEntity[JSONLD_TYPE_TERM] =
                 types.map { compactTerm(it, contexts) }
                     .let { if (it.size > 1) it else it.first() }

@@ -258,6 +258,8 @@ class AttributeInstanceService(
         else FullAttributeInstanceResult(
             temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
             payload = toJsonString(row["payload"]),
+            time = toZonedDateTime(row["time"]),
+            timeproperty = temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
     }

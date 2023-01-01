@@ -96,6 +96,8 @@ class QueryParameterizedTests {
                                     null,
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                 sub = "sub"
                             )
                         )
@@ -125,6 +127,8 @@ class QueryParameterizedTests {
                                     null,
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )

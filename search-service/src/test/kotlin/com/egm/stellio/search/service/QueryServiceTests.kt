@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,8 +95,8 @@ class QueryServiceTests {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
         } returns
             listOf(
-                FullAttributeInstanceResult(temporalEntityAttributes[0].id, "", null),
-                FullAttributeInstanceResult(temporalEntityAttributes[1].id, "", null)
+                FullAttributeInstanceResult(temporalEntityAttributes[0].id, "", now, NGSILD_CREATED_AT_TERM, null),
+                FullAttributeInstanceResult(temporalEntityAttributes[1].id, "", now, NGSILD_CREATED_AT_TERM, null)
             )
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         every {

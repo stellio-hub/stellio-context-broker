@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.EMPTY_PAYLOAD
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -40,6 +41,8 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45678".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -50,6 +53,8 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45679".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             )
@@ -78,6 +83,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Instance:45678".toUri(),
                                         TemporalEntityAttribute.AttributeType.Relationship
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -89,6 +96,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Instance:45679".toUri(),
                                         TemporalEntityAttribute.AttributeType.Relationship
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             )
@@ -116,6 +125,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:01234".toUri(),
                                         "urn:ngsi-ld:Instance:01234".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -126,6 +137,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:01234".toUri(),
                                         "urn:ngsi-ld:Instance:01235".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             ),
@@ -146,6 +159,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45678".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -156,6 +171,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45679".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             )
@@ -183,6 +200,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45678".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -193,6 +212,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45679".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             )
@@ -220,6 +241,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45678".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = "sub1"
                                 ),
                                 FullAttributeInstanceResult(
@@ -230,6 +253,8 @@ class ParameterizedTests {
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45679".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = "sub2"
                                 )
                             )
@@ -256,6 +281,8 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45678".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 ),
                                 FullAttributeInstanceResult(
@@ -266,6 +293,8 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45679".toUri()
                                     ),
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                    timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                     sub = null
                                 )
                             )

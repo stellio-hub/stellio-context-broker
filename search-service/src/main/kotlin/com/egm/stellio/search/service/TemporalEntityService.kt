@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 
@@ -89,6 +90,9 @@ class TemporalEntityService {
                                     jsonMap.plus(JSONLD_VALUE to wktToGeoJson(jsonMap[JSONLD_VALUE]!! as String))
                                 else jsonMap
                             }
+                            .plus(
+                                attributeInstanceResult.timeproperty to attributeInstanceResult.time.toNgsiLdFormat()
+                            )
                     }
                 }
         }

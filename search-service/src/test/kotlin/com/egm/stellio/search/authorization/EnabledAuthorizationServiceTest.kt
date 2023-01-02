@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.time.ZonedDateTime
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -113,8 +112,7 @@ class EnabledAuthorizationServiceTest {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE,
-                createdAt = ZonedDateTime.now()
+                right = AccessRight.R_CAN_WRITE
             )
         ).right()
         coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)
@@ -155,14 +153,12 @@ class EnabledAuthorizationServiceTest {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_ADMIN,
-                createdAt = ZonedDateTime.now()
+                right = AccessRight.R_CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE,
-                createdAt = ZonedDateTime.now()
+                right = AccessRight.R_CAN_WRITE
             )
         ).right()
         coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)

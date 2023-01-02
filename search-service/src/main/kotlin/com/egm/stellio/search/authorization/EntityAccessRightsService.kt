@@ -179,7 +179,7 @@ class EntityAccessRightsService(
         databaseClient
             .sql(
                 """
-                SELECT ep.entity_id, ep.types, ep.created_at, ear.access_right, ep.specific_access_policy
+                SELECT ep.entity_id, ep.types, ear.access_right, ep.specific_access_policy
                 FROM entity_access_rights ear
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
@@ -311,7 +311,6 @@ class EntityAccessRightsService(
         return EntityAccessRights(
             id = toUri(row["entity_id"]),
             types = toList(row["types"]),
-            createdAt = toZonedDateTime(row["created_at"]),
             right = accessRight,
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )

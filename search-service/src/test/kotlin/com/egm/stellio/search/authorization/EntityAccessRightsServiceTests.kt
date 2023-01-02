@@ -267,7 +267,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             val entityAccessControl = it[0]
             assertEquals(entityId01, entityAccessControl.id)
             assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
-            assertNotNull(entityAccessControl.createdAt)
             assertEquals(AccessRight.R_CAN_WRITE, entityAccessControl.right)
             assertEquals(AUTH_READ, entityAccessControl.specificAccessPolicy)
         }

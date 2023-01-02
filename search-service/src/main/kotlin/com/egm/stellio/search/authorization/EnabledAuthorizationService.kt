@@ -124,7 +124,7 @@ class EnabledAuthorizationService(
                     )
                 } else entityAccessControl
             }
-            .map { it.serializeProperties(queryParams.includeSysAttrs) }
+            .map { it.serializeProperties() }
             .map { JsonLdEntity(it, listOf(context)) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(

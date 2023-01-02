@@ -20,8 +20,6 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -37,8 +35,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
 import java.time.Duration
-import java.time.Instant
-import java.time.ZoneOffset
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
@@ -511,8 +507,6 @@ class EntityAccessControlHandlerTests {
                     AUTH_TERM_CAN_READ,
                     null,
                     null,
-                    null,
-                    null,
                     NGSILD_CORE_CONTEXT
                 ),
                 createJsonLdEntity(
@@ -521,8 +515,6 @@ class EntityAccessControlHandlerTests {
                     AUTH_TERM_CAN_ADMIN,
                     AUTH_READ.toString(),
                     userUri.toUri(),
-                    null,
-                    null,
                     NGSILD_CORE_CONTEXT
                 )
             )
@@ -553,46 +545,6 @@ class EntityAccessControlHandlerTests {
             )
             .jsonPath("[0].createdAt").doesNotExist()
             .jsonPath("[0].modifiedAt").doesNotExist()
-    }
-
-    @Test
-    fun `get authorized entities should return entities I have a right on with system attributes`() {
-        coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(
-            1,
-            listOf(
-                createJsonLdEntity(
-                    "urn:ngsi-ld:Beehive:TESTC",
-                    "Beehive",
-                    AUTH_TERM_CAN_READ,
-                    null,
-                    null,
-                    "2015-10-18T11:20:30.000001Z",
-                    "2015-10-18T11:20:30.000001Z",
-                    NGSILD_AUTHORIZATION_CONTEXT
-                )
-            )
-        ).right()
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/entities?options=sysAttrs")
-            .header(HttpHeaders.LINK, authzHeaderLink)
-            .exchange()
-            .expectStatus().isOk
-            .expectBody().json(
-                """[
-                        {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
-                            "type": "Beehive",
-                            "right": {"type":"Property", "value": "rCanRead"},
-                            "createdAt": "2015-10-18T11:20:30.000001Z",
-                            "modifiedAt": "2015-10-18T11:20:30.000001Z",
-                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
-                """.trimMargin()
-            )
     }
 
     @Test
@@ -735,8 +687,6 @@ class EntityAccessControlHandlerTests {
         right: String,
         specificAccessPolicy: String? = null,
         rCanReadUser: URI? = null,
-        createdAt: String? = null,
-        modifiedAt: String? = null,
         context: String
     ): JsonLdEntity {
         val jsonLdEntity = mutableMapOf<String, Any>()
@@ -750,14 +700,6 @@ class EntityAccessControlHandlerTests {
             jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
                 JsonLdUtils.buildExpandedRelationship(rCanReadUser)
             )
-        }
-        createdAt?.run {
-            jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] =
-                JsonLdUtils.buildNonReifiedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
-        }
-        modifiedAt?.run {
-            jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] =
-                JsonLdUtils.buildNonReifiedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         return JsonLdEntity(jsonLdEntity, listOf(context))
     }

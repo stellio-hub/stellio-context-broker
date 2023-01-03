@@ -662,7 +662,7 @@ class TemporalEntityAttributeService(
 
     suspend fun checkEntityAndAttributeExistence(
         entityId: URI,
-        entityAttributeName: String,
+        attributeName: ExpandedTerm,
         datasetId: URI? = null
     ): Either<APIException, Unit> {
         val selectQuery =
@@ -685,7 +685,7 @@ class TemporalEntityAttributeService(
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", entityId)
-            .bind("attribute_name", entityAttributeName)
+            .bind("attribute_name", attributeName)
             .let {
                 if (datasetId != null) it.bind("dataset_id", datasetId)
                 else it
@@ -695,7 +695,7 @@ class TemporalEntityAttributeService(
                 if (it.first) {
                     if (it.second)
                         Unit.right()
-                    else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
+                    else ResourceNotFoundException(attributeNotFoundMessage(attributeName, datasetId)).left()
                 } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }

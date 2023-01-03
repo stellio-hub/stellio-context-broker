@@ -885,7 +885,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val result = temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed")
 
         result.fold(
-            { assertEquals("Attribute speed was not found", it.message) },
+            { assertEquals("Attribute speed (default datasetId) was not found", it.message) },
             { fail("The referred resource should have not been found") }
         )
     }

@@ -53,3 +53,25 @@ where types && ARRAY[
 
 delete from temporal_entity_attribute
 where created_at is null;
+
+-- set values to existing history entities with unhandled data types at the time they were created
+
+update attribute_instance_audit
+set value = payload['value']
+where value is null
+and measured_value is null
+and geo_value is null;
+
+update attribute_instance
+set value = payload['value']
+where value is null
+and measured_value is null
+and geo_value is null;
+
+-- delete remaining crappy instances without payload
+
+delete from attribute_instance_audit
+where payload is null;
+
+delete from attribute_instance
+where payload is null;

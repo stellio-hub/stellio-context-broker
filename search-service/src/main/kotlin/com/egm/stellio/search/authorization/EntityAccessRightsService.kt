@@ -254,11 +254,15 @@ class EntityAccessRightsService(
                 left join subject_referential sr 
                     on entity_access_rights.subject_id = sr.subject_id 
                     or entity_access_rights.subject_id = sr.service_account_id
-                where entity_id in (:entities_ids)
-                and sr.subject_id not in (:excluded_subject_uuids);
+                where sr.subject_id not in (:excluded_subject_uuids)
+                ${if (entities.isNotEmpty()) " AND entity_id in (:entities_ids)" else ""}
                 """.trimIndent()
             )
-            .bind("entities_ids", entities)
+            .let {
+                if (entities.isNotEmpty())
+                    it.bind("entities_ids", entities)
+                else it
+            }
             .bind("excluded_subject_uuids", subjectUuids)
             .allToMappedList { it }
             .groupBy { toUri(it["entity_id"]) }

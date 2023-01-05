@@ -188,7 +188,9 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
-            .allToMappedList { GlobalRole.forKey(it["global_roles"] as String) }
+            .oneToResult { toList<String>(it["global_roles"])}
+            .getOrElse { emptyList() }
+            .map { GlobalRole.forKey(it) }
 
     @Transactional
     suspend fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Either<APIException, Unit> =

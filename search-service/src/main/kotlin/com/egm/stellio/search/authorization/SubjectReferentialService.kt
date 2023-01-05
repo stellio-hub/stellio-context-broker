@@ -188,7 +188,7 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
-            .oneToResult { toList<String>(it["global_roles"])}
+            .oneToResult { toList<String>(it["global_roles"]) }
             .getOrElse { emptyList() }
             .map { GlobalRole.forKey(it) }
 

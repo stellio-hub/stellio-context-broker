@@ -451,13 +451,13 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should get global roles for user with no role`() = runTest {
-        val userAccessRights = SubjectReferential(
+        val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_PAYLOAD
         )
 
-        subjectReferentialService.create(userAccessRights)
+        subjectReferentialService.create(subjectReferential)
 
         val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
 
@@ -466,7 +466,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should get global roles for user with one role`() = runTest {
-        val userAccessRights = SubjectReferential(
+        val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_PAYLOAD,
@@ -475,7 +475,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         val expectedGlobalRoles = listOf(Some(STELLIO_ADMIN))
 
-        subjectReferentialService.create(userAccessRights)
+        subjectReferentialService.create(subjectReferential)
 
         val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
 
@@ -484,7 +484,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should get global roles for user with more two roles`() = runTest {
-        val userAccessRights = SubjectReferential(
+        val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_PAYLOAD,
@@ -493,7 +493,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         val expectedGlobalRoles = listOf(Some(STELLIO_CREATOR), Some(STELLIO_ADMIN))
 
-        subjectReferentialService.create(userAccessRights)
+        subjectReferentialService.create(subjectReferential)
 
         val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
 

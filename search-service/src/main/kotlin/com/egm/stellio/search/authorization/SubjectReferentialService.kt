@@ -182,7 +182,7 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT global_roles
+                SELECT unnest(global_roles) as global_roles
                 FROM subject_referential
                 WHERE subject_id = :subject_id
                 """.trimIndent()

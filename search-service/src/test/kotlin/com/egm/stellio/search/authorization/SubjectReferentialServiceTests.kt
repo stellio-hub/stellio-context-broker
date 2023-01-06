@@ -4,6 +4,7 @@ import arrow.core.Some
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.EMPTY_PAYLOAD
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.SubjectType
@@ -446,5 +447,56 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             }, {
                 fail("it should have returned a ResourceNotFoundException exception")
             })
+    }
+
+    @Test
+    fun `it should get global roles for user with no role`() = runTest {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            subjectInfo = EMPTY_PAYLOAD
+        )
+
+        subjectReferentialService.create(userAccessRights)
+
+        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
+
+        assertEquals(emptyList<Some<GlobalRole>>(), globalRoles)
+    }
+
+    @Test
+    fun `it should get global roles for user with one role`() = runTest {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            subjectInfo = EMPTY_PAYLOAD,
+            globalRoles = listOf(STELLIO_ADMIN)
+        )
+
+        val expectedGlobalRoles = listOf(Some(STELLIO_ADMIN))
+
+        subjectReferentialService.create(userAccessRights)
+
+        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
+
+        assertEquals(expectedGlobalRoles, globalRoles)
+    }
+
+    @Test
+    fun `it should get global roles for user with more two roles`() = runTest {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            subjectInfo = EMPTY_PAYLOAD,
+            globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
+        )
+
+        val expectedGlobalRoles = listOf(Some(STELLIO_CREATOR), Some(STELLIO_ADMIN))
+
+        subjectReferentialService.create(userAccessRights)
+
+        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
+
+        assertEquals(expectedGlobalRoles, globalRoles)
     }
 }

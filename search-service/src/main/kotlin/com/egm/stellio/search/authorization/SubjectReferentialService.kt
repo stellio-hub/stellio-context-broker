@@ -182,15 +182,13 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT global_roles
+                SELECT unnest(global_roles) as global_roles
                 FROM subject_referential
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
-            .oneToResult { toList<String>(it["global_roles"]) }
-            .getOrElse { emptyList() }
-            .map { GlobalRole.forKey(it) }
+            .allToMappedList { GlobalRole.forKey(it["global_roles"] as String) }
 
     @Transactional
     suspend fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Either<APIException, Unit> =

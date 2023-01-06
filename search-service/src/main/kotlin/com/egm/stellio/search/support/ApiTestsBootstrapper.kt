@@ -33,34 +33,34 @@ class ApiTestsBootstrapper(
 
     override fun run(vararg args: String?) {
         runBlocking {
-            addSubjectToDb(
+            createSubject(
                 apiTestUserId1!!,
                 userSubject(subjectId = apiTestUserId1!!, groupMembership = apiTestGroupId1)
             )
 
             if (!apiTestUserId2.isNullOrEmpty()) {
-                addSubjectToDb(
+                createSubject(
                     apiTestUserId2!!,
                     userSubject(subjectId = apiTestUserId2!!)
                 )
             }
 
             if (!apiTestUserId3.isNullOrEmpty()) {
-                addSubjectToDb(
+                createSubject(
                     apiTestUserId3!!,
-                    userSubject(subjectId = apiTestUserId3!!, stellioAdmin = true)
+                    userSubject(subjectId = apiTestUserId3!!, globalRoles = listOf(GlobalRole.STELLIO_ADMIN))
                 )
             }
 
             if (!apiTestGroupId1.isNullOrEmpty()) {
-                addSubjectToDb(
+                createSubject(
                     apiTestGroupId1!!,
                     groupSubject(apiTestGroupId1!!)
                 )
             }
 
             if (!apiTestUserId2.isNullOrEmpty()) {
-                addSubjectToDb(
+                createSubject(
                     apiTestGroupId2!!,
                     groupSubject(apiTestGroupId2!!)
                 )
@@ -70,40 +70,34 @@ class ApiTestsBootstrapper(
 
     fun userSubject(
         subjectId: String,
-        stellioAdmin: Boolean = false,
+        globalRoles: List<GlobalRole> = listOf(GlobalRole.STELLIO_CREATOR),
         groupMembership: String? = null
-    ): SubjectReferential {
-        return SubjectReferential(
-            subjectId = subjectId!!,
+    ): SubjectReferential =
+        SubjectReferential(
+            subjectId = subjectId,
             subjectType = SubjectType.USER,
             subjectInfo = """
-                            {"type":"Property","value":{"username":"api-tests-user@stellio.io"}}
+                {"type":"Property","value":{"username":"api-tests-user@stellio.io"}}
             """.trimIndent(),
-            globalRoles =
-            if (stellioAdmin) listOf(GlobalRole.STELLIO_CREATOR, GlobalRole.STELLIO_ADMIN)
-            else listOf(GlobalRole.STELLIO_CREATOR),
+            globalRoles = globalRoles,
             groupsMemberships =
             if (!groupMembership.isNullOrEmpty())
-                listOf(groupMembership!!)
+                listOf(groupMembership)
             else null
         )
-    }
 
-    fun groupSubject(subjectId: String): SubjectReferential {
-        return SubjectReferential(
-            subjectId = subjectId!!,
+    fun groupSubject(subjectId: String): SubjectReferential =
+        SubjectReferential(
+            subjectId = subjectId,
             subjectType = SubjectType.GROUP,
             subjectInfo = """
-                            {"type":"Property","value":{"username":"api-tests-user@stellio.io"}}
+                {"type":"Property","value":{"name":"Group 1"}}
             """.trimIndent()
         )
-    }
 
-    suspend fun addSubjectToDb(subjectId: String, subjectReferential: SubjectReferential) {
-        subjectReferentialService.retrieve(subjectId!!)
+    suspend fun createSubject(subjectId: String, subjectReferential: SubjectReferential) =
+        subjectReferentialService.retrieve(subjectId)
             .tapLeft {
-                val subjectReferential = subjectReferential
                 subjectReferentialService.create(subjectReferential)
             }
-    }
 }

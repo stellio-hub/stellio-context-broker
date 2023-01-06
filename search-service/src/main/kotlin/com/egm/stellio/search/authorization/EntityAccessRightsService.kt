@@ -244,6 +244,9 @@ class EntityAccessRightsService(
         sub: Option<Sub>,
         entities: List<URI>
     ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
+        if (entities.isNullOrEmpty())
+            return@either emptyMap()
+
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
 
         databaseClient

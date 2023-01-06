@@ -380,6 +380,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should return nothing when list of entities is empty`() = runTest {
+        entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), emptyList())
+            .shouldSucceedWith { assertTrue(it.isNullOrEmpty()) }
+    }
+
+    @Test
     fun `it should get other subject rights for one entity and a group`() = runTest {
         createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))

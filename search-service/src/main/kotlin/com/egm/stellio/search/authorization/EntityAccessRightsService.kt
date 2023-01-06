@@ -244,55 +244,55 @@ class EntityAccessRightsService(
         sub: Option<Sub>,
         entities: List<URI>
     ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        if (entities.isNullOrEmpty())
+            emptyMap()
+        else {
+            val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
 
-        databaseClient
-            .sql(
-                """
+            databaseClient
+                .sql(
+                    """
                 select entity_id, sr.subject_id, access_right, subject_type, subject_info, service_account_id
                 from entity_access_rights
                 left join subject_referential sr 
                     on entity_access_rights.subject_id = sr.subject_id 
                     or entity_access_rights.subject_id = sr.service_account_id
-                where sr.subject_id not in (:excluded_subject_uuids)
-                ${if (entities.isNotEmpty()) " AND entity_id in (:entities_ids)" else ""}
-                """.trimIndent()
-            )
-            .let {
-                if (entities.isNotEmpty())
-                    it.bind("entities_ids", entities)
-                else it
-            }
-            .bind("excluded_subject_uuids", subjectUuids)
-            .allToMappedList { it }
-            .groupBy { toUri(it["entity_id"]) }
-            .mapValues {
-                it.value
-                    .groupBy { AccessRight.forAttributeName(it["access_right"] as String).orNull()!! }
-                    .mapValues { (_, records) ->
-                        records.map { record ->
-                            val uuid = record["service_account_id"] ?: record["subject_id"]
-                            val subjectType = toEnum<SubjectType>(record["subject_type"]!!)
-                            val (uri, type) = when (subjectType) {
-                                SubjectType.USER -> Pair(USER_ENTITY_PREFIX + uuid, USER_COMPACT_TYPE)
-                                SubjectType.GROUP -> Pair(GROUP_ENTITY_PREFIX + uuid, GROUP_COMPACT_TYPE)
-                                SubjectType.CLIENT -> Pair(CLIENT_ENTITY_PREFIX + uuid, CLIENT_COMPACT_TYPE)
-                            }
+                where entity_id in (:entities_ids)
+                and sr.subject_id not in (:excluded_subject_uuids);
+                    """.trimIndent()
+                )
+                .bind("entities_ids", entities)
+                .bind("excluded_subject_uuids", subjectUuids)
+                .allToMappedList { it }
+                .groupBy { toUri(it["entity_id"]) }
+                .mapValues {
+                    it.value
+                        .groupBy { AccessRight.forAttributeName(it["access_right"] as String).orNull()!! }
+                        .mapValues { (_, records) ->
+                            records.map { record ->
+                                val uuid = record["service_account_id"] ?: record["subject_id"]
+                                val subjectType = toEnum<SubjectType>(record["subject_type"]!!)
+                                val (uri, type) = when (subjectType) {
+                                    SubjectType.USER -> Pair(USER_ENTITY_PREFIX + uuid, USER_COMPACT_TYPE)
+                                    SubjectType.GROUP -> Pair(GROUP_ENTITY_PREFIX + uuid, GROUP_COMPACT_TYPE)
+                                    SubjectType.CLIENT -> Pair(CLIENT_ENTITY_PREFIX + uuid, CLIENT_COMPACT_TYPE)
+                                }
 
-                            val subjectInfo = toJsonString(record["subject_info"])
-                                .deserializeAsMap()[JSONLD_VALUE] as Map<String, String>
-                            val subjectSpecificInfo = when (subjectType) {
-                                SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
-                                SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)
-                                SubjectType.CLIENT -> Pair(AUTH_TERM_CLIENT_ID, subjectInfo[AUTH_TERM_CLIENT_ID]!!)
+                                val subjectInfo = toJsonString(record["subject_info"])
+                                    .deserializeAsMap()[JSONLD_VALUE] as Map<String, String>
+                                val subjectSpecificInfo = when (subjectType) {
+                                    SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
+                                    SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)
+                                    SubjectType.CLIENT -> Pair(AUTH_TERM_CLIENT_ID, subjectInfo[AUTH_TERM_CLIENT_ID]!!)
+                                }
+                                SubjectRightInfo(
+                                    uri = uri.toUri(),
+                                    subjectInfo = mapOf("kind" to type).plus(subjectSpecificInfo)
+                                )
                             }
-                            SubjectRightInfo(
-                                uri = uri.toUri(),
-                                subjectInfo = mapOf("kind" to type).plus(subjectSpecificInfo)
-                            )
                         }
-                    }
-            }
+                }
+        }
     }
 
     @Transactional

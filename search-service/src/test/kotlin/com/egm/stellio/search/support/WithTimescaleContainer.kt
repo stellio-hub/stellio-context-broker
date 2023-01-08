@@ -14,15 +14,15 @@ interface WithTimescaleContainer {
         private const val DB_PASSWORD = "stellio_search_db_password"
 
         private val timescaleImage: DockerImageName =
-            DockerImageName.parse("stellio/stellio-timescale-postgis:2.8.1-pg14")
+            DockerImageName.parse("stellio/stellio-timescale-postgis:14-2.9.1-3.3")
                 .asCompatibleSubstituteFor("postgres")
 
         private val timescaleContainer = GenericContainer<Nothing>(timescaleImage).apply {
             withEnv("POSTGRES_USER", DB_USER)
             withEnv("POSTGRES_PASS", DB_PASSWORD)
             withEnv("POSTGRES_DBNAME", DB_NAME)
+            withEnv("POSTGRES_MULTIPLE_EXTENSIONS", "postgis,timescaledb,pgcrypto")
             withExposedPorts(5432)
-            withReuse(true)
         }
 
         @JvmStatic

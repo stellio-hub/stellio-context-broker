@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
 import org.junit.jupiter.params.provider.Arguments
 import java.time.Instant
 import java.time.ZoneOffset
@@ -97,7 +98,7 @@ class QueryParameterizedTests {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = "sub"
                             )
                         )
@@ -128,7 +129,7 @@ class QueryParameterizedTests {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.authorization
 
+import com.egm.stellio.search.util.JsonLdUtils.buildExpandedSubjectInfo
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
@@ -36,7 +37,7 @@ data class EntityAccessRights(
         fun serializeProperties(): ExpandedAttributePayload =
             buildExpandedRelationship(uri)
                 .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId))
-                .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedProperty(subjectInfo))
+                .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedSubjectInfo(subjectInfo))
     }
 
     fun serializeProperties(): Map<String, Any> {

@@ -4,6 +4,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
@@ -11,14 +12,19 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_KIND
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
@@ -538,7 +544,15 @@ class EntityAccessControlHandlerTests {
                         "type": "Beehive",
                         "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
                         "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
-                        "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
+                        "$AUTH_REL_CAN_READ": {
+                            "type":"Relationship",
+                             "datasetId": "urn:ngsi-ld:Dataset:01",
+                             "object": "$userUri",
+                             "$AUTH_PROP_SUBJECT_INFO": {
+                                "type":"Property", 
+                                "value": {"$AUTH_PROP_KIND": "User", "$AUTH_PROP_USERNAME": "stellio-user"}
+                             }
+                        },
                         "@context": ["$NGSILD_CORE_CONTEXT"]
                     }]
                 """.trimMargin()
@@ -697,9 +711,12 @@ class EntityAccessControlHandlerTests {
             jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildExpandedProperty(specificAccessPolicy)
         }
         rCanReadUser?.run {
-            jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
-                JsonLdUtils.buildExpandedRelationship(rCanReadUser)
+            val subjectInfo = mapOf(
+                AuthContextModel.AUTH_TERM_KIND to USER_COMPACT_TYPE,
+                AUTH_TERM_USERNAME to "stellio-user"
             )
+            val subjectRightInfo = EntityAccessRights.SubjectRightInfo(rCanReadUser, subjectInfo)
+            jsonLdEntity[AUTH_REL_CAN_READ] = subjectRightInfo.serializeProperties()
         }
         return JsonLdEntity(jsonLdEntity, listOf(context))
     }

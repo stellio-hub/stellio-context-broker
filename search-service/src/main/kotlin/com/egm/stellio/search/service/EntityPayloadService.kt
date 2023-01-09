@@ -130,8 +130,11 @@ class EntityPayloadService(
     suspend fun hasSpecificAccessPolicies(
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>
-    ): Either<APIException, Boolean> =
-        databaseClient.sql(
+    ): Either<APIException, Boolean> {
+        if (specificAccessPolicies.isNullOrEmpty())
+            return either { false }
+
+        return databaseClient.sql(
             """
             SELECT count(entity_id) as count
             FROM entity_payload
@@ -142,6 +145,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
             .oneToResult { it["count"] as Long > 0 }
+    }
 
     suspend fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
         if (entitiesIds.isEmpty()) {

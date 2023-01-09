@@ -361,4 +361,10 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     .hasFieldOrPropertyWithValue("message", "Payload must be a property")
             }
     }
+
+    @Test
+    fun `it should return nothing when specific access policy list is empty`() = runTest {
+        entityPayloadService.hasSpecificAccessPolicies(entity01Uri, emptyList())
+            .shouldSucceedWith { assertFalse(it) }
+    }
 }

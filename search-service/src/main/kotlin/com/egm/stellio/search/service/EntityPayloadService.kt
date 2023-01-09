@@ -131,7 +131,7 @@ class EntityPayloadService(
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>
     ): Either<APIException, Boolean> {
-        if (specificAccessPolicies.isNullOrEmpty())
+        if (specificAccessPolicies.isEmpty())
             return either { false }
 
         return databaseClient.sql(

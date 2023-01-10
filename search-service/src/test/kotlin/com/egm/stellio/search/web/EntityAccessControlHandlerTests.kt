@@ -543,7 +543,7 @@ class EntityAccessControlHandlerTests {
                         "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
                         "$AUTH_REL_CAN_READ": {
                             "type":"Relationship",
-                             "datasetId": "urn:ngsi-ld:Dataset:01",
+                             "datasetId": "urn:ngsi-ld:Dataset:0123",
                              "object": "$subjectId",
                              "$AUTH_PROP_SUBJECT_INFO": {
                                 "type":"Property", 

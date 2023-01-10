@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
@@ -129,7 +130,7 @@ fun buildExpandedSubjectInfoByKind(value: Map<String, String>): Pair<ExpandedTer
                 JSONLD_VALUE_KW to value[AuthContextModel.AUTH_TERM_USERNAME]
             )
         )
-        GROUP_COMPACT_TYPE -> AuthContextModel.AUTH_PROP_NAME to listOf(
+        GROUP_COMPACT_TYPE -> NGSILD_NAME_PROPERTY to listOf(
             mapOf(
                 JSONLD_VALUE_KW to value[AuthContextModel.AUTH_TERM_NAME]
             )

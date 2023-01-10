@@ -40,7 +40,9 @@ object AuthContextModel {
 
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_CLIENT_ID = "clientId"
+    const val AUTH_PROP_CLIENT_ID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CLIENT_ID
     const val AUTH_TERM_NAME = "name"
+    const val AUTH_PROP_NAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_NAME
     const val AUTH_TERM_SID = "serviceAccountId"
     const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
     const val AUTH_PROP_SUBJECT_INFO = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUBJECT_INFO

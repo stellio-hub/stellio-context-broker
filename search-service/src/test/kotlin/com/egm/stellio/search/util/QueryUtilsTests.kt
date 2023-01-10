@@ -5,8 +5,6 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import io.mockk.every
 import io.mockk.mockkClass
 import org.junit.jupiter.api.Assertions.*
@@ -268,8 +266,8 @@ class QueryUtilsTests {
 
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), null)
 
-        assertTrue(attrPayloadWithSysAttrs.containsKey(NGSILD_CREATED_AT_PROPERTY))
-        assertFalse(attrPayloadWithSysAttrs.containsKey(NGSILD_MODIFIED_AT_PROPERTY))
+        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
+        assertFalse(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
     }
 
     @Test
@@ -281,7 +279,7 @@ class QueryUtilsTests {
 
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), ZonedDateTime.now())
 
-        assertTrue(attrPayloadWithSysAttrs.containsKey(NGSILD_CREATED_AT_PROPERTY))
-        assertTrue(attrPayloadWithSysAttrs.containsKey(NGSILD_MODIFIED_AT_PROPERTY))
+        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
+        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
     }
 }

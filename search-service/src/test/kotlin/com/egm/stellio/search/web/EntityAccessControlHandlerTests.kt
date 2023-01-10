@@ -18,8 +18,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
@@ -501,27 +499,26 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get authorized entities should return entities I have a right on`() {
-        val userUri = "urn:ngsi-ld:User:01"
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(
             2,
             listOf(
                 createJsonLdEntity(
-                    "urn:ngsi-ld:Beehive:TESTC",
-                    "Beehive",
-                    AUTH_TERM_CAN_READ,
-                    null,
-                    null,
-                    NGSILD_CORE_CONTEXT
+                    createEntityAccessRight(
+                        "urn:ngsi-ld:Beehive:TESTC".toUri(),
+                        BEEHIVE_TYPE,
+                        AccessRight.R_CAN_READ
+                    )
                 ),
                 createJsonLdEntity(
-                    "urn:ngsi-ld:Beehive:TESTD",
-                    "Beehive",
-                    AUTH_TERM_CAN_ADMIN,
-                    AUTH_READ.toString(),
-                    userUri.toUri(),
-                    NGSILD_CORE_CONTEXT
+                    createEntityAccessRight(
+                        "urn:ngsi-ld:Beehive:TESTD".toUri(),
+                        BEEHIVE_TYPE,
+                        AccessRight.R_CAN_ADMIN,
+                        AUTH_READ,
+                        createSubjectRightInfo(subjectId)
+                    )
                 )
             )
         ).right()
@@ -535,19 +532,19 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """[{
                         "id": "urn:ngsi-ld:Beehive:TESTC",
-                        "type": "Beehive",
+                        "type": "$BEEHIVE_TYPE",
                         "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
                         "@context": ["$NGSILD_CORE_CONTEXT"]
                     },
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTD",
-                        "type": "Beehive",
+                        "type": "$BEEHIVE_TYPE",
                         "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
                         "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
                         "$AUTH_REL_CAN_READ": {
                             "type":"Relationship",
                              "datasetId": "urn:ngsi-ld:Dataset:01",
-                             "object": "$userUri",
+                             "object": "$subjectId",
                              "$AUTH_PROP_SUBJECT_INFO": {
                                 "type":"Property", 
                                 "value": {"$AUTH_PROP_KIND": "User", "$AUTH_PROP_USERNAME": "stellio-user"}
@@ -696,28 +693,33 @@ class EntityAccessControlHandlerTests {
     }
 
     private fun createJsonLdEntity(
-        id: String,
-        type: String,
-        right: String,
-        specificAccessPolicy: String? = null,
-        rCanReadUser: URI? = null,
-        context: String
+        entityAccessRights: EntityAccessRights,
+        context: String = NGSILD_CORE_CONTEXT
     ): JsonLdEntity {
-        val jsonLdEntity = mutableMapOf<String, Any>()
-        jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
-        jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildExpandedProperty(right)
-        specificAccessPolicy?.run {
-            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildExpandedProperty(specificAccessPolicy)
-        }
-        rCanReadUser?.run {
-            val subjectInfo = mapOf(
-                AuthContextModel.AUTH_TERM_KIND to USER_COMPACT_TYPE,
-                AUTH_TERM_USERNAME to "stellio-user"
-            )
-            val subjectRightInfo = EntityAccessRights.SubjectRightInfo(rCanReadUser, subjectInfo)
-            jsonLdEntity[AUTH_REL_CAN_READ] = subjectRightInfo.serializeProperties()
-        }
-        return JsonLdEntity(jsonLdEntity, listOf(context))
+        val earSerialized = entityAccessRights.serializeProperties()
+        return JsonLdEntity(earSerialized, listOf(context))
+    }
+
+    private fun createEntityAccessRight(
+        id: URI,
+        type: ExpandedTerm,
+        accessRight: AccessRight,
+        specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
+        rCanReadUser: List<EntityAccessRights.SubjectRightInfo>? = null
+    ): EntityAccessRights =
+        EntityAccessRights(
+            id = id,
+            types = listOf(type),
+            right = accessRight,
+            specificAccessPolicy = specificAccessPolicy,
+            rCanReadUsers = rCanReadUser
+        )
+
+    private fun createSubjectRightInfo(subjectId: URI): List<EntityAccessRights.SubjectRightInfo> {
+        val subjectInfo = mapOf(
+            AuthContextModel.AUTH_TERM_KIND to USER_COMPACT_TYPE,
+            AUTH_TERM_USERNAME to "stellio-user"
+        )
+        return listOf(EntityAccessRights.SubjectRightInfo(subjectId, subjectInfo))
     }
 }

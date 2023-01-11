@@ -129,7 +129,7 @@ class SubjectReferentialService(
                 WITH groups_memberships AS (
                     SELECT distinct(unnest(groups_memberships)) as groups
                     FROM subject_referential 
-                    WHERE subject_id = :subject_id
+                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 )
                 SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name,
                     (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
@@ -184,7 +184,7 @@ class SubjectReferentialService(
                 """
                 SELECT unnest(global_roles) as global_roles
                 FROM subject_referential
-                WHERE subject_id = :subject_id
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
@@ -197,7 +197,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET global_roles = :global_roles
-                WHERE subject_id = :subject_id
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -211,7 +211,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET global_roles = null
-                WHERE subject_id = :subject_id
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", sub)

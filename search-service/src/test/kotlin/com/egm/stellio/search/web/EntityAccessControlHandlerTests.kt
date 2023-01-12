@@ -705,14 +705,14 @@ class EntityAccessControlHandlerTests {
         type: ExpandedTerm,
         accessRight: AccessRight,
         specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
-        rCanReadUser: List<EntityAccessRights.SubjectRightInfo>? = null
+        rCanReadUsers: List<EntityAccessRights.SubjectRightInfo>? = null
     ): EntityAccessRights =
         EntityAccessRights(
             id = id,
             types = listOf(type),
             right = accessRight,
             specificAccessPolicy = specificAccessPolicy,
-            rCanReadUsers = rCanReadUser
+            rCanReadUsers = rCanReadUsers
         )
 
     private fun createSubjectRightInfo(subjectId: URI): List<EntityAccessRights.SubjectRightInfo> {

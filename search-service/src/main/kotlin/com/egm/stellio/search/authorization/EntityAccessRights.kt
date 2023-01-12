@@ -1,30 +1,24 @@
 package com.egm.stellio.search.authorization
 
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_KIND
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_KIND
-import com.egm.stellio.shared.util.AuthContextModel.CLIENT_COMPACT_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationship
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import java.net.URI
 
 data class EntityAccessRights(
@@ -106,39 +100,14 @@ data class EntityAccessRights(
  *   }
  * ]
  */
-fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttributePayload =
+private fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttributePayload =
     listOf(
         mapOf(
             JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
             NGSILD_PROPERTY_VALUE to listOf(
-                mapOf(
-                    AUTH_PROP_KIND to listOf(
-                        mapOf(
-                            JSONLD_VALUE_KW to value[AUTH_TERM_KIND]
-                        )
-                    ),
-                    buildExpandedSubjectInfoByKind(value)
-                )
+                expandJsonLdFragment(value, COMPOUND_AUTHZ_CONTEXT).mapValues {
+                    it.value
+                }
             )
         )
     )
-
-fun buildExpandedSubjectInfoByKind(value: Map<String, String>): Pair<ExpandedTerm, List<Map<String, String?>>> =
-    when (value[AUTH_TERM_KIND]) {
-        USER_COMPACT_TYPE -> AuthContextModel.AUTH_PROP_USERNAME to listOf(
-            mapOf(
-                JSONLD_VALUE_KW to value[AuthContextModel.AUTH_TERM_USERNAME]
-            )
-        )
-        GROUP_COMPACT_TYPE -> NGSILD_NAME_PROPERTY to listOf(
-            mapOf(
-                JSONLD_VALUE_KW to value[AuthContextModel.AUTH_TERM_NAME]
-            )
-        )
-        CLIENT_COMPACT_TYPE -> AuthContextModel.AUTH_PROP_CLIENT_ID to listOf(
-            mapOf(
-                JSONLD_VALUE_KW to value[AuthContextModel.AUTH_TERM_CLIENT_ID]
-            )
-        )
-        else -> throw ResourceNotFoundException("this kind of subject is not allowed")
-    }

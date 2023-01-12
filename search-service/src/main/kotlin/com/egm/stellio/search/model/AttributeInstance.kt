@@ -36,7 +36,10 @@ data class AttributeInstance private constructor(
         ): AttributeInstance {
             val parsedPayload = payload.toMutableMap()
             val attributeInstanceId = instanceId ?: generateRandomInstanceId()
-            parsedPayload.putIfAbsent(NGSILD_INSTANCE_ID_PROPERTY, buildNonReifiedProperty(attributeInstanceId))
+            parsedPayload.putIfAbsent(
+                NGSILD_INSTANCE_ID_PROPERTY,
+                buildNonReifiedProperty(attributeInstanceId.toString())
+            )
 
             return AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute,

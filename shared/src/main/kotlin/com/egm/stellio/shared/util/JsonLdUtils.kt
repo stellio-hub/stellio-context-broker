@@ -566,7 +566,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildNonReifiedProperty(value: Any): List<Map<String, Any>> =
+    fun buildNonReifiedProperty(value: String): List<Map<String, Any>> =
         listOf(
             mapOf(JSONLD_ID to value)
         )

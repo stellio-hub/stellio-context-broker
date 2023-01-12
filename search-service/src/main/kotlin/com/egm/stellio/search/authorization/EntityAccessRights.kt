@@ -8,13 +8,17 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationship
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import java.net.URI
 
 data class EntityAccessRights(
@@ -35,8 +39,8 @@ data class EntityAccessRights(
 
         fun serializeProperties(): ExpandedAttributePayload =
             buildExpandedRelationship(uri)
-                .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId))
-                .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedProperty(subjectInfo))
+                .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId.toString()))
+                .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedSubjectInfo(subjectInfo))
     }
 
     fun serializeProperties(): Map<String, Any> {
@@ -68,3 +72,42 @@ data class EntityAccessRights(
         return resultEntity
     }
 }
+
+/**
+ * Build the expanded subject info.
+ *
+ * For instance:
+ *
+ * "[
+ *   {
+ *     "@type": [
+ *       "https://uri.etsi.org/ngsi-ld/Property"
+ *     ],
+ *     "https://uri.etsi.org/ngsi-ld/hasValue": [
+ *       {
+ *         "https://ontology.eglobalmark.com/authorization#kind": [
+ *              {
+ *                  "@value": "kind"
+ *               }
+ *         ],
+ *         "https://ontology.eglobalmark.com/authorization#username": [
+ *              {
+ *                  "@value": "username"
+ *              }
+ *         ]
+ *       }
+ *     ]
+ *   }
+ * ]
+ */
+private fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttributePayload =
+    listOf(
+        mapOf(
+            JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+            NGSILD_PROPERTY_VALUE to listOf(
+                expandJsonLdFragment(value, COMPOUND_AUTHZ_CONTEXT).mapValues {
+                    it.value
+                }
+            )
+        )
+    )

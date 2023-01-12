@@ -40,6 +40,7 @@ object AuthContextModel {
 
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_CLIENT_ID = "clientId"
+    const val AUTH_PROP_CLIENT_ID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CLIENT_ID
     const val AUTH_TERM_NAME = "name"
     const val AUTH_TERM_SID = "serviceAccountId"
     const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
@@ -47,6 +48,8 @@ object AuthContextModel {
     const val AUTH_PROP_SID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SID
     const val AUTH_TERM_ROLES = "roles"
     const val AUTH_PROP_ROLES: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_ROLES
+    const val AUTH_TERM_KIND = "kind"
+    const val AUTH_PROP_KIND: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_KIND
     const val AUTH_TERM_USERNAME = "username"
     const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
     const val AUTH_TERM_GIVEN_NAME = "givenName"

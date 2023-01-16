@@ -806,9 +806,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should delete temporal entity references`() = runTest {
         val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
 
+        coEvery { attributeInstanceService.deleteInstancesOfEntity(entityId) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } returns Unit.right()
 
         temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).shouldSucceed()
+
+        coVerify { attributeInstanceService.deleteInstancesOfEntity(eq(entityId)) }
     }
 
     @Test
@@ -831,14 +834,19 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
-        temporalEntityAttributeService.deleteTemporalAttributeReferences(
+        temporalEntityAttributeService.deleteTemporalAttribute(
             beehiveTestDId,
             INCOMING_PROPERTY,
             null
         ).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteInstancesOfAttribute(eq(beehiveTestDId), eq(INCOMING_PROPERTY), null)
+        }
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestDId, INCOMING_PROPERTY
@@ -850,13 +858,20 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteAllInstancesOfAttribute(any(), any()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
 
-        temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+        temporalEntityAttributeService.deleteTemporalAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_PROPERTY,
+            null,
+            deleteAll = true
         ).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteAllInstancesOfAttribute(eq(beehiveTestCId), eq(INCOMING_PROPERTY))
+        }
 
         temporalEntityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }

@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
+import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
@@ -27,6 +28,8 @@ import java.util.UUID
 class AttributeInstanceService(
     private val databaseClient: DatabaseClient
 ) {
+
+    private val attributesInstancesTables = listOf("attribute_instance", "attribute_instance_audit")
 
     @Transactional
     suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
@@ -265,9 +268,9 @@ class AttributeInstanceService(
     }
 
     @Transactional
-    suspend fun deleteEntityAttributeInstance(
+    suspend fun deleteInstance(
         entityId: URI,
-        entityAttributeName: String,
+        attributeName: ExpandedTerm,
         instanceId: URI
     ): Either<APIException, Unit> {
         val deleteQuery =
@@ -285,7 +288,7 @@ class AttributeInstanceService(
         return databaseClient
             .sql(deleteQuery)
             .bind("entity_id", entityId)
-            .bind("attribute_name", entityAttributeName)
+            .bind("attribute_name", attributeName)
             .bind("instance_id", instanceId)
             .executeExpected {
                 if (it == 0)
@@ -293,4 +296,79 @@ class AttributeInstanceService(
                 else Unit.right()
             }
     }
+
+    @Transactional
+    suspend fun deleteInstancesOfAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?
+    ): Either<APIException, Unit> =
+        attributesInstancesTables.parTraverseEither {
+            val deleteQuery =
+                """
+                DELETE FROM $it
+                WHERE temporal_entity_attribute = ( 
+                    SELECT id 
+                    FROM temporal_entity_attribute 
+                    WHERE entity_id = :entity_id 
+                    AND attribute_name = :attribute_name
+                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                )
+                """.trimIndent()
+
+            databaseClient
+                .sql(deleteQuery)
+                .bind("entity_id", entityId)
+                .bind("attribute_name", attributeName)
+                .let {
+                    if (datasetId != null) it.bind("dataset_id", datasetId)
+                    else it
+                }
+                .execute()
+        }.map { }
+
+    @Transactional
+    suspend fun deleteAllInstancesOfAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm
+    ): Either<APIException, Unit> =
+        attributesInstancesTables.parTraverseEither {
+            val deleteQuery =
+                """
+                DELETE FROM $it
+                WHERE temporal_entity_attribute IN ( 
+                    SELECT id 
+                    FROM temporal_entity_attribute 
+                    WHERE entity_id = :entity_id 
+                    AND attribute_name = :attribute_name
+                )
+                """.trimIndent()
+
+            databaseClient
+                .sql(deleteQuery)
+                .bind("entity_id", entityId)
+                .bind("attribute_name", attributeName)
+                .execute()
+        }.map { }
+
+    @Transactional
+    suspend fun deleteInstancesOfEntity(
+        entityId: URI
+    ): Either<APIException, Unit> =
+        attributesInstancesTables.parTraverseEither {
+            val deleteQuery =
+                """
+                DELETE FROM $it
+                WHERE temporal_entity_attribute IN ( 
+                    SELECT id 
+                    FROM temporal_entity_attribute 
+                    WHERE entity_id = :entity_id 
+                )
+                """.trimIndent()
+
+            databaseClient
+                .sql(deleteQuery)
+                .bind("entity_id", entityId)
+                .execute()
+        }.map { }
 }

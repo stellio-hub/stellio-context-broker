@@ -12,13 +12,14 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_KIND
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_KIND
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_RIGHT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
@@ -277,7 +278,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Relationship",
                     "object": "$entityUri1"
                 },
-                "@context": ["$NGSILD_CORE_CONTEXT"]
+                "@context": ["$APIC_COMPOUND_CONTEXT"]
             }
             """.trimIndent()
 
@@ -374,6 +375,7 @@ class EntityAccessControlHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isNoContent
@@ -394,6 +396,73 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
+    fun `it should allow an authorized user to set the specific access policy on an entity with context in payload`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "AUTH_READ",
+                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT"]
+            }
+            """.trimIndent()
+
+        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+
+            entityPayloadService.updateSpecificAccessPolicy(
+                eq(entityUri1),
+                match {
+                    it.getAttributeInstances().size == 1 &&
+                        it.name == AUTH_PROP_SAP &&
+                        it.getAttributeInstances()[0] is NgsiLdPropertyInstance &&
+                        (it.getAttributeInstances()[0] as NgsiLdPropertyInstance).value.toString() == "AUTH_READ"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should not do anything if authz context is missing when setting the specific access policy on an entity`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "AUTH_READ",
+                "@context": ["$APIC_COMPOUND_CONTEXT"]
+            }
+            """.trimIndent()
+
+        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+
+        val expectedAttr = "https://uri.etsi.org/ngsi-ld/default-context/specificAccessPolicy"
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                    {
+                        "detail": "${attributeNotFoundMessage(expectedAttr)}",
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "The referred resource has not been found"
+                    }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `it should return a 400 if the payload to set specific access policy is not correct`() {
         val requestPayload =
             """
@@ -411,6 +480,7 @@ class EntityAccessControlHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isBadRequest
@@ -433,6 +503,7 @@ class EntityAccessControlHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().is5xxServerError
@@ -447,6 +518,7 @@ class EntityAccessControlHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue("{}")
             .exchange()
             .expectStatus().isForbidden
@@ -533,24 +605,24 @@ class EntityAccessControlHandlerTests {
                 """[{
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "$BEEHIVE_TYPE",
-                        "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
+                        "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
                     },
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTD",
                         "type": "$BEEHIVE_TYPE",
-                        "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanAdmin"},
-                        "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
-                        "$AUTH_REL_CAN_READ": {
+                        "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanAdmin"},
+                        "$AUTH_TERM_SAP": {"type":"Property", "value": "$AUTH_READ"},
+                        "$AUTH_TERM_CAN_READ": {
                             "type":"Relationship",
                              "datasetId": "urn:ngsi-ld:Dataset:0123",
                              "object": "$subjectId",
-                             "$AUTH_PROP_SUBJECT_INFO": {
+                             "$AUTH_TERM_SUBJECT_INFO": {
                                 "type":"Property", 
-                                "value": {"$AUTH_PROP_KIND": "User", "$AUTH_PROP_USERNAME": "stellio-user"}
+                                "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
                              }
                         },
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
                     }]
                 """.trimMargin()
             )
@@ -627,9 +699,9 @@ class EntityAccessControlHandlerTests {
                 """[
                         {
                             "id": "urn:ngsi-ld:group:1",
-                            "type": "$GROUP_TYPE",
-                            "$NGSILD_NAME_PROPERTY" : {"type":"Property", "value": "egm"},
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                            "type": "$GROUP_COMPACT_TYPE",
+                            "name" : {"type":"Property", "value": "egm"},
+                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
                         }
                     ]
                 """.trimMargin()
@@ -717,7 +789,7 @@ class EntityAccessControlHandlerTests {
 
     private fun createSubjectRightInfo(subjectId: URI): List<EntityAccessRights.SubjectRightInfo> {
         val subjectInfo = mapOf(
-            AuthContextModel.AUTH_TERM_KIND to USER_COMPACT_TYPE,
+            AUTH_TERM_KIND to USER_COMPACT_TYPE,
             AUTH_TERM_USERNAME to "stellio-user"
         )
         return listOf(EntityAccessRights.SubjectRightInfo(subjectId, subjectInfo))

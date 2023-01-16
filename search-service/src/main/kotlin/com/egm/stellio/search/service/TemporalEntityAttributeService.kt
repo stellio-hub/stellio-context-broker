@@ -279,8 +279,9 @@ class TemporalEntityAttributeService(
     suspend fun deleteTemporalEntityReferences(entityId: URI): Either<APIException, Unit> =
         either {
             logger.debug("Deleting entity $entityId")
-            entityPayloadService.deleteEntityPayload(entityId).bind()
+            attributeInstanceService.deleteInstancesOfEntity(entityId).bind()
             deleteTemporalAttributesOfEntity(entityId).bind()
+            entityPayloadService.deleteEntityPayload(entityId).bind()
         }
 
     suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> =
@@ -296,10 +297,13 @@ class TemporalEntityAttributeService(
     ): Either<APIException, Unit> =
         either {
             logger.debug("Deleting attribute $attributeName from entity $entityId (all: $deleteAll)")
-            if (deleteAll)
+            if (deleteAll) {
+                attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
                 deleteTemporalAttributeAllInstancesReferences(entityId, attributeName).bind()
-            else
+            } else {
+                attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
                 deleteTemporalAttributeReferences(entityId, attributeName, datasetId).bind()
+            }
             entityPayloadService.updateState(
                 entityId,
                 ZonedDateTime.now(ZoneOffset.UTC),
@@ -307,6 +311,7 @@ class TemporalEntityAttributeService(
             ).bind()
         }
 
+    @Transactional
     suspend fun deleteTemporalAttributeReferences(
         entityId: URI,
         attributeName: String,
@@ -314,10 +319,10 @@ class TemporalEntityAttributeService(
     ): Either<APIException, Unit> =
         databaseClient.sql(
             """
-            DELETE FROM temporal_entity_attribute WHERE 
-                entity_id = :entity_id
-                ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
-                AND attribute_name = :attribute_name
+            DELETE FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+            AND attribute_name = :attribute_name
             """.trimIndent()
         )
             .bind("entity_id", entityId)
@@ -328,6 +333,7 @@ class TemporalEntityAttributeService(
             }
             .execute()
 
+    @Transactional
     suspend fun deleteTemporalAttributeAllInstancesReferences(
         entityId: URI,
         attributeName: String

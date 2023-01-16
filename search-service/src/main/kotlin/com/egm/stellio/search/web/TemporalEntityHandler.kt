@@ -178,7 +178,7 @@ class TemporalEntityHandler(
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttrId, instanceUri).bind()
+            attributeInstanceService.deleteInstance(entityUri, expandedAttrId, instanceUri).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(

@@ -1022,7 +1022,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
+            attributeInstanceService.deleteInstance(any(), any(), any())
         } returns Unit.right()
 
         webClient
@@ -1035,7 +1035,7 @@ class TemporalEntityHandlerTests {
 
         coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
         coVerify {
-            attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
+            attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
             authorizationService.userCanUpdateEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
@@ -1112,7 +1112,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            attributeInstanceService.deleteEntityAttributeInstance(any(), any(), any())
+            attributeInstanceService.deleteInstance(any(), any(), any())
         } returns ResourceNotFoundException(instanceNotFoundMessage(attributeInstanceId.toString())).left()
 
         webClient
@@ -1133,7 +1133,7 @@ class TemporalEntityHandlerTests {
 
         coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
         coVerify {
-            attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttr, attributeInstanceId)
+            attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
             authorizationService.userCanUpdateEntity(

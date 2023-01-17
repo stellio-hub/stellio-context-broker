@@ -21,7 +21,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -47,7 +47,7 @@ import java.time.Duration
 @WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class EntityAccessControlHandlerTests {
 
-    private val authzHeaderLink = buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT)
+    private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -87,7 +87,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Relationship",
                     "object": "$entityUri1"
                 },
-                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -133,7 +133,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Relationship",
                     "object": "$entityUri3"
                 },
-                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -187,7 +187,7 @@ class EntityAccessControlHandlerTests {
                     "object": "$entityUri2",
                     "datasetId": "$entityUri2"
                 }],
-                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -239,7 +239,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Property",
                     "value": "$entityUri2"
                 },
-                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -312,7 +312,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .exchange()
             .expectStatus().isNoContent
 
@@ -374,7 +374,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -402,7 +402,7 @@ class EntityAccessControlHandlerTests {
             {
                 "type": "Property",
                 "value": "AUTH_READ",
-                "@context": ["$NGSILD_AUTHORIZATION_CONTEXT"]
+                "@context": ["$AUTHORIZATION_CONTEXT"]
             }
             """.trimIndent()
 
@@ -479,7 +479,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -502,7 +502,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -517,7 +517,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue("{}")
             .exchange()
@@ -531,7 +531,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
             .exchange()
             .expectStatus().isNoContent
 
@@ -724,7 +724,7 @@ class EntityAccessControlHandlerTests {
                         NGSILD_NAME_PROPERTY to JsonLdUtils.buildExpandedProperty("egm"),
                         AuthContextModel.AUTH_REL_IS_MEMBER_OF to JsonLdUtils.buildExpandedProperty("true")
                     ),
-                    listOf(NGSILD_AUTHORIZATION_CONTEXT)
+                    listOf(AUTHORIZATION_CONTEXT)
                 )
             )
         ).right()
@@ -742,7 +742,7 @@ class EntityAccessControlHandlerTests {
                             "type": "Group",
                             "name": {"type":"Property", "value": "egm"},
                             "isMemberOf": {"type":"Property", "value": "true"},
-                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                            "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
                         }
                     ]
                 """.trimMargin()

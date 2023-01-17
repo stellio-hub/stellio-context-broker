@@ -450,13 +450,13 @@ class EntityAccessControlHandlerTests {
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .bodyValue(requestPayload)
             .exchange()
-            .expectStatus().isNotFound
+            .expectStatus().isBadRequest
             .expectBody().json(
                 """
                     {
-                        "detail": "${attributeNotFoundMessage(expectedAttr)}",
-                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "The referred resource has not been found"
+                        "detail": "$expectedAttr is not authorized property name",
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                        "title":"The request includes input data which does not meet the requirements of the operation"
                     }
                 """.trimIndent()
             )
@@ -606,7 +606,7 @@ class EntityAccessControlHandlerTests {
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "$BEEHIVE_TYPE",
                         "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
-                        "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
                     },
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTD",
@@ -622,7 +622,7 @@ class EntityAccessControlHandlerTests {
                                 "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
                              }
                         },
-                        "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
                     }]
                 """.trimMargin()
             )
@@ -701,7 +701,7 @@ class EntityAccessControlHandlerTests {
                             "id": "urn:ngsi-ld:group:1",
                             "type": "$GROUP_COMPACT_TYPE",
                             "name" : {"type":"Property", "value": "egm"},
-                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                            "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
                         }
                     ]
                 """.trimMargin()

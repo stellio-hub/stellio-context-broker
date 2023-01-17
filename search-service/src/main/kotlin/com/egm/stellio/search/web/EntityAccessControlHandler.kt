@@ -2,10 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.*
 import arrow.core.continuations.either
-import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.authorization.EntityAccessRightsService
-import com.egm.stellio.search.authorization.addAuthzContextIfNeeded
-import com.egm.stellio.search.authorization.replaceCoreContextByAuthzContext
+import com.egm.stellio.search.authorization.*
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
@@ -44,7 +41,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).replaceCoreContextByAuthzContext()
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
 
             val queryParams = parseAndCheckParams(
@@ -98,7 +95,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).replaceCoreContextByAuthzContext()
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
             val queryParams = parseAndCheckParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
@@ -254,8 +251,8 @@ class EntityAccessControlHandler(
             val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
             if (ngsiLdAttributes[0].name != AUTH_PROP_SAP)
-                ResourceNotFoundException(
-                    attributeNotFoundMessage(ngsiLdAttributes[0].name)
+                BadRequestDataException(
+                    "${ngsiLdAttributes[0].name} is not authorized property name"
                 ).left().bind<ResponseEntity<*>>()
 
             entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()

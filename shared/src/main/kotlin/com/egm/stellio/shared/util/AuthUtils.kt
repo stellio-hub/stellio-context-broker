@@ -21,6 +21,8 @@ val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
     const val NGSILD_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
+    const val AUTHORIZATION_COMPOUND_CONTEXT =
+        "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization-compound.jsonld"
     val COMPOUND_AUTHZ_CONTEXT = listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
 
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"

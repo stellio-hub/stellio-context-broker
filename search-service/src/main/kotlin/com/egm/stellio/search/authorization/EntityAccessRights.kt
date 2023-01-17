@@ -8,7 +8,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
-import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.DEFAULT_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -105,7 +105,7 @@ private fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttrib
         mapOf(
             JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
             NGSILD_PROPERTY_VALUE to listOf(
-                expandJsonLdFragment(value, COMPOUND_AUTHZ_CONTEXT).mapValues {
+                expandJsonLdFragment(value, DEFAULT_AUTHZ_CONTEXT).mapValues {
                     it.value
                 }
             )

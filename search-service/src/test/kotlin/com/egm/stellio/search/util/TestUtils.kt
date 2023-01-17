@@ -41,6 +41,6 @@ fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolic
         """.trimIndent()
 
     return parseToNgsiLdAttributes(
-        JsonLdUtils.expandJsonLdFragment(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.COMPOUND_AUTHZ_CONTEXT)
+        JsonLdUtils.expandJsonLdFragment(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.DEFAULT_AUTHZ_CONTEXT)
     )[0]
 }

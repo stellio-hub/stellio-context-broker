@@ -28,13 +28,9 @@ object AuthContextModel {
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_COMPACT_TYPE = "User"
-    const val USER_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + USER_COMPACT_TYPE
     const val GROUP_COMPACT_TYPE = "Group"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + GROUP_COMPACT_TYPE
     const val CLIENT_COMPACT_TYPE = "Client"
-    const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + CLIENT_COMPACT_TYPE
-    val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
-    val IAM_COMPACTED_TYPES = setOf(USER_COMPACT_TYPE, GROUP_COMPACT_TYPE, CLIENT_COMPACT_TYPE)
 
     const val USER_ENTITY_PREFIX = "urn:ngsi-ld:User:"
     const val CLIENT_ENTITY_PREFIX = "urn:ngsi-ld:Client:"
@@ -42,18 +38,13 @@ object AuthContextModel {
 
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_CLIENT_ID = "clientId"
-    const val AUTH_PROP_CLIENT_ID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CLIENT_ID
     const val AUTH_TERM_NAME = "name"
     const val AUTH_TERM_SID = "serviceAccountId"
     const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
     const val AUTH_PROP_SUBJECT_INFO = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUBJECT_INFO
-    const val AUTH_PROP_SID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SID
     const val AUTH_TERM_ROLES = "roles"
-    const val AUTH_PROP_ROLES: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_ROLES
     const val AUTH_TERM_KIND = "kind"
-    const val AUTH_PROP_KIND: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_KIND
     const val AUTH_TERM_USERNAME = "username"
-    const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
     const val AUTH_TERM_GIVEN_NAME = "givenName"
     const val AUTH_TERM_FAMILY_NAME = "familyName"
     const val AUTH_TERM_SAP = "specificAccessPolicy"
@@ -73,9 +64,6 @@ object AuthContextModel {
     const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
     val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN)
     val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
-    val ADMIN_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_ADMIN)
-    val WRITE_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_WRITE).plus(ADMIN_RIGHTS)
-    val READ_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_READ).plus(WRITE_RIGHTS)
 
     enum class SpecificAccessPolicy {
         AUTH_READ,

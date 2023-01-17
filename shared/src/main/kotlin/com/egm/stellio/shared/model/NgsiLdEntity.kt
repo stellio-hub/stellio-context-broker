@@ -358,7 +358,7 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
     }
 
 fun String.isNgsiLdSupportedName() =
-    this.all { char -> char.isDefined() && !listOf('<', '"', '\'', '=', ';', '(', ')', '>', '?', '*').contains(char) }
+    this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)

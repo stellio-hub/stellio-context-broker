@@ -20,8 +20,10 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
-    const val NGSILD_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
-    val COMPOUND_AUTHZ_CONTEXT = listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
+    const val AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
+    const val AUTHORIZATION_COMPOUND_CONTEXT =
+        "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization-compound.jsonld"
+    val AUTHORIZATION_API_DEFAULT_CONTEXTS = listOf(AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
 
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
@@ -138,3 +140,13 @@ enum class AccessRight(val attributeName: String) {
             }
     }
 }
+
+fun List<String>.addAuthzContextIfNeeded(): List<String> =
+    if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)
+        this.plus(AuthContextModel.AUTHORIZATION_CONTEXT)
+    else this
+
+fun String.addAuthzContextIfNeeded(): String =
+    if (this == NGSILD_CORE_CONTEXT)
+        AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
+    else this

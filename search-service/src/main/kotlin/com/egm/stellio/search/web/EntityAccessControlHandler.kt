@@ -2,8 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.*
 import arrow.core.continuations.either
-import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.*
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
@@ -11,8 +10,8 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
@@ -42,7 +41,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
 
             val queryParams = parseAndCheckParams(
@@ -96,7 +95,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
             val queryParams = parseAndCheckParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
@@ -143,7 +142,7 @@ class EntityAccessControlHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val body = requestBody.awaitFirst().deserializeAsMap()
-            val contexts = checkAndGetContext(httpHeaders, body)
+            val contexts = checkAndGetContext(httpHeaders, body).addAuthzContextIfNeeded()
             val jsonLdAttributes = expandJsonLdFragment(body, contexts)
             val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
 
@@ -236,6 +235,7 @@ class EntityAccessControlHandler(
 
     @PostMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun updateSpecificAccessPolicy(
+        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
@@ -245,9 +245,15 @@ class EntityAccessControlHandler(
             val entityUri = entityId.toUri()
             authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
 
-            val body = requestBody.awaitFirst()
-            val expandedPayload = expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val contexts = checkAndGetContext(httpHeaders, body).addAuthzContextIfNeeded()
+            val rawPayload = mapOf(AUTH_TERM_SAP to JsonLdUtils.removeContextFromInput(body))
+            val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
+            if (ngsiLdAttributes[0].name != AUTH_PROP_SAP)
+                BadRequestDataException(
+                    "${ngsiLdAttributes[0].name} is not authorized property name"
+                ).left().bind<ResponseEntity<*>>()
 
             entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()
 

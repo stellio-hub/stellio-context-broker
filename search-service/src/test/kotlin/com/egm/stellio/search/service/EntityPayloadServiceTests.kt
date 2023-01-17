@@ -7,8 +7,8 @@ import com.egm.stellio.search.util.buildSapAttribute
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -287,8 +287,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "value": "AUTH_WRITE"
             }]
             """.trimIndent()
-        val ngsiLdAttributes =
-            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+        val ngsiLdAttributes = parseToNgsiLdAttributes(
+            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
             .shouldFail {
@@ -309,8 +310,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes =
-            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+        val ngsiLdAttributes = parseToNgsiLdAttributes(
+            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
             .shouldSucceedWith { assertEquals(AUTH_READ, it) }
@@ -326,8 +328,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes =
-            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+        val ngsiLdAttributes = parseToNgsiLdAttributes(
+            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        )
 
         val expectedMessage =
             "Value must be one of AUTH_READ or AUTH_WRITE " +
@@ -351,8 +354,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes =
-            parseToNgsiLdAttributes(expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, COMPOUND_AUTHZ_CONTEXT))
+        val ngsiLdAttributes = parseToNgsiLdAttributes(
+            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
             .shouldFail {

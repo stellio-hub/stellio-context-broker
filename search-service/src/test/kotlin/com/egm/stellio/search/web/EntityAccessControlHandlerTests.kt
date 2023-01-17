@@ -12,6 +12,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_KIND
@@ -21,7 +22,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT

@@ -140,3 +140,13 @@ enum class AccessRight(val attributeName: String) {
             }
     }
 }
+
+fun List<String>.addAuthzContextIfNeeded(): List<String> =
+    if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)
+        this.plus(AuthContextModel.AUTHORIZATION_CONTEXT)
+    else this
+
+fun String.addAuthzContextIfNeeded(): String =
+    if (this == NGSILD_CORE_CONTEXT)
+        AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
+    else this

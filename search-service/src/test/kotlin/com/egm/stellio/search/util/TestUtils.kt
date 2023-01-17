@@ -5,8 +5,8 @@ import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -16,7 +16,7 @@ fun buildAttributeInstancePayload(
     datasetId: URI? = null,
     instanceId: URI? = null,
     attributeType: TemporalEntityAttribute.AttributeType = TemporalEntityAttribute.AttributeType.Property
-) = JsonUtils.serializeObject(
+) = serializeObject(
     mapOf(
         "type" to attributeType.toString(),
         "datasetId" to datasetId,
@@ -41,6 +41,6 @@ fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolic
         """.trimIndent()
 
     return parseToNgsiLdAttributes(
-        JsonLdUtils.expandJsonLdFragment(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        expandJsonLdFragment(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
     )[0]
 }

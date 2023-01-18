@@ -321,7 +321,7 @@ class TemporalEntityAttributeService(
             """
             DELETE FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+            ${datasetId.toDatasetIdFilter()}
             AND attribute_name = :attribute_name
             """.trimIndent()
         )
@@ -608,7 +608,7 @@ class TemporalEntityAttributeService(
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
             AND attribute_name = :attribute_name
-            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+            ${datasetId.toDatasetIdFilter()}
             """.trimIndent()
 
         return databaseClient
@@ -634,7 +634,7 @@ class TemporalEntityAttributeService(
             SELECT count(entity_id) as count
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-            ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+            ${datasetId.toDatasetIdFilter()}
             AND attribute_name = :attribute_name
             """.trimIndent()
 
@@ -684,7 +684,7 @@ class TemporalEntityAttributeService(
                         from temporal_entity_attribute 
                         where entity_id = :entity_id 
                         and attribute_name = :attribute_name
-                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                        ${datasetId.toDatasetIdFilter()}
                     ) as attributeNameExists;
             """.trimIndent()
 

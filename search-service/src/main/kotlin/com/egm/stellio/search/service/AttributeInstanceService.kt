@@ -312,7 +312,7 @@ class AttributeInstanceService(
                     FROM temporal_entity_attribute 
                     WHERE entity_id = :entity_id 
                     AND attribute_name = :attribute_name
-                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                    ${datasetId.toDatasetIdFilter()}
                 )
                 """.trimIndent()
 

@@ -18,7 +18,6 @@
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$@Transactional suspend fun partialUpdateEntityAttribute( entityId: URI, expandedPayload: Map&lt;String, List&lt;Map&lt;String, List&lt;Any&gt;&gt;&gt;&gt;, sub: Sub? ): Either&lt;APIException, UpdateResult&gt;</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, geoValue: WKTCoordinates? = null, payload: ExpandedAttributePayloadEntry, sub: String? = null )</ID>
-    <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, right: String, specificAccessPolicy: String? = null, rCanReadUser: URI? = null, context: String )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, jsonLdAttributes: Map&lt;String, Any&gt;, updateResult: UpdateResult, overwrite: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityHandler.kt$EntityHandler$( private val applicationProperties: ApplicationProperties, private val entityPayloadService: EntityPayloadService, private val temporalEntityAttributeService: TemporalEntityAttributeService, private val queryService: QueryService, private val authorizationService: AuthorizationService, private val entityAccessRightsService: EntityAccessRightsService, private val entityEventService: EntityEventService )</ID>
@@ -30,6 +29,7 @@
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
+    <ID>TooManyFunctions:DBUtils.kt$com.egm.stellio.search.util.DBUtils.kt</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>

@@ -61,7 +61,7 @@ class EnabledAuthorizationService(
             sub
         ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
-    override suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
             listOf(AccessRight.R_CAN_ADMIN),

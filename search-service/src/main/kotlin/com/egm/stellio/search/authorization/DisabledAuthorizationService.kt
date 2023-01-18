@@ -26,7 +26,7 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
     override suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =

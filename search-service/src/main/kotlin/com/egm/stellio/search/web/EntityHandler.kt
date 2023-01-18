@@ -210,7 +210,7 @@ class EntityHandler(
             entityPayloadService.checkEntityExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
-            authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
+            authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalEntityReferences(entityUri).bind()
 

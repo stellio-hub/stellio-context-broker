@@ -162,7 +162,7 @@ class EntityAccessControlHandler(
                 .partition {
                     // we don't have any sub-relationships here, so let's just take the first
                     val targetEntityId = it.second.getLinkedEntitiesIds().first()
-                    authorizationService.userIsAdminOfEntity(targetEntityId, sub).isRight()
+                    authorizationService.userCanAdminEntity(targetEntityId, sub).isRight()
                 }
             val unauthorizedInstancesDetails = unauthorizedInstances.map {
                 NotUpdatedDetails(
@@ -222,7 +222,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            authorizationService.userIsAdminOfEntity(entityId.toUri(), sub).bind()
+            authorizationService.userCanAdminEntity(entityId.toUri(), sub).bind()
 
             entityAccessRightsService.removeRoleOnEntity(subjectId, entityId.toUri()).bind()
 
@@ -243,7 +243,7 @@ class EntityAccessControlHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val entityUri = entityId.toUri()
-            authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
+            authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body).addAuthzContextIfNeeded()
@@ -272,7 +272,7 @@ class EntityAccessControlHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val entityUri = entityId.toUri()
-            authorizationService.userIsAdminOfEntity(entityUri, sub).bind()
+            authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
             entityPayloadService.removeSpecificAccessPolicy(entityId.toUri()).bind()
 

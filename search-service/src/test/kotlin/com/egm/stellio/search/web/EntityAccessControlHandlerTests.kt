@@ -91,7 +91,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAccessRightsService.setRoleOnEntity(any(), any(), any())
         } returns Unit.right()
@@ -103,7 +103,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
@@ -137,7 +137,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -147,7 +147,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify(exactly = 3) {
-            authorizationService.userIsAdminOfEntity(
+            authorizationService.userCanAdminEntity(
                 match { listOf(entityUri1, entityUri2, entityUri3).contains(it) },
                 eq(sub)
             )
@@ -191,9 +191,9 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(eq(entityUri1), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(eq(entityUri1), any()) } returns Unit.right()
         coEvery {
-            authorizationService.userIsAdminOfEntity(eq(entityUri2), any())
+            authorizationService.userCanAdminEntity(eq(entityUri2), any())
         } returns AccessDeniedException("Access denied").left()
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
@@ -307,7 +307,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
 
         webClient.delete()
@@ -317,7 +317,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
             entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1))
         }
@@ -326,7 +326,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should not allow an unauthorized user to remove access to an entity`() {
         coEvery {
-            authorizationService.userIsAdminOfEntity(any(), any())
+            authorizationService.userCanAdminEntity(any(), any())
         } returns AccessDeniedException("Access denied").left()
 
         webClient.delete()
@@ -334,12 +334,12 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        coVerify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
+        coVerify { authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub)) }
     }
 
     @Test
     fun `it should return a 404 if the subject has no right on the target entity`() {
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAccessRightsService.removeRoleOnEntity(any(), any())
         } returns ResourceNotFoundException("No right found for $subjectId on $entityUri1").left()
@@ -369,7 +369,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -381,7 +381,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
             entityPayloadService.updateSpecificAccessPolicy(
                 eq(entityUri1),
@@ -406,7 +406,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -416,7 +416,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
             entityPayloadService.updateSpecificAccessPolicy(
                 eq(entityUri1),
@@ -441,7 +441,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         val expectedAttr = "https://uri.etsi.org/ngsi-ld/default-context/specificAccessPolicy"
@@ -472,7 +472,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityPayloadService.updateSpecificAccessPolicy(any(), any())
         } returns BadRequestDataException("Bad request").left()
@@ -497,7 +497,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } throws RuntimeException()
 
         webClient.post()
@@ -512,7 +512,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should not allow an unauthorized user to set the specific access policy on an entity`() {
         coEvery {
-            authorizationService.userIsAdminOfEntity(any(), any())
+            authorizationService.userCanAdminEntity(any(), any())
         } returns AccessDeniedException("User is not admin of the target entity").left()
 
         webClient.post()
@@ -526,7 +526,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to delete the specific access policy on an entity`() {
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.removeSpecificAccessPolicy(any()) } returns Unit.right()
 
         webClient.delete()
@@ -536,7 +536,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
             entityPayloadService.removeSpecificAccessPolicy(eq(entityUri1))
         }

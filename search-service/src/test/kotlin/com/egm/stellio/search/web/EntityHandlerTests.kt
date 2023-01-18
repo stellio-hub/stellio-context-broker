@@ -1839,7 +1839,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
-        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
@@ -1853,7 +1853,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
-            authorizationService.userIsAdminOfEntity(eq(beehiveId), eq(sub))
+            authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(beehiveId))
             entityAccessRightsService.removeRolesOnEntity(eq(beehiveId))
         }
@@ -1896,7 +1896,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        coEvery { authorizationService.userIsAdminOfEntity(beehiveId, sub) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.deleteTemporalEntityReferences(any())
         } throws RuntimeException("Unexpected server error")
@@ -1923,7 +1923,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(beehiveId) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            authorizationService.userIsAdminOfEntity(beehiveId, sub)
+            authorizationService.userCanAdminEntity(beehiveId, sub)
         } returns AccessDeniedException("User forbidden admin access to entity $beehiveId").left()
 
         webClient.delete()

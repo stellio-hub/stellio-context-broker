@@ -691,7 +691,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(allEntitiesUris, emptyList())
         }
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
                 allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
@@ -739,7 +739,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(emptyList(), allEntitiesUris)
         }
-        coEvery { authorizationService.userIsAdminOfEntity(any(), any()) } answers { Unit.right() }
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } answers { Unit.right() }
 
         performBatchDeleteAndCheck207Response(ENTITY_DOES_NOT_EXIST_MESSAGE)
 
@@ -770,7 +770,7 @@ class EntityOperationHandlerTests {
                 }
             )
         coEvery {
-            authorizationService.userIsAdminOfEntity(any(), any())
+            authorizationService.userCanAdminEntity(any(), any())
         } returns AccessDeniedException(ENTITY_DELETE_FORBIDDEN_MESSAGE).left()
 
         performBatchDeleteAndCheck207Response(ENTITY_DELETE_FORBIDDEN_MESSAGE)

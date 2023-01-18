@@ -205,7 +205,7 @@ class EntityOperationHandler(
 
             val (entitiesUserCannotAdmin, entitiesUserCanAdmin) =
                 entitiesBeforeDelete.partition {
-                    authorizationService.userIsAdminOfEntity(it.entityId, sub).isLeft()
+                    authorizationService.userCanAdminEntity(it.entityId, sub).isLeft()
                 }
 
             val batchOperationResult = BatchOperationResult().apply {

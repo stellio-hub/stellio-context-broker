@@ -1,9 +1,5 @@
-package com.egm.stellio.entity
+package com.egm.stellio.search.model
 
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

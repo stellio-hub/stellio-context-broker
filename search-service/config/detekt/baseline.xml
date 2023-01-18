@@ -29,7 +29,6 @@
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
-    <ID>TooManyFunctions:DBUtils.kt$com.egm.stellio.search.util.DBUtils.kt</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>

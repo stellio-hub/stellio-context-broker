@@ -5,8 +5,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.toUri
-import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -17,10 +15,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
-import java.util.UUID
 
 const val DATETIME_TEMPLATE: String = "\"YYYY-MM-DD\\\"T\\\"HH24:MI:SS.US\\\"Z\\\"\""
 
@@ -70,18 +64,5 @@ fun URI?.toDatasetIdFilter(): String =
     if (this != null) "AND dataset_id = :dataset_id"
     else "AND dataset_id IS NULL"
 
-fun toUri(entry: Any?): URI = (entry as String).toUri()
-fun toOptionalUri(entry: Any?): URI? = (entry as? String)?.toUri()
-fun toUuid(entry: Any?): UUID = entry as UUID
-fun toBoolean(entry: Any?): Boolean = entry as Boolean
-fun toZonedDateTime(entry: Any?): ZonedDateTime =
-    (entry as OffsetDateTime).atZoneSameInstant(ZoneOffset.UTC)
-fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
-    (entry as? OffsetDateTime)?.atZoneSameInstant(ZoneOffset.UTC)
-fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
-fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
-fun toJsonString(entry: Any?): String = (entry as Json).asString()
-inline fun <reified T : Enum<T>> toEnum(entry: Any) = enumValueOf<T>(entry as String)
-inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
-    (entry as? String)?.let { enumValueOf<T>(it) }
-fun toInt(entry: Any?): Int = (entry as Long).toInt()
+fun String.wrapToAndClause(clause: String): String =
+    this.plus(" AND (").plus(clause).plus(")")

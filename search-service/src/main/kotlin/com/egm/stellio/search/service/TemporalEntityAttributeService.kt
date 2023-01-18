@@ -358,7 +358,7 @@ class TemporalEntityAttributeService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
+                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
             else it
         }
 
@@ -390,7 +390,7 @@ class TemporalEntityAttributeService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
+                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
             else it
         }
 

@@ -70,33 +70,44 @@ class TemporalEntityService {
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
                 .mapValues { (_, attributeInstanceResults) ->
                     attributeInstanceResults.map { attributeInstanceResult ->
-                        attributeInstanceResult as FullAttributeInstanceResult
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
-                            .let { jsonMap ->
-                                if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
-                                    jsonMap.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
-                                else jsonMap
-                            }.let { jsonMap ->
-                                // FIXME in the history of attributes, we have a mix of
-                                //   - compacted fragments (before v2)
-                                //   - expanded fragments (since v2)
-                                //  to avoid un-necessary (expensive) compactions, quick check to see if the fragment
-                                //  is already compacted
-                                if (jsonMap.containsKey(JSONLD_TYPE))
-                                    compactFragment(jsonMap, contexts).minus(JSONLD_CONTEXT)
-                                else jsonMap
-                            }.let { jsonMap ->
-                                if (jsonMap[JSONLD_TYPE_TERM] == "GeoProperty")
-                                    jsonMap.plus(JSONLD_VALUE to wktToGeoJson(jsonMap[JSONLD_VALUE]!! as String))
-                                else jsonMap
-                            }
-                            .plus(
+                            .let { instancePayload ->
+                                injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
+                            }.let { instancePayload ->
+                                compactAttributeInstance(instancePayload, contexts)
+                            }.let { instancePayload ->
+                                convertGeoProperty(instancePayload)
+                            }.plus(
                                 attributeInstanceResult.timeproperty to attributeInstanceResult.time.toNgsiLdFormat()
                             )
                     }
                 }
         }
     }
+
+    // FIXME in the history of attributes, we have a mix of
+    //   - compacted fragments (before v2)
+    //   - expanded fragments (since v2)
+    //  to avoid un-necessary (expensive) compactions, quick check to see if the fragment
+    //  is already compacted
+    private fun compactAttributeInstance(instancePayload: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+        if (instancePayload.containsKey(JSONLD_TYPE))
+            compactFragment(instancePayload, contexts).minus(JSONLD_CONTEXT)
+        else instancePayload
+
+    private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =
+        if (instancePayload[JSONLD_TYPE_TERM] == "GeoProperty")
+            instancePayload.plus(JSONLD_VALUE to wktToGeoJson(instancePayload[JSONLD_VALUE]!! as String))
+        else instancePayload
+
+    private fun injectSub(
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        attributeInstanceResult: FullAttributeInstanceResult,
+        instancePayload: Map<String, Any>
+    ): Map<String, Any> =
+        if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
+            instancePayload.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
+        else instancePayload
 
     /**
      * Creates the simplified representation for each temporal entity attribute in the input map.
@@ -135,7 +146,7 @@ class TemporalEntityService {
      */
     private fun mergeFullTemporalAttributesOnAttributeName(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult
-    ): Map<ExpandedTerm, List<AttributeInstanceResult>> =
+    ): Map<ExpandedTerm, List<FullAttributeInstanceResult>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->
                 temporalEntityAttribute.attributeName
@@ -143,7 +154,7 @@ class TemporalEntityService {
             .toMap()
             .mapValues {
                 it.value.map { (_, attributeInstancesResults) ->
-                    attributeInstancesResults
+                    attributeInstancesResults as List<FullAttributeInstanceResult>
                 }.flatten()
             }
 

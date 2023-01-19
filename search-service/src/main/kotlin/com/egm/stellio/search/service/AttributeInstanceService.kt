@@ -255,7 +255,9 @@ class AttributeInstanceService(
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
-                value = row["value"]!!,
+                // the type of the value of a property may have changed in the history (e.g., from number to string)
+                // in this case, just display an empty value (something happened, but we can't display it)
+                value = row["value"] ?: "",
                 time = toOptionalZonedDateTime(row["time_bucket"]) ?: toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(

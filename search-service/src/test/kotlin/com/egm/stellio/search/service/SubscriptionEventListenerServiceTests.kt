@@ -31,7 +31,7 @@ import java.util.UUID
     classes = [SubscriptionEventListenerService::class]
 )
 @ActiveProfiles("test")
-class SubscriptionEventListenerServiceTest {
+class SubscriptionEventListenerServiceTests {
 
     @Autowired
     private lateinit var subscriptionEventListenerService: SubscriptionEventListenerService

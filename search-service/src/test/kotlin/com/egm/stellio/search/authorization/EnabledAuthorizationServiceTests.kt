@@ -27,7 +27,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EnabledAuthorizationService::class])
 @ActiveProfiles("test")
-class EnabledAuthorizationServiceTest {
+class EnabledAuthorizationServiceTests {
 
     @Autowired
     private lateinit var enabledAuthorizationService: EnabledAuthorizationService

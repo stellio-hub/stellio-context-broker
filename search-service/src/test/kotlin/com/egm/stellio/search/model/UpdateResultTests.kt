@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-class UpdateResultTest {
+class UpdateResultTests {
 
     @Test
     fun `it should find the successful update operation results`() {

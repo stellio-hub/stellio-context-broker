@@ -30,7 +30,7 @@ import java.time.ZoneOffset
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeServiceTest : WithTimescaleContainer, WithKafkaContainer {
+class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var attributeService: AttributeService

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.ZoneOffset
 
-class EntityModelTest {
+class EntityModelTests {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 

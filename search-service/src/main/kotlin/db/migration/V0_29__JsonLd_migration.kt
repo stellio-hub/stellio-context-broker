@@ -52,7 +52,9 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         "$EGM_NO_BRANCH_BASE_CONTEXT_URL/feature/mlaas-models/mlaas/jsonld-contexts/mlaas-compound.jsonld" to
             "$EGM_BASE_CONTEXT_URL/mlaas/jsonld-contexts/mlaas-ngsild-compound.jsonld",
         "$EGM_NO_BRANCH_BASE_CONTEXT_URL/ngsi-ld-v1.2/mapping/jsonld-contexts/mapping-compound.jsonld" to
-            "$EGM_BASE_CONTEXT_URL/mapping/jsonld-contexts/mapping-compound.jsonld"
+            "$EGM_BASE_CONTEXT_URL/mapping/jsonld-contexts/mapping-compound.jsonld",
+        "$EGM_BASE_CONTEXT_URL/agriMushroom/jsonld-contexts/agri-mushroom-compound.jsonld" to
+            "$EGM_BASE_CONTEXT_URL/graced/jsonld-contexts/graced.jsonld"
     )
 
     private val defaultZonedDateTime = ZonedDateTime.parse("1970-01-01T00:00:00Z")

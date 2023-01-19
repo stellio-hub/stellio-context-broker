@@ -8,12 +8,15 @@ import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.addDateTimeProperty
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -197,7 +200,7 @@ class EntityPayloadService(
                 return@either updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
-                            attributeName = JsonLdUtils.JSONLD_TYPE,
+                            attributeName = JSONLD_TYPE,
                             updateOperationResult = UpdateOperationResult.FAILED,
                             errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
                         )
@@ -230,7 +233,7 @@ class EntityPayloadService(
                     updateResultFromDetailedResult(
                         listOf(
                             UpdateAttributeResult(
-                                attributeName = JsonLdUtils.JSONLD_TYPE,
+                                attributeName = JSONLD_TYPE,
                                 updateOperationResult = UpdateOperationResult.APPENDED
                             )
                         )

@@ -1,18 +1,23 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.EntityPayload
+import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.buildSapAttribute
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -173,6 +178,143 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should retrieve a list of entity payloads`() = runTest {
+        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            expandedPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        val entityPayloads = entityPayloadService.retrieve(listOf(entity01Uri))
+        assertEquals(1, entityPayloads.size)
+        assertEquals(entity01Uri, entityPayloads[0].entityId)
+        assertJsonPayloadsAreEqual(expandedPayload, entityPayloads[0].entityPayload)
+    }
+
+    @Test
+    fun `it should check the existence or non-existence of an entity`() = runTest {
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        entityPayloadService.checkEntityExistence(entity01Uri).shouldSucceed()
+        entityPayloadService.checkEntityExistence(entity02Uri)
+            .shouldFail { assert(it is ResourceNotFoundException) }
+        entityPayloadService.checkEntityExistence(entity01Uri, true)
+            .shouldFail { assert(it is AlreadyExistsException) }
+        entityPayloadService.checkEntityExistence(entity02Uri, true).shouldSucceed()
+    }
+
+    @Test
+    fun `it should filter existing entities from a list of ids`() = runTest {
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        val existingEntities = entityPayloadService.filterExistingEntitiesAsIds(listOf(entity01Uri, entity02Uri))
+        assertEquals(1, existingEntities.size)
+        assertEquals(entity01Uri, existingEntities[0])
+    }
+
+    @Test
+    fun `it should return an empty list if no ids are provided to the filter on existence`() = runTest {
+        val existingEntities = entityPayloadService.filterExistingEntitiesAsIds(emptyList())
+        assertTrue(existingEntities.isEmpty())
+    }
+
+    @Test
+    fun `it should get the types of an entity`() = runTest {
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE, APIARY_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        entityPayloadService.getTypes(entity01Uri)
+            .shouldSucceedWith {
+                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it)
+            }
+    }
+
+    @Test
+    fun `it should return an error if trying to get the type of a non-existent entity`() = runTest {
+        entityPayloadService.getTypes(entity01Uri)
+            .shouldFail { assertTrue(it is ResourceNotFoundException) }
+    }
+
+    @Test
+    fun `it should add a type to an entity`() = runTest {
+        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            expandedPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        entityPayloadService.updateTypes(entity01Uri, listOf(BEEHIVE_TYPE, APIARY_TYPE), false)
+            .shouldSucceedWith {
+                assertTrue(it.isSuccessful())
+                assertEquals(1, it.updated.size)
+                val updatedDetails = it.updated[0]
+                assertEquals(JSONLD_TYPE, updatedDetails.attributeName)
+                assertEquals(UpdateOperationResult.APPENDED, updatedDetails.updateOperationResult)
+            }
+
+        entityPayloadService.retrieve(entity01Uri)
+            .shouldSucceedWith {
+                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
+                assertEquals(
+                    listOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    it.entityPayload.deserializeExpandedPayload()[JSONLD_TYPE]
+                )
+            }
+    }
+
+    @Test
+    fun `it should not add a type if existing types are not in the list of types to add`() = runTest {
+        entityPayloadService.createEntityPayload(
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(APIC_COMPOUND_CONTEXT),
+            null
+        )
+
+        entityPayloadService.updateTypes(entity01Uri, listOf(APIARY_TYPE), false)
+            .shouldSucceedWith {
+                assertFalse(it.isSuccessful())
+                assertEquals(1, it.notUpdated.size)
+                val notUpdatedDetails = it.notUpdated[0]
+                assertEquals(JSONLD_TYPE, notUpdatedDetails.attributeName)
+                assertEquals(
+                    "A type cannot be removed from an entity: [$BEEHIVE_TYPE] have been removed",
+                    notUpdatedDetails.reason
+                )
+            }
+    }
+
+    @Test
     fun `it should upsert an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
             entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
@@ -180,23 +322,6 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.upsertEntityPayload(entity01Uri, EMPTY_PAYLOAD)
             .shouldSucceed()
-    }
-
-    @Test
-    fun `it should update the types of a temporal entity`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
-        )
-
-        entityPayloadService.updateTypes(entity01Uri, listOf(BEEHIVE_TYPE, APIARY_TYPE))
-            .shouldSucceedWith {
-                it.isSuccessful()
-            }
-
-        entityPayloadService.retrieve(entity01Uri)
-            .shouldSucceedWith {
-                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
-            }
     }
 
     @Test

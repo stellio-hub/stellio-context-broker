@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.QueryParams
@@ -44,6 +45,67 @@ class QueryServiceTests {
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
+    @Test
+    fun `it should return a JSON-LD entity when querying by id`() = runTest {
+        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
+        val entityPayload = mockkClass(EntityPayload::class) {
+            every { entityId } returns entityUri
+            every { entityPayload } returns expandedPayload
+        }
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns entityPayload.right()
+
+        queryService.queryEntity(entityUri, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedWith {
+                assertEquals(entityUri.toString(), it.id)
+                assertEquals(listOf(BEEHIVE_TYPE), it.types)
+                assertEquals(6, it.properties.size)
+            }
+    }
+
+    @Test
+    fun `it should return an API exception if no entity exists with the given id`() = runTest {
+        coEvery { entityPayloadService.retrieve(any<URI>()) } returns ResourceNotFoundException("").left()
+
+        queryService.queryEntity(entityUri, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldFail {
+                assertTrue(it is ResourceNotFoundException)
+            }
+    }
+
+    @Test
+    fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
+        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
+        val entityPayload = mockkClass(EntityPayload::class) {
+            every { entityId } returns entityUri
+            every { entityPayload } returns expandedPayload
+        }
+
+        coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
+        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns listOf(entityPayload)
+
+        queryService.queryEntities(buildDefaultQueryParams()) { null }
+            .shouldSucceedWith {
+                assertEquals(1, it.second)
+                assertEquals(entityUri.toString(), it.first[0].id)
+                assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
+                assertEquals(6, it.first[0].properties.size)
+            }
+    }
+
+    @Test
+    fun `it should return an empty list if no entity matched the query`() = runTest {
+        coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns emptyList()
+
+        queryService.queryEntities(buildDefaultQueryParams()) { null }
+            .shouldSucceedWith {
+                assertEquals(0, it.second)
+                assertTrue(it.first.isEmpty())
+            }
+
+        coVerify { temporalEntityAttributeService.getCountForEntities(any(), any()) wasNot Called }
+    }
 
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {

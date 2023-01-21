@@ -121,7 +121,7 @@ class ApiTestsBootstrapper(
 
     suspend fun createSubject(subjectId: String, subjectReferential: SubjectReferential) =
         subjectReferentialService.retrieve(subjectId)
-            .tapLeft {
+            .onLeft {
                 subjectReferentialService.create(subjectReferential)
             }
 }

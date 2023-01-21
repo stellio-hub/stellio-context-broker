@@ -244,7 +244,7 @@ class AttributeInstanceService(
         return databaseClient
             .sql(selectQuery)
             .oneToResult { toZonedDateTime(it["first"]) }
-            .orNull()
+            .getOrNull()
     }
 
     private fun rowToAttributeInstanceResult(

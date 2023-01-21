@@ -58,7 +58,7 @@ class ObservationEventListener(
             observationEvent.operationPayload,
             observationEvent.contexts,
             observationEvent.sub
-        ).tap {
+        ).onRight {
             entityEventService.publishEntityCreateEvent(
                 observationEvent.sub,
                 observationEvent.entityId,

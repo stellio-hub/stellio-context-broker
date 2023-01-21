@@ -59,11 +59,11 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
         throw BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'")
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
-        ?.getOrHandle {
+        ?.getOrElse {
             throw BadRequestDataException(it)
         }
 
-    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrHandle {
+    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrElse {
         throw BadRequestDataException(it)
     }
 

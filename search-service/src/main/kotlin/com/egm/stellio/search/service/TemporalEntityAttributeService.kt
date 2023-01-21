@@ -768,7 +768,7 @@ class TemporalEntityAttributeService(
                         null
                     ).right()
                 }
-            }.tap {
+            }.onRight {
                 // update modifiedAt in entity if at least one attribute has been added
                 if (it.hasSuccessfulUpdate()) {
                     val teas = getForEntity(entityUri, emptySet())
@@ -830,7 +830,7 @@ class TemporalEntityAttributeService(
                         message
                     ).right()
                 }
-            }.tap {
+            }.onRight {
                 // update modifiedAt in entity if at least one attribute has been added
                 if (it.hasSuccessfulUpdate()) {
                     val teas = getForEntity(entityUri, emptySet())

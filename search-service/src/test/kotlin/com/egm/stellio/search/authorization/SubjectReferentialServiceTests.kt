@@ -2,14 +2,10 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.Some
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.EMPTY_PAYLOAD
-import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
-import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.shouldSucceed
-import com.egm.stellio.shared.util.shouldSucceedWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -443,9 +439,9 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.retrieve(subjectUuid)
             .fold({
-                assertInstanceOf(ResourceNotFoundException::class.java, it)
+                assertInstanceOf(AccessDeniedException::class.java, it)
             }, {
-                fail("it should have returned a ResourceNotFoundException exception")
+                fail("it should have returned a AccessDeniedException exception")
             })
     }
 

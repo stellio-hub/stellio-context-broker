@@ -6,7 +6,7 @@ import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -59,7 +59,7 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", sub)
-            .oneToResult(ResourceNotFoundException("No subject information found for $sub")) {
+            .oneToResult(AccessDeniedException("No subject information found for $sub")) {
                 rowToSubjectReferential(it)
             }
 
@@ -73,7 +73,7 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
-            .oneToResult(ResourceNotFoundException("No subject information found for $sub")) {
+            .oneToResult(AccessDeniedException("No subject information found for ${sub.value}")) {
                 val subs = (toOptionalList<Sub>(it["groups_memberships"]) ?: emptyList())
                     .plus(it["subject_id"] as Sub)
                 if (it["service_account_id"] != null)

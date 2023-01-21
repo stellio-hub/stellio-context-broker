@@ -249,7 +249,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should get all entities an user has access to`() = runTest {
-
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()

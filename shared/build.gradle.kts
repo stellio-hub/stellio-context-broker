@@ -28,7 +28,7 @@ dependencies {
         exclude(module = "mockito-core")
     }
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 
     testFixturesApi("org.testcontainers:testcontainers")
     testFixturesApi("org.testcontainers:junit-jupiter")

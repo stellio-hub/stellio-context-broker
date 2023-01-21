@@ -23,7 +23,7 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.1.1")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

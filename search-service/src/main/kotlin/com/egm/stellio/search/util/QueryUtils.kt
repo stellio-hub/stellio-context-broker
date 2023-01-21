@@ -29,10 +29,12 @@ fun parseAndCheckQueryParams(
         throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AUDIT
     )
     val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities)
 

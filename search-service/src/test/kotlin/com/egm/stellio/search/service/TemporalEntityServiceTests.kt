@@ -139,8 +139,11 @@ class TemporalEntityServiceTests {
             )
         )
         val temporalQuery = TemporalQuery(
-            TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null, "1 day", TemporalQuery.Aggregate.SUM
+            TemporalQuery.Timerel.AFTER,
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            null,
+            "1 day",
+            TemporalQuery.Aggregate.SUM
         )
         val entityPayload = EntityPayload(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),

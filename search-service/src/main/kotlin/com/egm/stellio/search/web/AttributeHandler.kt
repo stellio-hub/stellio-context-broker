@@ -27,7 +27,6 @@ class AttributeHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val detailedRepresentation = details.orElse(false)
         return either<APIException, ResponseEntity<*>> {
-
             val availableAttribute: Any = if (detailedRepresentation)
                 attributeService.getAttributeDetails(listOf(contextLink))
             else

@@ -413,13 +413,13 @@ class EntityHandlerTests {
             .expectBody()
             .json(
                 """
-                    {
-                        "id": "$beehiveId",
-                        "type": "Beehive",
-                        "prop1": "some value",
-                        "rel1": "urn:ngsi-ld:Entity:1234",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
-                    }
+                {
+                    "id": "$beehiveId",
+                    "type": "Beehive",
+                    "prop1": "some value",
+                    "rel1": "urn:ngsi-ld:Entity:1234",
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                }
                 """.trimIndent()
             )
     }
@@ -437,7 +437,8 @@ class EntityHandlerTests {
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
-            beehiveId.toString(), setOf("https://uri.etsi.org/ngsi-ld/default-context/attr2")
+            beehiveId.toString(),
+            setOf("https://uri.etsi.org/ngsi-ld/default-context/attr2")
         )
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId?attrs=attr2")
@@ -641,12 +642,12 @@ class EntityHandlerTests {
             .expectStatus().isOk
             .expectBody().json(
                 """
-                    {
-                        "id":"urn:ngsi-ld:Beehive:4567",
-                        "type":"Beehive",
-                        "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
-                    }
+                {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                }
                 """.trimIndent()
             )
     }
@@ -733,16 +734,16 @@ class EntityHandlerTests {
             .expectStatus().isOk
             .expectBody().json(
                 """
-                    {
-                        "id":"urn:ngsi-ld:Beehive:4567",
-                        "type":"Beehive",
-                        "managedBy": {
-                          "type":"Relationship",
-                           "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
-                            "object":"urn:ngsi-ld:Beekeeper:1230"
-                        },
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
-                    }
+                {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "managedBy": {
+                      "type":"Relationship",
+                       "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
+                        "object":"urn:ngsi-ld:Beekeeper:1230"
+                    },
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                }
                 """.trimIndent()
             )
     }
@@ -909,13 +910,14 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                """[
-                        {
-                            "id": "$beehiveId",
-                            "type": "Beehive",
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "$beehiveId",
+                        "type": "Beehive",
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    }
+                ]
                 """.trimMargin()
             )
             .jsonPath("[0].createdAt").doesNotExist()
@@ -959,14 +961,15 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                """[
-                        {
-                            "id": "$beehiveId",
-                            "type": "Beehive",
-                            "createdAt":"2015-10-18T11:20:30.000001Z",
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "$beehiveId",
+                        "type": "Beehive",
+                        "createdAt":"2015-10-18T11:20:30.000001Z",
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    }
+                ]
                 """.trimMargin()
             )
     }
@@ -998,13 +1001,14 @@ class EntityHandlerTests {
                     "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
             .expectBody().json(
-                """[
-                        {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
-                            "type": "Beehive",
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "urn:ngsi-ld:Beehive:TESTC",
+                        "type": "Beehive",
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    }
+                ]
                 """.trimMargin()
             )
     }
@@ -1087,13 +1091,14 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                """[
-                        {
-                            "id": "$beehiveId",
-                            "type": "Beehive",
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "$beehiveId",
+                        "type": "Beehive",
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                    }
+                ]
                 """.trimMargin()
             )
     }

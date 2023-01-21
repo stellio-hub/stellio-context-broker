@@ -161,9 +161,7 @@ class SubscriptionEventListenerService(
                 payload = payload
             )
             attributeInstanceService.create(attributeInstance).bind()
-            temporalEntityAttributeService.updateStatus(
-                tea.id, ZonedDateTime.now(ZoneOffset.UTC), payload
-            ).bind()
+            temporalEntityAttributeService.updateStatus(tea.id, ZonedDateTime.now(ZoneOffset.UTC), payload).bind()
         }
     }
 

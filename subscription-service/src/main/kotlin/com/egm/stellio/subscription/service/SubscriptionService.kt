@@ -273,7 +273,12 @@ class SubscriptionService(
                     }
 
                     listOf(
-                        "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
+                        "subscriptionName",
+                        "description",
+                        "watchedAttributes",
+                        "timeInterval",
+                        "q",
+                        "isActive",
                         "modifiedAt"
                     ).contains(it.key) -> {
                         val columnName = it.key.toSqlColumnName()

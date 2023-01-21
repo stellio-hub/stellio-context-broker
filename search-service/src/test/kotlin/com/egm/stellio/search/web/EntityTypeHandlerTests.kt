@@ -40,62 +40,62 @@ class EntityTypeHandlerTests {
 
     private val expectedEntityTypeInfo =
         """
-            {
-               "id":"https://ontology.eglobalmark.com/apic#BeeHive",
-               "type":"EntityTypeInfo",
-               "typeName":"BeeHive",
-               "entityCount":2,
-               "attributeDetails":[
-                  {
-                     "id":"https://ontology.eglobalmark.com/apic#temperature",
-                     "type":"Attribute",
-                     "attributeName":"temperature",
-                     "attributeTypes":[
-                        "Property"
-                     ]
-                  },
-                  {
-                     "id":"https://ontology.eglobalmark.com/egm#managedBy",
-                     "type":"Attribute",
-                     "attributeName":"managedBy",
-                     "attributeTypes":[
-                        "Relationship"
-                     ]
-                  },
-                  {
-                     "id":"https://uri.etsi.org/ngsi-ld/location",
-                     "type":"Attribute",
-                     "attributeName":"location",
-                     "attributeTypes":[
-                        "GeoProperty"
-                     ]
-                  }
-               ]
-            }
+        {
+           "id":"https://ontology.eglobalmark.com/apic#BeeHive",
+           "type":"EntityTypeInfo",
+           "typeName":"BeeHive",
+           "entityCount":2,
+           "attributeDetails":[
+              {
+                 "id":"https://ontology.eglobalmark.com/apic#temperature",
+                 "type":"Attribute",
+                 "attributeName":"temperature",
+                 "attributeTypes":[
+                    "Property"
+                 ]
+              },
+              {
+                 "id":"https://ontology.eglobalmark.com/egm#managedBy",
+                 "type":"Attribute",
+                 "attributeName":"managedBy",
+                 "attributeTypes":[
+                    "Relationship"
+                 ]
+              },
+              {
+                 "id":"https://uri.etsi.org/ngsi-ld/location",
+                 "type":"Attribute",
+                 "attributeName":"location",
+                 "attributeTypes":[
+                    "GeoProperty"
+                 ]
+              }
+           ]
+        }
         """.trimIndent()
 
     private val expectedEntityTypes =
         """
-            [
-               {
-                  "id":"https://ontology.eglobalmark.com/aquac#DeadFishes",
-                  "type":"EntityType",
-                  "typeName":"DeadFishes",
-                  "attributeNames":[
-                     "https://ontology.eglobalmark.com/aquac#fishNumber",
-                     "https://ontology.eglobalmark.com/aquac#removedFrom"
-                  ]
-               },
-               {
-                  "id":"https://ontology.eglobalmark.com/egm#Sensor",
-                  "type":"EntityType",
-                  "typeName":"Sensor",
-                  "attributeNames":[
-                     "https://ontology.eglobalmark.com/aquac#isContainedIn",
-                     "https://ontology.eglobalmark.com/aquac#deviceParameter"
-                  ]
-               }
-            ]
+        [
+           {
+              "id":"https://ontology.eglobalmark.com/aquac#DeadFishes",
+              "type":"EntityType",
+              "typeName":"DeadFishes",
+              "attributeNames":[
+                 "https://ontology.eglobalmark.com/aquac#fishNumber",
+                 "https://ontology.eglobalmark.com/aquac#removedFrom"
+              ]
+           },
+           {
+              "id":"https://ontology.eglobalmark.com/egm#Sensor",
+              "type":"EntityType",
+              "typeName":"Sensor",
+              "attributeNames":[
+                 "https://ontology.eglobalmark.com/aquac#isContainedIn",
+                 "https://ontology.eglobalmark.com/aquac#deviceParameter"
+              ]
+           }
+        ]
         """.trimIndent()
 
     @Test

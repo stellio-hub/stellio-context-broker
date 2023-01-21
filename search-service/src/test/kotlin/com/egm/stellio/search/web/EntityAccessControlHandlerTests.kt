@@ -350,11 +350,11 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 """
-                    {
-                        "detail": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1",
-                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "The referred resource has not been found"
-                    }
+                {
+                    "detail": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1",
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title": "The referred resource has not been found"
+                }
                 """.trimIndent()
             )
     }
@@ -453,11 +453,11 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isBadRequest
             .expectBody().json(
                 """
-                    {
-                        "detail": "$expectedAttr is not authorized property name",
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                        "title":"The request includes input data which does not meet the requirements of the operation"
-                    }
+                {
+                    "detail": "$expectedAttr is not authorized property name",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation"
+                }
                 """.trimIndent()
             )
     }
@@ -602,28 +602,29 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
             .expectBody().json(
-                """[{
-                        "id": "urn:ngsi-ld:Beehive:TESTC",
-                        "type": "$BEEHIVE_TYPE",
-                        "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
-                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                """
+                [{
+                    "id": "urn:ngsi-ld:Beehive:TESTC",
+                    "type": "$BEEHIVE_TYPE",
+                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
+                    "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                },
+                {
+                    "id": "urn:ngsi-ld:Beehive:TESTD",
+                    "type": "$BEEHIVE_TYPE",
+                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanAdmin"},
+                    "$AUTH_TERM_SAP": {"type":"Property", "value": "$AUTH_READ"},
+                    "$AUTH_TERM_CAN_READ": {
+                        "type":"Relationship",
+                         "datasetId": "urn:ngsi-ld:Dataset:0123",
+                         "object": "$subjectId",
+                         "$AUTH_TERM_SUBJECT_INFO": {
+                            "type":"Property", 
+                            "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
+                         }
                     },
-                    {
-                        "id": "urn:ngsi-ld:Beehive:TESTD",
-                        "type": "$BEEHIVE_TYPE",
-                        "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanAdmin"},
-                        "$AUTH_TERM_SAP": {"type":"Property", "value": "$AUTH_READ"},
-                        "$AUTH_TERM_CAN_READ": {
-                            "type":"Relationship",
-                             "datasetId": "urn:ngsi-ld:Dataset:0123",
-                             "object": "$subjectId",
-                             "$AUTH_TERM_SUBJECT_INFO": {
-                                "type":"Property", 
-                                "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
-                             }
-                        },
-                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
-                    }]
+                    "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                }]
                 """.trimMargin()
             )
             .jsonPath("[0].createdAt").doesNotExist()
@@ -696,14 +697,15 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
             .expectBody().json(
-                """[
-                        {
-                            "id": "urn:ngsi-ld:group:1",
-                            "type": "$GROUP_COMPACT_TYPE",
-                            "name" : {"type":"Property", "value": "egm"},
-                            "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "urn:ngsi-ld:group:1",
+                        "type": "$GROUP_COMPACT_TYPE",
+                        "name" : {"type":"Property", "value": "egm"},
+                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                    }
+                ]
                 """.trimMargin()
             )
             .jsonPath("[0].createdAt").doesNotExist()
@@ -736,15 +738,16 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
             .expectBody().json(
-                """[
-                        {
-                            "id": "urn:ngsi-ld:group:01",
-                            "type": "Group",
-                            "name": {"type":"Property", "value": "egm"},
-                            "isMemberOf": {"type":"Property", "value": "true"},
-                            "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
-                        }
-                    ]
+                """
+                [
+                    {
+                        "id": "urn:ngsi-ld:group:01",
+                        "type": "Group",
+                        "name": {"type":"Property", "value": "egm"},
+                        "isMemberOf": {"type":"Property", "value": "true"},
+                        "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                    }
+                ]
                 """.trimMargin()
             )
             .jsonPath("[0].createdAt").doesNotExist()

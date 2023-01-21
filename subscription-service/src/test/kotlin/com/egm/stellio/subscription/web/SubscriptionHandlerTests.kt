@@ -633,11 +633,11 @@ class SubscriptionHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 """
-                    {
-                        "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found"
-                    }
+                {
+                    "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found"
+                }
                 """.trimIndent()
             )
 

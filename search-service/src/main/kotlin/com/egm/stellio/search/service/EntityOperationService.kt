@@ -71,7 +71,10 @@ class EntityOperationService(
                 ngsiLdEntity.prepareTemporalAttributes()
                     .flatMap { attributesMetadata ->
                         temporalEntityAttributeService.createEntityTemporalReferences(
-                            ngsiLdEntity, jsonLdEntity, attributesMetadata, sub
+                            ngsiLdEntity,
+                            jsonLdEntity,
+                            attributesMetadata,
+                            sub
                         )
                     }.map {
                         BatchEntitySuccess(ngsiLdEntity.id)
@@ -89,9 +92,7 @@ class EntityOperationService(
             }
         )
 
-        return BatchOperationResult(
-            creationResults.second.toMutableList(), creationResults.first.toMutableList()
-        )
+        return BatchOperationResult(creationResults.second.toMutableList(), creationResults.first.toMutableList())
     }
 
     suspend fun delete(entitiesIds: Set<URI>): BatchOperationResult {

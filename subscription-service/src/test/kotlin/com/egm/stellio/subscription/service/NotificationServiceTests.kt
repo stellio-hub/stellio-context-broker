@@ -56,31 +56,31 @@ class NotificationServiceTests {
 
     private val rawEntity =
         """
-            {
-               "id":"$apiaryId",
-               "type":"Apiary",
-               "name":{
-                  "type":"Property",
-                  "value":"ApiarySophia"
-               },
-               "excludedProp":{
-                  "type":"Property",
-                  "value":"excluded"
-               },
-               "location": {
-                  "type": "GeoProperty",
-                  "value": {
-                     "type": "Point",
-                     "coordinates": [
-                        24.30623,
-                        60.07966
-                     ]
-                  }
-               },
-               "@context":[
-                  "${contexts.joinToString("\",\"")}"                  
-               ]
-            } 
+        {
+           "id":"$apiaryId",
+           "type":"Apiary",
+           "name":{
+              "type":"Property",
+              "value":"ApiarySophia"
+           },
+           "excludedProp":{
+              "type":"Property",
+              "value":"excluded"
+           },
+           "location": {
+              "type": "GeoProperty",
+              "value": {
+                 "type": "Point",
+                 "coordinates": [
+                    24.30623,
+                    60.07966
+                 ]
+              }
+           },
+           "@context":[
+              "${contexts.joinToString("\",\"")}"                  
+           ]
+        } 
         """.trimIndent()
 
     private val parsedEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
@@ -386,7 +386,9 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity)
+                subscription,
+                apiaryId.toUri(),
+                expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {

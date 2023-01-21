@@ -170,7 +170,6 @@ fun parseAndCheckParams(
     requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): QueryParams {
-
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->

@@ -241,15 +241,15 @@ class EntityOperationHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
                 """
-                    {
-                        "errors": [
-                            {
-                                "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
-                                "error": [ "Entity does not exist" ]
-                            }
-                        ],
-                        "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
-                    }
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+                            "error": [ "Entity does not exist" ]
+                        }
+                    ],
+                    "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
+                }
                 """.trimIndent()
             )
     }
@@ -272,7 +272,10 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
         every {
             entityEventService.publishEntityCreateEvent(
-                any(), capture(capturedEntitiesIds), capture(capturedEntityTypes), any()
+                any(),
+                capture(capturedEntitiesIds),
+                capture(capturedEntityTypes),
+                any()
             )
         } returns Job()
 
@@ -318,7 +321,10 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
         every {
             entityEventService.publishEntityCreateEvent(
-                any(), capture(capturedEntitiesIds), capture(capturedEntityTypes), any()
+                any(),
+                capture(capturedEntitiesIds),
+                capture(capturedEntityTypes),
+                any()
             )
         } returns Job()
 

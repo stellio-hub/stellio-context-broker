@@ -192,7 +192,7 @@ class EnabledAuthorizationService(
                             """.trimIndent()
                         }
                     }
-                }.getOrElse { { null } }
+                }.getOrElse { { "1 = 0" } }
         }
     }
 

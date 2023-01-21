@@ -15,7 +15,7 @@ dependencies {
 springBoot {
     buildInfo {
         properties {
-            name = "Stellio Context Broker"
+            name.set("Stellio Context Broker")
         }
     }
 }

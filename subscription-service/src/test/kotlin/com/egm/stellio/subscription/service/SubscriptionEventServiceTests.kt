@@ -17,10 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.util.concurrent.SettableListenableFuture
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CompletableFuture
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionEventService::class])
 @ActiveProfiles("test")
@@ -40,7 +40,7 @@ class SubscriptionEventServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         runBlocking {
             subscriptionEventService.publishSubscriptionCreateEvent(
@@ -60,7 +60,7 @@ class SubscriptionEventServiceTests {
         val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
 
         every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
             null,
@@ -77,7 +77,7 @@ class SubscriptionEventServiceTests {
     suspend fun `it should publish an event of type SUBSCRIPTION_DELETE`() {
         val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
 
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         subscriptionEventService.publishSubscriptionDeleteEvent(
             null,
@@ -96,7 +96,7 @@ class SubscriptionEventServiceTests {
         every { notification.id } returns notificationUri
         every { notification.type } returns NGSILD_NOTIFICATION_TERM
         every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         subscriptionEventService.publishNotificationCreateEvent(null, notification)
 

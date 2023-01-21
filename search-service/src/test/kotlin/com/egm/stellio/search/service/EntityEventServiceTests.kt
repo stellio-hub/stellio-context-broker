@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.util.concurrent.SettableListenableFuture
+import java.util.concurrent.CompletableFuture
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventService::class])
@@ -69,7 +69,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should cross publish all events on the catch-all topic`() {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
@@ -89,7 +89,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should only publish events for valid topic names`() {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
@@ -111,7 +111,7 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
             null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
@@ -125,7 +125,7 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType, feedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
             null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
@@ -142,7 +142,7 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityReplaceEvent(
             null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
@@ -153,7 +153,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_DELETE event`() = runTest {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
             null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
@@ -164,7 +164,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish two ENTITY_DELETE events if entity has two types`() = runTest {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
             null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)

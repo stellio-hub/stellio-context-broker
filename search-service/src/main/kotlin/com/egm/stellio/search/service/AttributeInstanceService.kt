@@ -293,7 +293,7 @@ class AttributeInstanceService(
             .bind("attribute_name", attributeName)
             .bind("instance_id", instanceId)
             .executeExpected {
-                if (it == 0)
+                if (it == 0L)
                     ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
                 else Unit.right()
             }

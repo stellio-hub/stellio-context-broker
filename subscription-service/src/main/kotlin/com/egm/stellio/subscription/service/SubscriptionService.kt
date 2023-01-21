@@ -27,6 +27,7 @@ import com.egm.stellio.subscription.utils.execute
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
+import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -422,7 +423,7 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: URI): Mono<Int> =
+    fun delete(subscriptionId: URI): Mono<Long> =
         r2dbcEntityTemplate.delete(
             query(where("id").`is`(subscriptionId)),
             Subscription::class.java
@@ -569,7 +570,7 @@ class SubscriptionService(
         subscription: Subscription,
         notification: Notification,
         success: Boolean
-    ): Mono<Int> {
+    ): Mono<Long> {
         val subscriptionStatus =
             if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
         val lastStatusName = if (success) "last_success" else "last_failure"
@@ -585,7 +586,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToSubscription: ((Row) -> Subscription) = { row ->
+    private var rowToSubscription: ((Row, RowMetadata) -> Subscription) = { row, rowMetadata ->
         Subscription(
             id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
@@ -604,7 +605,7 @@ class SubscriptionService(
                     type = row.get("entity_type", String::class.java)!!
                 )
             ),
-            geoQ = rowToGeoQuery(row),
+            geoQ = rowToGeoQuery(row, rowMetadata),
             notification = NotificationParams(
                 attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
                 format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
@@ -624,7 +625,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToRawSubscription: ((Row) -> Subscription) = { row ->
+    private var rowToRawSubscription: ((Row, RowMetadata) -> Subscription) = { row, _ ->
         Subscription(
             id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
@@ -649,7 +650,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToGeoQuery: ((Row) -> GeoQuery?) = { row ->
+    private var rowToGeoQuery: ((Row, RowMetadata) -> GeoQuery?) = { row, _ ->
         if (row.get("georel", String::class.java) != null)
             GeoQuery(
                 georel = row.get("georel", String::class.java)!!,
@@ -662,15 +663,15 @@ class SubscriptionService(
             null
     }
 
-    private var matchesGeoQuery: ((Row) -> Boolean) = { row ->
+    private var matchesGeoQuery: ((Row, RowMetadata) -> Boolean) = { row, _ ->
         row.get("match", Object::class.java).toString() == "true"
     }
 
-    private var rowToSubscriptionCount: ((Row) -> Int) = { row ->
+    private var rowToSubscriptionCount: ((Row, RowMetadata) -> Int) = { row, _ ->
         row.get("count", Integer::class.java)!!.toInt()
     }
 
-    private var rowToSub: (Row) -> String = { row ->
+    private var rowToSub: (Row, RowMetadata) -> String = { row, _ ->
         row.get("sub", String::class.java)!!
     }
 

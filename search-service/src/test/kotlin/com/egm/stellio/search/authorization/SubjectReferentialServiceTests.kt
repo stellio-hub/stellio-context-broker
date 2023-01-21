@@ -373,7 +373,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId)
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(serviceAccountId)
             .shouldSucceedWith {
                 assertEquals(serviceAccountId, it.serviceAccountId)
             }

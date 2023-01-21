@@ -55,7 +55,7 @@ class SubjectReferentialService(
                 """
                 SELECT *
                 FROM subject_referential
-                WHERE subject_id = :subject_id                
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", sub)

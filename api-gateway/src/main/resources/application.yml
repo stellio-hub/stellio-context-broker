@@ -1,22 +1,4 @@
 spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          login-client:
-            provider: keycloak
-            client-id: api-gateway
-            client-secret: client-secret
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: openid,profile,email,resource.read
-        provider:
-          keycloak:
-            authorization-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/auth
-            token-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/token
-            user-info-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/userinfo
-            user-name-attribute: sub
-            jwk-set-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/certs
   cloud:
     gateway:
       routes:
@@ -25,14 +7,12 @@ spring:
           predicates:
             - Path=/search-service/actuator/**
           filters:
-            - TokenRelay=
             - RewritePath=/search-service/actuator, /actuator
         - id: subscription_service_actuator
           uri: http://subscription-service:8084
           predicates:
             - Path=/subscription-service/actuator/**
           filters:
-            - TokenRelay=
             - RewritePath=/subscription-service/actuator, /actuator
       globalcors:
         corsConfigurations:

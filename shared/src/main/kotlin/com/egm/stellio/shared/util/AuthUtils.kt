@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
-import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -78,7 +77,8 @@ suspend fun getSubFromSecurityContext(): Option<Sub> {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .map { context ->
-            context.authentication?.principal?.let { Some((it as Jwt).subject) } ?: None
+            // Authentication#getName maps to the JWT’s sub property, if one is present.
+            context.authentication?.name.toOption()
         }
         .awaitFirst()
 }

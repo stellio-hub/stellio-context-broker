@@ -80,11 +80,10 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            // to ensure we are using mocks and spies from springmockk lib instead
+            // to ensure we are using mocks and spies from springmockk (and not from Mockito)
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:3.1.2")
-        testImplementation("io.mockk:mockk:1.13.3")
+        testImplementation("com.ninja-squad:springmockk:4.0.0")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")

@@ -27,7 +27,7 @@ class EnabledAuthorizationService(
     override suspend fun userCanCreateEntities(sub: Option<Sub>): Either<APIException, Unit> =
         userIsOneOfGivenRoles(CREATION_ROLES, sub)
 
-    private suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
+    internal suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
         val matchingRoles = subjectReferentialService.getGlobalRoles(sub)
             .flattenOption()
             .intersect(roles)

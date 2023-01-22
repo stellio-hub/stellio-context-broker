@@ -25,6 +25,12 @@ spring:
               - DELETE
             allowedHeaders: "*"
 
+application:
+  search-service:
+    url: localhost
+  subscription-service:
+    url: localhost
+
 management:
   endpoints:
     enabled-by-default: false

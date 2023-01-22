@@ -1,0 +1,5 @@
+application:
+  search-service:
+    url: search-service
+  subscription-service:
+    url: subscription-service

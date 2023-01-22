@@ -1,7 +1,7 @@
 version: '3.9'
 services:
   kafka:
-    image: confluentinc/cp-kafka:7.2.0
+    image: confluentinc/cp-kafka:7.3.1
     container_name: stellio-kafka
     hostname: stellio-kafka
     ports:
@@ -84,5 +84,4 @@ services:
         condition: service_started
 
 volumes:
-  stellio-neo4j-storage:
   stellio-postgres-storage:

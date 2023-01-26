@@ -452,7 +452,7 @@ class EntityHandler(
             entityEventService.publishAttributeDeleteEvent(
                 sub.orNull(),
                 entityUri,
-                attrId,
+                expandedAttrId,
                 datasetId,
                 deleteAll,
                 contexts

@@ -1979,7 +1979,7 @@ class EntityHandlerTests {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
-                eq(TEMPERATURE_COMPACT_PROPERTY),
+                eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(false),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
@@ -2014,7 +2014,7 @@ class EntityHandlerTests {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
-                eq(TEMPERATURE_COMPACT_PROPERTY),
+                eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(true),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
@@ -2052,7 +2052,7 @@ class EntityHandlerTests {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
-                eq(TEMPERATURE_COMPACT_PROPERTY),
+                eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
                 eq(false),
                 eq(listOf(APIC_COMPOUND_CONTEXT))

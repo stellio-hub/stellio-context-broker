@@ -16,7 +16,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -158,7 +157,6 @@ object JsonLdUtils {
 
     fun expandJsonLdTerm(term: String, contexts: List<String>): String {
         val expandedType = JsonLdProcessor.expand(mapOf(term to mapOf<String, Any>()), defaultJsonLdOptions(contexts))
-        logger.debug("Expanded type $term to $expandedType")
         return if (expandedType.isNotEmpty())
             (expandedType[0] as Map<String, Any>).keys.first()
         else
@@ -168,10 +166,10 @@ object JsonLdUtils {
     fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         doJsonLdExpansion(fragment, contexts)
 
-    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> =
-        expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
+    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
+        expandJsonLdFragment(fragment.deserializeAsMap(), contexts) as Map<String, List<Any>>
 
-    fun expandJsonLdFragment(
+    fun expandAttribute(
         attributeName: String,
         attributePayload: String,
         contexts: List<String>
@@ -411,13 +409,6 @@ object JsonLdUtils {
     fun compactFragment(value: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
             .mapValues(restoreGeoPropertyValue())
-
-    fun compactAndSerialize(
-        jsonLdEntity: JsonLdEntity,
-        contexts: List<String>,
-        mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): String =
-        serializeObject(compact(jsonLdEntity, contexts, mediaType))
 
     fun filterCompactedEntityOnAttributes(
         input: CompactedJsonLdEntity,

@@ -5,7 +5,7 @@ import arrow.core.left
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +68,7 @@ class ObservationEventListener(
         }
 
     suspend fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent): Either<APIException, Unit> {
-        val expandedPayload = expandJsonLdFragment(
+        val expandedPayload = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
@@ -100,7 +100,7 @@ class ObservationEventListener(
     }
 
     suspend fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent): Either<APIException, Unit> {
-        val expandedPayload = expandJsonLdFragment(
+        val expandedPayload = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts

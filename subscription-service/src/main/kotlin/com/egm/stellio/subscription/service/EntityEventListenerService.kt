@@ -4,9 +4,9 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,16 +73,16 @@ class EntityEventListenerService(
     }
 
     private suspend fun handleEntityEvent(
-        updatedAttributes: Set<String>,
+        updatedAttributes: Set<ExpandedTerm>,
         entityPayload: String,
-        contexts: List<String>
+        contexts: List<ExpandedTerm>
     ): Either<APIException, Unit> {
         logger.debug("Attributes considered in the event: $updatedAttributes")
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
+        val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
         return notificationService.notifyMatchingSubscribers(
             jsonLdEntity,
             jsonLdEntity.toNgsiLdEntity(),
-            updatedAttributes.map { JsonLdUtils.expandJsonLdTerm(it, contexts) }.toSet()
+            updatedAttributes
         ).onRight { results ->
             val succeeded = results.count { it.third }
             val failed = results.count { !it.third }

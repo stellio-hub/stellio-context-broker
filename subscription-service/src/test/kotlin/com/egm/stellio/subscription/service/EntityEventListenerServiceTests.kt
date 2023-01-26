@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.right
 import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.subscription.model.Subscription
 import com.ninjasquad.springmockk.MockkBean
@@ -60,7 +61,7 @@ class EntityEventListenerServiceTests {
 
         entityEventListenerService.dispatchEntityEvent(updateEvent)
 
-        coVerify { notificationService.notifyMatchingSubscribers(any(), any(), setOf("https://schema.org/name")) }
+        coVerify { notificationService.notifyMatchingSubscribers(any(), any(), setOf(NGSILD_NAME_PROPERTY)) }
         confirmVerified(notificationService)
     }
 }

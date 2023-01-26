@@ -4,24 +4,15 @@ import arrow.core.Either
 import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
-import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
+import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import org.apache.kafka.common.errors.InvalidTopicException
-import org.apache.kafka.common.internals.Topic
 import org.slf4j.LoggerFactory
-import org.springframework.http.MediaType
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -29,7 +20,7 @@ import java.net.URI
 @Component
 class EntityEventService(
     private val kafkaTemplate: KafkaTemplate<String, String>,
-    private val queryService: QueryService
+    private val entityPayloadService: EntityPayloadService
 ) {
 
     private val catchAllTopic = "cim.entity._CatchAll"
@@ -38,32 +29,10 @@ class EntityEventService(
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    internal fun composeTopicName(entityType: String): String? {
-        val topicName = entityChannelName(entityType)
-        return try {
-            Topic.validate(topicName)
-            topicName
-        } catch (e: InvalidTopicException) {
-            val reason = "Invalid topic name generated for entity type $entityType: $topicName"
-            logger.error(reason, e)
-            null
-        }
+    internal fun publishEntityEvent(event: EntityEvent): Boolean {
+        kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
+        return true
     }
-
-    internal fun publishEntityEvent(event: EntityEvent): java.lang.Boolean =
-        event.entityTypes
-            .mapNotNull {
-                composeTopicName(it)
-            }.let { topics ->
-                topics.forEach { topic ->
-                    kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
-                }
-                kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
-                true as java.lang.Boolean
-            }
-
-    private fun entityChannelName(entityType: String): String =
-        "cim.entity.$entityType"
 
     fun publishEntityCreateEvent(
         sub: String?,
@@ -73,11 +42,9 @@ class EntityEventService(
     ): Job =
         coroutineScope.launch {
             logger.debug("Sending create event for entity $entityId")
-            getSerializedEntity(entityId, contexts)
-                .map {
-                    publishEntityEvent(
-                        EntityCreateEvent(sub, entityId, compactTerms(entityTypes, contexts), it.second, contexts)
-                    )
+            getSerializedEntity(entityId)
+                .onRight {
+                    publishEntityEvent(EntityCreateEvent(sub, entityId, entityTypes, it.second, contexts))
                 }
                 .logResults(EventsType.ENTITY_CREATE, entityId)
         }
@@ -90,11 +57,9 @@ class EntityEventService(
     ): Job =
         coroutineScope.launch {
             logger.debug("Sending replace event for entity $entityId")
-            getSerializedEntity(entityId, contexts)
-                .map {
-                    publishEntityEvent(
-                        EntityReplaceEvent(sub, entityId, compactTerms(entityTypes, contexts), it.second, contexts)
-                    )
+            getSerializedEntity(entityId)
+                .onRight {
+                    publishEntityEvent(EntityReplaceEvent(sub, entityId, entityTypes, it.second, contexts))
                 }
                 .logResults(EventsType.ENTITY_REPLACE, entityId)
         }
@@ -107,9 +72,7 @@ class EntityEventService(
     ): Job =
         coroutineScope.launch {
             logger.debug("Sending delete event for entity $entityId")
-            publishEntityEvent(
-                EntityDeleteEvent(sub, entityId, compactTerms(entityTypes, contexts), contexts)
-            )
+            publishEntityEvent(EntityDeleteEvent(sub, entityId, entityTypes, contexts))
         }
 
     fun publishAttributeChangeEvents(
@@ -121,19 +84,19 @@ class EntityEventService(
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
-            getSerializedEntity(entityId, contexts)
-                .map {
+            getSerializedEntity(entityId)
+                .onRight {
                     updateResult.updated.forEach { updatedDetails ->
                         val attributeName = updatedDetails.attributeName
                         val serializedAttribute =
-                            getSerializedAttribute(jsonLdAttributes, attributeName, updatedDetails.datasetId, contexts)
+                            getSerializedAttribute(jsonLdAttributes, attributeName, updatedDetails.datasetId)
                         when (updatedDetails.updateOperationResult) {
                             UpdateOperationResult.APPENDED ->
                                 publishEntityEvent(
                                     AttributeAppendEvent(
                                         sub,
                                         entityId,
-                                        compactTerms(it.first, contexts),
+                                        it.first,
                                         serializedAttribute.first,
                                         updatedDetails.datasetId,
                                         overwrite,
@@ -147,7 +110,7 @@ class EntityEventService(
                                     AttributeReplaceEvent(
                                         sub,
                                         entityId,
-                                        compactTerms(it.first, contexts),
+                                        it.first,
                                         serializedAttribute.first,
                                         updatedDetails.datasetId,
                                         serializedAttribute.second,
@@ -160,7 +123,7 @@ class EntityEventService(
                                     AttributeUpdateEvent(
                                         sub,
                                         entityId,
-                                        compactTerms(it.first, contexts),
+                                        it.first,
                                         serializedAttribute.first,
                                         updatedDetails.datasetId,
                                         serializedAttribute.second,
@@ -181,21 +144,21 @@ class EntityEventService(
     fun publishAttributeDeleteEvent(
         sub: String?,
         entityId: URI,
-        attributeName: String,
+        attributeName: ExpandedTerm,
         datasetId: URI? = null,
         deleteAll: Boolean,
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
             logger.debug("Sending delete event for attribute $attributeName of entity $entityId")
-            getSerializedEntity(entityId, contexts)
-                .map {
+            getSerializedEntity(entityId)
+                .onRight {
                     if (deleteAll)
                         publishEntityEvent(
                             AttributeDeleteAllInstancesEvent(
                                 sub,
                                 entityId,
-                                compactTerms(it.first, contexts),
+                                it.first,
                                 attributeName,
                                 it.second,
                                 contexts
@@ -206,7 +169,7 @@ class EntityEventService(
                             AttributeDeleteEvent(
                                 sub,
                                 entityId,
-                                compactTerms(it.first, contexts),
+                                it.first,
                                 attributeName,
                                 datasetId,
                                 it.second,
@@ -217,36 +180,23 @@ class EntityEventService(
         }
 
     internal suspend fun getSerializedEntity(
-        entityId: URI,
-        contexts: List<String>
+        entityId: URI
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
-        queryService.queryEntity(entityId, contexts)
+        entityPayloadService.retrieve(entityId)
             .map {
-                Pair(it.types, compactAndSerialize(it, contexts, MediaType.APPLICATION_JSON))
+                Pair(it.types, it.entityPayload)
             }
 
     private fun getSerializedAttribute(
         jsonLdAttributes: Map<String, Any>,
         attributeName: ExpandedTerm,
-        datasetId: URI?,
-        contexts: List<String>
-    ): Pair<String, String> =
+        datasetId: URI?
+    ): Pair<ExpandedTerm, String> =
         when (attributeName) {
-            JSONLD_TYPE ->
-                Pair(
-                    JSONLD_TYPE_TERM,
-                    serializeObject(compactTerms(jsonLdAttributes[JSONLD_TYPE] as List<ExpandedTerm>, contexts))
-                )
+            JSONLD_TYPE -> Pair(JSONLD_TYPE, serializeObject(jsonLdAttributes[JSONLD_TYPE]!!))
             else -> {
-                val extractedPayload = JsonLdUtils.getAttributeFromExpandedAttributes(
-                    jsonLdAttributes,
-                    attributeName,
-                    datasetId
-                )!!
-                Pair(
-                    compactTerm(attributeName, contexts),
-                    serializeObject(removeContextFromInput(compactFragment(extractedPayload, contexts)))
-                )
+                val extractedPayload = getAttributeFromExpandedAttributes(jsonLdAttributes, attributeName, datasetId)!!
+                Pair(attributeName, serializeObject(extractedPayload))
             }
         }
 }

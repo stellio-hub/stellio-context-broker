@@ -23,7 +23,7 @@ plugins {
     kotlin("jvm") version "1.6.21" apply false
     kotlin("plugin.spring") version "1.6.21" apply false
     id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
-    id("com.google.cloud.tools.jib") version "3.3.0" apply false
+    id("com.google.cloud.tools.jib") version "3.3.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.21.0" apply false
     id("org.sonarqube") version "3.5.0.2730"
     jacoco
@@ -150,7 +150,6 @@ subprojects {
             PlatformParameters().apply { os = "linux"; architecture = "amd64" }
         )
     )
-    project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(
         "jibContainerLabels",
@@ -174,7 +173,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "1.4.0-dev"
+    version = "2.0.0-dev"
 
     repositories {
         mavenCentral()

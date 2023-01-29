@@ -33,13 +33,13 @@ tasks.bootRun {
 
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
-jib.to.image = "stellio/stellio-entity-service"
+jib.to.image = "stellio/stellio-entity-service:${project.version}"
 jib.pluginExtensions {
     pluginExtension {
         implementation = "com.google.cloud.tools.jib.gradle.extension.springboot.JibSpringBootExtension"
     }
 }
-jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
+jib.container.jvmFlags = listOf("-Xms512m", "-Xmx1024m")
 jib.container.ports = listOf("8082")
-jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
+jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

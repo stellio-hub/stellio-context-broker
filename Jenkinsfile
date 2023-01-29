@@ -66,98 +66,28 @@ pipeline {
                 sh './gradlew build -p subscription-service'
             }
         }
-        /* Jib only allows to add tags and always set the "latest" tag on the Docker images created.
-        It's unavoidable to create separate stages for Dockerizing dev services and specify the full to.image path */
-        stage('Dockerize Dev Api Gateway') {
+        /* Publish images for develop and master branches, using version defined in build.gradle.kts
+        For develop branch, produce an additional latest-dev tag */
+        stage('Dockerize Services') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'master'
+                }
+            }
+            steps {
+                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW'
+            }
+        }
+        stage('Dockerize Latest Dev Services') {
             when {
                 branch 'develop'
-                changeset "api-gateway/**"
             }
             steps {
-                sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
+                sh './gradlew jib -Djib.to.tags=latest-dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW'
             }
         }
-        stage('Dockerize Api Gateway') {
-            when {
-                branch 'master'
-                changeset "api-gateway/**"
-            }
-            steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-            }
-        }
-        stage('Dockerize Dev Entity Service') {
-            when {
-                branch 'develop'
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
-            }
-        }
-        stage('Dockerize Entity Service') {
-            when {
-                branch 'master'
-                anyOf {
-                    changeset "entity-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
-            }
-        }
-        stage('Dockerize Dev Subscription Service') {
-            when {
-                branch 'develop'
-                anyOf {
-                    changeset "subscription-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
-            }
-        }
-        stage('Dockerize Subscription Service') {
-            when {
-                branch 'master'
-                anyOf {
-                    changeset "subscription-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
-            }
-        }
-        stage('Dockerize Dev Search Service') {
-            when {
-                branch 'develop'
-                anyOf {
-                    changeset "search-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
-            }
-        }
-        stage('Dockerize Search Service') {
-            when {
-                branch 'master'
-                anyOf {
-                    changeset "search-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
-            }
-        }
+        /* Used when we want to publish images for a specific tag (e.g., FIWARE versions) */
         stage('Build tagger Docker images') {
             steps {
                 script {

@@ -144,6 +144,15 @@ class SubscriptionHandlerTests {
     }
 
     @Test
+    fun `get subscription by id should return a 406 if the accept header is not correct`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .header("Accept", MediaType.APPLICATION_PDF.toString())
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_ACCEPTABLE)
+    }
+
+    @Test
     fun `create subscription should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 

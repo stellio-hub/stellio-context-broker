@@ -10,6 +10,7 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.NotAcceptableStatusException
 import org.springframework.web.server.UnsupportedMediaTypeStatusException
 
 @RestControllerAdvice
@@ -59,6 +60,10 @@ class ExceptionHandler {
             is UnsupportedMediaTypeStatusException -> generateErrorResponse(
                 HttpStatus.UNSUPPORTED_MEDIA_TYPE,
                 UnsupportedMediaTypeResponse(cause.message)
+            )
+            is NotAcceptableStatusException -> generateErrorResponse(
+                HttpStatus.NOT_ACCEPTABLE,
+                NotAcceptableResponse(cause.message)
             )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,

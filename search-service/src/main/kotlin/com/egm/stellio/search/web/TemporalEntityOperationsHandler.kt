@@ -34,7 +34,6 @@ class TemporalEntityOperationsHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         return either<APIException, ResponseEntity<*>> {
-
             val sub = getSubFromSecurityContext()
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)

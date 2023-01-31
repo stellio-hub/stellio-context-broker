@@ -1,4 +1,4 @@
-package com.egm.stellio.search.config
+package com.egm.stellio.subscription.config
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.codec.ServerCodecConfigurer

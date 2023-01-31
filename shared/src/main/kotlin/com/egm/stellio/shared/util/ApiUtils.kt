@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.util.MimeTypeUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
 import java.time.ZonedDateTime
@@ -153,7 +154,7 @@ fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
 fun List<MediaType>.getApplicable(): MediaType {
     if (this.isEmpty())
         return MediaType.APPLICATION_JSON
-    MediaType.sortByQualityValue(this)
+    MimeTypeUtils.sortBySpecificity(this)
     val mediaType = this.find {
         it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE)
     } ?: throw NotAcceptableStatusException(listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE))
@@ -169,7 +170,6 @@ fun parseAndCheckParams(
     requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): QueryParams {
-
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->

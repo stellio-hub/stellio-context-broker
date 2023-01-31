@@ -221,7 +221,7 @@ class AttributeInstanceService(
     ): ZonedDateTime? {
         var selectQuery =
             """
-                SELECT min(time) as first
+            SELECT min(time) as first
             """.trimIndent()
 
         selectQuery =
@@ -244,7 +244,7 @@ class AttributeInstanceService(
         return databaseClient
             .sql(selectQuery)
             .oneToResult { toZonedDateTime(it["first"]) }
-            .orNull()
+            .getOrNull()
     }
 
     private fun rowToAttributeInstanceResult(
@@ -277,14 +277,14 @@ class AttributeInstanceService(
     ): Either<APIException, Unit> {
         val deleteQuery =
             """
-                DELETE FROM attribute_instance
-                WHERE temporal_entity_attribute = ( 
-                    SELECT id 
-                    FROM temporal_entity_attribute 
-                    WHERE entity_id = :entity_id 
-                    AND attribute_name = :attribute_name
-                )
-                AND instance_id = :instance_id
+            DELETE FROM attribute_instance
+            WHERE temporal_entity_attribute = ( 
+                SELECT id 
+                FROM temporal_entity_attribute 
+                WHERE entity_id = :entity_id 
+                AND attribute_name = :attribute_name
+            )
+            AND instance_id = :instance_id
             """.trimIndent()
 
         return databaseClient
@@ -293,7 +293,7 @@ class AttributeInstanceService(
             .bind("attribute_name", attributeName)
             .bind("instance_id", instanceId)
             .executeExpected {
-                if (it == 0)
+                if (it == 0L)
                     ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
                 else Unit.right()
             }

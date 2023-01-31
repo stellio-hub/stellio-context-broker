@@ -143,7 +143,6 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-
         return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
             checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()

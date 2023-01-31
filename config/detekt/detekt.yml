@@ -14,6 +14,7 @@ complexity:
     excludes: ['**/src/test/**']
   LargeClass:
     excludes: ['**/src/test/**']
+    threshold: 1000
   NamedArguments:
     active: true
   ReplaceSafeCallChainWithRun:
@@ -79,11 +80,18 @@ style:
 #  DataClassShouldBeImmutable:
 #    active: true
   DestructuringDeclarationWithTooManyEntries:
-    active: false
+    active: true
   ExplicitCollectionElementAccessMethod:
     active: true
   ExpressionBodySyntax:
     active: true
+  ForbiddenSuppress:
+    active: true
+  MultilineLambdaItParameter:
+    active: true
+  MultilineRawStringIndentation:
+    active: true
+    indentSize: 0
   NoTabs:
     active: true
   OptionalWhenBraces:
@@ -94,9 +102,11 @@ style:
     active: true
   TrailingWhitespace:
     active: true
+  UnnecessaryLet:
+    active: true
   UnnecessaryParentheses:
     active: true
-  UnnecessaryLet:
+  UnusedImports:
     active: true
   UseDataClass:
     active: true

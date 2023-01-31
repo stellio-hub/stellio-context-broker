@@ -45,7 +45,7 @@ suspend fun DatabaseClient.GenericExecuteSpec.execute(): Either<APIException, Un
         .awaitFirst()
 
 suspend fun DatabaseClient.GenericExecuteSpec.executeExpected(
-    f: (value: Int) -> Either<APIException, Unit>
+    f: (value: Long) -> Either<APIException, Unit>
 ): Either<APIException, Unit> =
     this.fetch()
         .rowsUpdated()

@@ -41,7 +41,7 @@ class IAMListenerTests {
                         it.subjectType == SubjectType.USER &&
                         it.subjectInfo ==
                         """
-                            {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
+                        {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -64,7 +64,7 @@ class IAMListenerTests {
                         it.subjectType == SubjectType.CLIENT &&
                         it.subjectInfo ==
                         """
-                            {"type":"Property","value":{"clientId":"stellio-client"}}
+                        {"type":"Property","value":{"clientId":"stellio-client"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -87,7 +87,7 @@ class IAMListenerTests {
                         it.subjectType == SubjectType.GROUP &&
                         it.subjectInfo ==
                         """
-                            {"type":"Property","value":{"name":"EGM"}}
+                        {"type":"Property","value":{"name":"EGM"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }

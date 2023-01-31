@@ -12,6 +12,7 @@ import reactor.netty.transport.logging.AdvancedByteBufFormat
 
 @SpringBootApplication
 class ApiGatewayApplication {
+
     @Value("\${application.search-service.url:search-service}")
     private val searchServiceUrl: String = ""
 
@@ -31,29 +32,15 @@ class ApiGatewayApplication {
                     "/ngsi-ld/v1/entityOperations/**",
                     "/ngsi-ld/v1/entityAccessControl/**",
                     "/ngsi-ld/v1/types/**",
-                    "/ngsi-ld/v1/attributes/**"
-                )
-                    .filters {
-                        it.tokenRelay()
-                    }
-                    .uri("http://$searchServiceUrl:8083")
+                    "/ngsi-ld/v1/attributes/**",
+                    "/ngsi-ld/v1/temporal/entities/**",
+                    "/ngsi-ld/v1/temporal/entityOperations/**"
+                ).uri("http://$searchServiceUrl:8083")
             }
             .route { p ->
                 p.path(
-                    "/ngsi-ld/v1/temporal/entities/**",
-                    "/ngsi-ld/v1/temporal/entityOperations/**"
-                )
-                    .filters {
-                        it.tokenRelay()
-                    }
-                    .uri("http://$searchServiceUrl:8083")
-            }
-            .route { p ->
-                p.path("/ngsi-ld/v1/subscriptions/**")
-                    .filters {
-                        it.tokenRelay()
-                    }
-                    .uri("http://$subscriptionServiceUrl:8084")
+                    "/ngsi-ld/v1/subscriptions/**"
+                ).uri("http://$subscriptionServiceUrl:8084")
             }
             .build()
 }

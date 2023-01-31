@@ -11,22 +11,16 @@ import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
-import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.configureFor
 import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
-import com.github.tomakehurst.wiremock.client.WireMock.reset
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,6 +30,7 @@ import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [NotificationService::class])
+@WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
 class NotificationServiceTests {
 
@@ -51,8 +46,6 @@ class NotificationServiceTests {
     @Autowired
     private lateinit var notificationService: NotificationService
 
-    private lateinit var wireMockServer: WireMockServer
-
     private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
 
     private val contexts = listOf(
@@ -63,52 +56,34 @@ class NotificationServiceTests {
 
     private val rawEntity =
         """
-            {
-               "id":"$apiaryId",
-               "type":"Apiary",
-               "name":{
-                  "type":"Property",
-                  "value":"ApiarySophia"
-               },
-               "excludedProp":{
-                  "type":"Property",
-                  "value":"excluded"
-               },
-               "location": {
-                  "type": "GeoProperty",
-                  "value": {
-                     "type": "Point",
-                     "coordinates": [
-                        24.30623,
-                        60.07966
-                     ]
-                  }
-               },
-               "@context":[
-                  "${contexts.joinToString("\",\"")}"                  
-               ]
-            } 
+        {
+           "id":"$apiaryId",
+           "type":"Apiary",
+           "name":{
+              "type":"Property",
+              "value":"ApiarySophia"
+           },
+           "excludedProp":{
+              "type":"Property",
+              "value":"excluded"
+           },
+           "location": {
+              "type": "GeoProperty",
+              "value": {
+                 "type": "Point",
+                 "coordinates": [
+                    24.30623,
+                    60.07966
+                 ]
+              }
+           },
+           "@context":[
+              "${contexts.joinToString("\",\"")}"                  
+           ]
+        } 
         """.trimIndent()
 
     private val parsedEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
-
-    @BeforeAll
-    fun beforeAll() {
-        wireMockServer = WireMockServer(wireMockConfig().port(8089))
-        wireMockServer.start()
-        // If not using the default port, we need to instruct explicitly the client (quite redundant)
-        configureFor(8089)
-    }
-
-    @AfterEach
-    fun resetWiremock() {
-        reset()
-    }
-
-    @AfterAll
-    fun afterAll() {
-        wireMockServer.stop()
-    }
 
     @Test
     fun `it should notify the subscriber and update the subscription`() {
@@ -411,7 +386,9 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity)
+                subscription,
+                apiaryId.toUri(),
+                expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {

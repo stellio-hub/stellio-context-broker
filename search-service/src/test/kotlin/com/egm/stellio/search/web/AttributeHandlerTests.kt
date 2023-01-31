@@ -39,32 +39,32 @@ class AttributeHandlerTests {
 
     private val expectedAttributeDetails =
         """
-            [
-               {
-                  "id":"https://ontology.eglobalmark.com/apic#temperature",
-                  "type":"Attribute",
-                  "attributeName":"temperature",
-                  "typeNames":[ "BeeHive" ]
-               },
-               {
-                  "id":"https://ontology.eglobalmark.com/apic#incoming",
-                  "type":"Attribute",
-                  "attributeName":"incoming",
-                  "typeNames":[ "BeeHive" ]
-               }
-            ]
+        [
+           {
+              "id":"https://ontology.eglobalmark.com/apic#temperature",
+              "type":"Attribute",
+              "attributeName":"temperature",
+              "typeNames":[ "BeeHive" ]
+           },
+           {
+              "id":"https://ontology.eglobalmark.com/apic#incoming",
+              "type":"Attribute",
+              "attributeName":"incoming",
+              "typeNames":[ "BeeHive" ]
+           }
+        ]
         """.trimIndent()
 
     private val expectedAttributeTypeInfo =
         """
-            {
-               "id":"https://ontology.eglobalmark.com/apic#temperature",
-               "type":"Attribute",
-               "attributeName": "temperature",
-               "attributeTypes": ["Property"],
-               "typeNames": ["BeeHive"],
-               "attributeCount":2
-            }
+        {
+           "id":"https://ontology.eglobalmark.com/apic#temperature",
+           "type":"Attribute",
+           "attributeName": "temperature",
+           "attributeTypes": ["Property"],
+           "typeNames": ["BeeHive"],
+           "attributeCount":2
+        }
         """.trimIndent()
 
     @Test

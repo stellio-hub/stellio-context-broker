@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
@@ -402,21 +403,21 @@ class TemporalEntityAttributeService(
 
         val selectQuery =
             """
-                WITH entities AS (
-                    SELECT DISTINCT(tea.entity_id)
-                    FROM temporal_entity_attribute tea
-                    JOIN entity_payload ON tea.entity_id = entity_payload.entity_id
-                    WHERE $filterQuery
-                    ORDER BY entity_id
-                    LIMIT :limit
-                    OFFSET :offset   
-                )
-                SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
-                    dataset_id, payload
-                FROM temporal_entity_attribute            
-                WHERE entity_id IN (SELECT entity_id FROM entities) 
-                $filterOnAttributesQuery
+            WITH entities AS (
+                SELECT DISTINCT(tea.entity_id)
+                FROM temporal_entity_attribute tea
+                JOIN entity_payload ON tea.entity_id = entity_payload.entity_id
+                WHERE $filterQuery
                 ORDER BY entity_id
+                LIMIT :limit
+                OFFSET :offset   
+            )
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
+                dataset_id, payload
+            FROM temporal_entity_attribute            
+            WHERE entity_id IN (SELECT entity_id FROM entities) 
+            $filterOnAttributesQuery
+            ORDER BY entity_id
             """.trimIndent()
 
         return databaseClient
@@ -578,10 +579,10 @@ class TemporalEntityAttributeService(
     suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {
         val selectQuery =
             """
-                SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
-                    dataset_id, payload
-                FROM temporal_entity_attribute            
-                WHERE entity_id = :entity_id
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                dataset_id, payload
+            FROM temporal_entity_attribute            
+            WHERE entity_id = :entity_id
             """.trimIndent()
 
         val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
@@ -673,19 +674,19 @@ class TemporalEntityAttributeService(
     ): Either<APIException, Unit> {
         val selectQuery =
             """
-                select 
-                    exists(
-                        select 1 
-                        from temporal_entity_attribute 
-                        where entity_id = :entity_id
-                    ) as entityExists,
-                    exists(
-                        select 1 
-                        from temporal_entity_attribute 
-                        where entity_id = :entity_id 
-                        and attribute_name = :attribute_name
-                        ${datasetId.toDatasetIdFilter()}
-                    ) as attributeNameExists;
+            select 
+                exists(
+                    select 1 
+                    from temporal_entity_attribute 
+                    where entity_id = :entity_id
+                ) as entityExists,
+                exists(
+                    select 1 
+                    from temporal_entity_attribute 
+                    where entity_id = :entity_id 
+                    and attribute_name = :attribute_name
+                    ${datasetId.toDatasetIdFilter()}
+                ) as attributeNameExists;
             """.trimIndent()
 
         return databaseClient
@@ -768,7 +769,7 @@ class TemporalEntityAttributeService(
                         null
                     ).right()
                 }
-            }.tap {
+            }.onRight {
                 // update modifiedAt in entity if at least one attribute has been added
                 if (it.hasSuccessfulUpdate()) {
                     val teas = getForEntity(entityUri, emptySet())
@@ -830,7 +831,7 @@ class TemporalEntityAttributeService(
                         message
                     ).right()
                 }
-            }.tap {
+            }.onRight {
                 // update modifiedAt in entity if at least one attribute has been added
                 if (it.hasSuccessfulUpdate()) {
                     val teas = getForEntity(entityUri, emptySet())
@@ -876,9 +877,7 @@ class TemporalEntityAttributeService(
                     val timeAndProperty =
                         if (isNewObservation)
                             Pair(
-                                getPropertyValueFromMap(
-                                    attributeValues, NGSILD_OBSERVED_AT_PROPERTY
-                                )!! as ZonedDateTime,
+                                getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)!!,
                                 AttributeInstance.TemporalProperty.OBSERVED_AT
                             )
                         else

@@ -212,11 +212,12 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should catch and drop any non compliant NGSI-LD payload`() = runTest {
-        val invalidObservationEvent = """
+        val invalidObservationEvent =
+            """
             {
                 "id": "urn:ngsi-ld:Entity:01"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         assertDoesNotThrow {
             observationEventListener.dispatchObservationMessage(invalidObservationEvent)
@@ -228,11 +229,12 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should catch and drop any non compliant JSON-LD payload`() = runTest {
-        val invalidObservationEvent = """
+        val invalidObservationEvent =
+            """
             {
                 "id": "urn:ngsi-ld:Entity:01",,
             }
-        """.trimIndent()
+            """.trimIndent()
 
         assertDoesNotThrow {
             observationEventListener.dispatchObservationMessage(invalidObservationEvent)

@@ -100,8 +100,9 @@ class ApiTestsBootstrapper(
         SubjectReferential(
             subjectId = subjectId,
             subjectType = SubjectType.USER,
-            subjectInfo = """
-                {"type":"Property","value":{"username":"$username"}}
+            subjectInfo =
+            """
+            {"type":"Property","value":{"username":"$username"}}
             """.trimIndent(),
             globalRoles = globalRoles,
             groupsMemberships =
@@ -114,14 +115,15 @@ class ApiTestsBootstrapper(
         SubjectReferential(
             subjectId = subjectId,
             subjectType = SubjectType.GROUP,
-            subjectInfo = """
-                {"type":"Property","value":{"name":"$groupName"}}
+            subjectInfo =
+            """
+            {"type":"Property","value":{"name":"$groupName"}}
             """.trimIndent()
         )
 
     suspend fun createSubject(subjectId: String, subjectReferential: SubjectReferential) =
         subjectReferentialService.retrieve(subjectId)
-            .tapLeft {
+            .onLeft {
                 subjectReferentialService.create(subjectReferential)
             }
 }

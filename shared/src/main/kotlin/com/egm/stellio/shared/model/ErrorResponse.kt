@@ -1,7 +1,9 @@
 package com.egm.stellio.shared.model
 
+import java.net.URI
+
 sealed class ErrorResponse(
-    val type: String,
+    val type: URI,
     open val title: String,
     open val detail: String
 )
@@ -67,26 +69,36 @@ data class JsonParseErrorResponse(override val detail: String) : ErrorResponse(
 
 data class AccessDeniedResponse(override val detail: String) :
     ErrorResponse(
-        "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+        ErrorType.ACCESS_DENIED.type,
         "The request tried to access an unauthorized resource",
         detail
     )
 
 data class NotImplementedResponse(override val detail: String) :
     ErrorResponse(
-        "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+        ErrorType.NOT_IMPLEMENTED.type,
         "The requested functionality is not yet implemented",
         detail
     )
 
-enum class ErrorType(val type: String) {
-    INVALID_REQUEST("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest"),
-    BAD_REQUEST_DATA("https://uri.etsi.org/ngsi-ld/errors/BadRequestData"),
-    ALREADY_EXISTS("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists"),
-    OPERATION_NOT_SUPPORTED("https://uri.etsi.org/ngsi-ld/errors/OperationNotSupported"),
-    RESOURCE_NOT_FOUND("https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound"),
-    INTERNAL_ERROR("https://uri.etsi.org/ngsi-ld/errors/InternalError"),
-    TOO_COMPLEX_QUERY("https://uri.etsi.org/ngsi-ld/errors/TooComplexQuery"),
-    TOO_MANY_RESULTS("https://uri.etsi.org/ngsi-ld/errors/TooManyResults"),
-    LD_CONTEXT_NOT_AVAILABLE("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable")
+data class UnsupportedMediaTypeResponse(override val detail: String) :
+    ErrorResponse(
+        ErrorType.UNSUPPORTED_MEDIA_TYPE.type,
+        "The content type of the request is not supported",
+        detail
+    )
+
+enum class ErrorType(val type: URI) {
+    INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
+    BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),
+    ALREADY_EXISTS(URI("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists")),
+    OPERATION_NOT_SUPPORTED(URI("https://uri.etsi.org/ngsi-ld/errors/OperationNotSupported")),
+    RESOURCE_NOT_FOUND(URI("https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound")),
+    INTERNAL_ERROR(URI("https://uri.etsi.org/ngsi-ld/errors/InternalError")),
+    TOO_COMPLEX_QUERY(URI("https://uri.etsi.org/ngsi-ld/errors/TooComplexQuery")),
+    TOO_MANY_RESULTS(URI("https://uri.etsi.org/ngsi-ld/errors/TooManyResults")),
+    LD_CONTEXT_NOT_AVAILABLE(URI("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable")),
+    ACCESS_DENIED(URI("https://uri.etsi.org/ngsi-ld/errors/AccessDenied")),
+    NOT_IMPLEMENTED(URI("https://uri.etsi.org/ngsi-ld/errors/NotImplemented")),
+    UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType"))
 }

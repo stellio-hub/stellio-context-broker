@@ -10,7 +10,6 @@ import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.search.web.BatchEntityError
 import com.egm.stellio.search.web.BatchEntitySuccess
 import com.egm.stellio.search.web.BatchOperationResult
-import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -65,20 +64,23 @@ class EntityOperationService(
     ): BatchOperationResult {
         val creationResults = entities.map {
             val ngsiLdEntity = it
-            either<BatchEntityError, BatchEntitySuccess> {
+            either {
                 val jsonLdEntity = jsonLdEntities.find { jsonLdEntity ->
                     ngsiLdEntity.id.toString() == jsonLdEntity.id
                 }!!
                 ngsiLdEntity.prepareTemporalAttributes()
                     .flatMap { attributesMetadata ->
                         temporalEntityAttributeService.createEntityTemporalReferences(
-                            ngsiLdEntity, jsonLdEntity, attributesMetadata, sub
+                            ngsiLdEntity,
+                            jsonLdEntity,
+                            attributesMetadata,
+                            sub
                         )
-                    }.bimap({ apiException ->
-                        BatchEntityError(ngsiLdEntity.id, arrayListOf(apiException.message))
-                    }, {
+                    }.map {
                         BatchEntitySuccess(ngsiLdEntity.id)
-                    }).bind()
+                    }.mapLeft { apiException ->
+                        BatchEntityError(ngsiLdEntity.id, arrayListOf(apiException.message))
+                    }.bind()
             }
         }.fold(
             initial = Pair(listOf<BatchEntityError>(), listOf<BatchEntitySuccess>()),
@@ -90,21 +92,20 @@ class EntityOperationService(
             }
         )
 
-        return BatchOperationResult(
-            creationResults.second.toMutableList(), creationResults.first.toMutableList()
-        )
+        return BatchOperationResult(creationResults.second.toMutableList(), creationResults.first.toMutableList())
     }
 
     suspend fun delete(entitiesIds: Set<URI>): BatchOperationResult {
         val deletionResults = entitiesIds.map {
             val entityId = it
-            either<BatchEntityError, BatchEntitySuccess> {
+            either {
                 temporalEntityAttributeService.deleteTemporalEntityReferences(entityId)
-                    .bimap({ apiException ->
-                        BatchEntityError(entityId, arrayListOf(apiException.message))
-                    }, {
+                    .map {
                         BatchEntitySuccess(entityId)
-                    }).bind()
+                    }
+                    .mapLeft { apiException ->
+                        BatchEntityError(entityId, arrayListOf(apiException.message))
+                    }.bind()
             }
         }.fold(
             initial = Pair(listOf<BatchEntityError>(), listOf<BatchEntitySuccess>()),
@@ -187,7 +188,7 @@ class EntityOperationService(
         disallowOverwrite: Boolean,
         sub: Sub?
     ): Either<BatchEntityError, BatchEntitySuccess> =
-        either<APIException, UpdateResult> {
+        either {
             val (ngsiLdEntity, jsonLdEntity) = entity
             temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
             val updateResult = entityPayloadService.updateTypes(
@@ -208,11 +209,11 @@ class EntityOperationService(
                     updateResult.notUpdated.joinToString(", ") { it.attributeName + " : " + it.reason }
                 ).left().bind<UpdateResult>()
             else updateResult.right().bind()
-        }.bimap({
-            BatchEntityError(entity.first.id, arrayListOf(it.message))
-        }, {
+        }.map {
             BatchEntitySuccess(entity.first.id)
-        })
+        }.mapLeft {
+            BatchEntityError(entity.first.id, arrayListOf(it.message))
+        }
 
     /*
      * Transactional because it should not replace entity attributes if new ones could not be replaced.
@@ -223,7 +224,7 @@ class EntityOperationService(
         disallowOverwrite: Boolean,
         sub: Sub?
     ): Either<BatchEntityError, BatchEntitySuccess> =
-        either<APIException, UpdateResult> {
+        either {
             val (ngsiLdEntity, jsonLdEntity) = entity
             val updateResult = entityPayloadService.updateTypes(
                 ngsiLdEntity.id,
@@ -244,9 +245,9 @@ class EntityOperationService(
                 BadRequestDataException(
                     ArrayList(updateResult.notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
                 ).left().bind<UpdateResult>()
-        }.bimap({
-            BatchEntityError(entity.first.id, arrayListOf(it.message))
-        }, {
+        }.map {
             BatchEntitySuccess(entity.first.id, it)
-        })
+        }.mapLeft {
+            BatchEntityError(entity.first.id, arrayListOf(it.message))
+        }
 }

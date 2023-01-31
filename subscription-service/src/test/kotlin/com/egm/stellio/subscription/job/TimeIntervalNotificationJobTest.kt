@@ -11,20 +11,16 @@ import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -34,6 +30,7 @@ import org.springframework.test.context.TestPropertySource
 import reactor.core.publisher.Mono
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TimeIntervalNotificationJob::class])
+@WireMockTest(httpPort = 8089)
 @Import(WebClientConfig::class)
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
@@ -47,26 +44,6 @@ class TimeIntervalNotificationJobTest {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
-
-    private lateinit var wireMockServer: WireMockServer
-
-    @BeforeAll
-    fun beforeAll() {
-        wireMockServer = WireMockServer(WireMockConfiguration.wireMockConfig().port(8089))
-        wireMockServer.start()
-        // If not using the default port, we need to instruct explicitly the client (quite redundant)
-        configureFor(8089)
-    }
-
-    @AfterEach
-    fun resetWiremock() {
-        reset()
-    }
-
-    @AfterAll
-    fun afterAll() {
-        wireMockServer.stop()
-    }
 
     @Test
     fun `it should compose the query string used to get matching entities`() {

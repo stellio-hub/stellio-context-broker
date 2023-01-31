@@ -25,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -231,6 +232,20 @@ class SubscriptionHandlerTests {
                 } 
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `create subscription should return a 415 if the content type is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/subscriptions")
+            .contentType(MediaType.APPLICATION_PDF)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+
+        coVerify { subscriptionService.validateNewSubscription(any()) wasNot Called }
     }
 
     @Test

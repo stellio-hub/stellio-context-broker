@@ -376,6 +376,16 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
         }
     }
 
+fun parseToNgsiLdAttribute(attribute: Map<String, List<Map<String, List<Any>>>>): List<NgsiLdAttribute> =
+    attribute.map {
+        when {
+            isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
+            isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)
+            isAttributeOfType(it.value[0], NGSILD_GEOPROPERTY_TYPE) -> NgsiLdGeoProperty(it.key, it.value)
+            else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
+        }
+    }
+
 fun String.isNgsiLdSupportedName() =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 

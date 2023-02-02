@@ -3,14 +3,16 @@ package com.egm.stellio.search.web
 import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.model.UpdateResult
+import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseAndCheckQueryParams
+import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.getDatasetId
+import com.egm.stellio.shared.model.parseToNgsiLdAttribute
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
@@ -24,6 +26,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -33,8 +36,108 @@ class TemporalEntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
-    private val applicationProperties: ApplicationProperties
+    private val applicationProperties: ApplicationProperties,
+    private val entityEventService: EntityEventService
 ) {
+
+    /**
+     * Implements 6.18.3.1 - Create Entity or Update Temporal Representation of Entity
+     */
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun create(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body)
+
+        return either<APIException, ResponseEntity<*>> {
+            val entityWithMandatoryFiled = body.keepMandatoryFiled()
+            val entityUri = entityWithMandatoryFiled[JSONLD_ID_TERM].toString().toUri()
+            val entityNoExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
+            if (entityNoExist) {
+                authorizationService.userCanCreateEntities(sub).bind()
+
+                val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entityWithMandatoryFiled, contexts)
+                val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+
+                val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+                temporalEntityAttributeService.createEntityTemporalReferences(
+                    ngsiLdEntity,
+                    jsonLdEntity,
+                    attributesMetadata,
+                    sub.orNull()
+                ).bind()
+                authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
+                entityEventService.publishEntityCreateEvent(
+                    sub.orNull(),
+                    ngsiLdEntity.id,
+                    ngsiLdEntity.types,
+                    contexts
+                )
+            }
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+            val jsonLdAttributes = expandJsonLdFragment(body.removeMandatoryFiled(), contexts)
+            var updateResults = UpdateResult(emptyList(), emptyList())
+            jsonLdAttributes
+                .forEach { attributeEntry ->
+                    val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
+                    attributeInstances.forEach { attributeInstance ->
+                        val datasetId = attributeInstance.getDatasetId()
+
+                        val teaExistence =
+                            temporalEntityAttributeService.hasAttribute(entityUri, attributeEntry.key, datasetId).bind()
+                        val jsonLdAttribute = mapOf(attributeEntry.key to listOf(attributeInstance))
+                        val ngsiLdAttributes = parseToNgsiLdAttribute(jsonLdAttribute)
+
+                        val updateResult =
+                            if (teaExistence) {
+                                temporalEntityAttributeService.updateEntityAttributes(
+                                    entityUri,
+                                    ngsiLdAttributes,
+                                    jsonLdAttribute,
+                                    sub.orNull()
+                                ).bind()
+                            } else {
+                                temporalEntityAttributeService.appendEntityAttributes(
+                                    entityUri,
+                                    ngsiLdAttributes,
+                                    jsonLdAttribute,
+                                    false,
+                                    sub.orNull()
+                                ).bind()
+                            }
+
+                        updateResults.mergeWith(updateResult)
+
+                        if (updateResult.updated.isNotEmpty()) {
+                            entityEventService.publishAttributeChangeEvents(
+                                sub.orNull(),
+                                entityUri,
+                                jsonLdAttribute,
+                                updateResult,
+                                true,
+                                contexts
+                            )
+                        }
+                    }
+                }
+
+            if (entityNoExist && updateResults.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
+                    .build<String>()
+            else if (updateResults.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResults)
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
 
     /**
      * Implements 6.20.3.1 - Add attributes to Temporal Representation of Entity

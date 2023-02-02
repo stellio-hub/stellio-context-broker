@@ -14,23 +14,29 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.model.*
+import com.egm.stellio.search.service.*
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.Job
+import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
+import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
+import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -64,6 +70,7 @@ class TemporalEntityHandlerTests {
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val temporalEntityAttributeName = "speed"
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
+    private val sub = Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -647,7 +654,7 @@ class TemporalEntityHandlerTests {
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
-                    payload = EMPTY_JSON_PAYLOAD
+                    payload = EMPTY_PAYLOAD
                 )
             }
         val entityFileName = if (withTemporalValues)

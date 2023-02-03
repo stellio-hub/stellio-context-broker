@@ -24,7 +24,7 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.9.19"
     kotlin("jvm") version "1.8.0" apply false
     kotlin("plugin.spring") version "1.8.0" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
+    id("org.jlleitschuh.gradle.ktlint") version "11.1.0"
     id("com.google.cloud.tools.jib") version "3.3.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
     id("org.sonarqube") version "3.5.0.2730"

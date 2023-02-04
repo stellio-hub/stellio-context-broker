@@ -2,5 +2,3 @@ feature: ['feature/*', 'feat/*']
 fix: fix/*
 chore: chore/*
 refactoring: refactor/*
-fixed-branch: fixed-branch-name
-

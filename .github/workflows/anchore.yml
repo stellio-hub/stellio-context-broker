@@ -1,4 +1,4 @@
-name: Anchore Security Scan for Node Slim
+name: Anchore security scan
 on:
   push:
     branches:
@@ -16,7 +16,7 @@ jobs:
       - name: Build local container
         uses: docker/build-push-action@v2
         with:
-          path: ./search-service/docker
+          file: ./search-service/Dockerfile
           tags: localbuild/search-service:latest-scan
           push: false
           load: true

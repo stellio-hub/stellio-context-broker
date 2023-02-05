@@ -64,6 +64,18 @@ Please note that the environment and scripts are validated on Ubuntu and macOS. 
 
 We also provide an experimental configuration to deploy Stellio in a k8s cluster (only tested in Minikube as of now). For more information, please look at [the README](kubernetes/README.md)
 
+## Docker images tagging
+
+Starting from version 2.0.0, a new scheme is used for tagging of Docker images:
+* Releases are tagged with the version number, e.g., `stellio/stellio-search-service:2.0.0`
+* `latest` tag is no longer used for releases as it can be dangerous (for instance, triggering an unwanted major
+  upgrade)
+* Developement versions (automatically produced when a commit is pushed on the `develop` branch) are tagged with a 
+  tag containing the `-dev` suffix, e.g., `stellio/stellio-search-service:2.1.0-dev`
+* On each commit on the `develop` branch, an image with the `latest-dev` tag is produced, e.g., `stellio/stellio-search-service:latest-dev`
+
+The version number is obtained during the build process by using the `version` information in the `build.gradle.kts` file.
+
 ## Development
 
 ### Developing on a service
@@ -186,4 +198,4 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 | WireMock            | APL v2       |
 | Testcontainers      | 	MIT         |
 
-© 2020 - 2022 EGM
+© 2020 - 2023 EGM

@@ -1,7 +1,11 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail

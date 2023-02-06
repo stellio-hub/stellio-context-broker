@@ -203,6 +203,16 @@ class EntityAccessRightsService(
                 else it
             }
             .allToMappedList { rowToEntityAccessControl(it, isStellioAdmin) }
+            .groupBy { it.id }
+            .mapValues {
+                val ear = it.value.first()
+                EntityAccessRights(
+                    ear.id,
+                    ear.types,
+                    it.value.maxOf { it.right },
+                    ear.specificAccessPolicy
+                )
+            }.values.toList()
     }
 
     suspend fun getSubjectAccessRightsCount(

@@ -365,19 +365,16 @@ fun checkAttributeDuplicateDatasetId(name: String, instances: List<NgsiLdAttribu
 }
 
 fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute> =
-    attributes.mapValues {
-        JsonLdUtils.expandValueAsListOfMap(it.value)
-    }.map {
-        when {
-            isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_GEOPROPERTY_TYPE) -> NgsiLdGeoProperty(it.key, it.value)
-            else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
+    parseAttributesInstancesToNgsiLdAttributes(
+        attributes.mapValues {
+            JsonLdUtils.expandValueAsListOfMap(it.value)
         }
-    }
+    )
 
-fun parseToNgsiLdAttribute(attribute: Map<String, List<Map<String, List<Any>>>>): List<NgsiLdAttribute> =
-    attribute.map {
+fun parseAttributesInstancesToNgsiLdAttributes(
+    attributesInstances: Map<String, List<Map<String, List<Any>>>>
+): List<NgsiLdAttribute> =
+    attributesInstances.map {
         when {
             isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
             isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)

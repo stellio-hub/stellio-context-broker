@@ -1,9 +1,6 @@
 package com.egm.stellio.shared.util
 
-import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
@@ -674,3 +671,26 @@ fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDat
             )
         )
     else this
+
+fun Map<String, Any>.removeMandatoryFields(): Map<String, Any> =
+    this.filter {
+        !JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key)
+    }
+
+fun Map<String, Any>.keepFirstInstances(): Map<String, Any> =
+    this.mapValues {
+        if (JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key))
+            it.value
+        else if (it.value is ArrayList<*>)
+            (it.value as ArrayList<*>).first()
+        else it.value
+    }
+
+fun Map<String, Any>.removeFirstInstances(): Map<String, Any> {
+    this.forEach {
+        if (it.value is ArrayList<*>)
+            (it.value as ArrayList<*>).removeFirst()
+    }
+    return this.removeMandatoryFields()
+        .filter { it.value is ArrayList<*> && (it.value as ArrayList<*>).size > 0 }
+}

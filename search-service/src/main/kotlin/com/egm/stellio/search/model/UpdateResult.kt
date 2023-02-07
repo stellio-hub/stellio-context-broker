@@ -72,3 +72,11 @@ fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>):
 
     return UpdateResult(updated, notUpdated)
 }
+
+fun List<UpdateResult>.mergeAll(): UpdateResult {
+    var updateResult = UpdateResult(emptyList(), emptyList())
+    this.forEach {
+        updateResult.mergeWith(it)
+    }
+    return updateResult
+}

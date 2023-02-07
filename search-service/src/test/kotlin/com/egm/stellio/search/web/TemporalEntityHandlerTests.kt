@@ -19,6 +19,8 @@ import com.egm.stellio.search.service.*
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*

@@ -5,7 +5,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import org.springframework.http.HttpHeaders
@@ -216,13 +215,3 @@ fun parseAndCheckParams(
         context = contextLink
     )
 }
-
-fun Map<String, Any>.removeMandatoryFiled(): Map<String, Any> =
-    this.filter {
-        !JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key)
-    }
-
-fun Map<String, Any>.keepMandatoryFiled(): Map<String, Any> =
-    this.filter {
-        JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key)
-    }

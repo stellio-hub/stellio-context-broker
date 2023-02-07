@@ -1,10 +1,7 @@
 package com.egm.stellio.search.service
 
 import arrow.core.right
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.AttributeMetadata
-import com.egm.stellio.search.model.EntityPayload
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
@@ -12,6 +9,8 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
@@ -220,6 +219,44 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 }
             )
         }
+    }
+
+    @Test
+    fun `it should correctly upsert attributes`() = runTest {
+        val body =
+            loadSampleData("beehive_create_temporal_entity.jsonld").deserializeAsMap()
+
+        val jsonLdAttributes =
+            JsonLdUtils.expandJsonLdFragment(body.removeFirstInstances(), listOf(APIC_COMPOUND_CONTEXT))
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            body.keepFirstInstances().serialize(),
+            listOf(APIC_COMPOUND_CONTEXT)
+        ).shouldSucceed()
+
+        temporalEntityAttributeService.upsertEntityAttributes(
+            beehiveTestCId,
+            jsonLdAttributes,
+            "0768A6D5-D87B-4209-9A22-8C40A8961A79"
+        ).shouldSucceedWith {
+            it.size == 5 &&
+                it.map { it.first }
+                .mergeAll()
+                .updated
+                .filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+                .size == 2 &&
+                it.map { it.first }
+                .mergeAll()
+                .updated
+                .filter { it.updateOperationResult == UpdateOperationResult.REPLACED }
+                .size == 3 &&
+                it.map { it.second }
+                    .all { it.containsKey(INCOMING_PROPERTY) || it.containsKey(OUTGOING_PROPERTY) }
+        }
+
+        coVerify(exactly = 10) { attributeInstanceService.create(any()) }
     }
 
     @Test

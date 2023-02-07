@@ -894,7 +894,46 @@ class TemporalEntityAttributeService(
             updateResultFromDetailedResult(listOf(updateAttributeResult))
         }
 
-    private fun getValueFromPartialAttributePayload(
+    suspend fun upsertEntityAttributes(
+        entityUri: URI,
+        jsonLdAttributes: Map<String, Any>,
+        sub: Sub?
+    ): Either<APIException, List<Pair<UpdateResult, Map<String, List<Map<String, List<Any>>>>>>> = either {
+        jsonLdAttributes
+            .map { attributeEntry ->
+                val attributeInstances = JsonLdUtils.expandValueAsListOfMap(attributeEntry.value)
+                attributeInstances.map { attributeInstance ->
+                    val datasetId = attributeInstance.getDatasetId()
+                    val teaExistence =
+                        hasAttribute(entityUri, attributeEntry.key, datasetId).bind()
+
+                    val jsonLdAttribute = mapOf(attributeEntry.key to listOf(attributeInstance))
+                    val ngsiLdAttributes = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)
+
+                    val updateResult =
+                        if (teaExistence) {
+                            updateEntityAttributes(
+                                entityUri,
+                                ngsiLdAttributes,
+                                jsonLdAttribute,
+                                sub
+                            ).bind()
+                        } else {
+                            appendEntityAttributes(
+                                entityUri,
+                                ngsiLdAttributes,
+                                jsonLdAttribute,
+                                false,
+                                sub
+                            ).bind()
+                        }
+
+                    Pair(updateResult, jsonLdAttribute)
+                }
+            }.flatten()
+    }
+
+    suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,
         attributePayload: Map<String, List<Any>>
     ): Triple<String?, Double?, WKTCoordinates?> =

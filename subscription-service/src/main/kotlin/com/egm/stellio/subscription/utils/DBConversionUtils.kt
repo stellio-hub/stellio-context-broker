@@ -20,4 +20,4 @@ inline fun <reified T : Enum<T>> toEnum(entry: Any) = enumValueOf<T>(entry as St
 inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
     (entry as? String)?.let { enumValueOf<T>(it) }
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
-fun toNullableInt(entry: Any?): Int? = (entry as? Long)?.toInt()
+fun toNullableInt(entry: Any?): Int? = entry as? Int

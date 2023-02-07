@@ -624,14 +624,14 @@ class SubscriptionService(
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
-            subscriptionName = row["subscription_name"] as String,
+            subscriptionName = row["subscription_name"] as? String,
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toNullableZonedDateTime(row["modified_at"]),
             expiresAt = toNullableZonedDateTime(row["expires_at"]),
-            description = row["description"] as String,
+            description = row["description"] as? String,
             watchedAttributes = (row["watched_attributes"] as? String)?.split(","),
             timeInterval = toNullableInt(row["time_interval"]),
-            q = row["q"] as String,
+            q = row["q"] as? String,
             entities = setOf(
                 EntityInfo(
                     id = toNullableUri(row["entity_id"]),
@@ -663,9 +663,9 @@ class SubscriptionService(
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
-            subscriptionName = row["subscription_name"] as String,
-            description = row["description"] as String,
-            q = row["q"] as String,
+            subscriptionName = row["subscription_name"] as? String,
+            description = row["description"] as? String,
+            q = row["q"] as? String,
             entities = emptySet(),
             notification = NotificationParams(
                 attributes = (row["notif_attributes"] as? String)?.split(","),

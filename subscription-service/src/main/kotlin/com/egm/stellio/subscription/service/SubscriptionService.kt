@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
@@ -39,6 +40,7 @@ import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
+    private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
@@ -242,6 +244,14 @@ class SubscriptionService(
                 toList(it["contexts"])
             }
     }
+
+    fun getContextsLink(subscription: Subscription): String =
+        if (subscription.contexts.size > 1) {
+            val linkToRetrieveContexts = applicationProperties.stellioUrl +
+                "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
+            buildContextLinkHeader(linkToRetrieveContexts)
+        } else
+            buildContextLinkHeader(subscription.contexts[0])
 
     suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
         val selectStatement =

@@ -80,7 +80,7 @@ class EntityEventListenerService(
         logger.debug("Attributes considered in the event: $updatedAttributes")
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
         return notificationService.notifyMatchingSubscribers(
-            entityPayload,
+            jsonLdEntity,
             jsonLdEntity.toNgsiLdEntity(),
             updatedAttributes.map { JsonLdUtils.expandJsonLdTerm(it, contexts) }.toSet()
         ).onRight { results ->

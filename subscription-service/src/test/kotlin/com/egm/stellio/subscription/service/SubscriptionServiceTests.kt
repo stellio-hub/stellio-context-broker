@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -962,5 +963,17 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             .shouldSucceedWith {
                 assertEquals(listOf(APIC_COMPOUND_CONTEXT), it)
             }
+    }
+
+    @Test
+    fun `it should return a link to contexts endpoint if subscription has more than one context`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            contexts = listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        val contextLink = subscriptionService.getContextsLink(subscription)
+
+        assertThat(contextLink)
+            .contains("/ngsi-ld/v1/subscriptions/${subscription.id}/context")
     }
 }

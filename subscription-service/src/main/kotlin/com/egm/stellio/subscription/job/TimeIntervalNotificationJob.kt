@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.job
 
 import arrow.core.flatten
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.subscription.model.EntityInfo
@@ -10,6 +10,7 @@ import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.runBlocking
+import org.springframework.http.HttpHeaders
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -25,44 +26,52 @@ class TimeIntervalNotificationJob(
     fun sendTimeIntervalNotification() {
         runBlocking {
             subscriptionService.getRecurringSubscriptionsToNotify().forEach { subscription ->
+                val contextLink = subscriptionService.getContextsLink(subscription)
                 // TODO send one notification per subscription
-                getEntitiesToNotify(subscription.entities, subscription.q).forEach { jsonLdEntity ->
-                    sendNotification(jsonLdEntity, subscription)
+                getEntitiesToNotify(subscription, contextLink).forEach { compactedEntity ->
+                    sendNotification(compactedEntity, subscription)
                 }
             }
         }
     }
 
-    fun extractParam(entityInfo: EntityInfo, q: String?): String {
+    fun prepareQueryParams(entityInfo: EntityInfo, q: String?, attributes: List<String>?): String {
         val param = java.lang.StringBuilder()
         param.append("?$QUERY_PARAM_TYPE=${entityInfo.type.encode()}")
         if (entityInfo.id != null) param.append("&$QUERY_PARAM_ID=${entityInfo.id}")
         if (entityInfo.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entityInfo.idPattern}")
         if (q != null) param.append("&$QUERY_PARAM_FILTER=${q.encode()}")
+        if (!attributes.isNullOrEmpty())
+            param.append("&$QUERY_PARAM_ATTRS=${attributes.joinToString(",")}")
         return param.toString()
     }
 
     suspend fun sendNotification(
-        entity: JsonLdEntity,
+        compactedEntity: CompactedJsonLdEntity,
         subscription: Subscription
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
             subscription,
-            entity
+            compactedEntity
         )
 
-    suspend fun getEntitiesToNotify(entitiesInfo: Set<EntityInfo>, q: String?): Set<JsonLdEntity> =
-        entitiesInfo
-            .map { getEntities(extractParam(it, q)) }
+    suspend fun getEntitiesToNotify(
+        subscription: Subscription,
+        contextLink: String
+    ): Set<CompactedJsonLdEntity> =
+        subscription.entities
+            .map {
+                getEntities(prepareQueryParams(it, subscription.q, subscription.notification.attributes), contextLink)
+            }
             .flatten()
             .toSet()
 
-    suspend fun getEntities(paramRequest: String): List<JsonLdEntity> =
+    suspend fun getEntities(paramRequest: String, contextLink: String): List<CompactedJsonLdEntity> =
         webClient.get()
             .uri("/ngsi-ld/v1/entities$paramRequest")
+            .header(HttpHeaders.LINK, contextLink)
             .retrieve()
             .bodyToMono(String::class.java)
             .map { JsonUtils.deserializeListOfObjects(it) }
-            .map { JsonLdUtils.expandJsonLdEntities(it) }
             .awaitFirst()
 }

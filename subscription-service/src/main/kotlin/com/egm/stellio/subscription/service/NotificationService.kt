@@ -4,13 +4,10 @@ import arrow.core.Either
 import arrow.core.continuations.either
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.compact
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.toKeyValues
-import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
@@ -23,7 +20,6 @@ import org.springframework.web.reactive.function.client.awaitExchange
 
 @Service
 class NotificationService(
-    private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService,
     private val subscriptionEventService: SubscriptionEventService
 ) {
@@ -31,7 +27,7 @@ class NotificationService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun notifyMatchingSubscribers(
-        rawEntity: String,
+        jsonLdEntity: JsonLdEntity,
         ngsiLdEntity: NgsiLdEntity,
         updatedAttributes: Set<ExpandedTerm>
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> =
@@ -40,11 +36,7 @@ class NotificationService(
             val types = ngsiLdEntity.types
             subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
                 .filter {
-                    subscriptionService.isMatchingQuery(
-                        it.q?.decode(),
-                        expandJsonLdEntity(rawEntity, it.contexts),
-                        it.contexts
-                    ).bind()
+                    subscriptionService.isMatchingQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
                 }
                 .filter {
                     subscriptionService.isMatchingGeoQuery(
@@ -53,30 +45,32 @@ class NotificationService(
                     ).bind()
                 }
                 .map {
-                    callSubscriber(it, expandJsonLdEntity(rawEntity, it.contexts))
+                    val filteredEntity =
+                        filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet() ?: emptySet())
+                    val compactedEntity = compact(
+                        JsonLdEntity(filteredEntity, it.contexts),
+                        it.contexts,
+                        MediaType.valueOf(it.notification.endpoint.accept.accept)
+                    )
+                    callSubscriber(it, compactedEntity)
                 }
         }
 
     suspend fun callSubscriber(
         subscription: Subscription,
-        entity: JsonLdEntity
+        entity: CompactedJsonLdEntity
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotificationData(entity, subscription, mediaType)
+            data = buildNotificationData(entity, subscription)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
         val request =
             WebClient.create(uri).post().contentType(mediaType).headers {
                 if (mediaType == MediaType.APPLICATION_JSON) {
-                    if (subscription.contexts.size > 1) {
-                        val linkToRetrieveContexts = applicationProperties.stellioUrl +
-                            "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
-                        it.set(HttpHeaders.LINK, buildContextLinkHeader(linkToRetrieveContexts))
-                    } else
-                        it.set(HttpHeaders.LINK, buildContextLinkHeader(subscription.contexts[0]))
+                    it.set(HttpHeaders.LINK, subscriptionService.getContextsLink(subscription))
                 }
                 subscription.notification.endpoint.info?.forEach { endpointInfo ->
                     it.set(endpointInfo.key, endpointInfo.value)
@@ -103,18 +97,13 @@ class NotificationService(
     }
 
     private fun buildNotificationData(
-        entity: JsonLdEntity,
-        subscription: Subscription,
-        mediaType: MediaType
+        compactedEntity: CompactedJsonLdEntity,
+        subscription: Subscription
     ): List<Map<String, Any>> {
-        val filteredEntity =
-            filterJsonLdEntityOnAttributes(entity, subscription.notification.attributes?.toSet() ?: emptySet())
-        val filteredCompactedEntity =
-            compact(JsonLdEntity(filteredEntity, subscription.contexts), subscription.contexts, mediaType)
         val processedEntity = if (subscription.notification.format == NotificationParams.FormatType.KEY_VALUES)
-            filteredCompactedEntity.toKeyValues()
+            compactedEntity.toKeyValues()
         else
-            filteredCompactedEntity
+            compactedEntity
 
         return listOf(processedEntity)
     }

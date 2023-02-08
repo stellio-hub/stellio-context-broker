@@ -4,14 +4,13 @@ import arrow.core.right
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.subscription.config.ApplicationProperties
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
@@ -35,9 +34,6 @@ import org.springframework.test.context.ActiveProfiles
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
 class NotificationServiceTests {
-
-    @MockkBean
-    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
@@ -82,7 +78,8 @@ class NotificationServiceTests {
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
         coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
@@ -95,7 +92,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 assertEquals(subscription.id, it[0].second.subscriptionId)
@@ -132,7 +129,8 @@ class NotificationServiceTests {
             ),
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
         coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
@@ -145,7 +143,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 assertEquals(subscription.id, it[0].second.subscriptionId)
@@ -164,12 +162,52 @@ class NotificationServiceTests {
     }
 
     @Test
+    fun `it should notify the subscriber and use the contexts of the subscription to compact`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD
+                )
+            ),
+            contexts = listOf(NGSILD_CORE_CONTEXT)
+        )
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+
+        coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+            .shouldSucceedWith { notificationResults ->
+                val notificationResult = notificationResults[0]
+                assertEquals(subscription.id, notificationResult.first.id)
+                assertEquals(subscription.id, notificationResult.second.subscriptionId)
+                assertEquals(1, notificationResult.second.data.size)
+                assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
+                assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
+                assertEquals(listOf(NGSILD_CORE_CONTEXT), notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
+                assertTrue(notificationResult.third)
+            }
+    }
+
+    @Test
     fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() =
         runTest {
             val subscription = gimmeRawSubscription(
                 withNotifParams = Pair(FormatType.KEY_VALUES, listOf(NGSILD_LOCATION_TERM))
             )
-            val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+            val jsonLdEntity = expandJsonLdEntity(rawEntity)
+            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
             coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
             coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
@@ -182,7 +220,7 @@ class NotificationServiceTests {
                     .willReturn(ok())
             )
 
-            notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+            notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
                 .shouldSucceedWith {
                     assertEquals(1, it.size)
                     assertEquals(subscription.id, it[0].second.subscriptionId)
@@ -214,7 +252,8 @@ class NotificationServiceTests {
     fun `it should notify the two subscribers`() = runTest {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -229,7 +268,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
             .shouldSucceedWith {
                 assertEquals(2, it.size)
             }
@@ -264,7 +303,8 @@ class NotificationServiceTests {
                 )
             )
         val subscription2 = gimmeRawSubscription()
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -279,7 +319,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
             .shouldSucceedWith { results ->
                 assertEquals(2, results.size)
                 assertTrue(
@@ -309,7 +349,8 @@ class NotificationServiceTests {
     fun `it should notify the subscriber that matches the geoQuery`() = runTest {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
+        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -325,7 +366,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.notifyMatchingSubscribers(rawEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
+        notificationService.notifyMatchingSubscribers(jsonLdEntity, ngsiLdEntity, setOf(NGSILD_NAME_PROPERTY))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 assertEquals(subscription1.id, it[0].first.id)
@@ -349,38 +390,6 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should return notification with data using contexts of subscription`() = runTest {
-        val subscription = gimmeRawSubscription().copy(
-            notification = NotificationParams(
-                attributes = emptyList(),
-                endpoint = Endpoint(
-                    uri = "http://localhost:8089/notification".toUri(),
-                    accept = Endpoint.AcceptType.JSONLD
-                )
-            ),
-            contexts = listOf(NGSILD_CORE_CONTEXT)
-        )
-
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
-
-        stubFor(
-            post(urlMatching("/notification"))
-                .willReturn(ok())
-        )
-
-        val notificationResult = notificationService.callSubscriber(subscription, expandJsonLdEntity(rawEntity))
-
-        assertEquals(subscription.id, notificationResult.first.id)
-        assertEquals(subscription.id, notificationResult.second.subscriptionId)
-        assertEquals(1, notificationResult.second.data.size)
-        assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
-        assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
-        assertEquals(listOf(NGSILD_CORE_CONTEXT), notificationResult.second.data[0][JSONLD_CONTEXT])
-        assertTrue(notificationResult.third)
-    }
-
-    @Test
     fun `it should add a Link header containing the context of the subscription`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
@@ -392,6 +401,7 @@ class NotificationServiceTests {
             )
         )
 
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
@@ -400,41 +410,9 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.callSubscriber(subscription, expandJsonLdEntity(rawEntity))
+        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
 
         val link = buildContextLinkHeader(subscription.contexts[0])
-        verify(
-            1,
-            postRequestedFor(urlPathEqualTo("/notification"))
-                .withHeader(HttpHeaders.LINK, equalTo(link))
-        )
-    }
-
-    @Test
-    fun `it should add a Link header pointing to contexts endpoint when size exceeds 1`() = runTest {
-        val subscription = gimmeRawSubscription().copy(
-            notification = NotificationParams(
-                attributes = emptyList(),
-                endpoint = Endpoint(
-                    uri = "http://localhost:8089/notification".toUri(),
-                    accept = Endpoint.AcceptType.JSON
-                )
-            ),
-            contexts = listOf(NGSILD_CORE_CONTEXT, APIC_COMPOUND_CONTEXT)
-        )
-
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
-        every { applicationProperties.stellioUrl } answers { "http://localhost:8080" }
-
-        stubFor(
-            post(urlMatching("/notification"))
-                .willReturn(ok())
-        )
-
-        notificationService.callSubscriber(subscription, expandJsonLdEntity(rawEntity))
-
-        val link = buildContextLinkHeader("http://localhost:8080/ngsi-ld/v1/subscriptions/${subscription.id}/context")
         verify(
             1,
             postRequestedFor(urlPathEqualTo("/notification"))
@@ -456,7 +434,7 @@ class NotificationServiceTests {
 
         val notificationResult = notificationService.callSubscriber(
             subscription,
-            expandJsonLdEntity(rawEntity, subscription.contexts)
+            rawEntity.deserializeAsMap()
         )
 
         assertEquals(subscription.id, notificationResult.first.id)

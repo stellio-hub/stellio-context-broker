@@ -38,13 +38,14 @@ class QueryService(
                 queryParams,
                 accessRightFilter
             )
-            if (entitiesIds.isEmpty())
-                return@either Pair<List<JsonLdEntity>, Int>(emptyList(), 0)
-
             val count = temporalEntityAttributeService.getCountForEntities(
                 queryParams,
                 accessRightFilter
             ).bind()
+
+            // we can have an empty list of entities with a non-zero count (e.g., offset too high)
+            if (entitiesIds.isEmpty())
+                return@either Pair<List<JsonLdEntity>, Int>(emptyList(), count)
 
             val entitiesPayloads =
                 entityPayloadService.retrieve(entitiesIds)

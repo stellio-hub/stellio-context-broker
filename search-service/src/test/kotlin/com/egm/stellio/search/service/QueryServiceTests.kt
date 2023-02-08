@@ -97,14 +97,13 @@ class QueryServiceTests {
     @Test
     fun `it should return an empty list if no entity matched the query`() = runTest {
         coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns emptyList()
+        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 0.right()
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
             .shouldSucceedWith {
                 assertEquals(0, it.second)
                 assertTrue(it.first.isEmpty())
             }
-
-        coVerify { temporalEntityAttributeService.getCountForEntities(any(), any()) wasNot Called }
     }
 
     @Test

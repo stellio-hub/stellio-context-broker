@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +36,10 @@ class EntityEventListenerService(
             val entityEvent = deserializeAs<EntityEvent>(content)
             when (entityEvent) {
                 is EntityCreateEvent -> handleEntityEvent(
-                    deserializeObject(entityEvent.operationPayload).keys,
+                    deserializeObject(entityEvent.operationPayload)
+                        .keys
+                        .filter { !JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it) }
+                        .toSet(),
                     entityEvent.getEntity(),
                     entityEvent.contexts
                 )

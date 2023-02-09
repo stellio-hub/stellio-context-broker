@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -25,7 +26,7 @@ data class Subscription(
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
-    var watchedAttributes: List<String>? = null,
+    var watchedAttributes: List<ExpandedTerm>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQuery? = null,
@@ -37,7 +38,7 @@ data class Subscription(
     //  - used to compact entities in notifications
     //  - used when needed to serve contexts in JSON notifications
     @JsonProperty(value = JSONLD_CONTEXT)
-    val contexts: List<String>
+    val contexts: List<ExpandedTerm>
 ) {
 
     @Transient

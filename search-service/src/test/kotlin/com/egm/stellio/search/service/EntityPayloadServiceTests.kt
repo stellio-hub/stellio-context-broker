@@ -60,7 +60,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should create an entity payload from string if none existed yet`() = runTest {
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
     }
 
@@ -131,12 +135,20 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should not create an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
         assertThrows<DataIntegrityViolationException> {
             entityPayloadService.createEntityPayload(
-                entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+                entity01Uri,
+                listOf(BEEHIVE_TYPE),
+                now,
+                EMPTY_PAYLOAD,
+                listOf(NGSILD_CORE_CONTEXT)
             )
         }
     }
@@ -144,7 +156,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve an entity payload`() = runTest {
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
 
         entityPayloadService.retrieve(entity01Uri)
@@ -317,7 +333,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should upsert an entity payload if one already existed`() = runTest {
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
         entityPayloadService.upsertEntityPayload(entity01Uri, EMPTY_PAYLOAD)
@@ -365,7 +385,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should delete an entity payload`() = runTest {
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
         val deleteResult = entityPayloadService.deleteEntityPayload(entity01Uri)
@@ -373,7 +397,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         // if correctly deleted, we should be able to create a new one
         entityPayloadService.createEntityPayload(
-            entity01Uri, listOf(BEEHIVE_TYPE), now, EMPTY_PAYLOAD, listOf(NGSILD_CORE_CONTEXT)
+            entity01Uri,
+            listOf(BEEHIVE_TYPE),
+            now,
+            EMPTY_PAYLOAD,
+            listOf(NGSILD_CORE_CONTEXT)
         ).shouldSucceed()
     }
 

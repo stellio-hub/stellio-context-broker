@@ -603,10 +603,10 @@ fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> =
 private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
         // entity property value is always a Map
-        is Map<*, *> -> simplifyValue(value)
+        is Map<*, *> -> simplifyValue(value as Map<String, Any>)
         is List<*> -> value.map {
             when (it) {
-                is Map<*, *> -> simplifyValue(it)
+                is Map<*, *> -> simplifyValue(it as Map<String, Any>)
                 // we keep @context value as it is (List<String>)
                 else -> it
             }
@@ -616,10 +616,10 @@ private fun simplifyRepresentation(value: Any): Any {
     }
 }
 
-private fun simplifyValue(value: Map<*, *>): Any {
+private fun simplifyValue(value: Map<String, Any>): Any {
     return when (value["type"]) {
-        "Property", "GeoProperty" -> value.getOrDefault("value", value)!!
-        "Relationship" -> value.getOrDefault("object", value)!!
+        "Property", "GeoProperty" -> value.getOrDefault("value", value)
+        "Relationship" -> value.getOrDefault("object", value)
         else -> value
     }
 }

@@ -29,10 +29,12 @@ fun parseAndCheckQueryParams(
         throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AUDIT
     )
     val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities)
 
@@ -59,11 +61,11 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
         throw BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'")
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
-        ?.getOrHandle {
+        ?.getOrElse {
             throw BadRequestDataException(it)
         }
 
-    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrHandle {
+    val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrElse {
         throw BadRequestDataException(it)
     }
 

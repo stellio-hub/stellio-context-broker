@@ -1,7 +1,15 @@
-FROM adoptopenjdk/openjdk11:alpine-jre
-RUN addgroup -S stellio && adduser -S stellio -G stellio
-USER stellio:stellio
+# You can build a Docker image of the module with the following command:
+# docker build --build-arg JAR_FILE=build/libs/search-service-{version}.jar -t stellio-search-service:{version} .
+FROM eclipse-temurin:17-jre as builder
+WORKDIR application
 ARG JAR_FILE=build/libs/*.jar
-COPY ${JAR_FILE} app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+COPY ${JAR_FILE} application.jar
+RUN java -Djarmode=layertools -jar application.jar extract
 
+FROM eclipse-temurin:17-jre
+WORKDIR application
+COPY --from=builder application/dependencies/ ./
+COPY --from=builder application/spring-boot-loader/ ./
+COPY --from=builder application/snapshot-dependencies/ ./
+COPY --from=builder application/application/ ./
+ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]

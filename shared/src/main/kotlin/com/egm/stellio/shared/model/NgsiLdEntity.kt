@@ -207,7 +207,14 @@ class NgsiLdPropertyInstance private constructor(
                 throw BadRequestDataException("Property has unknown attributes types: $attributes")
 
             return NgsiLdPropertyInstance(
-                value, unitCode, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+                value,
+                unitCode,
+                createdAt,
+                modifiedAt,
+                observedAt,
+                datasetId,
+                properties,
+                relationships
             )
         }
     }
@@ -242,7 +249,13 @@ class NgsiLdRelationshipInstance private constructor(
                 throw BadRequestDataException("Relationship has unknown attributes: $attributes")
 
             return NgsiLdRelationshipInstance(
-                objectId, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+                objectId,
+                createdAt,
+                modifiedAt,
+                observedAt,
+                datasetId,
+                properties,
+                relationships
             )
         }
     }
@@ -277,7 +290,13 @@ class NgsiLdGeoPropertyInstance(
                 throw BadRequestDataException("Geoproperty has unknown attributes: $attributes")
 
             return NgsiLdGeoPropertyInstance(
-                WKTCoordinates(wktValue), createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+                WKTCoordinates(wktValue),
+                createdAt,
+                modifiedAt,
+                observedAt,
+                datasetId,
+                properties,
+                relationships
             )
         }
     }

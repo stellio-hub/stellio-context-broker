@@ -108,12 +108,12 @@ class EntityPayloadService(
     ): Either<APIException, Unit> {
         val selectQuery =
             """
-                select 
-                    exists(
-                        select 1 
-                        from entity_payload 
-                        where entity_id = :entity_id
-                    ) as entityExists;
+            select 
+                exists(
+                    select 1 
+                    from entity_payload 
+                    where entity_id = :entity_id
+                ) as entityExists;
             """.trimIndent()
 
         return databaseClient
@@ -155,11 +155,12 @@ class EntityPayloadService(
             return emptyList()
         }
 
-        val query = """
+        val query =
+            """
             select entity_id 
             from entity_payload
             where entity_id in (:entities_ids)
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient
             .sql(query)

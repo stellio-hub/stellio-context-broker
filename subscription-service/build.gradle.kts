@@ -23,13 +23,14 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.1.1")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("com.github.tomakehurst:wiremock-standalone:2.27.2")
+    // see https://github.com/wiremock/wiremock/issues/1760
+    testImplementation("com.github.tomakehurst:wiremock-jre8-standalone:2.35.0")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))

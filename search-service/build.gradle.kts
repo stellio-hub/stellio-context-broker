@@ -22,7 +22,7 @@ dependencies {
     implementation("com.savvasdalkitsis:json-merge:0.0.6")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

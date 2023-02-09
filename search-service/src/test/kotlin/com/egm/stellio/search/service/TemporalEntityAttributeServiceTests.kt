@@ -588,11 +588,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 )
             ) {
                 """
-                    (
-                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                        OR
-                        (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
-                    )
+                (
+                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                    OR
+                    (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                )
                 """.trimIndent()
             }
 
@@ -630,11 +630,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 )
             ) {
                 """
-                    (
-                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                        OR
-                        (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
-                    )
+                (
+                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                    OR
+                    (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                )
                 """.trimIndent()
             }
 
@@ -679,11 +679,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     )
                 ) {
                     """
-                        (
-                            (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                            OR
-                            (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
-                        )
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    )
                     """.trimIndent()
                 }
 
@@ -824,9 +824,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(beehiveTestDId).shouldSucceed()
 
-        temporalEntityAttributeService.getForEntityAndAttribute(
-            beehiveTestDId, INCOMING_PROPERTY
-        ).shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+        temporalEntityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_PROPERTY)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
     }
 
     @Test
@@ -848,9 +847,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             attributeInstanceService.deleteInstancesOfAttribute(eq(beehiveTestDId), eq(INCOMING_PROPERTY), null)
         }
 
-        temporalEntityAttributeService.getForEntityAndAttribute(
-            beehiveTestDId, INCOMING_PROPERTY
-        ).shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+        temporalEntityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_PROPERTY)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
     }
 
     @Test

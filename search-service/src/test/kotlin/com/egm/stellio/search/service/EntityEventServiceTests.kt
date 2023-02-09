@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.util.concurrent.SettableListenableFuture
+import java.util.concurrent.CompletableFuture
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventService::class])
@@ -69,7 +69,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should cross publish all events on the catch-all topic`() {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
@@ -89,7 +89,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should only publish events for valid topic names`() {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
@@ -111,10 +111,13 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
-            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+            null,
+            breedingServiceUri,
+            listOf(breedingServiceType),
+            listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -125,10 +128,13 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType, feedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
-            null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+            null,
+            breedingServiceUri,
+            listOf(breedingServiceType, feedingServiceType),
+            listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 
         verify {
@@ -142,10 +148,13 @@ class EntityEventServiceTests {
         coEvery {
             entityEventService.getSerializedEntity(any(), any())
         } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityReplaceEvent(
-            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+            null,
+            breedingServiceUri,
+            listOf(breedingServiceType),
+            listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -153,10 +162,13 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_DELETE event`() = runTest {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
-            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+            null,
+            breedingServiceUri,
+            listOf(breedingServiceType),
+            listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -164,10 +176,13 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish two ENTITY_DELETE events if entity has two types`() = runTest {
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
-            null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+            null,
+            breedingServiceUri,
+            listOf(breedingServiceType, feedingServiceType),
+            listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 
         verify {
@@ -278,11 +293,11 @@ class EntityEventServiceTests {
         val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val expectedOperationPayload =
             """
-                { "type": "Property", "value": 120 }
+            { "type": "Property", "value": 120 }
             """.trimIndent()
         val fishNumberAttributeFragment =
             """
-                { "fishNumber": $expectedOperationPayload }
+            { "fishNumber": $expectedOperationPayload }
             """.trimIndent()
         val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         val appendResult = UpdateResult(
@@ -328,19 +343,19 @@ class EntityEventServiceTests {
             val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
             val expectedFishNumberOperationPayload =
                 """
-                    { "type": "Property", "value": 120 }
+                { "type": "Property", "value": 120 }
                 """.trimIndent()
             val fishNumberAttributeFragment =
                 """
-                    "fishNumber": $expectedFishNumberOperationPayload
+                "fishNumber": $expectedFishNumberOperationPayload
                 """.trimIndent()
             val expectedFishNameOperationPayload =
                 """
-                    { "type": "Property", "datasetId": "$fishName1DatasetUri", "value": 50 }
+                { "type": "Property", "datasetId": "$fishName1DatasetUri", "value": 50 }
                 """.trimIndent()
             val fishNameAttributeFragment =
                 """
-                    "fishName": $expectedFishNameOperationPayload
+                "fishName": $expectedFishNameOperationPayload
                 """.trimIndent()
             val attributesFragment = "{ $fishNumberAttributeFragment, $fishNameAttributeFragment }"
             val jsonLdAttributes = expandJsonLdFragment(attributesFragment, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -405,19 +420,19 @@ class EntityEventServiceTests {
         val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val expectedFishNumberOperationPayload =
             """
-                { "type":"Property", "value":600 }
+            { "type":"Property", "value":600 }
             """.trimIndent()
         val fishNumberPayload =
             """
-                "fishNumber": $expectedFishNumberOperationPayload
+            "fishNumber": $expectedFishNumberOperationPayload
             """.trimIndent()
         val expectedFishNameOperationPayload =
             """
-                { "type":"Property", "datasetId": "$fishName1DatasetUri", "value":"Salmon", "unitCode": "C1" }
+            { "type":"Property", "datasetId": "$fishName1DatasetUri", "value":"Salmon", "unitCode": "C1" }
             """.trimIndent()
         val fishNamePayload =
             """
-                "fishName": $expectedFishNameOperationPayload
+            "fishName": $expectedFishNameOperationPayload
             """.trimIndent()
         val attributePayload = "{ $fishNumberPayload, $fishNamePayload }"
         val jsonLdAttributes = expandJsonLdFragment(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))

@@ -25,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -143,6 +144,15 @@ class SubscriptionHandlerTests {
     }
 
     @Test
+    fun `get subscription by id should return a 406 if the accept header is not correct`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .header("Accept", MediaType.APPLICATION_PDF.toString())
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_ACCEPTABLE)
+    }
+
+    @Test
     fun `create subscription should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
@@ -231,6 +241,20 @@ class SubscriptionHandlerTests {
                 } 
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `create subscription should return a 415 if the content type is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/subscriptions")
+            .contentType(MediaType.APPLICATION_PDF)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+
+        coVerify { subscriptionService.validateNewSubscription(any()) wasNot Called }
     }
 
     @Test
@@ -633,11 +657,11 @@ class SubscriptionHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 """
-                    {
-                        "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found"
-                    }
+                {
+                    "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found"
+                }
                 """.trimIndent()
             )
 

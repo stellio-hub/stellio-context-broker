@@ -80,7 +80,7 @@ class EntityAccessRightsService(
             .bind("entity_id", entityId)
             .bind("subject_id", sub)
             .executeExpected {
-                if (it == 0)
+                if (it == 0L)
                     ResourceNotFoundException("No right found for $sub on $entityId").left()
                 else Unit.right()
             }

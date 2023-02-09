@@ -11,20 +11,22 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2021.0.3"
+extra["springCloudVersion"] = "2022.0.0"
 extra["testcontainersVersion"] = "1.17.5"
 
 plugins {
-    java // why did I have to add that ?!
+    // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
+    java
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.7.5" apply false
+    id("org.springframework.boot") version "3.0.2" apply false
     id("io.spring.dependency-management") version "1.1.0" apply false
-    kotlin("jvm") version "1.6.21" apply false
-    kotlin("plugin.spring") version "1.6.21" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
+    id("org.graalvm.buildtools.native") version "0.9.19"
+    kotlin("jvm") version "1.8.10" apply false
+    kotlin("plugin.spring") version "1.8.10" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "11.1.0"
     id("com.google.cloud.tools.jib") version "3.3.1" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.21.0" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
     id("org.sonarqube") version "3.5.0.2730"
     jacoco
 }
@@ -68,7 +70,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.3")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.5")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 
@@ -78,11 +80,10 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            // to ensure we are using mocks and spies from springmockk lib instead
+            // to ensure we are using mocks and spies from springmockk (and not from Mockito)
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:3.1.2")
-        testImplementation("io.mockk:mockk:1.13.3")
+        testImplementation("com.ninja-squad:springmockk:4.0.0")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
@@ -173,7 +174,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "2.0.0"
+    version = "2.1.0"
 
     repositories {
         mavenCentral()

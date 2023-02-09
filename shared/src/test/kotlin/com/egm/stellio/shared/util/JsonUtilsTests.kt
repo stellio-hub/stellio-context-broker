@@ -157,11 +157,11 @@ class JsonUtilsTests {
         }
         Assertions.assertEquals(
             """
-                Unexpected character (',' (code 44)): was expecting double-quote to start field name
-                 at [Source: (String)"{
-                    "id": "urn:ngsi-ld:Device:01234",,
-                    "type": "Device"
-                }"; line: 2, column: 39]
+            Unexpected character (',' (code 44)): was expecting double-quote to start field name
+             at [Source: (String)"{
+                "id": "urn:ngsi-ld:Device:01234",,
+                "type": "Device"
+            }"; line: 2, column: 39]
             """.trimIndent(),
             exception.message
         )

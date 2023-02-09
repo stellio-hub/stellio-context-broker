@@ -22,13 +22,13 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:1.1.3")
+    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:1.1.5")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
     }
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 
     testFixturesApi("org.testcontainers:testcontainers")
     testFixturesApi("org.testcontainers:junit-jupiter")

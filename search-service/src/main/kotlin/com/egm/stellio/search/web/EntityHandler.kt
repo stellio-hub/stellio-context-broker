@@ -60,7 +60,10 @@ class EntityHandler(
             authorizationService.userCanCreateEntities(sub).bind()
             entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
             temporalEntityAttributeService.createEntityTemporalReferences(
-                ngsiLdEntity, jsonLdEntity, attributesMetadata, sub.orNull()
+                ngsiLdEntity,
+                jsonLdEntity,
+                attributesMetadata,
+                sub.orNull()
             ).bind()
             authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
 
@@ -436,17 +439,27 @@ class EntityHandler(
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(
-                entityUri, expandedAttrId, datasetId
+                entityUri,
+                expandedAttrId,
+                datasetId
             ).bind()
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             temporalEntityAttributeService.deleteTemporalAttribute(
-                entityUri, expandedAttrId, datasetId, deleteAll
+                entityUri,
+                expandedAttrId,
+                datasetId,
+                deleteAll
             ).bind()
 
             entityEventService.publishAttributeDeleteEvent(
-                sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
+                sub.orNull(),
+                entityUri,
+                attrId,
+                datasetId,
+                deleteAll,
+                contexts
             )
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(

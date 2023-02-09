@@ -204,6 +204,8 @@ class EntityAccessRightsService(
             }
             .allToMappedList { rowToEntityAccessControl(it, isStellioAdmin) }
             .groupBy { it.id }
+            // a user may have multiple rights on a given entity (e.g., through groups memberships)
+            // retain the one with the "higher" right
             .mapValues {
                 val ear = it.value.first()
                 EntityAccessRights(

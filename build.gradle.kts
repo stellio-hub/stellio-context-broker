@@ -34,6 +34,7 @@ plugins {
 subprojects {
     repositories {
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 
     apply(plugin = "io.spring.dependency-management")

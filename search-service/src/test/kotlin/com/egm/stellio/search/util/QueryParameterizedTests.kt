@@ -25,7 +25,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -34,7 +34,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -49,7 +49,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -58,7 +58,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -77,7 +77,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -86,7 +86,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -108,7 +108,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -117,7 +117,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -143,7 +143,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -152,7 +152,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -166,7 +166,7 @@ class QueryParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -181,7 +181,7 @@ class QueryParameterizedTests {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        entityPayload = EMPTY_PAYLOAD,
+                        payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
                     mapOf(
@@ -190,7 +190,7 @@ class QueryParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -204,7 +204,7 @@ class QueryParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),

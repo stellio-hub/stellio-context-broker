@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeType
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
@@ -225,7 +226,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             attributeType = attributeType,
             attributeValueType = attributeValueType,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
     private fun createEntityPayload(
@@ -248,7 +249,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             entityId = toUri(id),
             types = types,
             createdAt = now,
-            entityPayload = EMPTY_PAYLOAD,
+            payload = EMPTY_JSON_PAYLOAD,
             contexts = listOf(contexts)
         )
 }

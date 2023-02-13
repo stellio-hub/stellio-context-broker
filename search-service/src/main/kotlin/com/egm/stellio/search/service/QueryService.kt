@@ -6,8 +6,8 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
@@ -195,7 +195,7 @@ class QueryService(
         entityPayload: EntityPayload,
         contexts: List<String>
     ): JsonLdEntity {
-        val deserializedEntity = deserializeObject(entityPayload.entityPayload)
+        val deserializedEntity = entityPayload.payload.deserializeAsMap()
         return JsonLdEntity(deserializedEntity, contexts)
     }
 }

@@ -3,7 +3,7 @@ package com.egm.stellio.search.listener
 import arrow.core.Either
 import arrow.core.left
 import com.egm.stellio.search.service.EntityEventService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ObservationEventListener(
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityPayloadService: EntityPayloadService,
     private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -54,7 +54,7 @@ class ObservationEventListener(
     }
 
     suspend fun handleEntityCreate(observationEvent: EntityCreateEvent): Either<APIException, Unit> =
-        temporalEntityAttributeService.createEntityTemporalReferences(
+        entityPayloadService.createEntity(
             observationEvent.operationPayload,
             observationEvent.contexts,
             observationEvent.sub
@@ -74,7 +74,7 @@ class ObservationEventListener(
             observationEvent.contexts
         )
 
-        return temporalEntityAttributeService.partialUpdateEntityAttribute(
+        return entityPayloadService.partialUpdateAttribute(
             observationEvent.entityId,
             expandedPayload,
             observationEvent.sub
@@ -107,7 +107,7 @@ class ObservationEventListener(
         )
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-        return temporalEntityAttributeService.appendEntityAttributes(
+        return entityPayloadService.appendAttributes(
             observationEvent.entityId,
             ngsiLdAttributes,
             expandedPayload,

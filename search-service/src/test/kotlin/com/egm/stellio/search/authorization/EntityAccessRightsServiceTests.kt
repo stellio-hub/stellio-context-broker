@@ -5,6 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
@@ -17,6 +18,7 @@ import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -381,7 +383,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @Test
     fun `it should return nothing when list of entities is empty`() = runTest {
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), emptyList())
-            .shouldSucceedWith { assertTrue(it.isNullOrEmpty()) }
+            .shouldSucceedWith { assertTrue(it.isEmpty()) }
     }
 
     @Test
@@ -475,7 +477,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     private suspend fun createSubjectReferential(
         subjectId: String,
         subjectType: SubjectType,
-        subjectInfo: String,
+        subjectInfo: Json,
         serviceAccountId: String? = null
     ) {
         subjectReferentialService.create(

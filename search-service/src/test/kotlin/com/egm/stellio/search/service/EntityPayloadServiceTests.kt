@@ -1,9 +1,11 @@
 package com.egm.stellio.search.service
 
+import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_PAYLOAD
 import com.egm.stellio.search.util.buildSapAttribute
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -18,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
+import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -43,11 +46,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var entityPayloadService: EntityPayloadService
 
+    @MockkBean
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val entity02Uri = "urn:ngsi-ld:Entity:02".toUri()
+    private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val now = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS)
 
     @AfterEach
@@ -123,13 +130,43 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
 
         entityPayloadService.hasSpecificAccessPolicies(
-            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            beehiveTestCId,
             listOf(AUTH_READ)
         ).shouldSucceedWith { assertTrue(it) }
         entityPayloadService.hasSpecificAccessPolicies(
-            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            beehiveTestCId,
             listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).shouldSucceedWith { assertFalse(it) }
+    }
+
+    @Test
+    fun `it should only create an entity payload for a minimal entity`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        val rawEntity = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            rawEntity,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+            }
+
+        coVerify {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                any(),
+                any(),
+                emptyList(),
+                any(),
+                eq("0123456789-1234-5678-987654321")
+            )
+        }
     }
 
     @Test
@@ -208,7 +245,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entityPayloads = entityPayloadService.retrieve(listOf(entity01Uri))
         assertEquals(1, entityPayloads.size)
         assertEquals(entity01Uri, entityPayloads[0].entityId)
-        assertJsonPayloadsAreEqual(expandedPayload, entityPayloads[0].entityPayload)
+        assertJsonPayloadsAreEqual(expandedPayload, entityPayloads[0].payload.asString())
     }
 
     @Test
@@ -301,7 +338,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
                 assertEquals(
                     listOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    it.entityPayload.deserializeExpandedPayload()[JSONLD_TYPE]
+                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE]
                 )
             }
     }

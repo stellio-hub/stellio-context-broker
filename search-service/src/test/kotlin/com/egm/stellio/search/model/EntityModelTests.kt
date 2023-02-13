@@ -1,5 +1,6 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -15,7 +16,7 @@ class EntityModelTests {
         types = listOf(BEEHIVE_TYPE),
         createdAt = now,
         modifiedAt = now,
-        entityPayload = EMPTY_PAYLOAD,
+        payload = EMPTY_JSON_PAYLOAD,
         contexts = DEFAULT_CONTEXTS
     )
 

@@ -1,6 +1,7 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI
 import java.time.ZonedDateTime
@@ -16,7 +17,7 @@ data class TemporalEntityAttribute(
     val datasetId: URI? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
-    val payload: String
+    val payload: Json
 ) {
     enum class AttributeValueType {
         NUMBER,

@@ -7,6 +7,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -69,7 +70,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = INCOMING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(incomingTemporalEntityAttribute)
@@ -79,7 +80,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = OUTGOING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(outgoingTemporalEntityAttribute)
@@ -210,7 +211,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(temporalEntityAttribute2)
@@ -472,7 +473,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = OUTGOING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(temporalEntityAttribute2)
@@ -585,7 +586,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == null &&
                         it.measuredValue == 550.0 &&
-                        it.payload.matchContent(
+                        it.payload.asString().matchContent(
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/observedAt":[{
@@ -635,7 +636,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == "false" &&
                         it.measuredValue == null &&
-                        it.payload.matchContent(
+                        it.payload.asString().matchContent(
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/observedAt":[{

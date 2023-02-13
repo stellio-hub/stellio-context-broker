@@ -269,7 +269,7 @@ class EntityOperationHandlerTests {
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
         every {
             entityEventService.publishEntityCreateEvent(
                 any(),
@@ -290,7 +290,7 @@ class EntityOperationHandlerTests {
 
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.id })
 
-        coVerify { authorizationService.createAdminLinks(allEntitiesUris, sub) }
+        coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
         verify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
@@ -318,7 +318,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
         every {
             entityEventService.publishEntityCreateEvent(
                 any(),
@@ -350,7 +350,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
         verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
@@ -433,7 +433,7 @@ class EntityOperationHandlerTests {
         )
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
-        coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -450,7 +450,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
-        coVerify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
         verify {
             entityEventService.publishEntityCreateEvent(
                 eq(sub.value),
@@ -512,7 +512,7 @@ class EntityOperationHandlerTests {
             arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminLinks(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -543,7 +543,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminLinks(listOf(deviceUri), sub) }
+        coVerify { authorizationService.createAdminRights(listOf(deviceUri), sub) }
         verify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
     }
 

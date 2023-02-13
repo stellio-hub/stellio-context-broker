@@ -25,9 +25,6 @@ import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.relational.core.query.Criteria.where
-import org.springframework.data.relational.core.query.Query.query
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -41,9 +38,7 @@ import java.util.regex.Pattern
 @Service
 class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
-    private val attributeInstanceService: AttributeInstanceService,
-    private val entityPayloadService: EntityPayloadService
+    private val attributeInstanceService: AttributeInstanceService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -67,7 +62,7 @@ class TemporalEntityAttributeService(
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("created_at", temporalEntityAttribute.createdAt)
             .bind("dataset_id", temporalEntityAttribute.datasetId)
-            .bind("payload", Json.of(temporalEntityAttribute.payload))
+            .bind("payload", temporalEntityAttribute.payload)
             .execute()
 
     @Transactional
@@ -95,12 +90,18 @@ class TemporalEntityAttributeService(
             .bind("payload", Json.of(payload))
             .execute()
 
+    /**
+     * Currently only used in the tests for easy creation of attributes.
+     *
+     * To be removed at some point later.
+     */
     @Transactional
     suspend fun createEntityTemporalReferences(
         payload: String,
         contexts: List<String>,
         sub: String? = null
     ): Either<APIException, Unit> {
+        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val jsonLdEntity = expandJsonLdEntity(payload, contexts)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
         return ngsiLdEntity.prepareTemporalAttributes()
@@ -109,6 +110,7 @@ class TemporalEntityAttributeService(
                     jsonLdEntity.toNgsiLdEntity(),
                     jsonLdEntity,
                     it,
+                    createdAt,
                     sub
                 )
             }
@@ -119,12 +121,10 @@ class TemporalEntityAttributeService(
         ngsiLdEntity: NgsiLdEntity,
         jsonLdEntity: JsonLdEntity,
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
+        createdAt: ZonedDateTime,
         sub: String? = null
     ): Either<APIException, Unit> = either {
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         logger.debug("Creating ${attributesMetadata.size} attributes in entity: ${ngsiLdEntity.id}")
-
-        entityPayloadService.createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity).bind()
 
         attributesMetadata
             .filter {
@@ -144,7 +144,7 @@ class TemporalEntityAttributeService(
                     attributeValueType = attributeMetadata.valueType,
                     datasetId = attributeMetadata.datasetId,
                     createdAt = createdAt,
-                    payload = serializeObject(attributePayload)
+                    payload = Json.of(serializeObject(attributePayload))
                 )
                 create(temporalEntityAttribute).bind()
 
@@ -214,7 +214,7 @@ class TemporalEntityAttributeService(
                 attributeValueType = attributeMetadata.valueType,
                 datasetId = attributeMetadata.datasetId,
                 createdAt = createdAt,
-                payload = serializeObject(attributePayload)
+                payload = Json.of(serializeObject(attributePayload))
             )
             create(temporalEntityAttribute).bind()
 
@@ -277,17 +277,14 @@ class TemporalEntityAttributeService(
             }
         }
 
-    suspend fun deleteTemporalEntityReferences(entityId: URI): Either<APIException, Unit> =
-        either {
-            logger.debug("Deleting entity $entityId")
-            attributeInstanceService.deleteInstancesOfEntity(entityId).bind()
-            deleteTemporalAttributesOfEntity(entityId).bind()
-            entityPayloadService.deleteEntityPayload(entityId).bind()
-        }
-
     suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
-            .matching(query(where("entity_id").`is`(entityId)))
+        databaseClient.sql(
+            """
+            DELETE FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
             .execute()
 
     suspend fun deleteTemporalAttribute(
@@ -305,11 +302,6 @@ class TemporalEntityAttributeService(
                 attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
                 deleteTemporalAttributeReferences(entityId, attributeName, datasetId).bind()
             }
-            entityPayloadService.updateState(
-                entityId,
-                ZonedDateTime.now(ZoneOffset.UTC),
-                getForEntity(entityId, emptySet())
-            ).bind()
         }
 
     @Transactional
@@ -664,7 +656,7 @@ class TemporalEntityAttributeService(
             datasetId = toOptionalUri(row["dataset_id"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            payload = toJsonString(row["payload"])
+            payload = toJson(row["payload"])
         )
 
     suspend fun checkEntityAndAttributeExistence(
@@ -713,11 +705,11 @@ class TemporalEntityAttributeService(
         ngsiLdAttributes: List<NgsiLdAttribute>,
         jsonLdAttributes: Map<String, Any>,
         disallowOverwrite: Boolean,
+        createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
             val attributeInstances = ngsiLdAttributes.flatOnInstances()
-            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Appending attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val currentTea =
@@ -769,12 +761,6 @@ class TemporalEntityAttributeService(
                         null
                     ).right()
                 }
-            }.onRight {
-                // update modifiedAt in entity if at least one attribute has been added
-                if (it.hasSuccessfulUpdate()) {
-                    val teas = getForEntity(entityUri, emptySet())
-                    entityPayloadService.updateState(entityUri, createdAt, teas).bind()
-                }
             }.fold({
                 it
             }, {
@@ -787,11 +773,11 @@ class TemporalEntityAttributeService(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         jsonLdAttributes: Map<String, Any>,
+        createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
             val attributeInstances = ngsiLdAttributes.flatOnInstances()
-            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Updating attribute ${ngsiLdAttribute.name} in entity $entityUri")
                 val currentTea =
@@ -831,12 +817,6 @@ class TemporalEntityAttributeService(
                         message
                     ).right()
                 }
-            }.onRight {
-                // update modifiedAt in entity if at least one attribute has been added
-                if (it.hasSuccessfulUpdate()) {
-                    val teas = getForEntity(entityUri, emptySet())
-                    entityPayloadService.updateState(entityUri, createdAt, teas).bind()
-                }
             }.fold({
                 it
             }, {
@@ -848,12 +828,12 @@ class TemporalEntityAttributeService(
     suspend fun partialUpdateEntityAttribute(
         entityId: URI,
         expandedPayload: Map<String, List<Map<String, List<Any>>>>,
+        modifiedAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
             val expandedAttributeName = expandedPayload.keys.first()
             val attributeValues = expandedPayload.values.first()[0]
-            val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
             logger.debug("Updating attribute $expandedAttributeName of entity $entityId with values: $attributeValues")
 
             val datasetId = attributeValues.getDatasetId()
@@ -862,7 +842,7 @@ class TemporalEntityAttributeService(
                 if (exists) {
                     // first update payload in temporal entity attribute
                     val tea = getForEntityAndAttribute(entityId, expandedAttributeName, datasetId).bind()
-                    val jsonSourceObject = JSONObject(tea.payload)
+                    val jsonSourceObject = JSONObject(tea.payload.asString())
                     val jsonUpdateObject = JSONObject(attributeValues)
                     val jsonMerger = JsonMerger(
                         arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
@@ -910,11 +890,6 @@ class TemporalEntityAttributeService(
                         "Unknown attribute $expandedAttributeName with datasetId $datasetId in entity $entityId"
                     )
                 }
-
-            if (updateAttributeResult.isSuccessfullyUpdated()) {
-                val teas = getForEntity(entityId, emptySet())
-                entityPayloadService.updateState(entityId, modifiedAt, teas).bind()
-            }
 
             updateResultFromDetailedResult(listOf(updateAttributeResult))
         }

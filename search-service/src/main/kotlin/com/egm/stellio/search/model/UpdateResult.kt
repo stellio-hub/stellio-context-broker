@@ -60,8 +60,8 @@ enum class UpdateOperationResult {
     fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED).contains(this)
 }
 
-fun List<UpdateAttributeResult>.hasSuccessfulUpdate(): Boolean =
-    this.any { it.isSuccessfullyUpdated() }
+fun UpdateResult.hasSuccessfulUpdate(): Boolean =
+    this.updated.isNotEmpty()
 
 fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
     val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }

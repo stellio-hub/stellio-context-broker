@@ -9,8 +9,6 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean

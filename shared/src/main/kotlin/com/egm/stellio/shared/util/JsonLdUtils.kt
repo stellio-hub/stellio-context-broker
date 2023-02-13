@@ -679,10 +679,10 @@ fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDat
     else this
 
 fun ExpandedInstancesOfAttribute.keepFirstInstances(): ExpandedInstancesOfAttribute =
-   this.mapValues { listOf(it.value.first()) }
+    this.mapValues { listOf(it.value.first()) }
 
 fun ExpandedInstancesOfAttribute.removeFirstInstances(): ExpandedInstancesOfAttribute {
-    val entityWithoutFirstInstance = this.mapValues{
+    val entityWithoutFirstInstance = this.mapValues {
         it.value.filterIndexed { index, _ -> index > 0 }
     }
     return entityWithoutFirstInstance

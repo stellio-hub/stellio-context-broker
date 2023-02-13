@@ -93,6 +93,84 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `create temporal entity should return a 201`() {
+        val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_create_temporal_entity.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery { temporalEntityAttributeService.upsertEntityAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
+
+        val data =
+            loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, listOf(APIC_COMPOUND_CONTEXT))
+        val expectedInstancesFilePath =
+            "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
+        val jsonInstances = loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttribute
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/temporal/entities/$entityUri"))
+
+        coVerify { authorizationService.userCanCreateEntities(eq(sub)) }
+        coVerify { entityPayloadService.checkEntityExistence(eq(entityUri), true) }
+        coVerify {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                any(),
+                eq(jsonLdEntity),
+                any(),
+                eq(sub.value)
+            )
+        }
+        coVerify {
+            temporalEntityAttributeService.upsertEntityAttributes(
+                eq(entityUri),
+                eq(jsonInstances),
+                eq(sub.value)
+            )
+        }
+        coVerify { authorizationService.createAdminLink(eq(entityUri), eq(sub)) }
+    }
+
+    @Test
+    fun `update temporal entity should return a 204`() {
+        val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_update_temporal_entity.jsonld")
+
+        coEvery { authorizationService.userCanUpdateEntity(entityUri, sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.checkEntityExistence(any(), any())
+        } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TESTC")).left()
+        coEvery {
+            temporalEntityAttributeService.upsertEntityAttributes(any(), any(), any())
+        } returns Unit.right()
+
+        val expectedInstancesFilePath =
+            "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
+        val jsonInstances = loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttribute
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify { authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub)) }
+        coVerify {
+            temporalEntityAttributeService.upsertEntityAttributes(
+                eq(entityUri),
+                eq(jsonInstances),
+                eq(sub.value)
+            )
+        }
+    }
+
+    @Test
     fun `it should correctly handle an attribute with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")

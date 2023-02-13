@@ -2,7 +2,10 @@ package com.egm.stellio.shared.util
 
 import arrow.core.*
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -21,6 +24,7 @@ import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.util.*
 import kotlin.reflect.full.safeCast
 
 data class AttributeType(val uri: String)
@@ -53,8 +57,8 @@ object JsonLdUtils {
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
     val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
-    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
-    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
+    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
+    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
     val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
@@ -569,6 +573,8 @@ object JsonLdUtils {
         )
 }
 
+typealias ExpandedInstancesOfAttribute = Map<ExpandedTerm, ExpandedInstances>
+typealias ExpandedInstances = List<Map<String, List<Any>>>
 typealias ExpandedAttributePayload = List<ExpandedAttributePayloadEntry>
 typealias ExpandedAttributePayloadEntry = Map<String, List<Any>>
 
@@ -672,25 +678,36 @@ fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDat
         )
     else this
 
-fun Map<String, Any>.removeMandatoryFields(): Map<String, Any> =
-    this.filter {
-        !JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key)
-    }
+fun ExpandedInstancesOfAttribute.keepFirstInstances(): ExpandedInstancesOfAttribute =
+   this.mapValues { listOf(it.value.first()) }
 
-fun Map<String, Any>.keepFirstInstances(): Map<String, Any> =
-    this.mapValues {
-        if (JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key))
-            it.value
-        else if (it.value is ArrayList<*>)
-            (it.value as ArrayList<*>).first()
-        else it.value
+fun ExpandedInstancesOfAttribute.removeFirstInstances(): ExpandedInstancesOfAttribute {
+    val entityWithoutFirstInstance = this.mapValues{
+        it.value.filterIndexed { index, _ -> index > 0 }
     }
+    return entityWithoutFirstInstance
+}
 
-fun Map<String, Any>.removeFirstInstances(): Map<String, Any> {
-    this.forEach {
-        if (it.value is ArrayList<*>)
-            (it.value as ArrayList<*>).removeFirst()
+fun ExpandedInstancesOfAttribute.removeIdAndTypes(): ExpandedInstancesOfAttribute =
+    this.filter { it.key != JSONLD_ID && it.key != JSONLD_TYPE }
+
+fun ExpandedInstancesOfAttribute.addIdAndTypes(
+    entityId: String,
+    entityTypes: List<ExpandedTerm>
+): Map<String, Any> {
+    val expandEntity = mutableMapOf(
+        JSONLD_ID to entityId,
+        JSONLD_TYPE to entityTypes,
+    )
+    expandEntity.putAll(this)
+    return expandEntity
+}
+
+fun checkAndSortedInstances(instances: ExpandedInstances): ExpandedInstances {
+    return instances.sortedByDescending {
+        ZonedDateTime.parse(
+            (it[JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY]?.first() as? Map<String, String>)?.get(JSONLD_VALUE_KW)
+                ?: throw BadRequestDataException(invalidTemporalInstanceMessage())
+        )
     }
-    return this.removeMandatoryFields()
-        .filter { it.value is ArrayList<*> && (it.value as ArrayList<*>).size > 0 }
 }

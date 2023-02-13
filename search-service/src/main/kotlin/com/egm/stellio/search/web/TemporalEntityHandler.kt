@@ -3,14 +3,15 @@ package com.egm.stellio.search.web
 import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.model.mergeAll
 import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -33,8 +34,7 @@ class TemporalEntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
-    private val applicationProperties: ApplicationProperties,
-    private val entityEventService: EntityEventService
+    private val applicationProperties: ApplicationProperties
 ) {
 
     /**
@@ -52,64 +52,55 @@ class TemporalEntityHandler(
         return either<APIException, ResponseEntity<*>> {
             val entityUri = body[JSONLD_ID_TERM].toString().toUri()
             val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
-            val jsonLdAttributes =
-                if (entityDoesNotExist) {
-                    authorizationService.userCanCreateEntities(sub).bind()
+            val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
 
-                    val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(body.keepFirstInstances(), contexts)
-                    val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+            val jsonldInstances: ExpandedInstancesOfAttribute =
+                jsonLdTemporalEntity.properties
+                    .filter { !JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
+                    .mapValues { attributeEntry ->
+                        checkAndSortedInstances(expandValueAsListOfMap(attributeEntry.value))
+                    }
 
-                    val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+            if (entityDoesNotExist) {
+                authorizationService.userCanCreateEntities(sub)
 
-                    temporalEntityAttributeService.createEntityTemporalReferences(
-                        ngsiLdEntity,
-                        jsonLdEntity,
-                        attributesMetadata,
-                        sub.orNull()
-                    ).bind()
+                val jsonLdEntity = JsonLdEntity(
+                    jsonldInstances
+                        .keepFirstInstances()
+                        .addIdAndTypes(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
+                    contexts
+                )
 
-                    authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
+                val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+                val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
 
-                    entityEventService.publishEntityCreateEvent(
-                        sub.orNull(),
-                        ngsiLdEntity.id,
-                        ngsiLdEntity.types,
-                        contexts
-                    )
+                temporalEntityAttributeService.createEntityTemporalReferences(
+                    ngsiLdEntity,
+                    jsonLdEntity,
+                    attributesMetadata,
+                    sub.orNull()
+                ).bind()
 
-                    expandJsonLdFragment(body.removeFirstInstances(), contexts)
-                } else expandJsonLdFragment(body.removeMandatoryFields(), contexts)
+                temporalEntityAttributeService.upsertEntityAttributes(
+                    entityUri,
+                    jsonldInstances.removeFirstInstances().removeIdAndTypes(),
+                    sub.orNull()
+                )
+                authorizationService.createAdminLink(entityUri, sub).bind()
 
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-
-            val results = temporalEntityAttributeService.upsertEntityAttributes(
-                entityUri,
-                jsonLdAttributes,
-                sub.orNull()
-            ).bind()
-
-            results.forEach {
-                if (it.first.updated.isNotEmpty())
-                    entityEventService.publishAttributeChangeEvents(
-                        sub.orNull(),
-                        entityUri,
-                        it.second,
-                        it.first,
-                        false,
-                        contexts
-                    )
-            }
-
-            val upsertResults = results.map { it.first }.mergeAll()
-
-            if (entityDoesNotExist && upsertResults.notUpdated.isEmpty())
                 ResponseEntity.status(HttpStatus.CREATED)
                     .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
                     .build<String>()
-            else if (upsertResults.notUpdated.isEmpty())
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            else
-                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(upsertResults)
+            } else {
+                authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+                temporalEntityAttributeService.upsertEntityAttributes(
+                    entityUri,
+                    jsonldInstances,
+                    sub.orNull()
+                )
+
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+            }
         }.fold(
             { it.toErrorResponse() },
             { it }

@@ -5,6 +5,7 @@ import arrow.core.continuations.either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
+import arrow.fx.coroutines.parTraverse
 import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
@@ -894,43 +895,56 @@ class TemporalEntityAttributeService(
             updateResultFromDetailedResult(listOf(updateAttributeResult))
         }
 
+    @Transactional
     suspend fun upsertEntityAttributes(
         entityUri: URI,
-        jsonLdAttributes: Map<String, Any>,
+        jsonLdInstances: ExpandedInstancesOfAttribute,
         sub: Sub?
-    ): Either<APIException, List<Pair<UpdateResult, Map<String, List<Map<String, List<Any>>>>>>> = either {
-        jsonLdAttributes
-            .map { attributeEntry ->
-                val attributeInstances = JsonLdUtils.expandValueAsListOfMap(attributeEntry.value)
-                attributeInstances.map { attributeInstance ->
-                    val datasetId = attributeInstance.getDatasetId()
-                    val teaExistence =
-                        hasAttribute(entityUri, attributeEntry.key, datasetId).bind()
+    ): Either<APIException, Unit> = either {
+        jsonLdInstances.forEach { attribute ->
+            attribute.value.forEach { instance ->
+                val jsonLdAttribute = mapOf(attribute.key to listOf(instance))
+                val ngsiLdAttributes = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)
 
-                    val jsonLdAttribute = mapOf(attributeEntry.key to listOf(attributeInstance))
-                    val ngsiLdAttributes = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)
+                val attributeInstances = ngsiLdAttributes.flatOnInstances()
+                val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
 
-                    val updateResult =
-                        if (teaExistence) {
-                            updateEntityAttributes(
-                                entityUri,
-                                ngsiLdAttributes,
-                                jsonLdAttribute,
-                                sub
-                            ).bind()
-                        } else {
-                            appendEntityAttributes(
-                                entityUri,
-                                ngsiLdAttributes,
-                                jsonLdAttribute,
-                                false,
-                                sub
-                            ).bind()
-                        }
+                attributeInstances.parTraverse { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+                    logger.debug("Upsert temporal attribute ${ngsiLdAttribute.name} in entity $entityUri")
 
-                    Pair(updateResult, jsonLdAttribute)
+                    val currentTea =
+                        getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                            .fold({ null }, { it })
+                    val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+                    val attributePayload = getAttributeFromExpandedAttributes(
+                        jsonLdAttribute,
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId
+                    )!!
+
+                    if (currentTea == null) {
+                        addAttribute(
+                            entityUri,
+                            ngsiLdAttribute,
+                            attributeMetadata,
+                            createdAt,
+                            attributePayload,
+                            sub
+                        )
+                    } else {
+                        logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
+                        attributeInstanceService.addAttributeInstance(
+                            currentTea.id,
+                            currentTea.attributeName,
+                            instance
+                        )
+                    }
+                    // update modifiedAt in entity
+                    val teas = getForEntity(entityUri, emptySet())
+                    entityPayloadService.updateState(entityUri, createdAt, teas).bind()
                 }
-            }.flatten()
+            }
+        }
     }
 
     suspend fun getValueFromPartialAttributePayload(

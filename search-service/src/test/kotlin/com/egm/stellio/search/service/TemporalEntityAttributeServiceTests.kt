@@ -222,44 +222,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should correctly upsert attributes`() = runTest {
-        val body =
-            loadSampleData("beehive_create_temporal_entity.jsonld").deserializeAsMap()
-
-        val jsonLdAttributes =
-            JsonLdUtils.expandJsonLdFragment(body.removeFirstInstances(), listOf(APIC_COMPOUND_CONTEXT))
-
-        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-
-        temporalEntityAttributeService.createEntityTemporalReferences(
-            body.keepFirstInstances().serialize(),
-            listOf(APIC_COMPOUND_CONTEXT)
-        ).shouldSucceed()
-
-        temporalEntityAttributeService.upsertEntityAttributes(
-            beehiveTestCId,
-            jsonLdAttributes,
-            "0768A6D5-D87B-4209-9A22-8C40A8961A79"
-        ).shouldSucceedWith {
-            it.size == 5 &&
-                it.map { it.first }
-                .mergeAll()
-                .updated
-                .filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
-                .size == 2 &&
-                it.map { it.first }
-                .mergeAll()
-                .updated
-                .filter { it.updateOperationResult == UpdateOperationResult.REPLACED }
-                .size == 3 &&
-                it.map { it.second }
-                    .all { it.containsKey(INCOMING_PROPERTY) || it.containsKey(OUTGOING_PROPERTY) }
-        }
-
-        coVerify(exactly = 10) { attributeInstanceService.create(any()) }
-    }
-
-    @Test
     fun `it should rollback the whole operation if one DB update fails`() = runTest {
         val rawEntity = loadSampleData()
 

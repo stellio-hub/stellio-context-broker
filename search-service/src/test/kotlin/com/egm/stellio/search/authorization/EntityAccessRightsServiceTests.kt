@@ -379,6 +379,25 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should return only one entity with higher right if user has access through different paths`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        } returns listOf(groupUuid, subjectUuid).right()
+
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_ADMIN)
+
+        entityAccessRightsService.getSubjectAccessRights(Some(subjectUuid), emptyList(), setOf(BEEHIVE_TYPE), 100, 0)
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                val entityAccessControl = it[0]
+                assertEquals(entityId01, entityAccessControl.id)
+                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+            }
+    }
+
+    @Test
     fun `it should return nothing when list of entities is empty`() = runTest {
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), emptyList())
             .shouldSucceedWith { assertTrue(it.isNullOrEmpty()) }

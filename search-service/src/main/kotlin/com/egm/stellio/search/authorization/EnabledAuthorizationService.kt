@@ -82,13 +82,16 @@ class EnabledAuthorizationService(
             rights
         )
 
-    override suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        createAdminLinks(listOf(entityId), sub)
+    override suspend fun createAdminRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+        createAdminRights(listOf(entityId), sub)
 
-    override suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun createAdminRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
         entitiesId.parTraverseEither {
             entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it)
         }.map { it.first() }
+
+    override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
+        entityAccessRightsService.removeRolesOnEntity(entityId)
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,

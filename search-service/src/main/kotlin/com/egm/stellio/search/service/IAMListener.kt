@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSub
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -73,7 +74,7 @@ class IAMListener(
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
             subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase()),
-            subjectInfo = subjectInfo,
+            subjectInfo = Json.of(subjectInfo),
             globalRoles = roles
         )
 

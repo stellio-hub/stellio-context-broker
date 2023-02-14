@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -44,3 +45,6 @@ fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolic
         expandJsonLdFragment(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
     )[0]
 }
+
+const val EMPTY_PAYLOAD = "{}"
+val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)

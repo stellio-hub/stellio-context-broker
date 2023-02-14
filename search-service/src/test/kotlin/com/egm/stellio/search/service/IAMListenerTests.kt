@@ -39,7 +39,7 @@ class IAMListenerTests {
                 match {
                     it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
                         it.subjectType == SubjectType.USER &&
-                        it.subjectInfo ==
+                        it.subjectInfo.asString() ==
                         """
                         {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
@@ -62,7 +62,7 @@ class IAMListenerTests {
                 match {
                     it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
                         it.subjectType == SubjectType.CLIENT &&
-                        it.subjectInfo ==
+                        it.subjectInfo.asString() ==
                         """
                         {"type":"Property","value":{"clientId":"stellio-client"}}
                         """.trimIndent() &&
@@ -85,7 +85,7 @@ class IAMListenerTests {
                 match {
                     it.subjectId == "ab67edf3-238c-4f50-83f4-617c620c62eb" &&
                         it.subjectType == SubjectType.GROUP &&
-                        it.subjectInfo ==
+                        it.subjectInfo.asString() ==
                         """
                         {"type":"Property","value":{"name":"EGM"}}
                         """.trimIndent() &&

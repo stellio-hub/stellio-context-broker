@@ -3,7 +3,6 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
@@ -30,7 +29,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -71,7 +70,7 @@ class ParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship,
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -114,7 +113,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -148,7 +147,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -189,7 +188,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -230,7 +229,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -270,7 +269,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
@@ -312,7 +311,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -341,7 +340,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -361,7 +360,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -388,7 +387,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -414,7 +413,7 @@ class ParameterizedTests {
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
@@ -444,7 +443,7 @@ class ParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
                             datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                             createdAt = now,
-                            payload = EMPTY_PAYLOAD
+                            payload = EMPTY_JSON_PAYLOAD
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(

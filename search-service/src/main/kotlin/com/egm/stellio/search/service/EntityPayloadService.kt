@@ -8,16 +8,13 @@ import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.addDateTimeProperty
-import com.egm.stellio.shared.util.entityAlreadyExistsMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
+import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -28,8 +25,44 @@ import java.time.ZonedDateTime
 
 @Service
 class EntityPayloadService(
-    private val databaseClient: DatabaseClient
+    private val databaseClient: DatabaseClient,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityAttributeCleanerService: EntityAttributeCleanerService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    @Transactional
+    suspend fun createEntity(
+        payload: String,
+        contexts: List<String>,
+        sub: String? = null
+    ): Either<APIException, Unit> = either {
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+
+        createEntity(ngsiLdEntity, jsonLdEntity, sub).bind()
+    }
+
+    @Transactional
+    suspend fun createEntity(
+        ngsiLdEntity: NgsiLdEntity,
+        jsonLdEntity: JsonLdEntity,
+        sub: String? = null
+    ): Either<APIException, Unit> = either {
+        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+        logger.debug("Creating entity ${ngsiLdEntity.id}")
+
+        createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity).bind()
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            ngsiLdEntity,
+            jsonLdEntity,
+            attributesMetadata,
+            createdAt,
+            sub
+        ).bind()
+    }
+
     @Transactional
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
@@ -98,7 +131,7 @@ class EntityPayloadService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"]),
-            entityPayload = toJsonString(row["payload"]),
+            payload = toJson(row["payload"]),
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )
 
@@ -209,7 +242,7 @@ class EntityPayloadService(
                 )
             }
 
-            val updatedPayload = entityPayload.entityPayload.deserializeExpandedPayload()
+            val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                 .mapValues {
                     if (it.key == JSONLD_TYPE)
                         newTypes
@@ -240,6 +273,77 @@ class EntityPayloadService(
                         )
                     )
                 }.bind()
+        }
+
+    @Transactional
+    suspend fun appendAttributes(
+        entityUri: URI,
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        jsonLdAttributes: Map<String, Any>,
+        disallowOverwrite: Boolean,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> =
+        either {
+            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+            val updateResult = temporalEntityAttributeService.appendEntityAttributes(
+                entityUri,
+                ngsiLdAttributes,
+                jsonLdAttributes,
+                disallowOverwrite,
+                createdAt,
+                sub
+            ).bind()
+            // update modifiedAt in entity if at least one attribute has been added
+            if (updateResult.hasSuccessfulUpdate()) {
+                val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+                updateState(entityUri, createdAt, teas).bind()
+            }
+            updateResult
+        }
+
+    @Transactional
+    suspend fun updateAttributes(
+        entityUri: URI,
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        jsonLdAttributes: Map<String, Any>,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> =
+        either {
+            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+            val updateResult = temporalEntityAttributeService.updateEntityAttributes(
+                entityUri,
+                ngsiLdAttributes,
+                jsonLdAttributes,
+                createdAt,
+                sub
+            ).bind()
+            // update modifiedAt in entity if at least one attribute has been added
+            if (updateResult.hasSuccessfulUpdate()) {
+                val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+                updateState(entityUri, createdAt, teas).bind()
+            }
+            updateResult
+        }
+
+    @Transactional
+    suspend fun partialUpdateAttribute(
+        entityId: URI,
+        expandedPayload: Map<String, List<Map<String, List<Any>>>>,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> =
+        either {
+            val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
+            val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
+                entityId,
+                expandedPayload,
+                modifiedAt,
+                sub
+            ).bind()
+            if (updateResult.isSuccessful()) {
+                val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+                updateState(entityId, modifiedAt, teas).bind()
+            }
+            updateResult
         }
 
     @Transactional
@@ -310,6 +414,30 @@ class EntityPayloadService(
         )
             .bind("entity_id", entityId)
             .execute()
+            .onRight {
+                entityAttributeCleanerService.deleteEntityAttributes(entityId)
+            }
+
+    @Transactional
+    suspend fun deleteAttribute(
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI?,
+        deleteAll: Boolean = false
+    ): Either<APIException, Unit> =
+        either {
+            temporalEntityAttributeService.deleteTemporalAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                deleteAll
+            ).bind()
+            updateState(
+                entityId,
+                ZonedDateTime.now(ZoneOffset.UTC),
+                temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            ).bind()
+        }
 
     suspend fun updateSpecificAccessPolicy(
         entityId: URI,

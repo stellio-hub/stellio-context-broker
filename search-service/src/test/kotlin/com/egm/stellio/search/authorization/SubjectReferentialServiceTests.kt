@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.Some
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
@@ -46,7 +47,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -61,7 +62,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -100,7 +101,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = groupsUuids
         )
 
@@ -118,7 +119,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
         )
 
         subjectReferentialService.create(subjectReferential)
@@ -135,7 +136,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.CLIENT,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             serviceAccountId = serviceAccountUuid
         )
 
@@ -154,7 +155,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.CLIENT,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             serviceAccountId = serviceAccountUuid,
             groupsMemberships = groupsUuids
         )
@@ -185,7 +186,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = userGroupsUuids
         )
 
@@ -221,7 +222,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = userGroupsUuids
         )
 
@@ -247,7 +248,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     fun `it should update the global role of a subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             subjectType = SubjectType.USER
         )
 
@@ -271,7 +272,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -302,7 +303,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -321,7 +322,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -343,7 +344,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -363,7 +364,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -428,7 +429,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -450,7 +451,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(subjectReferential)
@@ -465,7 +466,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
 
@@ -483,7 +484,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
         )
 

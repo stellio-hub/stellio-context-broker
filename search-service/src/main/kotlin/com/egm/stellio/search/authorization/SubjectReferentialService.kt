@@ -10,7 +10,6 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
-import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
@@ -43,7 +42,7 @@ class SubjectReferentialService(
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
-            .bind("subject_info", Json.of(subjectReferential.subjectInfo))
+            .bind("subject_info", subjectReferential.subjectInfo)
             .bind("service_account_id", subjectReferential.serviceAccountId)
             .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
@@ -287,7 +286,7 @@ class SubjectReferentialService(
         SubjectReferential(
             subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
-            subjectInfo = toJsonString(row["subject_info"]),
+            subjectInfo = toJson(row["subject_info"]),
             serviceAccountId = row["service_account_id"] as? Sub,
             globalRoles = toOptionalList<String>(row["global_roles"])
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },

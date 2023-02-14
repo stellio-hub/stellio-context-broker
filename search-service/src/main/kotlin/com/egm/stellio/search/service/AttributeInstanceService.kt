@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.instanceNotFoundMessage
-import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -89,7 +88,7 @@ class AttributeInstanceService(
             }
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
             .bind("instance_id", attributeInstance.instanceId)
-            .bind("payload", Json.of(attributeInstance.payload))
+            .bind("payload", attributeInstance.payload)
             .let {
                 if (attributeInstance.timeProperty != AttributeInstance.TemporalProperty.OBSERVED_AT)
                     it.bind("time_property", attributeInstance.timeProperty.toString())

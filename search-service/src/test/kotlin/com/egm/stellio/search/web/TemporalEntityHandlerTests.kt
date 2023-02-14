@@ -13,6 +13,7 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -646,7 +647,7 @@ class TemporalEntityHandlerTests {
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
-                    payload = EMPTY_PAYLOAD
+                    payload = EMPTY_JSON_PAYLOAD
                 )
             }
         val entityFileName = if (withTemporalValues)

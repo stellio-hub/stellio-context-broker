@@ -4,13 +4,12 @@ import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.ApplicationProperties
+import com.egm.stellio.search.model.hasSuccessfulUpdate
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -37,7 +36,6 @@ class EntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
-    private val entityAccessRightsService: EntityAccessRightsService,
     private val entityEventService: EntityEventService
 ) {
 
@@ -56,16 +54,15 @@ class EntityHandler(
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         return either<APIException, ResponseEntity<*>> {
-            val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
             authorizationService.userCanCreateEntities(sub).bind()
             entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
-            temporalEntityAttributeService.createEntityTemporalReferences(
+
+            entityPayloadService.createEntity(
                 ngsiLdEntity,
                 jsonLdEntity,
-                attributesMetadata,
                 sub.orNull()
             ).bind()
-            authorizationService.createAdminLink(ngsiLdEntity.id, sub).bind()
+            authorizationService.createAdminRight(ngsiLdEntity.id, sub).bind()
 
             entityEventService.publishEntityCreateEvent(
                 sub.orNull(),
@@ -215,9 +212,8 @@ class EntityHandler(
             val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
             authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-            temporalEntityAttributeService.deleteTemporalEntityReferences(entityUri).bind()
-
-            entityAccessRightsService.removeRolesOnEntity(entityUri).bind()
+            entityPayloadService.deleteEntityPayload(entityUri).bind()
+            authorizationService.removeRightsOnEntity(entityUri).bind()
 
             entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
 
@@ -262,7 +258,7 @@ class EntityHandler(
                 entityUri,
                 typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
             ).bind().mergeWith(
-                temporalEntityAttributeService.appendEntityAttributes(
+                entityPayloadService.appendAttributes(
                     entityUri,
                     ngsiLdAttributes,
                     jsonLdAttributes,
@@ -271,7 +267,7 @@ class EntityHandler(
                 ).bind()
             )
 
-            if (updateResult.updated.isNotEmpty()) {
+            if (updateResult.hasSuccessfulUpdate()) {
                 entityEventService.publishAttributeChangeEvents(
                     sub.orNull(),
                     entityUri,
@@ -326,7 +322,7 @@ class EntityHandler(
                 entityUri,
                 typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
             ).bind().mergeWith(
-                temporalEntityAttributeService.updateEntityAttributes(
+                entityPayloadService.updateAttributes(
                     entityUri,
                     ngsiLdAttributes,
                     jsonLdAttributes,
@@ -387,7 +383,7 @@ class EntityHandler(
             val rawPayload = mapOf(attrId to removeContextFromInput(body))
             val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
 
-            temporalEntityAttributeService.partialUpdateEntityAttribute(
+            entityPayloadService.partialUpdateAttribute(
                 entityUri,
                 expandedPayload as Map<String, List<Map<String, List<Any>>>>,
                 sub.orNull()
@@ -446,7 +442,7 @@ class EntityHandler(
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            temporalEntityAttributeService.deleteTemporalAttribute(
+            entityPayloadService.deleteAttribute(
                 entityUri,
                 expandedAttrId,
                 datasetId,

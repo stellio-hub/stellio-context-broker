@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.NotUpdatedDetails
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.web.BatchEntityError
@@ -35,8 +36,11 @@ class EntityOperationServiceTests {
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
 
+    @MockkBean(relaxed = true)
+    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
+
     @MockkBean
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+    private lateinit var authorizationService: AuthorizationService
 
     @Autowired
     private lateinit var entityOperationService: EntityOperationService
@@ -93,9 +97,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to create all provided entities`() = runTest {
-        coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
-        } returns Unit.right()
+        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.create(
             listOf(firstEntity, secondEntity),
@@ -110,20 +112,18 @@ class EntityOperationServiceTests {
         assertTrue(batchOperationResult.errors.isEmpty())
 
         coVerify {
-            temporalEntityAttributeService.createEntityTemporalReferences(firstEntity, firstJsonLdEntity, any(), sub)
+            entityPayloadService.createEntity(firstEntity, firstJsonLdEntity, sub)
         }
         coVerify {
-            temporalEntityAttributeService.createEntityTemporalReferences(secondEntity, secondJsonLdEntity, any(), sub)
+            entityPayloadService.createEntity(secondEntity, secondJsonLdEntity, sub)
         }
     }
 
     @Test
     fun `it should ask to create entities and transmit back any error`() = runTest {
+        coEvery { entityPayloadService.createEntity(firstEntity, any(), any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(firstEntity, any(), any(), any())
-        } returns Unit.right()
-        coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(secondEntity, any(), any(), any())
+            entityPayloadService.createEntity(secondEntity, any(), any())
         } returns BadRequestDataException("Invalid entity").left()
 
         val batchOperationResult = entityOperationService.create(
@@ -147,7 +147,7 @@ class EntityOperationServiceTests {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
 
         val batchOperationResult = entityOperationService.update(
@@ -163,10 +163,10 @@ class EntityOperationServiceTests {
 
         coVerify(exactly = 2) { entityPayloadService.updateTypes(any(), any(), false) }
         coVerify {
-            temporalEntityAttributeService.appendEntityAttributes(eq(firstEntityURI), any(), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), any(), false, sub)
         }
         coVerify {
-            temporalEntityAttributeService.appendEntityAttributes(eq(secondEntityURI), any(), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), any(), false, sub)
         }
     }
 
@@ -176,10 +176,10 @@ class EntityOperationServiceTests {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(firstEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(secondEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any(), any())
         } returns BadRequestDataException("error").left()
 
         val batchOperationResult =
@@ -212,10 +212,10 @@ class EntityOperationServiceTests {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(firstEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(secondEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any(), any())
         } returns updateResult.right()
 
         val batchOperationResult = entityOperationService.update(
@@ -242,13 +242,10 @@ class EntityOperationServiceTests {
     @Test
     fun `it should ask to replace entities`() = runTest {
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
-        } returns Unit.right()
-        coEvery {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
 
         val batchOperationResult = entityOperationService.replace(
@@ -262,31 +259,28 @@ class EntityOperationServiceTests {
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
-        coVerify { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(firstEntityURI) }
-        coVerify { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(secondEntityURI) }
+        coVerify { entityAttributeCleanerService.deleteEntityAttributes(firstEntityURI) }
+        coVerify { entityAttributeCleanerService.deleteEntityAttributes(secondEntityURI) }
 
         coVerify(exactly = 2) { entityPayloadService.updateTypes(any(), any(), false) }
         coVerify {
-            temporalEntityAttributeService.appendEntityAttributes(eq(firstEntityURI), any(), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), any(), false, sub)
         }
         coVerify {
-            temporalEntityAttributeService.appendEntityAttributes(eq(secondEntityURI), any(), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), any(), false, sub)
         }
     }
 
     @Test
     fun `it should count as error an replace which raises a BadRequestDataException`() = runTest {
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
-        } returns Unit.right()
-        coEvery {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(firstEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(secondEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any(), any())
         } returns BadRequestDataException("error").left()
 
         val batchOperationResult = entityOperationService.replace(
@@ -304,16 +298,13 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error not replaced entities in entities`() = runTest {
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
-        } returns Unit.right()
-        coEvery {
             entityPayloadService.updateTypes(any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(firstEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(secondEntityURI, any(), any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(
@@ -341,7 +332,8 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
@@ -351,19 +343,22 @@ class EntityOperationServiceTests {
         )
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
-        coVerify { temporalEntityAttributeService.deleteTemporalEntityReferences(firstEntityURI) }
-        coVerify { temporalEntityAttributeService.deleteTemporalEntityReferences(secondEntityURI) }
+        coVerify {
+            entityPayloadService.deleteEntityPayload(firstEntityURI)
+            entityPayloadService.deleteEntityPayload(secondEntityURI)
+            authorizationService.removeRightsOnEntity(firstEntityURI)
+            authorizationService.removeRightsOnEntity(secondEntityURI)
+        }
     }
 
     @Test
     fun `it should return the list of deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
+            coEvery { entityPayloadService.deleteEntityPayload(firstEntityURI) } returns Unit.right()
             coEvery {
-                temporalEntityAttributeService.deleteTemporalEntityReferences(firstEntityURI)
-            } returns Unit.right()
-            coEvery {
-                temporalEntityAttributeService.deleteTemporalEntityReferences(secondEntityURI)
+                entityPayloadService.deleteEntityPayload(secondEntityURI)
             } returns InternalErrorException("Something went wrong during deletion").left()
+            coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
             val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
@@ -387,7 +382,7 @@ class EntityOperationServiceTests {
         val deleteEntityErrorMessage = "Something went wrong with deletion request"
 
         coEvery {
-            temporalEntityAttributeService.deleteTemporalEntityReferences(any())
+            entityPayloadService.deleteEntityPayload(any())
         } returns InternalErrorException(deleteEntityErrorMessage).left()
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
@@ -407,7 +402,7 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
 
-        coVerify { temporalEntityAttributeService.deleteTemporalEntityReferences(firstEntityURI) }
-        coVerify { temporalEntityAttributeService.deleteTemporalEntityReferences(secondEntityURI) }
+        coVerify { entityPayloadService.deleteEntityPayload(firstEntityURI) }
+        coVerify { entityPayloadService.deleteEntityPayload(secondEntityURI) }
     }
 }

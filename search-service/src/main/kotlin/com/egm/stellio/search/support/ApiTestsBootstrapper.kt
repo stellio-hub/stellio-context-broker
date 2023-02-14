@@ -4,6 +4,7 @@ import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
@@ -100,10 +101,11 @@ class ApiTestsBootstrapper(
         SubjectReferential(
             subjectId = subjectId,
             subjectType = SubjectType.USER,
-            subjectInfo =
-            """
-            {"type":"Property","value":{"username":"$username"}}
-            """.trimIndent(),
+            subjectInfo = Json.of(
+                """
+                {"type":"Property","value":{"username":"$username"}}
+                """.trimIndent()
+            ),
             globalRoles = globalRoles,
             groupsMemberships =
             if (!groupMembership.isNullOrEmpty())
@@ -115,10 +117,11 @@ class ApiTestsBootstrapper(
         SubjectReferential(
             subjectId = subjectId,
             subjectType = SubjectType.GROUP,
-            subjectInfo =
-            """
-            {"type":"Property","value":{"name":"$groupName"}}
-            """.trimIndent()
+            subjectInfo = Json.of(
+                """
+                {"type":"Property","value":{"name":"$groupName"}}
+                """.trimIndent()
+            )
         )
 
     suspend fun createSubject(subjectId: String, subjectReferential: SubjectReferential) =

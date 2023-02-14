@@ -4,7 +4,6 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
@@ -76,9 +75,6 @@ class EntityHandlerTests {
     private lateinit var authorizationService: AuthorizationService
 
     @MockkBean
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
-
-    @MockkBean
     private lateinit var entityEventService: EntityEventService
 
     @BeforeAll
@@ -113,9 +109,9 @@ class EntityHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
+            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
@@ -128,15 +124,14 @@ class EntityHandlerTests {
         coVerify {
             authorizationService.userCanCreateEntities(sub)
             entityPayloadService.checkEntityExistence(any(), true)
-            temporalEntityAttributeService.createEntityTemporalReferences(
-                match {
+            entityPayloadService.createEntity(
+                match<NgsiLdEntity> {
                     it.id == breedingServiceId
                 },
                 any(),
-                any(),
                 any()
             )
-            authorizationService.createAdminLink(eq(breedingServiceId), sub)
+            authorizationService.createAdminRight(eq(breedingServiceId), sub)
         }
         verify {
             entityEventService.publishEntityCreateEvent(
@@ -178,7 +173,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
+            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -251,7 +246,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
+            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
 
         webClient.post()
@@ -1192,7 +1187,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1206,7 +1201,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            temporalEntityAttributeService.appendEntityAttributes(
+            entityPayloadService.appendAttributes(
                 eq(entityId),
                 any(),
                 any(),
@@ -1246,7 +1241,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1267,7 +1262,7 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            temporalEntityAttributeService.appendEntityAttributes(
+            entityPayloadService.appendAttributes(
                 eq(entityId),
                 any(),
                 any(),
@@ -1302,7 +1297,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns appendTypeResult.right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1319,7 +1314,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 listOf(breedingServiceType, deadFishesType)
             )
-            temporalEntityAttributeService.appendEntityAttributes(
+            entityPayloadService.appendAttributes(
                 eq(entityId),
                 emptyList(),
                 any(),
@@ -1357,7 +1352,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns appendTypeResult.right()
         coEvery {
-            temporalEntityAttributeService.appendEntityAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1504,7 +1499,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         coEvery {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
+            entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
         every {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
@@ -1521,7 +1516,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            temporalEntityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
         }
         verify {
             entityEventService.publishAttributeChangeEvents(
@@ -1564,7 +1559,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         coEvery {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
+            entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(),
             notUpdated = arrayListOf(
@@ -1584,7 +1579,7 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         coVerify {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
         }
     }
 
@@ -1646,7 +1641,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns updateResult.right()
         every {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1664,7 +1659,7 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
-            temporalEntityAttributeService.updateEntityAttributes(eq(entityId), any(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
         }
         verify {
             entityEventService.publishAttributeChangeEvents(
@@ -1691,7 +1686,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
-            temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
@@ -1726,7 +1721,7 @@ class EntityHandlerTests {
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
         ).right()
         coEvery {
-            temporalEntityAttributeService.updateEntityAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
         every {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1742,7 +1737,7 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.updateTypes(eq(entityId), eq(listOf(breedingServiceType)))
-            temporalEntityAttributeService.updateEntityAttributes(eq(entityId), emptyList(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), emptyList(), any(), any())
         }
     }
 
@@ -1845,8 +1840,8 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
-        coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
@@ -1859,8 +1854,8 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
             authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
-            temporalEntityAttributeService.deleteTemporalEntityReferences(eq(beehiveId))
-            entityAccessRightsService.removeRolesOnEntity(eq(beehiveId))
+            entityPayloadService.deleteEntityPayload(eq(beehiveId))
+            authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
         verify {
             entityEventService.publishEntityDeleteEvent(
@@ -1903,7 +1898,7 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalEntityReferences(any())
+            entityPayloadService.deleteEntityPayload(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1960,7 +1955,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1974,7 +1969,7 @@ class EntityHandlerTests {
         coVerify {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(beehiveId), eq(TEMPERATURE_PROPERTY))
             authorizationService.userCanUpdateEntity(eq(beehiveId), eq(sub))
-            temporalEntityAttributeService.deleteTemporalAttribute(
+            entityPayloadService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 null
@@ -1996,7 +1991,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2008,7 +2003,7 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.deleteTemporalAttribute(
+            entityPayloadService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -2035,7 +2030,7 @@ class EntityHandlerTests {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2047,7 +2042,7 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.deleteTemporalAttribute(
+            entityPayloadService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri())
@@ -2090,7 +2085,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the attribute is not found`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
         } throws ResourceNotFoundException("Attribute Not Found")
 
         webClient.method(HttpMethod.DELETE)
@@ -2112,7 +2107,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 400 if the request is not correct`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.deleteTemporalAttribute(any(), any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)

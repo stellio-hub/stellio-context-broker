@@ -1,18 +1,19 @@
 package com.egm.stellio.search.authorization
 
+import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 
 data class SubjectReferential(
     @Id
     val subjectId: Sub,
     val subjectType: SubjectType,
-    val subjectInfo: String,
+    val subjectInfo: Json,
     val serviceAccountId: Sub? = null,
     val globalRoles: List<GlobalRole>? = null,
     val groupsMemberships: List<Sub>? = null

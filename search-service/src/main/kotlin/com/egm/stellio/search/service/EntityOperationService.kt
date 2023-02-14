@@ -2,11 +2,10 @@ package com.egm.stellio.search.service
 
 import arrow.core.Either
 import arrow.core.continuations.either
-import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.UpdateResult
-import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.search.web.BatchEntityError
 import com.egm.stellio.search.web.BatchEntitySuccess
 import com.egm.stellio.search.web.BatchOperationResult
@@ -24,7 +23,8 @@ import java.net.URI
 @Component
 class EntityOperationService(
     private val entityPayloadService: EntityPayloadService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService
+    private val entityAttributeCleanerService: EntityAttributeCleanerService,
+    private val authorizationService: AuthorizationService
 ) {
 
     /**
@@ -62,21 +62,13 @@ class EntityOperationService(
         jsonLdEntities: List<JsonLdEntity>,
         sub: Sub?
     ): BatchOperationResult {
-        val creationResults = entities.map {
-            val ngsiLdEntity = it
+        val creationResults = entities.map { ngsiLdEntity ->
             either {
                 val jsonLdEntity = jsonLdEntities.find { jsonLdEntity ->
                     ngsiLdEntity.id.toString() == jsonLdEntity.id
                 }!!
-                ngsiLdEntity.prepareTemporalAttributes()
-                    .flatMap { attributesMetadata ->
-                        temporalEntityAttributeService.createEntityTemporalReferences(
-                            ngsiLdEntity,
-                            jsonLdEntity,
-                            attributesMetadata,
-                            sub
-                        )
-                    }.map {
+                entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub)
+                    .map {
                         BatchEntitySuccess(ngsiLdEntity.id)
                     }.mapLeft { apiException ->
                         BatchEntityError(ngsiLdEntity.id, arrayListOf(apiException.message))
@@ -99,7 +91,10 @@ class EntityOperationService(
         val deletionResults = entitiesIds.map {
             val entityId = it
             either {
-                temporalEntityAttributeService.deleteTemporalEntityReferences(entityId)
+                entityPayloadService.deleteEntityPayload(entityId)
+                    .onRight {
+                        authorizationService.removeRightsOnEntity(entityId)
+                    }
                     .map {
                         BatchEntitySuccess(entityId)
                     }
@@ -190,13 +185,14 @@ class EntityOperationService(
     ): Either<BatchEntityError, BatchEntitySuccess> =
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
-            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
+            // wait for the previous attributes to be deleted before creating the new ones
+            entityAttributeCleanerService.deleteEntityAttributes(ngsiLdEntity.id).join()
             val updateResult = entityPayloadService.updateTypes(
                 ngsiLdEntity.id,
                 ngsiLdEntity.types,
                 false
             ).bind().mergeWith(
-                temporalEntityAttributeService.appendEntityAttributes(
+                entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
                     jsonLdEntity.properties,
@@ -231,7 +227,7 @@ class EntityOperationService(
                 ngsiLdEntity.types,
                 false
             ).bind().mergeWith(
-                temporalEntityAttributeService.appendEntityAttributes(
+                entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
                     jsonLdEntity.properties,

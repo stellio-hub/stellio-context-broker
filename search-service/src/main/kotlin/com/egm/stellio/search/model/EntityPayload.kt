@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -24,7 +25,7 @@ data class EntityPayload(
     // creation time contexts
     // FIXME only stored because needed to compact types at deletion time...
     val contexts: List<String>,
-    val entityPayload: String,
+    val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
     fun serializeProperties(

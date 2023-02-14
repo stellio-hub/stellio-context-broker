@@ -5,8 +5,6 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import org.springframework.core.io.ClassPathResource
 
-const val EMPTY_PAYLOAD = "{}"
-
 fun loadSampleData(filename: String = "beehive.jsonld"): String {
     val sampleData = ClassPathResource("/ngsild/$filename")
     return String(sampleData.inputStream.readAllBytes())

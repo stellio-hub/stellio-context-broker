@@ -6,25 +6,23 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.service.*
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.service.*
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import kotlinx.coroutines.Job
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -38,7 +36,6 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
-import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -98,11 +95,9 @@ class TemporalEntityHandlerTests {
 
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
-        } returns Unit.right()
-        coEvery { temporalEntityAttributeService.upsertEntityAttributes(any(), any(), any()) } returns Unit.right()
-        coEvery { authorizationService.createAdminLink(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
 
         val data =
             loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
@@ -121,21 +116,20 @@ class TemporalEntityHandlerTests {
         coVerify { authorizationService.userCanCreateEntities(eq(sub)) }
         coVerify { entityPayloadService.checkEntityExistence(eq(entityUri), true) }
         coVerify {
-            temporalEntityAttributeService.createEntityTemporalReferences(
+            entityPayloadService.createEntity(
                 any(),
                 eq(jsonLdEntity),
-                any(),
                 eq(sub.value)
             )
         }
         coVerify {
-            temporalEntityAttributeService.upsertEntityAttributes(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)
             )
         }
-        coVerify { authorizationService.createAdminLink(eq(entityUri), eq(sub)) }
+        coVerify { authorizationService.createAdminRight(eq(entityUri), eq(sub)) }
     }
 
     @Test
@@ -146,9 +140,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             entityPayloadService.checkEntityExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TESTC")).left()
-        coEvery {
-            temporalEntityAttributeService.upsertEntityAttributes(any(), any(), any())
-        } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         val expectedInstancesFilePath =
             "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
@@ -162,7 +154,7 @@ class TemporalEntityHandlerTests {
 
         coVerify { authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub)) }
         coVerify {
-            temporalEntityAttributeService.upsertEntityAttributes(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)
@@ -734,7 +726,7 @@ class TemporalEntityHandlerTests {
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
-                    payload = EMPTY_PAYLOAD
+                    payload = EMPTY_JSON_PAYLOAD
                 )
             }
         val entityFileName = if (withTemporalValues)

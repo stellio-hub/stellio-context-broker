@@ -5,7 +5,6 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseAndCheckQueryParams
-import com.egm.stellio.search.util.prepareTemporalAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
@@ -70,34 +69,30 @@ class TemporalEntityHandler(
                         .addIdAndTypes(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
                     contexts
                 )
-
                 val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
-                val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
 
-                temporalEntityAttributeService.createEntityTemporalReferences(
+                entityPayloadService.createEntity(
                     ngsiLdEntity,
                     jsonLdEntity,
-                    attributesMetadata,
                     sub.orNull()
                 ).bind()
-
-                temporalEntityAttributeService.upsertEntityAttributes(
+                entityPayloadService.upsertAttributes(
                     entityUri,
                     jsonldInstances.removeFirstInstances().removeIdAndTypes(),
                     sub.orNull()
-                )
-                authorizationService.createAdminLink(entityUri, sub).bind()
+                ).bind()
+                authorizationService.createAdminRight(entityUri, sub).bind()
 
                 ResponseEntity.status(HttpStatus.CREATED)
                     .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
                     .build<String>()
             } else {
                 authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-                temporalEntityAttributeService.upsertEntityAttributes(
+                entityPayloadService.upsertAttributes(
                     entityUri,
                     jsonldInstances,
                     sub.orNull()
-                )
+                ).bind()
 
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build()
             }

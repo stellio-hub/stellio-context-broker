@@ -47,4 +47,4 @@ fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolic
 }
 
 const val EMPTY_PAYLOAD = "{}"
-val EMPTY_JSON_PAYLOAD = Json.of("{}")
+val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)

@@ -142,7 +142,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
                     val datasetId = ngsiLdAttributeInstance.datasetId
                     val attributePayload = getAttributeFromExpandedAttributes(
-                        jsonLdEntity.properties,
+                        jsonLdEntity.members,
                         attributeName,
                         datasetId
                     )!!

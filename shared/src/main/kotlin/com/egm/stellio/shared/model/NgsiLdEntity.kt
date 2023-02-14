@@ -387,7 +387,7 @@ fun String.isNgsiLdSupportedName() =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
-    NgsiLdEntity(this.properties, this.contexts)
+    NgsiLdEntity(this.members, this.contexts)
 
 fun Map<String, List<Any>>.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()

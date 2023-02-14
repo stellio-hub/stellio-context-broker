@@ -363,8 +363,8 @@ class EnabledAuthorizationServiceTests {
             assertEquals(2, it.second.size)
 
             val jsonLdEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
-            assertEquals(4, jsonLdEntityWithOtherRights.properties.size)
-            assertTrue(jsonLdEntityWithOtherRights.properties.containsKey(AUTH_REL_CAN_WRITE))
+            assertEquals(4, jsonLdEntityWithOtherRights.members.size)
+            assertTrue(jsonLdEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
         }
 
         coVerify {

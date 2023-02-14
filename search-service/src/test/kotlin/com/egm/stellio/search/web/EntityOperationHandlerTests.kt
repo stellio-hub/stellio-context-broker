@@ -86,7 +86,7 @@ class EntityOperationHandlerTests {
         }
         mockedTemperatureSensorJsonLdEntity = mockkClass(JsonLdEntity::class) {
             every { id } returns temperatureSensorUri.toString()
-            every { properties } returns emptyMap()
+            every { members } returns emptyMap()
         }
         mockedDissolvedOxygenSensorEntity = mockkClass(NgsiLdEntity::class) {
             every { id } returns dissolvedOxygenSensorUri
@@ -95,7 +95,7 @@ class EntityOperationHandlerTests {
         }
         mockedDissolvedOxygenSensorJsonLdEntity = mockkClass(JsonLdEntity::class) {
             every { id } returns dissolvedOxygenSensorUri.toString()
-            every { properties } returns emptyMap()
+            every { members } returns emptyMap()
         }
         mockedDeviceEntity = mockkClass(NgsiLdEntity::class) {
             every { id } returns deviceUri
@@ -104,7 +104,7 @@ class EntityOperationHandlerTests {
         }
         mockedDeviceJsonLdEntity = mockkClass(JsonLdEntity::class) {
             every { id } returns deviceUri.toString()
-            every { properties } returns emptyMap()
+            every { members } returns emptyMap()
         }
     }
 

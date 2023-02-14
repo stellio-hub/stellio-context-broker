@@ -358,11 +358,11 @@ object JsonLdUtils {
         val contexts = addCoreContextIfMissing(listOfNotNull(context))
 
         return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .mapValues(restoreGeoPropertyValue())
         else
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to contexts)
                 .mapValues(restoreGeoPropertyValue())
@@ -376,11 +376,11 @@ object JsonLdUtils {
         val allContexts = addCoreContextIfMissing(contexts)
 
         return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .mapValues(restoreGeoPropertyValue())
         else
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
                 .mapValues(restoreGeoPropertyValue())
@@ -440,7 +440,7 @@ object JsonLdUtils {
         input: JsonLdEntity,
         includedAttributes: Set<String>
     ): Map<String, Any> {
-        val inputToMap = { i: JsonLdEntity -> i.properties }
+        val inputToMap = { i: JsonLdEntity -> i.members }
         return filterEntityOnAttributes(input, inputToMap, includedAttributes, true)
     }
 

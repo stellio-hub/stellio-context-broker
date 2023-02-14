@@ -76,7 +76,7 @@ class EntityPayloadService(
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             createdAt,
-            serializeObject(jsonLdEntity.properties.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
+            serializeObject(jsonLdEntity.members.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
             jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()

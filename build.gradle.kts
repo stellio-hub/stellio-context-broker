@@ -93,7 +93,7 @@ subprojects {
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn")
-            jvmTarget = "17"
+            jvmTarget = "${JavaVersion.VERSION_17}"
         }
     }
     tasks.withType<Test> {

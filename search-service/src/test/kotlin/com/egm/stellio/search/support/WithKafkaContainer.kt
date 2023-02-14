@@ -10,7 +10,7 @@ interface WithKafkaContainer {
     companion object {
 
         private val kafkaImage: DockerImageName =
-            DockerImageName.parse("confluentinc/cp-kafka:7.2.1")
+            DockerImageName.parse("confluentinc/cp-kafka:7.3.1")
 
         private val kafkaContainer = KafkaContainer(kafkaImage).apply {
             withReuse(true)

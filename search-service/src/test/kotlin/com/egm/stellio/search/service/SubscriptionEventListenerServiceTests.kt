@@ -5,7 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
-import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
@@ -97,7 +97,7 @@ class SubscriptionEventListenerServiceTests {
         )
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.updateStatus(any(), any(), any<ExpandedAttributePayloadEntry>())
+            temporalEntityAttributeService.updateStatus(any(), any(), any<ExpandedAttributeInstance>())
         } returns Unit.right()
 
         subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
@@ -130,7 +130,7 @@ class SubscriptionEventListenerServiceTests {
             temporalEntityAttributeService.updateStatus(
                 eq(temporalEntityAttributeUuid),
                 any(),
-                any<ExpandedAttributePayloadEntry>()
+                any<ExpandedAttributeInstance>()
             )
         }
     }

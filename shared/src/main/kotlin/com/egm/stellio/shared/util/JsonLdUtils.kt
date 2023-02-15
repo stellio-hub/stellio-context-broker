@@ -308,7 +308,7 @@ object JsonLdUtils {
         expandedAttributes: Map<String, Any>,
         expandedAttributeName: String,
         datasetId: URI?
-    ): ExpandedAttributePayloadEntry? {
+    ): ExpandedAttributeInstance? {
         if (!expandedAttributes.containsKey(expandedAttributeName))
             return null
 
@@ -508,7 +508,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedProperty(value: Any): ExpandedAttributePayload =
+    fun buildExpandedProperty(value: Any): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
@@ -532,7 +532,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedRelationship(value: URI): ExpandedAttributePayload =
+    fun buildExpandedRelationship(value: URI): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
@@ -577,20 +577,20 @@ object JsonLdUtils {
         )
 }
 
-typealias ExpandedInstancesOfAttributes = Map<ExpandedTerm, ExpandedAttributePayload>
-typealias ExpandedAttributePayload = List<ExpandedAttributePayloadEntry>
-typealias ExpandedAttributePayloadEntry = Map<String, List<Any>>
+typealias ExpandedAttributesInstances = Map<ExpandedTerm, ExpandedAttributeInstances>
+typealias ExpandedAttributeInstances = List<ExpandedAttributeInstance>
+typealias ExpandedAttributeInstance = Map<String, List<Any>>
 
-fun ExpandedAttributePayload.addSubAttribute(
+fun ExpandedAttributeInstances.addSubAttribute(
     subAttributeName: ExpandedTerm,
     subAttributePayload: List<Map<String, Any>>
-): ExpandedAttributePayload {
+): ExpandedAttributeInstances {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
     return listOf(this[0].plus(subAttributeName to subAttributePayload))
 }
 
-fun ExpandedAttributePayload.getSingleEntry(): ExpandedAttributePayloadEntry {
+fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
     return this[0]
@@ -681,7 +681,7 @@ fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDat
         )
     else this
 
-fun ExpandedInstancesOfAttributes.checkValidity(): Either<APIException, Unit> =
+fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
@@ -691,24 +691,24 @@ fun ExpandedInstancesOfAttributes.checkValidity(): Either<APIException, Unit> =
         else BadRequestDataException(invalidTemporalInstanceMessage()).left()
     }
 
-fun ExpandedInstancesOfAttributes.sorted(): ExpandedInstancesOfAttributes =
+fun ExpandedAttributesInstances.sorted(): ExpandedAttributesInstances =
     this.mapValues {
         it.value.sortedByDescending { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY)
         }
     }
 
-fun ExpandedInstancesOfAttributes.keepFirstInstances(): ExpandedInstancesOfAttributes =
+fun ExpandedAttributesInstances.keepFirstInstances(): ExpandedAttributesInstances =
     this.mapValues { listOf(it.value.first()) }
 
-fun ExpandedInstancesOfAttributes.removeFirstInstances(): ExpandedInstancesOfAttributes {
+fun ExpandedAttributesInstances.removeFirstInstances(): ExpandedAttributesInstances {
     val entityWithoutFirstInstance = this.mapValues {
         it.value.filterIndexed { index, _ -> index > 0 }
     }
     return entityWithoutFirstInstance
 }
 
-fun ExpandedInstancesOfAttributes.addCoreMembers(
+fun ExpandedAttributesInstances.addCoreMembers(
     entityId: String,
     entityTypes: List<ExpandedTerm>
 ): Map<String, Any> =

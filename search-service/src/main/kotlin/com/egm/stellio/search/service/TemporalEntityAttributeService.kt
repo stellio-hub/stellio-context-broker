@@ -174,7 +174,7 @@ class TemporalEntityAttributeService(
     suspend fun updateStatus(
         teaUUID: UUID,
         modifiedAt: ZonedDateTime,
-        payload: ExpandedAttributePayloadEntry
+        payload: ExpandedAttributeInstance
     ): Either<APIException, Unit> =
         updateStatus(teaUUID, modifiedAt, serializeObject(payload))
 
@@ -202,7 +202,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -244,7 +244,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -849,7 +849,7 @@ class TemporalEntityAttributeService(
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
                     )
                     val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributePayloadEntry
+                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributeInstance
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
@@ -897,7 +897,7 @@ class TemporalEntityAttributeService(
     @Transactional
     suspend fun upsertAttributes(
         entityId: URI,
-        jsonLdInstances: ExpandedInstancesOfAttributes,
+        jsonLdInstances: ExpandedAttributesInstances,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -922,7 +922,7 @@ class TemporalEntityAttributeService(
     suspend fun upsertEntityAttributes(
         entityUri: URI,
         ngsiLdAttribute: NgsiLdAttribute,
-        jsonLdAttribute: ExpandedInstancesOfAttributes,
+        jsonLdAttribute: ExpandedAttributesInstances,
         createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, Unit> = either {

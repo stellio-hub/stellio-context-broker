@@ -3,7 +3,7 @@ package com.egm.stellio.shared.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.ExpandedInstancesOfAttributes
+import com.egm.stellio.shared.util.ExpandedAttributesInstances
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -24,7 +24,7 @@ data class JsonLdEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
-    fun getAttributes(): ExpandedInstancesOfAttributes =
+    fun getAttributes(): ExpandedAttributesInstances =
         members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
             .mapValues { expandValueAsListOfMap(it.value) }
 

@@ -105,9 +105,10 @@ class AttributeInstanceService(
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Attribute $attributeName has an instance without a value")
+            ?: return BadRequestDataException("Attribute $attributeName has an instance without a value").left()
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: throw BadRequestDataException("Attribute $attributeName has an instance without an observed date")
+            ?: return BadRequestDataException("Attribute $attributeName has an instance without an observed date")
+                .left()
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,

@@ -28,9 +28,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -669,14 +669,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
-            attributeInstanceService.addAttributeInstance(
-                incomingTemporalEntityAttribute.id,
-                OUTGOING_PROPERTY,
-                attributeValues
-            )
+        attributeInstanceService.addAttributeInstance(
+            incomingTemporalEntityAttribute.id,
+            OUTGOING_PROPERTY,
+            attributeValues
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", it.message)
         }
-        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", exception.message)
     }
 
     @Test
@@ -690,14 +690,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
-            attributeInstanceService.addAttributeInstance(
-                incomingTemporalEntityAttribute.id,
-                OUTGOING_PROPERTY,
-                attributeValues
-            )
+        attributeInstanceService.addAttributeInstance(
+            incomingTemporalEntityAttribute.id,
+            OUTGOING_PROPERTY,
+            attributeValues
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", it.message)
         }
-        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", exception.message)
     }
 
     @Test

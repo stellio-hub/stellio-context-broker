@@ -895,43 +895,66 @@ class TemporalEntityAttributeService(
         }
 
     @Transactional
+    suspend fun upsertAttributes(
+        entityId: URI,
+        jsonLdInstances: ExpandedInstancesOfAttributes,
+        sub: Sub?
+    ): Either<APIException, Unit> =
+        either {
+            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+            jsonLdInstances.forEach { (attributeName, expandedAttributePayload) ->
+                expandedAttributePayload.forEach { expandedAttributePayloadEntry ->
+                    val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributePayloadEntry))
+                    val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)[0]
+
+                    upsertEntityAttributes(
+                        entityId,
+                        ngsiLdAttribute,
+                        jsonLdAttribute,
+                        createdAt,
+                        sub
+                    ).bind()
+                }
+            }
+        }
+
+    @Transactional
     suspend fun upsertEntityAttributes(
         entityUri: URI,
-        ngsiLdAttributes: List<NgsiLdAttribute>,
+        ngsiLdAttribute: NgsiLdAttribute,
         jsonLdAttribute: ExpandedInstancesOfAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, Unit> = either {
-        val attributeInstances = ngsiLdAttributes.flatOnInstances()
-        attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-            logger.debug("Upsert temporal attribute ${ngsiLdAttribute.name} in entity $entityUri")
-            val currentTea =
-                getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
-                    .fold({ null }, { it })
-            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-            val attributePayload = getAttributeFromExpandedAttributes(
-                jsonLdAttribute,
-                ngsiLdAttribute.name,
-                ngsiLdAttributeInstance.datasetId
-            )!!
+        val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
+        logger.debug("Upserting temporal attribute ${ngsiLdAttribute.name} in entity $entityUri")
+        val currentTea =
+            getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                .fold({ null }, { it })
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val attributePayload = getAttributeFromExpandedAttributes(
+            jsonLdAttribute,
+            ngsiLdAttribute.name,
+            ngsiLdAttributeInstance.datasetId
+        )!!
 
-            if (currentTea == null) {
-                addAttribute(
-                    entityUri,
-                    ngsiLdAttribute,
-                    attributeMetadata,
-                    createdAt,
-                    attributePayload,
-                    sub
-                )
-            } else {
-                logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
-                attributeInstanceService.addAttributeInstance(
-                    currentTea.id,
-                    currentTea.attributeName,
-                    jsonLdAttribute[currentTea.attributeName]!!.first()
-                )
-            }
+        if (currentTea == null) {
+            logger.debug("Creating attribute and instance for attribute ${ngsiLdAttribute.name} in entity $entityUri")
+            addAttribute(
+                entityUri,
+                ngsiLdAttribute,
+                attributeMetadata,
+                createdAt,
+                attributePayload,
+                sub
+            ).bind()
+        } else {
+            logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
+            attributeInstanceService.addAttributeInstance(
+                currentTea.id,
+                currentTea.attributeName,
+                jsonLdAttribute[currentTea.attributeName]!!.first()
+            ).bind()
         }
     }
 

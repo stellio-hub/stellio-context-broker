@@ -2,4 +2,5 @@
 indent_size=4
 insert_final_newline=true
 max_line_length=120
-disabled_rules=no-wildcard-imports,experimental:multiline-if-else
+ktlint_standard_no-wildcard-imports=false
+ktlint_standard_multiline-if-else=false

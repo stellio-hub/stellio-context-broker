@@ -101,7 +101,7 @@ class V0_29_JsonLd_migrationTests {
                     mapOf(
                         "createdAt" to "2022-07-01T07:28:21.450768829Z",
                         "observedAt" to "2022-07-09T00:00:00Z"
-                    ),
+                    )
                 )
             )
         val expectedPayloadExpanded = JsonLdUtils.expandDeserializedPayload(expectedPayload, contexts)

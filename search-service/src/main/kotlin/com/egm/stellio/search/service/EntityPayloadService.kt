@@ -349,7 +349,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun upsertAttributes(
         entityId: URI,
-        jsonLdInstances: ExpandedInstancesOfAttribute,
+        jsonLdInstances: ExpandedInstancesOfAttributes,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {

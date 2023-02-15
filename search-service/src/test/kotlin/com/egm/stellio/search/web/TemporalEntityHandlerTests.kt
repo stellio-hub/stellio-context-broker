@@ -104,7 +104,8 @@ class TemporalEntityHandlerTests {
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, listOf(APIC_COMPOUND_CONTEXT))
         val expectedInstancesFilePath =
             "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
-        val jsonInstances = loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttribute
+        val jsonInstances =
+            loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttributes
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities")
@@ -144,7 +145,8 @@ class TemporalEntityHandlerTests {
 
         val expectedInstancesFilePath =
             "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
-        val jsonInstances = loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttribute
+        val jsonInstances =
+            loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedInstancesOfAttributes
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities")

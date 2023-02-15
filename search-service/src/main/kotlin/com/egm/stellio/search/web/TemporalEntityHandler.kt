@@ -7,8 +7,6 @@ import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -49,36 +47,30 @@ class TemporalEntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
 
         return either<APIException, ResponseEntity<*>> {
-            val entityUri = body[JSONLD_ID_TERM].toString().toUri()
-            val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
             val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
+            val entityUri = jsonLdTemporalEntity.id.toUri()
+            val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
 
-            val jsonldInstances: ExpandedInstancesOfAttribute =
-                jsonLdTemporalEntity.properties
-                    .filter { !JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
-                    .mapValues { attributeEntry ->
-                        checkAndSortedInstances(expandValueAsListOfMap(attributeEntry.value))
-                    }
+            val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
+            jsonLdInstances.checkValidity().bind()
+            val sortedJsonLdInstances = jsonLdInstances.sorted()
 
             if (entityDoesNotExist) {
-                authorizationService.userCanCreateEntities(sub)
+                authorizationService.userCanCreateEntities(sub).bind()
 
+                // create a view of the entity containing only the most recent instance of each attribute
                 val jsonLdEntity = JsonLdEntity(
-                    jsonldInstances
+                    sortedJsonLdInstances
                         .keepFirstInstances()
-                        .addIdAndTypes(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
+                        .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
                     contexts
                 )
                 val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
-                entityPayloadService.createEntity(
-                    ngsiLdEntity,
-                    jsonLdEntity,
-                    sub.orNull()
-                ).bind()
+                entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
                 entityPayloadService.upsertAttributes(
                     entityUri,
-                    jsonldInstances.removeFirstInstances().removeIdAndTypes(),
+                    sortedJsonLdInstances.removeFirstInstances(),
                     sub.orNull()
                 ).bind()
                 authorizationService.createAdminRight(entityUri, sub).bind()
@@ -90,7 +82,7 @@ class TemporalEntityHandler(
                 authorizationService.userCanUpdateEntity(entityUri, sub).bind()
                 entityPayloadService.upsertAttributes(
                     entityUri,
-                    jsonldInstances,
+                    sortedJsonLdInstances,
                     sub.orNull()
                 ).bind()
 

@@ -24,7 +24,7 @@ fun attributeNotFoundMessage(attributeName: String, datasetId: URI? = null) =
 fun instanceNotFoundMessage(instanceId: String) = "Instance $instanceId was not found"
 
 fun invalidTemporalInstanceMessage() =
-    "One instance of this temporal attribute don't have any time property $NGSILD_OBSERVED_AT_PROPERTY"
+    "One attribute instance is missing the required $NGSILD_OBSERVED_AT_PROPERTY temporal property"
 
 fun entityOrAttrsNotFoundMessage(
     entityId: String,

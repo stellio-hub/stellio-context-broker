@@ -1,13 +1,18 @@
 package com.egm.stellio.shared.util
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
@@ -24,7 +29,6 @@ import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
-import java.util.*
 import kotlin.reflect.full.safeCast
 
 data class AttributeType(val uri: String)
@@ -573,8 +577,7 @@ object JsonLdUtils {
         )
 }
 
-typealias ExpandedInstancesOfAttribute = Map<ExpandedTerm, ExpandedInstances>
-typealias ExpandedInstances = List<Map<String, List<Any>>>
+typealias ExpandedInstancesOfAttributes = Map<ExpandedTerm, ExpandedAttributePayload>
 typealias ExpandedAttributePayload = List<ExpandedAttributePayloadEntry>
 typealias ExpandedAttributePayloadEntry = Map<String, List<Any>>
 
@@ -672,42 +675,41 @@ fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDat
     if (dateTime != null)
         this.plus(
             propertyKey to mapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                JsonLdUtils.JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+                JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
             )
         )
     else this
 
-fun ExpandedInstancesOfAttribute.keepFirstInstances(): ExpandedInstancesOfAttribute =
+fun ExpandedInstancesOfAttributes.checkValidity(): Either<APIException, Unit> =
+    this.values.all { expandedInstances ->
+        expandedInstances.all { expandedAttributePayloadEntry ->
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
+        }
+    }.let {
+        if (it) Unit.right()
+        else BadRequestDataException(invalidTemporalInstanceMessage()).left()
+    }
+
+fun ExpandedInstancesOfAttributes.sorted(): ExpandedInstancesOfAttributes =
+    this.mapValues {
+        it.value.sortedByDescending { expandedAttributePayloadEntry ->
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY)
+        }
+    }
+
+fun ExpandedInstancesOfAttributes.keepFirstInstances(): ExpandedInstancesOfAttributes =
     this.mapValues { listOf(it.value.first()) }
 
-fun ExpandedInstancesOfAttribute.removeFirstInstances(): ExpandedInstancesOfAttribute {
+fun ExpandedInstancesOfAttributes.removeFirstInstances(): ExpandedInstancesOfAttributes {
     val entityWithoutFirstInstance = this.mapValues {
         it.value.filterIndexed { index, _ -> index > 0 }
     }
     return entityWithoutFirstInstance
 }
 
-fun ExpandedInstancesOfAttribute.removeIdAndTypes(): ExpandedInstancesOfAttribute =
-    this.filter { it.key != JSONLD_ID && it.key != JSONLD_TYPE }
-
-fun ExpandedInstancesOfAttribute.addIdAndTypes(
+fun ExpandedInstancesOfAttributes.addCoreMembers(
     entityId: String,
     entityTypes: List<ExpandedTerm>
-): Map<String, Any> {
-    val expandEntity = mutableMapOf(
-        JSONLD_ID to entityId,
-        JSONLD_TYPE to entityTypes,
-    )
-    expandEntity.putAll(this)
-    return expandEntity
-}
-
-fun checkAndSortedInstances(instances: ExpandedInstances): ExpandedInstances {
-    return instances.sortedByDescending {
-        ZonedDateTime.parse(
-            (it[JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY]?.first() as? Map<String, String>)?.get(JSONLD_VALUE_KW)
-                ?: throw BadRequestDataException(invalidTemporalInstanceMessage())
-        )
-    }
-}
+): Map<String, Any> =
+    this.plus(listOf(JSONLD_ID to entityId, JSONLD_TYPE to entityTypes))

@@ -898,7 +898,7 @@ class TemporalEntityAttributeService(
     suspend fun upsertEntityAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        jsonLdAttribute: ExpandedInstancesOfAttribute,
+        jsonLdAttribute: ExpandedInstancesOfAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, Unit> = either {

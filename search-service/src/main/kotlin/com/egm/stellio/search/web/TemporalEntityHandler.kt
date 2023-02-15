@@ -68,7 +68,7 @@ class TemporalEntityHandler(
                 val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
                 entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
-                temporalEntityAttributeService.upsertAttributes(
+                entityPayloadService.upsertAttributes(
                     entityUri,
                     sortedJsonLdInstances.removeFirstInstances(),
                     sub.orNull()
@@ -80,7 +80,7 @@ class TemporalEntityHandler(
                     .build<String>()
             } else {
                 authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-                temporalEntityAttributeService.upsertAttributes(
+                entityPayloadService.upsertAttributes(
                     entityUri,
                     sortedJsonLdInstances,
                     sub.orNull()

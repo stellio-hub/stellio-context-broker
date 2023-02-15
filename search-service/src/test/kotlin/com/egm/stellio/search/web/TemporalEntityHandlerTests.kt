@@ -96,7 +96,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
-        coEvery { temporalEntityAttributeService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
         coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
 
         val data =
@@ -124,7 +124,7 @@ class TemporalEntityHandlerTests {
             )
         }
         coVerify {
-            temporalEntityAttributeService.upsertAttributes(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)
@@ -141,7 +141,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             entityPayloadService.checkEntityExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TESTC")).left()
-        coEvery { temporalEntityAttributeService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         val expectedInstancesFilePath =
             "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
@@ -156,7 +156,7 @@ class TemporalEntityHandlerTests {
 
         coVerify { authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub)) }
         coVerify {
-            temporalEntityAttributeService.upsertAttributes(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)

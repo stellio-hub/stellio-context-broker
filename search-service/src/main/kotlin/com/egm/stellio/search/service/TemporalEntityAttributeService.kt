@@ -895,30 +895,6 @@ class TemporalEntityAttributeService(
         }
 
     @Transactional
-    suspend fun upsertAttributes(
-        entityId: URI,
-        jsonLdInstances: ExpandedAttributesInstances,
-        sub: Sub?
-    ): Either<APIException, Unit> =
-        either {
-            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-            jsonLdInstances.forEach { (attributeName, expandedAttributePayload) ->
-                expandedAttributePayload.forEach { expandedAttributePayloadEntry ->
-                    val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributePayloadEntry))
-                    val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)[0]
-
-                    upsertEntityAttributes(
-                        entityId,
-                        ngsiLdAttribute,
-                        jsonLdAttribute,
-                        createdAt,
-                        sub
-                    ).bind()
-                }
-            }
-        }
-
-    @Transactional
     suspend fun upsertEntityAttributes(
         entityUri: URI,
         ngsiLdAttribute: NgsiLdAttribute,

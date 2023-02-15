@@ -31,7 +31,7 @@ class AuthorizationServiceTests {
         authorizationService.getAuthorizedEntities(
             QueryParams(offset = 0, limit = 0, context = NGSILD_CORE_CONTEXT),
             NGSILD_CORE_CONTEXT,
-            None,
+            None
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)
@@ -43,7 +43,7 @@ class AuthorizationServiceTests {
         authorizationService.getGroupsMemberships(
             0,
             0,
-            None,
+            None
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)

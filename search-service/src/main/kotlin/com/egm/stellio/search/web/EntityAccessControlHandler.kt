@@ -58,7 +58,7 @@ class EntityAccessControlHandler(
             val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
                 queryParams,
                 contextLink,
-                sub,
+                sub
             ).bind()
 
             if (countAndAuthorizedEntities.first == -1) {

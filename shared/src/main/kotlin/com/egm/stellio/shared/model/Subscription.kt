@@ -14,5 +14,5 @@ data class Subscription(
     val type: String = NGSILD_SUBSCRIPTION_TERM,
     val name: String? = null,
     val description: String? = null,
-    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
+    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC)
 )

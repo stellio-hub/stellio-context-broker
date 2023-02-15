@@ -24,7 +24,7 @@ interface AuthorizationService {
     suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
         context: String,
-        sub: Option<Sub>,
+        sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
 
     suspend fun getGroupsMemberships(

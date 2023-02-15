@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class SubjectReferentialService(
     private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
     @Transactional

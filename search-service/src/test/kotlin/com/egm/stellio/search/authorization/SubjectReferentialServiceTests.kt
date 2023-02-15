@@ -119,7 +119,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(subjectReferential)
@@ -303,7 +303,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -322,7 +322,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -344,7 +344,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -364,7 +364,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
@@ -385,7 +385,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = getSubjectInfoForUser("stellio"),
+            subjectInfo = getSubjectInfoForUser("stellio")
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()
@@ -406,7 +406,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            subjectInfo = getSubjectInfoForUser("stellio"),
+            subjectInfo = getSubjectInfoForUser("stellio")
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()

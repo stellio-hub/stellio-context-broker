@@ -341,7 +341,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE),
+            setOf(BEEHIVE_TYPE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -374,7 +374,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
-            emptySet(),
+            emptySet()
         ).shouldSucceedWith {
             assertEquals(1, it)
         }

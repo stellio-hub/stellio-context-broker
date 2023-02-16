@@ -58,13 +58,13 @@ class EntityOperationServiceTests {
     fun initNgsiLdEntitiesMocks() {
         firstJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true) {
             every { id } returns firstEntityURI.toString()
-            every { properties } returns emptyMap()
+            every { members } returns emptyMap()
         }
         firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns firstEntityURI
         secondJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true) {
             every { id } returns secondEntityURI.toString()
-            every { properties } returns emptyMap()
+            every { members } returns emptyMap()
         }
         secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns secondEntityURI

@@ -10,7 +10,7 @@ import com.egm.stellio.search.util.toTemporalAttributeMetadata
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -142,7 +142,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
                     val datasetId = ngsiLdAttributeInstance.datasetId
                     val attributePayload = getAttributeFromExpandedAttributes(
-                        jsonLdEntity.properties,
+                        jsonLdEntity.members,
                         attributeName,
                         datasetId
                     )!!
@@ -186,7 +186,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {
@@ -242,7 +242,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {

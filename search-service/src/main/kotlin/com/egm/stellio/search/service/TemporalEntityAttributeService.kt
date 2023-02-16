@@ -133,7 +133,7 @@ class TemporalEntityAttributeService(
             .forEach {
                 val (expandedAttributeName, attributeMetadata) = it
                 val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdEntity.properties,
+                    jsonLdEntity.members,
                     expandedAttributeName,
                     attributeMetadata.datasetId
                 )!!
@@ -174,7 +174,7 @@ class TemporalEntityAttributeService(
     suspend fun updateStatus(
         teaUUID: UUID,
         modifiedAt: ZonedDateTime,
-        payload: ExpandedAttributePayloadEntry
+        payload: ExpandedAttributeInstance
     ): Either<APIException, Unit> =
         updateStatus(teaUUID, modifiedAt, serializeObject(payload))
 
@@ -202,7 +202,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -244,7 +244,7 @@ class TemporalEntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
-        attributePayload: ExpandedAttributePayloadEntry,
+        attributePayload: ExpandedAttributeInstance,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
@@ -849,7 +849,7 @@ class TemporalEntityAttributeService(
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
                     )
                     val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributePayloadEntry
+                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributeInstance
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
@@ -894,7 +894,47 @@ class TemporalEntityAttributeService(
             updateResultFromDetailedResult(listOf(updateAttributeResult))
         }
 
-    private fun getValueFromPartialAttributePayload(
+    @Transactional
+    suspend fun upsertEntityAttributes(
+        entityUri: URI,
+        ngsiLdAttribute: NgsiLdAttribute,
+        jsonLdAttribute: ExpandedAttributesInstances,
+        createdAt: ZonedDateTime,
+        sub: Sub?
+    ): Either<APIException, Unit> = either {
+        val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
+        logger.debug("Upserting temporal attribute ${ngsiLdAttribute.name} in entity $entityUri")
+        val currentTea =
+            getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                .fold({ null }, { it })
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val attributePayload = getAttributeFromExpandedAttributes(
+            jsonLdAttribute,
+            ngsiLdAttribute.name,
+            ngsiLdAttributeInstance.datasetId
+        )!!
+
+        if (currentTea == null) {
+            logger.debug("Creating attribute and instance for attribute ${ngsiLdAttribute.name} in entity $entityUri")
+            addAttribute(
+                entityUri,
+                ngsiLdAttribute,
+                attributeMetadata,
+                createdAt,
+                attributePayload,
+                sub
+            ).bind()
+        } else {
+            logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
+            attributeInstanceService.addAttributeInstance(
+                currentTea.id,
+                currentTea.attributeName,
+                jsonLdAttribute[currentTea.attributeName]!!.first()
+            ).bind()
+        }
+    }
+
+    suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,
         attributePayload: Map<String, List<Any>>
     ): Triple<String?, Double?, WKTCoordinates?> =

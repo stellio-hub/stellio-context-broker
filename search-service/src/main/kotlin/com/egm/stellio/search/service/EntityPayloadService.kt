@@ -76,7 +76,7 @@ class EntityPayloadService(
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             createdAt,
-            serializeObject(jsonLdEntity.properties.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
+            serializeObject(jsonLdEntity.members.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
             jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()
@@ -344,6 +344,31 @@ class EntityPayloadService(
                 updateState(entityId, modifiedAt, teas).bind()
             }
             updateResult
+        }
+
+    @Transactional
+    suspend fun upsertAttributes(
+        entityId: URI,
+        jsonLdInstances: ExpandedAttributesInstances,
+        sub: Sub?
+    ): Either<APIException, Unit> =
+        either {
+            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+            jsonLdInstances.forEach { (attributeName, expandedAttributeInstances) ->
+                expandedAttributeInstances.forEach { expandedAttributeInstance ->
+                    val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
+                    val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)[0]
+
+                    temporalEntityAttributeService.upsertEntityAttributes(
+                        entityId,
+                        ngsiLdAttribute,
+                        jsonLdAttribute,
+                        createdAt,
+                        sub
+                    ).bind()
+                }
+            }
+            updateState(entityId, createdAt, temporalEntityAttributeService.getForEntity(entityId, emptySet())).bind()
         }
 
     @Transactional

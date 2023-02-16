@@ -309,7 +309,7 @@ class EntityOperationHandler(
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 it.entityId,
-                jsonLdEntity.properties,
+                jsonLdEntity.members,
                 it.updateResult!!,
                 true,
                 ngsiLdEntity.contexts

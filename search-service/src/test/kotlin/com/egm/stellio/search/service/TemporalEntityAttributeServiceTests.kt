@@ -1,10 +1,7 @@
 package com.egm.stellio.search.service
 
 import arrow.core.right
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.AttributeMetadata
-import com.egm.stellio.search.model.EntityPayload
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD

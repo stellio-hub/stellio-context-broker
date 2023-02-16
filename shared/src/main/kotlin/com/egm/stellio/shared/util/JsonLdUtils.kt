@@ -701,12 +701,10 @@ fun ExpandedAttributesInstances.sorted(): ExpandedAttributesInstances =
 fun ExpandedAttributesInstances.keepFirstInstances(): ExpandedAttributesInstances =
     this.mapValues { listOf(it.value.first()) }
 
-fun ExpandedAttributesInstances.removeFirstInstances(): ExpandedAttributesInstances {
-    val entityWithoutFirstInstance = this.mapValues {
-        it.value.filterIndexed { index, _ -> index > 0 }
+fun ExpandedAttributesInstances.removeFirstInstances(): ExpandedAttributesInstances =
+    this.mapValues {
+        it.value.drop(1)
     }
-    return entityWithoutFirstInstance
-}
 
 fun ExpandedAttributesInstances.addCoreMembers(
     entityId: String,

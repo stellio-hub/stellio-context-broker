@@ -277,7 +277,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("value", 9L)
+            .hasFieldOrPropertyWithValue("value", 9.0)
     }
 
     @Test

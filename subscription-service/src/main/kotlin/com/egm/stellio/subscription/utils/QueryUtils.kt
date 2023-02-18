@@ -77,7 +77,7 @@ object QueryUtils {
             if (queryAttribute.size > 1) {
                 val expandSubAttribute = expandJsonLdTerm(queryAttribute[1], contexts)
                 """
-                jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.properties.toMutableMap())}',
+                jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
                     '$."$expandedAttribute"."$expandSubAttribute" ?
                     (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
                 """.trimIndent()
@@ -85,14 +85,14 @@ object QueryUtils {
                 when (attributeType) {
                     NGSILD_PROPERTY_TYPE ->
                         """
-                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.properties.toMutableMap())}',
+                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
                             '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE" ?
                                 (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
                         """.trimIndent()
 
                     NGSILD_RELATIONSHIP_TYPE ->
                         """
-                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.properties.toMutableMap())}',
+                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
                             '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT" ?
                                 (@."$JSONLD_ID" ${query.second} $targetValue)')
                         """.trimIndent()
@@ -135,7 +135,7 @@ object QueryUtils {
     }
 
     private fun getAttributeType(expandedAttribute: ExpandedTerm, jsonLdEntity: JsonLdEntity): AttributeType {
-        val jsonLdAttribute = (jsonLdEntity.properties[expandedAttribute] as? List<Map<String, Any>>)?.get(0)
+        val jsonLdAttribute = (jsonLdEntity.members[expandedAttribute] as? List<Map<String, Any>>)?.get(0)
             ?: throw BadRequestDataException(
                 "Unmatched query since it contains an unknown attribute $expandedAttribute"
             )

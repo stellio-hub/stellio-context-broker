@@ -552,7 +552,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if aggrPeriodDuration function is not in the correct format`() {
-        coEvery { entityAccessRightsService.canReadEntity(any(), any()) } answers { Unit.right() }
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } answers { Unit.right() }
 
         webClient.get()
             .uri(

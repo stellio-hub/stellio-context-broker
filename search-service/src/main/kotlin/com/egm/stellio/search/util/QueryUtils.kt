@@ -37,7 +37,8 @@ fun parseAndCheckQueryParams(
         OptionsParamValue.AUDIT
     )
     val withAggregatedValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AGGREGATED_VALUES
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AGGREGATED_VALUES
     )
     val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues)
 

@@ -39,7 +39,10 @@ class DateUtilsTests {
     @Test
     fun `it should correctly parse period and duration`() {
         val aggrPeriodDuration = "P1YT1M"
-        assertEquals("1 years 0 months 0 days 0 hours 1 minutes 0 seconds", periodDurationToTimeBucket(aggrPeriodDuration))
+        assertEquals(
+            "1 years 0 months 0 days 0 hours 1 minutes 0 seconds",
+            periodDurationToTimeBucket(aggrPeriodDuration)
+        )
     }
 
     @Test

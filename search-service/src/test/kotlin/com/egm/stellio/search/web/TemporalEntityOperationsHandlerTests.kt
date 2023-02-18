@@ -167,13 +167,7 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
 
-        verify {
-            parseAndCheckQueryParams(
-                any(),
-                queryParams,
-                APIC_COMPOUND_CONTEXT
-            )
-        }
+        verify { parseAndCheckQueryParams(any(), queryParams, APIC_COMPOUND_CONTEXT) }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->

@@ -251,7 +251,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
             aggrPeriodDuration = "1 day",
-            aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+            aggrMethods = listOf(TemporalQuery.Aggregate.SUM)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
 

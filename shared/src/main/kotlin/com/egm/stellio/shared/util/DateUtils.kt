@@ -67,7 +67,7 @@ fun periodDurationToTimeBucket(periodDuration: String): String {
         }
 
         return timeBucket.toString()
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         throw BadRequestDataException("'aggrPeriodDuration' parameter is not a valid duration of the period")
     }
 }

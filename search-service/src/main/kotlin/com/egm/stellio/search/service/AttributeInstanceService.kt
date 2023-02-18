@@ -178,7 +178,9 @@ class AttributeInstanceService(
         }
 
         selectQuery = if (temporalQuery.aggrPeriodDuration != null)
-            selectQuery.plus(" GROUP BY temporal_entity_attribute, aggr_period_duration ORDER BY aggr_period_duration DESC")
+            selectQuery.plus(
+                " GROUP BY temporal_entity_attribute, aggr_period_duration ORDER BY aggr_period_duration DESC"
+            )
         else
             selectQuery.plus(" ORDER BY time DESC")
 

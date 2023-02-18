@@ -184,7 +184,7 @@ class EntityEventService(
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
         entityPayloadService.retrieve(entityId)
             .map {
-                Pair(it.types, it.entityPayload)
+                Pair(it.types, it.payload.asString())
             }
 
     private fun getSerializedAttribute(

@@ -81,13 +81,13 @@ fun buildTemporalQuery(
         throw BadRequestDataException(it)
     }
     if (withAggregatedValues && aggrMethodsParam == null)
-        throw BadRequestDataException("'aggrMethods' must be used in conjunction")
+        throw BadRequestDataException("'aggrMethods' is mandatory if 'aggregatedValues' option is specified")
 
     val aggregate = aggrMethodsParam?.split(",")?.map {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
             TemporalQuery.Aggregate.valueOf(it)
         else
-            throw BadRequestDataException("Value '$it' is not supported for 'aggrMethods' parameter")
+            throw BadRequestDataException("'$it' is not a recognized aggregation method for 'aggrMethods' parameter")
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {

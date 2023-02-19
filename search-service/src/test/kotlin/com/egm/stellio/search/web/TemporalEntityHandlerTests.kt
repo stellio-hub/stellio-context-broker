@@ -557,7 +557,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=1 day"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=P1D"
             )
             .exchange()
             .expectStatus().isBadRequest

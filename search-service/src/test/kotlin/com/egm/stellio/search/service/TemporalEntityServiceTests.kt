@@ -146,7 +146,7 @@ class TemporalEntityServiceTests {
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null,
-            "1 day",
+            "P1D",
             listOf(TemporalQuery.Aggregate.SUM)
         )
         val entityPayload = EntityPayload(

@@ -35,19 +35,4 @@ class DateUtilsTests {
         assertTrue("10:54:00.000".isTime())
         assertFalse("54:00.000Z".isTime())
     }
-
-    @Test
-    fun `it should correctly parse period and duration`() {
-        val aggrPeriodDuration = "P1YT1M"
-        assertEquals(
-            "1 years 0 months 0 days 0 hours 1 minutes 0 seconds",
-            periodDurationToTimeBucket(aggrPeriodDuration)
-        )
-    }
-
-    @Test
-    fun `it should correctly parse period`() {
-        val aggrPeriodDuration = "P1Y"
-        assertEquals("1 years 0 months 0 days", periodDurationToTimeBucket(aggrPeriodDuration))
-    }
 }

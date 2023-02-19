@@ -60,9 +60,9 @@ fun buildTemporalQuery(
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
     val aggrPeriodDurationParam =
-        if (withAggregatedValues) {
-            periodDurationToTimeBucket(params.getFirst("aggrPeriodDuration") ?: "PT0S")
-        } else null
+        if (withAggregatedValues)
+            params.getFirst("aggrPeriodDuration") ?: "PT0S"
+        else null
     val aggrMethodsParam = params.getFirst("aggrMethods")
     val lastNParam = params.getFirst("lastN")
     val timeproperty = params.getFirst("timeproperty")?.let {

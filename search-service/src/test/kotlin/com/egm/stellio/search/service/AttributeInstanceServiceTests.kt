@@ -250,7 +250,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            aggrPeriodDuration = "1 day",
+            aggrPeriodDuration = "P1D",
             aggrMethods = listOf(TemporalQuery.Aggregate.SUM)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -270,7 +270,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            aggrPeriodDuration = "1 day",
+            aggrPeriodDuration = "P1D",
             aggrMethods = listOf(TemporalQuery.Aggregate.SUM)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -290,7 +290,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            aggrPeriodDuration = "1 day",
+            aggrPeriodDuration = "P1D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MIN)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -310,7 +310,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(1),
-            aggrPeriodDuration = "1 day",
+            aggrPeriodDuration = "P1D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false)
@@ -335,7 +335,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = now.minusHours(12),
-            aggrPeriodDuration = "2 hours",
+            aggrPeriodDuration = "PT2H",
             aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
             lastN = 3
         )
@@ -359,7 +359,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            aggrPeriodDuration = "30 day",
+            aggrPeriodDuration = "P30D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MIN)
         )
 
@@ -385,7 +385,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BEFORE,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-            aggrPeriodDuration = "30 day",
+            aggrPeriodDuration = "P30D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
         )
 
@@ -412,7 +412,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
             endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
-            aggrPeriodDuration = "30 day",
+            aggrPeriodDuration = "P30D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
         )
 
@@ -436,7 +436,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(attributeInstance)
         }
         val temporalQuery = TemporalQuery(
-            aggrPeriodDuration = "30 day",
+            aggrPeriodDuration = "P30D",
             aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
         )
 

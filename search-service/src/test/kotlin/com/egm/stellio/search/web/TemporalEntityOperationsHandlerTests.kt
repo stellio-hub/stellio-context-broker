@@ -8,7 +8,6 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -106,16 +105,17 @@ class TemporalEntityOperationsHandlerTests {
             parseAndCheckQueryParams(
                 any(),
                 queryParams,
-                APIC_COMPOUND_CONTEXT
+                APIC_COMPOUND_CONTEXT,
+                true
             )
         }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 1 &&
+                    temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -153,6 +153,7 @@ class TemporalEntityOperationsHandlerTests {
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
+        queryParams.add("count", "true")
         queryParams.add("timerel", "between")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
@@ -167,17 +168,18 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
 
-        verify { parseAndCheckQueryParams(any(), queryParams, APIC_COMPOUND_CONTEXT) }
+        verify { parseAndCheckQueryParams(any(), queryParams, APIC_COMPOUND_CONTEXT, true) }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 0 &&
-                        temporalEntitiesQuery.queryParams.offset == 1 &&
+                    temporalEntitiesQuery.queryParams.limit == 30 &&
+                        temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        temporalEntitiesQuery.queryParams.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
+                        temporalEntitiesQuery.withTemporalValues
                 },
                 any()
             )
@@ -188,11 +190,7 @@ class TemporalEntityOperationsHandlerTests {
 
     @Test
     fun `it should raise a 400 if required parameters are missing`() {
-        val queryParams = mapOf("timerel" to "before")
-
-        every { parseAndCheckQueryParams(any(), any(), any()) } throws BadRequestDataException(
-            "'timerel' and 'time' must be used in conjunction"
-        )
+        val queryParams = mapOf("timerel" to "before", "type" to "Beehive")
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")

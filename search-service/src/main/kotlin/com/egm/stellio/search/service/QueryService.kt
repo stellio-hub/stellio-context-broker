@@ -73,11 +73,7 @@ class QueryService(
 
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
             val temporalEntityAttributesWithMatchingInstances =
-                searchInstancesForTemporalEntityAttributes(
-                    temporalEntityAttributes,
-                    temporalEntitiesQuery.temporalQuery,
-                    temporalEntitiesQuery.withTemporalValues
-                )
+                searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery)
 
             val temporalEntityAttributesWithInstances =
                 fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -101,11 +97,7 @@ class QueryService(
             )
 
             val temporalEntityAttributesWithMatchingInstances =
-                searchInstancesForTemporalEntityAttributes(
-                    temporalEntityAttributes,
-                    temporalEntitiesQuery.temporalQuery,
-                    temporalEntitiesQuery.withTemporalValues
-                )
+                searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery)
 
             val temporalEntityAttributesWithInstances =
                 fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -144,21 +136,22 @@ class QueryService(
 
     private suspend fun searchInstancesForTemporalEntityAttributes(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> =
-        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+        // split the group according to attribute type as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
         temporalEntityAttributes
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues)
+                attributeInstanceService.search(temporalEntitiesQuery, it.value)
             }
             .mapValues {
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
                 // transformed during compaction as it is not done for temporal values, so it is done now
-                if (it.key == TemporalEntityAttribute.AttributeValueType.GEOMETRY && withTemporalValues) {
+                if (it.key == TemporalEntityAttribute.AttributeValueType.GEOMETRY &&
+                    temporalEntitiesQuery.withTemporalValues
+                ) {
                     it.value.map { attributeInstanceResult ->
                         attributeInstanceResult as SimplifiedAttributeInstanceResult
                         attributeInstanceResult.copy(

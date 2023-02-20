@@ -522,7 +522,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'aggrMethods' must be used in conjunction"
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -544,7 +544,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Value 'unknown' is not supported for 'aggrMethods' parameter"
+                    "detail":"'unknown' is not a recognized aggregation method for 'aggrMethods' parameter"
                 } 
                 """
             )
@@ -557,7 +557,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=P1D"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=PXD3N"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -566,7 +566,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'aggrPeriodDuration' parameter is not a valid duration of the period"
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -776,7 +776,7 @@ class TemporalEntityHandlerTests {
         }
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
             coEvery {
-                attributeInstanceService.search(any(), it.second, withTemporalValues)
+                attributeInstanceService.search(any(), it.second)
             } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1])
         }
 

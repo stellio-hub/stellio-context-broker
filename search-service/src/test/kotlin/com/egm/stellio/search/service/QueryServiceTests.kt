@@ -156,7 +156,7 @@ class QueryServiceTests {
             }
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns temporalEntityAttributes
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
             listOf(
                 FullAttributeInstanceResult(temporalEntityAttributes[0].id, "", now, NGSILD_CREATED_AT_TERM, null),
@@ -185,12 +185,13 @@ class QueryServiceTests {
         coVerify {
             temporalEntityAttributeService.getForEntity(entityUri, emptySet())
             attributeInstanceService.search(
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
-                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
+                        temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
+                            ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        )
                 },
-                any<List<TemporalEntityAttribute>>(),
-                false
+                any<List<TemporalEntityAttribute>>()
             )
             temporalEntityService.buildTemporalEntity(
                 any(),
@@ -216,7 +217,7 @@ class QueryServiceTests {
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
@@ -258,12 +259,13 @@ class QueryServiceTests {
                 any()
             )
             attributeInstanceService.search(
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
-                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
+                        temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
+                            ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        )
                 },
-                any<List<TemporalEntityAttribute>>(),
-                false
+                any<List<TemporalEntityAttribute>>()
             )
             temporalEntityAttributeService.getCountForEntities(
                 QueryParams(
@@ -298,7 +300,7 @@ class QueryServiceTests {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns emptyList()
         every {
             temporalEntityService.buildTemporalEntities(any(), any(), any())

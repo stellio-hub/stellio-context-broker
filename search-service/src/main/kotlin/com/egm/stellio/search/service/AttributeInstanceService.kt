@@ -122,17 +122,16 @@ class AttributeInstanceService(
     }
 
     suspend fun search(
-        temporalQuery: TemporalQuery,
-        temporalEntityAttribute: TemporalEntityAttribute,
-        withTemporalValues: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        temporalEntityAttribute: TemporalEntityAttribute
     ): List<AttributeInstanceResult> =
-        search(temporalQuery, listOf(temporalEntityAttribute), withTemporalValues)
+        search(temporalEntitiesQuery, listOf(temporalEntityAttribute))
 
     suspend fun search(
-        temporalQuery: TemporalQuery,
-        temporalEntityAttributes: List<TemporalEntityAttribute>,
-        withTemporalValues: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        temporalEntityAttributes: List<TemporalEntityAttribute>
     ): List<AttributeInstanceResult> {
+        val temporalQuery = temporalEntitiesQuery.temporalQuery
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
@@ -142,13 +141,13 @@ class AttributeInstanceService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
         val timestamp =
-            if (temporalQuery.aggrPeriodDuration != null)
+            if (temporalEntitiesQuery.withAggregatedValues)
                 temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
             else null
 
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
-        if (!withTemporalValues && temporalQuery.aggrPeriodDuration == null)
+        if (!temporalEntitiesQuery.withTemporalValues && !temporalEntitiesQuery.withAggregatedValues)
             selectQuery = selectQuery.plus(", payload")
 
         selectQuery =
@@ -188,7 +187,9 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues) }
+            .allToMappedList {
+                rowToAttributeInstanceResult(it, temporalQuery, temporalEntitiesQuery.withTemporalValues)
+            }
     }
 
     private fun composeSearchSelectStatement(

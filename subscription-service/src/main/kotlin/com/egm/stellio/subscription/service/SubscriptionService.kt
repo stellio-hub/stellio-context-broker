@@ -62,7 +62,6 @@ class SubscriptionService(
             checkTimeIntervalGreaterThanZero(subscription).bind()
             checkSubscriptionValidity(subscription).bind()
             checkExpiresAtInTheFuture(subscription).bind()
-            checkExpiresAtInTheFuture(subscription).bind()
             checkIdPatternIsValid(subscription).bind()
         }
     }

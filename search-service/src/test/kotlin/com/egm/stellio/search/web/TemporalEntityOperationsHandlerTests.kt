@@ -3,16 +3,12 @@ package com.egm.stellio.search.web
 import arrow.core.Either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -52,13 +48,6 @@ class TemporalEntityOperationsHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
-
-        mockkStatic(::parseAndCheckQueryParams)
-    }
-
-    @AfterAll
-    fun clearMock() {
-        unmockkStatic(::parseAndCheckQueryParams)
     }
 
     @Test
@@ -69,20 +58,6 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns
-            TemporalEntitiesQuery(
-                queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    limit = 1,
-                    offset = 0,
-                    context = APIC_COMPOUND_CONTEXT
-                ),
-                temporalQuery = temporalQuery,
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
-            )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
@@ -101,14 +76,6 @@ class TemporalEntityOperationsHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify {
-            parseAndCheckQueryParams(
-                any(),
-                queryParams,
-                APIC_COMPOUND_CONTEXT,
-                true
-            )
-        }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
@@ -133,21 +100,6 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns
-            TemporalEntitiesQuery(
-                queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    limit = 0,
-                    offset = 1,
-                    count = true,
-                    context = APIC_COMPOUND_CONTEXT
-                ),
-                temporalQuery = temporalQuery,
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
-            )
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
@@ -168,7 +120,6 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
 
-        verify { parseAndCheckQueryParams(any(), queryParams, APIC_COMPOUND_CONTEXT, true) }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->

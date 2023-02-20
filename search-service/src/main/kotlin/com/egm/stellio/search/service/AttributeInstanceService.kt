@@ -131,7 +131,7 @@ class AttributeInstanceService(
     suspend fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        inQueryEntities: Boolean
+        withTemporalValues: Boolean
     ): List<AttributeInstanceResult> {
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
@@ -148,7 +148,7 @@ class AttributeInstanceService(
 
         var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
 
-        if (!inQueryEntities && temporalQuery.aggrPeriodDuration == null)
+        if (!withTemporalValues && temporalQuery.aggrPeriodDuration == null)
             selectQuery = selectQuery.plus(", payload")
 
         selectQuery =
@@ -188,7 +188,7 @@ class AttributeInstanceService(
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(selectQuery)
-            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, inQueryEntities) }
+            .allToMappedList { rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues) }
     }
 
     private fun composeSearchSelectStatement(

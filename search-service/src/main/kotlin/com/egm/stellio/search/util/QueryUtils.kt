@@ -110,6 +110,7 @@ fun buildTimerelAndTime(
     timeAtParam: String?,
     inQueryEntities: Boolean
 ): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
+    // when querying a specific temporal entity, timeAt and timerel are optional
     if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {

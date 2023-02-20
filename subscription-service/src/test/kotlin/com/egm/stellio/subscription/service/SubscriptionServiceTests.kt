@@ -243,6 +243,23 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should not allow a subscription with an invalid idPattern`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE, "idPattern" to "[")),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFail {
+                it is BadRequestDataException &&
+                    it.message == "Invalid value for idPattern: ["
+            }
+    }
+
+    @Test
     fun `it should create a subscription and insert the 3 entities info`() = runTest {
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(

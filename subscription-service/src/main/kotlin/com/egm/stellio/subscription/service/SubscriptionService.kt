@@ -44,6 +44,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
@@ -61,6 +62,7 @@ class SubscriptionService(
             checkTimeIntervalGreaterThanZero(subscription).bind()
             checkSubscriptionValidity(subscription).bind()
             checkExpiresAtInTheFuture(subscription).bind()
+            checkIdPatternIsValid(subscription).bind()
         }
     }
 
@@ -102,6 +104,15 @@ class SubscriptionService(
         }, {
             BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
         })
+
+    private fun checkIdPatternIsValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
+        subscription.entities.forEach { endpoint ->
+            runCatching {
+                endpoint.idPattern?.let { Pattern.compile(it) }
+            }.onFailure {
+                return BadRequestDataException("Invalid value for idPattern: ${endpoint.idPattern}").left()
+            }
+        }.right()
 
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> {

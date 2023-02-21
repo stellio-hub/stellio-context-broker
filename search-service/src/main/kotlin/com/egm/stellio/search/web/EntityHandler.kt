@@ -437,7 +437,7 @@ class EntityHandler(
             temporalEntityAttributeService.checkEntityAndAttributeExistence(
                 entityUri,
                 expandedAttrId,
-                datasetId
+                datasetId = datasetId
             ).bind()
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()

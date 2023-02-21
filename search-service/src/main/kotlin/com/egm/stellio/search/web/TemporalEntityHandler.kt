@@ -232,7 +232,7 @@ class TemporalEntityHandler(
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId, true).bind()
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 

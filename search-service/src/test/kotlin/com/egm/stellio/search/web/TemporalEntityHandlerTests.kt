@@ -1099,7 +1099,7 @@ class TemporalEntityHandlerTests {
     fun `delete attribute instance temporal should return 204`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
@@ -1115,7 +1115,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr, true) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1129,7 +1129,7 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient
@@ -1149,7 +1149,7 @@ class TemporalEntityHandlerTests {
             )
 
         coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr)
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr, true)
         }
         confirmVerified(temporalEntityAttributeService)
     }
@@ -1159,7 +1159,7 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns ResourceNotFoundException(attributeNotFoundMessage(expandedAttr)).left()
 
         webClient
@@ -1179,7 +1179,7 @@ class TemporalEntityHandlerTests {
             )
 
         coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr)
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr, true)
         }
         confirmVerified(temporalEntityAttributeService)
     }
@@ -1189,7 +1189,7 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
@@ -1213,7 +1213,7 @@ class TemporalEntityHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr, true) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1230,7 +1230,7 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
@@ -1253,7 +1253,7 @@ class TemporalEntityHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr, true) }
         coVerify {
             authorizationService.userCanUpdateEntity(
                 eq(entityUri),

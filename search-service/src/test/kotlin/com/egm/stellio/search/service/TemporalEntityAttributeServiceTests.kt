@@ -859,6 +859,34 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
+    fun `it should return a right unit if entiy and attribute exist (all reference)`() = runTest {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, true)
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `it should return a left attribute not found if attribute is not found (default datasetId)`() = runTest {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+
+        val result = temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY)
+
+        result.fold(
+            { assertEquals("Attribute $INCOMING_PROPERTY (default datasetId) was not found", it.message) },
+            { fail("The referred resource should have not been found") }
+        )
+    }
+
+    @Test
     fun `it should return a left attribute not found if entity exists but not the attribute`() = runTest {
         val rawEntity = loadSampleData()
 

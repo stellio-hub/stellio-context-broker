@@ -14,6 +14,7 @@
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`()</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
+    <ID>LongMethod:TemporalEntityServiceTests.kt$TemporalEntityServiceTests$@Test fun `it should return a temporal entity with values aggregated`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, geoValue: WKTCoordinates? = null, payload: ExpandedAttributeInstance, sub: String? = null )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>

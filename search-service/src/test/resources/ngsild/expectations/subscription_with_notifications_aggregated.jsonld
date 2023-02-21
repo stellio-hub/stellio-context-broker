@@ -3,7 +3,7 @@
    "type":"Subscription",
    "notification": {
      "type":"Property",
-     "values":[
+     "sum":[
         [
            "urn:ngsi-ld:Beehive:1234",
            "2020-03-25T08:29:17.965206Z"

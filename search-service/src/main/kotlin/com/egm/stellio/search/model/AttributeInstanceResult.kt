@@ -18,3 +18,14 @@ data class SimplifiedAttributeInstanceResult(
     val value: Any,
     val time: ZonedDateTime
 ) : AttributeInstanceResult(temporalEntityAttribute)
+
+data class AggregatedAttributeInstanceResult(
+    override val temporalEntityAttribute: UUID,
+    val values: List<AggregateResult>
+) : AttributeInstanceResult(temporalEntityAttribute) {
+    data class AggregateResult(
+        val aggregate: TemporalQuery.Aggregate,
+        val value: Any,
+        val origin: ZonedDateTime
+    )
+}

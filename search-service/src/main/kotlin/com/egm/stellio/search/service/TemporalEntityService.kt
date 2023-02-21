@@ -54,11 +54,16 @@ class TemporalEntityService {
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
     ): Map<String, Any> {
-        return if (
-            temporalEntitiesQuery.withTemporalValues ||
-            temporalEntitiesQuery.temporalQuery.aggrPeriodDuration != null
-        ) {
+        return if (temporalEntitiesQuery.withTemporalValues) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
+            mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
+                .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
+                .mapValues {
+                    if (it.value.size == 1) it.value.first()
+                    else it.value
+                }
+        } else if (temporalEntitiesQuery.withAggregatedValues) {
+            val attributes = buildAttributesAggregatedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
                 .mapValues {
@@ -134,6 +139,43 @@ class TemporalEntityService {
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
                 listOf(attributeInstanceResult.value, attributeInstanceResult.time)
+            }
+            attributeInstance.toMap()
+        }
+    }
+
+    /**
+     * Creates the aggregated representation for each temporal entity attribute in the input map.
+     *
+     * The aggregated representation is created from the attribute instance results of the temporal entity attribute.
+     *
+     * It returns a map with the same keys as the input map and values corresponding to aggregated representations
+     * as described in 4.5.19.0
+     */
+    private fun buildAttributesAggregatedRepresentation(
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult
+    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
+        return attributeAndResultsMap.mapValues {
+            val attributeInstance = mutableMapOf<String, Any>(
+                "type" to it.key.attributeType.toString()
+            )
+            it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+
+            val valuesByAggregate = it.value
+                .map { attributeInstanceResult ->
+                    // extract the values to simplify further processing
+                    attributeInstanceResult as AggregatedAttributeInstanceResult
+                    attributeInstanceResult.values
+                }.flatten()
+                .groupBy { aggregateResult ->
+                    // group by aggregate method as expected in the final representation
+                    aggregateResult.aggregate
+                }
+
+            valuesByAggregate.forEach { (aggregate, resultsForAggregate) ->
+                attributeInstance[aggregate.method] = resultsForAggregate.map { aggregateResult ->
+                    listOf(aggregateResult.value, aggregateResult.origin)
+                }
             }
             attributeInstance.toMap()
         }

@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -17,7 +18,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalEntityService::class])
 @ActiveProfiles("test")
@@ -130,15 +130,25 @@ class TemporalEntityServiceTests {
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
-                SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = UUID.randomUUID(),
-                    value = "urn:ngsi-ld:Beehive:1234",
-                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                AggregatedAttributeInstanceResult(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    listOf(
+                        AggregateResult(
+                            TemporalQuery.Aggregate.SUM,
+                            "urn:ngsi-ld:Beehive:1234",
+                            ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                        )
+                    )
                 ),
-                SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = UUID.randomUUID(),
-                    value = "urn:ngsi-ld:Beehive:5678",
-                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                AggregatedAttributeInstanceResult(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    listOf(
+                        AggregateResult(
+                            TemporalQuery.Aggregate.SUM,
+                            "urn:ngsi-ld:Beehive:5678",
+                            ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                        )
+                    )
                 )
             )
         )

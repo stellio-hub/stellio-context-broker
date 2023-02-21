@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -132,6 +133,8 @@ class AttributeInstanceService(
         temporalEntityAttributes: List<TemporalEntityAttribute>
     ): List<AttributeInstanceResult> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
+        val sqlQueryBuilder = StringBuilder()
+
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
@@ -140,69 +143,70 @@ class AttributeInstanceService(
         // so we force the default origin to:
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
-        val timestamp =
+        val origin =
             if (temporalEntitiesQuery.withAggregatedValues)
                 temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
             else null
 
-        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, timestamp)
+        sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, origin))
 
         if (!temporalEntitiesQuery.withTemporalValues && !temporalEntitiesQuery.withAggregatedValues)
-            selectQuery = selectQuery.plus(", payload")
+            sqlQueryBuilder.append(", payload")
 
-        selectQuery =
-            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
-                selectQuery.plus(
-                    """
-                    FROM attribute_instance
-                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
-                    """
-                )
-            else
-                selectQuery.plus(
-                    """
-                    FROM attribute_instance_audit
-                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
-                    AND time_property = '${temporalQuery.timeproperty.name}'
-                    """
-                )
-
-        selectQuery = when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND time < '${temporalQuery.timeAt}'")
-            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND time > '${temporalQuery.timeAt}'")
-            TemporalQuery.Timerel.BETWEEN -> selectQuery.plus(
-                " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
-            )
-            else -> selectQuery
-        }
-
-        selectQuery = if (temporalQuery.aggrPeriodDuration != null)
-            selectQuery.plus(
-                " GROUP BY temporal_entity_attribute, aggr_period_duration ORDER BY aggr_period_duration DESC"
+        if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+            sqlQueryBuilder.append(
+                """
+                FROM attribute_instance
+                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                """
             )
         else
-            selectQuery.plus(" ORDER BY time DESC")
+            sqlQueryBuilder.append(
+                """
+                FROM attribute_instance_audit
+                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                AND time_property = '${temporalQuery.timeproperty.name}'
+                """
+            )
+
+        when (temporalQuery.timerel) {
+            TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
+                " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
+            )
+            null -> Unit
+        }
+
+        if (temporalEntitiesQuery.withAggregatedValues)
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin ORDER BY origin DESC")
+        else
+            sqlQueryBuilder.append(" ORDER BY time DESC")
 
         if (temporalQuery.lastN != null)
-            selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" LIMIT ${temporalQuery.lastN}")
 
-        return databaseClient.sql(selectQuery)
+        return databaseClient.sql(sqlQueryBuilder.toString())
             .allToMappedList {
-                rowToAttributeInstanceResult(it, temporalQuery, temporalEntitiesQuery.withTemporalValues)
+                rowToAttributeInstanceResult(it, temporalEntitiesQuery)
             }
     }
 
     private fun composeSearchSelectStatement(
         temporalQuery: TemporalQuery,
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        timestamp: ZonedDateTime?
+        origin: ZonedDateTime?
     ) = when {
-        temporalQuery.aggrPeriodDuration != null ->
+        temporalQuery.aggrPeriodDuration != null -> {
+            val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
+                "${it.method}(measured_value) as ${it.method}_value"
+            }
             """
             SELECT temporal_entity_attribute,
-               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${timestamp!!}') as aggr_period_duration,
-               ${temporalQuery.aggrMethods?.first()?.aggregate}(measured_value) as value
+               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${origin!!}') as origin,
+               $allAggregates
             """.trimIndent()
+        }
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
                 TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"
@@ -252,22 +256,32 @@ class AttributeInstanceService(
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): AttributeInstanceResult {
-        return if (withTemporalValues || temporalQuery.aggrPeriodDuration != null)
+        return if (temporalEntitiesQuery.withAggregatedValues) {
+            val origin = toZonedDateTime(row["origin"])
+            // in a row, there is the result for each requested aggregation method
+            val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
+                val value = row["${it.method}_value"] ?: ""
+                AggregateResult(it, value, origin)
+            }
+            AggregatedAttributeInstanceResult(
+                temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
+                values = values
+            )
+        } else if (temporalEntitiesQuery.withTemporalValues)
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
                 value = row["value"] ?: "",
-                time = toOptionalZonedDateTime(row["aggr_period_duration"]) ?: toZonedDateTime(row["time"])
+                time = toZonedDateTime(row["time"])
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
             payload = toJsonString(row["payload"]),
             time = toZonedDateTime(row["time"]),
-            timeproperty = temporalQuery.timeproperty.propertyName,
+            timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
     }

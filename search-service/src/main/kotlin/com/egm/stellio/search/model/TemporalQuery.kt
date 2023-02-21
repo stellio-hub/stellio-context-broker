@@ -17,7 +17,7 @@ data class TemporalQuery(
         BETWEEN
     }
 
-    enum class Aggregate(val aggregate: String) {
+    enum class Aggregate(val method: String) {
         TOTAL_COUNT("totalCount"),
         DISTINCT_COUNT("distinctCount"),
         SUM("sum"),
@@ -28,8 +28,8 @@ data class TemporalQuery(
         SUMSQ("sumsq");
 
         companion object {
-            fun isSupportedAggregate(aggregate: String): Boolean =
-                values().toList().any { it.aggregate == aggregate }
+            fun isSupportedAggregate(method: String): Boolean =
+                values().toList().any { it.method == method }
         }
     }
 }

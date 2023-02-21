@@ -274,7 +274,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("value", 10.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].aggregate == TemporalQuery.Aggregate.SUM &&
+                    it.values[0].value == 10.0
+            }
     }
 
     @Test
@@ -297,7 +302,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("value", 9.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].aggregate == TemporalQuery.Aggregate.SUM &&
+                    it.values[0].value == 9.0
+            }
     }
 
     @Test
@@ -320,7 +330,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("value", 1.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].aggregate == TemporalQuery.Aggregate.MIN &&
+                    it.values[0].value == 1.0
+            }
     }
 
     @Test
@@ -343,7 +358,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("value", 9.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].aggregate == TemporalQuery.Aggregate.MAX &&
+                    it.values[0].value == 9.0
+            }
     }
 
     @Test
@@ -399,8 +419,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 3.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].origin == ZonedDateTime.parse("2022-07-03T00:00:00Z")
+            }
     }
 
     @Test
@@ -428,8 +451,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-06-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 1.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].origin == ZonedDateTime.parse("2022-06-03T00:00:00Z")
+            }
     }
 
     @Test
@@ -458,8 +484,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-03T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 4.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].origin == ZonedDateTime.parse("2022-07-03T00:00:00Z")
+            }
     }
 
     @Test
@@ -485,8 +514,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .singleElement()
-            .hasFieldOrPropertyWithValue("time", ZonedDateTime.parse("2022-07-01T00:00:00Z"))
-            .hasFieldOrPropertyWithValue("value", 8.0)
+            .matches {
+                it is AggregatedAttributeInstanceResult &&
+                    it.values.size == 1 &&
+                    it.values[0].origin == ZonedDateTime.parse("2022-07-01T00:00:00Z")
+            }
     }
 
     @Test

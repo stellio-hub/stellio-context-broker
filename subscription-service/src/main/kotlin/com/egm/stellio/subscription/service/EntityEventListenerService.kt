@@ -75,7 +75,7 @@ class EntityEventListenerService(
     private suspend fun handleEntityEvent(
         updatedAttributes: Set<ExpandedTerm>,
         entityPayload: String,
-        contexts: List<ExpandedTerm>
+        contexts: List<String>
     ): Either<APIException, Unit> {
         logger.debug("Attributes considered in the event: $updatedAttributes")
         val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)

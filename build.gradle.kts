@@ -27,7 +27,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.2.0"
     id("com.google.cloud.tools.jib") version "3.3.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
-    id("org.sonarqube") version "3.5.0.2730"
+    id("org.sonarqube") version "4.0.0.2929"
     jacoco
 }
 

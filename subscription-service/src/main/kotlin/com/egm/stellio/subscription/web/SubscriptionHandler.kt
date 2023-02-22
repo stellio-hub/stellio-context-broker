@@ -1,21 +1,20 @@
 package com.egm.stellio.subscription.web
 
-import arrow.core.Either
-import arrow.core.Option
+import arrow.core.*
 import arrow.core.continuations.either
-import arrow.core.left
-import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serialize
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.toJson
+import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
@@ -53,7 +52,7 @@ class SubscriptionHandler(
         return either<APIException, ResponseEntity<*>> {
             val parsedSubscription = parseSubscription(body, contexts).bind()
             subscriptionService.validateNewSubscription(parsedSubscription).bind()
-            checkSubscriptionNotExists(parsedSubscription).awaitFirst().bind()
+            checkSubscriptionNotExists(parsedSubscription).bind()
 
             subscriptionService.create(parsedSubscription, sub).bind()
             subscriptionEventService.publishSubscriptionCreateEvent(
@@ -82,23 +81,29 @@ class SubscriptionHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
-        val queryParams = parseAndCheckParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-            params,
-            contextLink
-        )
-        val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
-            .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
-        val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
 
-        return buildQueryResponse(
-            subscriptions,
-            subscriptionsCount,
-            "/ngsi-ld/v1/subscriptions",
-            queryParams,
-            params,
-            mediaType,
-            contextLink
+        return either<APIException, ResponseEntity<*>> {
+            val queryParams = parseAndCheckParams(
+                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+                params,
+                contextLink
+            )
+            val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
+                .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
+            val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
+
+            buildQueryResponse(
+                subscriptions,
+                subscriptionsCount,
+                "/ngsi-ld/v1/subscriptions",
+                queryParams,
+                params,
+                mediaType,
+                contextLink
+            )
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
         )
     }
 
@@ -117,14 +122,33 @@ class SubscriptionHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
+            checkSubscriptionExists(subscriptionIdUri).bind()
 
             val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
-            val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
+            checkIsAllowed(subscriptionIdUri, sub).bind()
+            val subscription = subscriptionService.getById(subscriptionIdUri)
 
             prepareGetSuccessResponse(mediaType, contextLink)
-                .body(subscription.toJson(contextLink, mediaType, includeSysAttrs))
+                .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
+
+    /**
+     * Return the contexts associated to a given subscription.
+     *
+     * It is used when a notification is sent using JSON media type and the associated context contains more than
+     * one link.
+     */
+    @GetMapping("/{subscriptionId}/context", produces = [MediaType.APPLICATION_JSON_VALUE])
+    suspend fun getSubscriptionContext(@PathVariable subscriptionId: String): ResponseEntity<*> {
+        return either<APIException, ResponseEntity<*>> {
+            val subscriptionUri = subscriptionId.toUri()
+            val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
+
+            ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
         }.fold(
             { it.toErrorResponse() },
             { it }
@@ -145,10 +169,10 @@ class SubscriptionHandler(
     ): ResponseEntity<*> {
         return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
+            checkSubscriptionExists(subscriptionIdUri).bind()
 
             val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
+            checkIsAllowed(subscriptionIdUri, sub).bind()
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
             subscriptionService.update(subscriptionIdUri, body, contexts).bind()
@@ -176,18 +200,18 @@ class SubscriptionHandler(
     @DeleteMapping("/{subscriptionId}")
     suspend fun delete(@PathVariable subscriptionId: String): ResponseEntity<*> {
         return either<APIException, ResponseEntity<*>> {
-            val subscriptionIdUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
+            val subscriptionUri = subscriptionId.toUri()
+            checkSubscriptionExists(subscriptionUri).bind()
 
             val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
-            subscriptionService.delete(subscriptionIdUri).awaitFirst()
+            checkIsAllowed(subscriptionUri, sub).bind()
+            val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
+            subscriptionService.delete(subscriptionUri).bind()
 
-            // TODO use JSON-LD contexts provided at creation time
             subscriptionEventService.publishSubscriptionDeleteEvent(
                 sub.orNull(),
-                subscriptionIdUri,
-                listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+                subscriptionUri,
+                contexts
             )
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(
@@ -200,29 +224,29 @@ class SubscriptionHandler(
     suspend fun handleMissingIdOnDelete(): ResponseEntity<*> =
         missingPathErrorResponse("Missing id when trying to delete a subscription")
 
-    private fun checkSubscriptionExists(subscriptionId: URI): Mono<Either<APIException, URI>> =
+    private suspend fun checkSubscriptionExists(subscriptionId: URI): Either<APIException, Unit> =
         subscriptionService.exists(subscriptionId)
             .flatMap {
                 if (!it)
-                    Mono.just(ResourceNotFoundException(subscriptionNotFoundMessage(subscriptionId)).left())
+                    ResourceNotFoundException(subscriptionNotFoundMessage(subscriptionId)).left()
                 else
-                    Mono.just(subscriptionId.right())
+                    Unit.right()
             }
 
-    private fun checkSubscriptionNotExists(subscription: Subscription): Mono<Either<APIException, Subscription>> =
+    private suspend fun checkSubscriptionNotExists(subscription: Subscription): Either<APIException, Unit> =
         subscriptionService.exists(subscription.id)
             .flatMap {
                 if (it)
-                    Mono.just(AlreadyExistsException(subscriptionAlreadyExistsMessage(subscription.id)).left())
-                else Mono.just(subscription.right())
+                    AlreadyExistsException(subscriptionAlreadyExistsMessage(subscription.id)).left()
+                else Unit.right()
             }
 
-    private fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Mono<URI> =
+    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)
-                    Mono.error(AccessDeniedException(subscriptionUnauthorizedMessage(subscriptionId)))
+                    AccessDeniedException(subscriptionUnauthorizedMessage(subscriptionId)).left()
                 else
-                    Mono.just(subscriptionId)
+                    Unit.right()
             }
 }

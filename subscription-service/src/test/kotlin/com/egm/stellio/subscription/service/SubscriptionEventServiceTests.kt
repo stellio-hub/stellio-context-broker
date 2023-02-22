@@ -3,25 +3,20 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_TERM
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.runBlocking
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
-import reactor.core.publisher.Mono
-import java.time.Instant
-import java.time.ZoneOffset
 import java.util.concurrent.CompletableFuture
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionEventService::class])
 @ActiveProfiles("test")
 class SubscriptionEventServiceTests {
@@ -36,45 +31,42 @@ class SubscriptionEventServiceTests {
     private lateinit var subscriptionService: SubscriptionService
 
     @Test
-    fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
+    fun `it should publish an event of type SUBSCRIPTION_CREATE`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
+        coEvery { subscriptionService.getById(any()) } returns subscription
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        runBlocking {
-            subscriptionEventService.publishSubscriptionCreateEvent(
-                null,
-                subscription.id,
-                listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-            )
-        }
+        subscriptionEventService.publishSubscriptionCreateEvent(
+            null,
+            subscription.id,
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        ).join()
 
-        verify { subscriptionService.getById(eq(subscription.id)) }
+        coVerify { subscriptionService.getById(eq(subscription.id)) }
         verify { kafkaTemplate.send("cim.subscription", subscription.id.toString(), any()) }
     }
 
     @Test
-    suspend fun `it should publish an event of type SUBSCRIPTION_UPDATE`() {
-        val subscription = mockk<Subscription>()
-        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
+    fun `it should publish an event of type SUBSCRIPTION_UPDATE`() = runTest {
+        val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
+        coEvery { subscriptionService.getById(any()) } returns subscription
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
             null,
-            subscriptionUri,
+            subscription.id,
             "",
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-        )
+        ).join()
 
-        verify { subscriptionService.getById(eq(subscriptionUri)) }
-        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
+        coVerify { subscriptionService.getById(eq(subscription.id)) }
+        verify { kafkaTemplate.send("cim.subscription", subscription.id.toString(), any()) }
     }
 
     @Test
-    suspend fun `it should publish an event of type SUBSCRIPTION_DELETE`() {
+    fun `it should publish an event of type SUBSCRIPTION_DELETE`() = runTest {
         val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
 
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
@@ -83,23 +75,21 @@ class SubscriptionEventServiceTests {
             null,
             subscriptionUri,
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-        )
+        ).join()
 
         verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
     }
 
     @Test
-    fun `it should publish an event of type NOTIFICATION_CREATE`() {
-        val notification = mockk<Notification>(relaxed = true)
-        val notificationUri = "urn:ngsi-ld:Notification:1".toUri()
-
-        every { notification.id } returns notificationUri
-        every { notification.type } returns NGSILD_NOTIFICATION_TERM
-        every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
+    fun `it should publish an event of type NOTIFICATION_CREATE`() = runTest {
+        val notification = Notification(
+            subscriptionId = "urn:ngsi-ld:Subscription:1".toUri(),
+            data = emptyList()
+        )
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        subscriptionEventService.publishNotificationCreateEvent(null, notification)
+        subscriptionEventService.publishNotificationCreateEvent(null, notification).join()
 
-        verify { kafkaTemplate.send("cim.notification", notificationUri.toString(), any()) }
+        verify { kafkaTemplate.send("cim.notification", notification.id.toString(), any()) }
     }
 }

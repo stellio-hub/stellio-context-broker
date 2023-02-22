@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdError
@@ -88,6 +87,7 @@ object JsonLdUtils {
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
+    const val NGSILD_NAME_TERM = "name"
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
 
     const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
@@ -197,19 +197,6 @@ object JsonLdUtils {
             throw BadRequestDataException("Unable to expand input payload")
 
         return expandedFragment[0] as Map<String, Any>
-    }
-
-    fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
-        val updatedPayload = deserializeListOfObjects(listOfElements)
-            .map {
-                it.plus(Pair(JSONLD_CONTEXT, contexts))
-            }
-        return serializeObject(updatedPayload)
-    }
-
-    fun addContextToElement(element: String, contexts: List<String>): String {
-        val parsedPayload = deserializeObject(element).plus(Pair(JSONLD_CONTEXT, contexts))
-        return serializeObject(parsedPayload)
     }
 
     fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =

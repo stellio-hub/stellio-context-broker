@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
@@ -410,7 +411,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     limit = 2,
                     q = "name=~\"(?i)paris.*\"",
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(NAME_PROPERTY),
+                    attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -418,7 +419,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         assertEquals(1, temporalEntityAttributes.size)
         assertThat(temporalEntityAttributes)
             .allMatch {
-                it.attributeName in setOf(NAME_PROPERTY)
+                it.attributeName in setOf(NGSILD_NAME_PROPERTY)
             }
     }
 

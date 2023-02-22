@@ -1,10 +1,9 @@
 package com.egm.stellio.subscription.job
 
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
@@ -14,11 +13,10 @@ import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,8 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
-import reactor.core.publisher.Mono
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TimeIntervalNotificationJob::class])
 @WireMockTest(httpPort = 8089)
 @Import(WebClientConfig::class)
@@ -75,25 +73,25 @@ class TimeIntervalNotificationJobTest {
             "?type=FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
                 "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
-            timeIntervalNotificationJob.extractParam(entities.elementAt(0), q)
+            timeIntervalNotificationJob.prepareQueryParams(entities.elementAt(0), q, null)
         )
         assertEquals(
             "?type=FishContainment" +
                 "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
-            timeIntervalNotificationJob.extractParam(entities.elementAt(1), q)
+            timeIntervalNotificationJob.prepareQueryParams(entities.elementAt(1), q, null)
         )
         assertEquals(
             "?type=FishContainment" +
                 "&idPattern=.*FishContainment.*" +
                 "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
-            timeIntervalNotificationJob.extractParam(entities.elementAt(2), q)
+            timeIntervalNotificationJob.prepareQueryParams(entities.elementAt(2), q, null)
         )
         assertEquals(
             "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
                 "&idPattern=.*FishContainment.*" +
                 "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
-            timeIntervalNotificationJob.extractParam(entities.elementAt(3), q)
+            timeIntervalNotificationJob.prepareQueryParams(entities.elementAt(3), q, null)
         )
     }
 
@@ -113,9 +111,12 @@ class TimeIntervalNotificationJobTest {
 
         val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         runBlocking {
-            val entity = timeIntervalNotificationJob.getEntities(query)
-            assertEquals(1, entity.size)
-            assertEquals("urn:ngsi-ld:BeeHive:TESTC", entity[0].id)
+            val compactedEntities = timeIntervalNotificationJob.getEntities(
+                query,
+                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+            )
+            assertEquals(1, compactedEntities.size)
+            assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
         }
     }
 
@@ -134,10 +135,13 @@ class TimeIntervalNotificationJobTest {
         )
 
         runBlocking {
-            val entities = timeIntervalNotificationJob.getEntities("?type=BeeHive")
-            assertEquals(2, entities.size)
-            assertEquals("urn:ngsi-ld:BeeHive:TESTC", entities[0].id)
-            assertEquals("urn:ngsi-ld:BeeHive:TESTD", entities[1].id)
+            val compactedEntities = timeIntervalNotificationJob.getEntities(
+                "?type=BeeHive",
+                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+            )
+            assertEquals(2, compactedEntities.size)
+            assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
+            assertEquals("urn:ngsi-ld:BeeHive:TESTD", compactedEntities[1]["id"])
         }
     }
 
@@ -151,7 +155,8 @@ class TimeIntervalNotificationJobTest {
                     type = "BeeHive"
                 ),
                 EntityInfo(id = null, idPattern = null, type = "BeeHive")
-            )
+            ),
+            q = null
         )
 
         stubFor(
@@ -178,33 +183,37 @@ class TimeIntervalNotificationJobTest {
         )
 
         runBlocking {
-            val entities = timeIntervalNotificationJob.getEntitiesToNotify(subscription.entities, null)
-            assertEquals(2, entities.size)
-            assertTrue(entities.all { it.id == "urn:ngsi-ld:BeeHive:TESTC" || it.id == "urn:ngsi-ld:BeeHive:TESTD" })
+            val compactedEntities = timeIntervalNotificationJob.getEntitiesToNotify(
+                subscription,
+                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+            )
+            assertEquals(2, compactedEntities.size)
+            assertTrue(
+                compactedEntities.all {
+                    it["id"] == "urn:ngsi-ld:BeeHive:TESTC" || it["id"] == "urn:ngsi-ld:BeeHive:TESTD"
+                }
+            )
         }
     }
 
     @Test
-    fun `it should call 'notificationService' once`() {
-        val entity = JsonLdEntity(mapOf("@id" to "urn:ngsi-ld:Entity:01"), emptyList())
+    fun `it should call 'notificationService' once`() = runTest {
+        val compactedEntity = mapOf("id" to "urn:ngsi-ld:Entity:01")
         val subscription = mockkClass(Subscription::class)
 
-        every {
-            notificationService.callSubscriber(any(), any(), any())
-        } answers { Mono.just(Triple(subscription, mockkClass(Notification::class), true)) }
+        coEvery {
+            notificationService.callSubscriber(any(), any())
+        } returns Triple(subscription, mockkClass(Notification::class), true)
 
-        runBlocking {
-            timeIntervalNotificationJob.sendNotification(entity, subscription)
-        }
+        timeIntervalNotificationJob.sendNotification(compactedEntity, subscription)
 
-        verify(exactly = 1) { notificationService.callSubscriber(subscription, entity.id.toUri(), entity) }
-        confirmVerified(notificationService)
+        coVerify(exactly = 1) { notificationService.callSubscriber(subscription, compactedEntity) }
+        confirmVerified()
     }
 
     @Test
-    fun `it should notify the recurring subscriptions that have reached the time interval`() {
+    fun `it should notify the recurring subscriptions that have reached the time interval`() = runTest {
         val entity = loadSampleData("beehive.jsonld")
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity)
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
                 EntityInfo(
@@ -218,15 +227,11 @@ class TimeIntervalNotificationJobTest {
         val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
             "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
-        every {
-            runBlocking {
-                subscriptionService.getRecurringSubscriptionsToNotify()
-            }
-        } returns listOf(subscription)
-
-        every {
-            notificationService.callSubscriber(any(), any(), any())
-        } answers { Mono.just(Triple(subscription, mockkClass(Notification::class), true)) }
+        coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
+        coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_CORE_CONTEXT
+        coEvery {
+            notificationService.callSubscriber(any(), any())
+        } returns Triple(subscription, mockkClass(Notification::class), true)
 
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
@@ -245,7 +250,9 @@ class TimeIntervalNotificationJobTest {
             getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
         )
 
-        verify(exactly = 1) { notificationService.callSubscriber(subscription, jsonLdEntity.id.toUri(), jsonLdEntity) }
+        coVerify(exactly = 1) {
+            notificationService.callSubscriber(subscription, entity.deserializeAsMap())
+        }
         confirmVerified(notificationService)
     }
 }

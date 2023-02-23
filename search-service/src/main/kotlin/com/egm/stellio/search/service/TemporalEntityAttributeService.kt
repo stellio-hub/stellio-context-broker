@@ -654,7 +654,7 @@ class TemporalEntityAttributeService(
                     from temporal_entity_attribute 
                     where entity_id = :entity_id 
                     and attribute_name = :attribute_name
-                    ${datasetId.toDatasetIdFilter()}                  
+                    ${datasetId.toDatasetIdFilter()}
                 ) as attributeNameExists;
             """.trimIndent()
 

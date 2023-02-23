@@ -11,6 +11,7 @@ import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -25,7 +26,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -719,6 +719,49 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `it should not delete attribute instance if attribute name is not found`() = runTest {
+        val attributeInstance = gimmeAttributeInstance()
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.deleteInstance(
+            incomingTemporalEntityAttribute.entityId,
+            outgoingTemporalEntityAttribute.attributeName,
+            attributeInstance.instanceId
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(
+                attributeOrInstanceNotFoundMessage(
+                    outgoingTemporalEntityAttribute.attributeName,
+                    attributeInstance.instanceId.toString()
+                ),
+                it.message
+            )
+        }
+    }
+
+    @Test
+    fun `it should not delete attribute instance if instanceID is not found`() = runTest {
+        val attributeInstance = gimmeAttributeInstance()
+        val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.deleteInstance(
+            incomingTemporalEntityAttribute.entityId,
+            incomingTemporalEntityAttribute.attributeName,
+            instanceId
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(
+                attributeOrInstanceNotFoundMessage(
+                    incomingTemporalEntityAttribute.attributeName,
+                    instanceId.toString()
+                ),
+                it.message
+            )
+        }
+    }
+
+    @Test
     fun `it should delete all instances of an entity`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
@@ -793,19 +836,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .hasSize(5)
         assertThat(attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false))
             .isEmpty()
-    }
-
-    @Test
-    fun `it should not delete attribute instance if instance is not found`() = runTest {
-        val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
-        attributeInstanceService.deleteInstance(
-            incomingTemporalEntityAttribute.entityId,
-            incomingTemporalEntityAttribute.attributeName,
-            attributeInstanceId
-        ).fold(
-            { assertEquals("Instance $attributeInstanceId was not found", it.message) },
-            { fail("The referred resource should have not been found") }
-        )
     }
 
     private fun gimmeAttributeInstance(

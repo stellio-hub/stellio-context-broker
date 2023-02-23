@@ -14,7 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.instanceNotFoundMessage
+import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -278,7 +278,7 @@ class AttributeInstanceService(
         val deleteQuery =
             """
             DELETE FROM attribute_instance
-            WHERE temporal_entity_attribute = ( 
+            WHERE temporal_entity_attribute = any( 
                 SELECT id 
                 FROM temporal_entity_attribute 
                 WHERE entity_id = :entity_id 
@@ -294,7 +294,9 @@ class AttributeInstanceService(
             .bind("instance_id", instanceId)
             .executeExpected {
                 if (it == 0L)
-                    ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
+                    ResourceNotFoundException(
+                        attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                    ).left()
                 else Unit.right()
             }
     }

@@ -2027,7 +2027,7 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any())
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery {
             entityPayloadService.deleteAttribute(any(), any(), any())

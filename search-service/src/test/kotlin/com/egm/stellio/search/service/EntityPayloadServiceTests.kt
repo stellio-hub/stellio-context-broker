@@ -18,7 +18,7 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -478,7 +478,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }]
             """.trimIndent()
         val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
         )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
@@ -501,7 +501,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             """.trimIndent()
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
         )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
@@ -519,7 +519,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             """.trimIndent()
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
         )
 
         val expectedMessage =
@@ -545,7 +545,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             """.trimIndent()
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandJsonLdFragment(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
         )
 
         entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])

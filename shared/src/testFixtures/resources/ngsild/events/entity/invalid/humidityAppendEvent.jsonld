@@ -1,8 +1,8 @@
 {
    "operationType":"ATTRIBUTE_APPEND",
    "entityId":"urn:ngsi-ld:BeeHive:TESTC",
-   "entityTypes": ["BeeHive"],
-   "attributeName":"humidity",
+   "entityTypes": ["https://ontology.eglobalmark.com/apic#BeeHive"],
+   "attributeName":"https://ontology.eglobalmark.com/apic#humidity",
    "operationPayload":"{ \"value\":62, \"unitCode\": \"P1\", \"observedAt\": \"2019-11-26T22:35:52.98601Z\" }",
    "updatedEntity":"",
    "contexts":[

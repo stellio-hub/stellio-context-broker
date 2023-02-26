@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.subscription.model.GeoQuery
-import java.util.regex.Pattern
 
 object QueryUtils {
 
@@ -19,7 +18,6 @@ object QueryUtils {
     private const val DISTANCE_QUERY_CLAUSE = "distance"
     private const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
     private const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
-    private val innerRegexPattern: Pattern = Pattern.compile(".*(=~\"\\(\\?i\\)).*")
 
     /**
      * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.
@@ -43,26 +41,13 @@ object QueryUtils {
     }
 
     private fun buildInnerQuery(rawQuery: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): String {
-        // Quick hack to allow inline options for regex expressions
-        // (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
-        // When matched, parenthesis are replaced by special characters that are later restored after the main
-        // qPattern regex has been processed
-        val rawQueryWithPatternEscaped =
-            if (rawQuery.matches(innerRegexPattern.toRegex())) {
-                rawQuery.replace(innerRegexPattern.toRegex()) { matchResult ->
-                    matchResult.value
-                        .replace("(", "##")
-                        .replace(")", "//")
-                }
-            } else rawQuery
+        val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
 
         return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
             // restoring the eventual inline options for regex expressions (replaced above)
-            val fixedValue = matchResult.value
-                .replace("##", "(")
-                .replace("//", ")")
+            val fixedValue = matchResult.value.unescapeRegexPattern()
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.prepareDateValue(query.second).replaceSimpleQuote()
+            val targetValue = query.third.prepareDateValue().replaceSimpleQuote()
 
             val queryAttribute =
                 if (query.first.isCompoundAttribute()) {
@@ -141,7 +126,4 @@ object QueryUtils {
             )
         return AttributeType((jsonLdAttribute[JSONLD_TYPE] as List<String>)[0])
     }
-
-    fun String.isCompoundAttribute(): Boolean =
-        this.contains("\\[.*?]".toRegex())
 }

@@ -10,7 +10,13 @@ import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -160,6 +166,154 @@ class EntityPayloadService(
                 else
                     ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
+    }
+
+    suspend fun queryEntities(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
+    ): List<URI> {
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
+            else it
+        }
+
+        val selectQuery =
+            """
+            SELECT DISTINCT(entity_payload.entity_id)
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
+            WHERE $filterQuery
+            ORDER BY entity_id
+            LIMIT :limit
+            OFFSET :offset   
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("limit", queryParams.limit)
+            .bind("offset", queryParams.offset)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
+    suspend fun queryEntitiesCount(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
+    ): Either<APIException, Int> {
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
+            else it
+        }
+
+        val countQuery =
+            """
+            SELECT count(distinct(entity_payload.entity_id)) as count_entity
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
+            WHERE $filterQuery
+            """.trimIndent()
+
+        return databaseClient
+            .sql(countQuery)
+            .oneToResult { it["count_entity"] as Long }
+            .map { it.toInt() }
+    }
+
+    fun buildEntitiesQueryFilter(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?,
+        prefix: String = ""
+    ): String {
+        val formattedIds =
+            if (queryParams.ids.isNotEmpty())
+                queryParams.ids.joinToString(
+                    separator = ",",
+                    prefix = "entity_payload.entity_id in(",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+        val formattedIdPattern =
+            if (!queryParams.idPattern.isNullOrEmpty())
+                "entity_payload.entity_id ~ '${queryParams.idPattern}'"
+            else null
+        val formattedTypes =
+            if (queryParams.types.isNotEmpty())
+                queryParams.types.joinToString(
+                    separator = ",",
+                    prefix = "entity_payload.types && ARRAY[",
+                    postfix = "]"
+                ) { "'$it'" }
+            else null
+        val formattedAttrs =
+            if (queryParams.attrs.isNotEmpty())
+                queryParams.attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+
+        val queryFilter =
+            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
+
+        return if (queryFilter.isEmpty())
+            queryFilter.joinToString(separator = " AND ")
+        else
+            queryFilter.joinToString(separator = " AND ", prefix = prefix)
+    }
+
+    private fun buildInnerQuery(rawQuery: String, context: String): String {
+        val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
+
+        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
+            // restoring the eventual inline options for regex expressions (replaced above)
+            val fixedValue = matchResult.value.unescapeRegexPattern()
+
+            val query = extractComparisonParametersFromQuery(fixedValue)
+            val targetValue = query.third.prepareDateValue()
+
+            val (mainAttributePath, trailingAttributePath) = query.first.parseAttributePath()
+
+            val expandedAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[0], context)
+
+            when {
+                mainAttributePath.size > 1 -> {
+                    val expandSubAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[1], context)
+                    """
+                    entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    """.trimIndent()
+                }
+                query.second.isEmpty() ->
+                    """
+                    entity_payload.payload ? '$expandedAttribute'
+                    """.trimIndent()
+                query.third.isURI() ->
+                    """
+                    CASE
+                        WHEN jsonb_path_exists(entity_payload.payload, '${'$'}."$expandedAttribute"."$JSONLD_TYPE"[0] ? (@ == "$NGSILD_PROPERTY_TYPE")')
+                            THEN entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                        WHEN jsonb_path_exists(entity_payload.payload, '${'$'}."$expandedAttribute"."$JSONLD_TYPE"[0] ? (@ == "$NGSILD_RELATIONSHIP_TYPE")')
+                            THEN entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} $targetValue'
+                        ELSE false
+                    END
+                    """.trimIndent()
+                else ->
+                    """
+                    entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    """.trimIndent()
+            }
+        }
+            .replace(";", " AND ")
+            .replace("|", " OR ")
     }
 
     suspend fun hasSpecificAccessPolicies(

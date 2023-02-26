@@ -1,11 +1,9 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.OperationNotSupportedException
-
-const val DATETIME_TEMPLATE: String = "\"YYYY-MM-DD\\\"T\\\"HH24:MI:SS.US\\\"Z\\\"\""
+import java.util.regex.Pattern
 
 /**
- * Parse a query term to return a triple consisting of (attribute, operator, comparable value)
+ * Parse a query term to return a triple consisting of (attribute path, operator, value)
  */
 fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
     return when {
@@ -21,19 +19,57 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
             Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
         queryTerm.contains("<") ->
             Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
-        queryTerm.contains("=~") ->
-            Triple(queryTerm.split("=~")[0], "like_regex", queryTerm.split("=~")[1])
-        else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
+        queryTerm.contains("~=") ->
+            Triple(queryTerm.split("~=")[0], "like_regex", queryTerm.split("~=")[1])
+        queryTerm.contains("!~=") ->
+            // there is no such operator in PG JSON functions
+            // it will be later transformed in a NOT(attrName like_regex "...")
+            Triple(queryTerm.split("!~=")[0], "not_like_regex", queryTerm.split("!~=")[1])
+        else ->
+            // no operator found, it is a check for the existence of an attribute
+            Triple(queryTerm, "", "")
     }
 }
 
-fun String.prepareDateValue(regexPattern: String) =
+fun String.prepareDateValue() =
     if (this.isDate() || this.isDateTime() || this.isTime())
-        if (regexPattern != "like_regex")
-            "\"".plus(this).plus("\"").plus(".datetime($DATETIME_TEMPLATE)")
-        else "\"".plus(this).plus("\"")
+        "\"".plus(this).plus("\"")
     else
         this
 
 fun String.replaceSimpleQuote() =
     replace("'", "\"")
+
+fun String.isCompoundAttribute(): Boolean =
+    this.contains("\\[.*?]".toRegex())
+
+fun String.parseAttributePath(): Pair<List<String>, List<String>> {
+    val trailingPaths =
+        if (this.contains("["))
+            this.substringAfter('[').substringBefore(']').split(".")
+        else emptyList()
+
+    return Pair(
+        this.substringBefore("[").split("."),
+        trailingPaths
+    )
+}
+
+private val innerRegexPattern: Pattern = Pattern.compile(".*(~=\"\\(\\?i\\)).*")
+
+// Quick hack to allow inline options for regex expressions
+// (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
+// When matched, parenthesis are replaced by special characters that are later restored after the main
+// qPattern regex has been processed
+fun String.escapeRegexpPattern(): String =
+    if (this.matches(innerRegexPattern.toRegex())) {
+        this.replace(innerRegexPattern.toRegex()) { matchResult ->
+            matchResult.value
+                .replace("(", "##")
+                .replace(")", "//")
+        }
+    } else this
+
+fun String.unescapeRegexPattern(): String =
+    this.replace("##", "(")
+        .replace("//", ")")

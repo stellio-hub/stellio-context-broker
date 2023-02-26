@@ -3,12 +3,12 @@ package com.egm.stellio.shared.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.ExpandedAttributesInstances
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
-import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import java.time.ZonedDateTime
 
 typealias CompactedJsonLdEntity = Map<String, Any>
 
@@ -27,6 +27,22 @@ data class JsonLdEntity(
     fun getAttributes(): ExpandedAttributesInstances =
         members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
             .mapValues { expandValueAsListOfMap(it.value) }
+
+    // called at entity creation time to populate entity and attributes with createdAt information
+    fun populateCreatedAt(createdAt: ZonedDateTime): JsonLdEntity =
+        JsonLdEntity(
+            members = members.mapValues {
+                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key))
+                    it.value
+                else expandValueAsListOfMap(it.value).map { expandedAttributeInstance ->
+                    expandedAttributeInstance.addDateTimeProperty(
+                        NGSILD_CREATED_AT_PROPERTY,
+                        createdAt
+                    ) as ExpandedAttributeInstance
+                }
+            }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt),
+            contexts = contexts
+        )
 
     // FIXME kinda hacky but we often just need the id or type... how can it be improved?
     val id by lazy {

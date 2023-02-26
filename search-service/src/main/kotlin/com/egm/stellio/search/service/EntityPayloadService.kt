@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -76,7 +75,7 @@ class EntityPayloadService(
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             createdAt,
-            serializeObject(jsonLdEntity.members.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)),
+            serializeObject(jsonLdEntity.populateCreatedAt(createdAt).members),
             jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()

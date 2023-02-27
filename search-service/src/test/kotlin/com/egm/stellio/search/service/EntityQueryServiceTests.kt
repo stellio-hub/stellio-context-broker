@@ -17,6 +17,8 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -40,13 +42,13 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    val beehiveTestDId = "urn:ngsi-ld:BeeHive:TESTD".toUri()
+    val entity01Uri = "urn:ngsi-ld:BeeHive:01".toUri()
+    val entity02Uri = "urn:ngsi-ld:BeeHive:02".toUri()
 
     @BeforeAll
     fun createEntities() {
-        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
-        val secondRawEntity = loadSampleData("beehive.jsonld")
+        val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
+        val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
@@ -59,55 +61,35 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @AfterAll
     fun deleteEntities() {
         runBlocking {
-            entityPayloadService.deleteEntityPayload(beehiveTestCId)
-            entityPayloadService.deleteEntityPayload(beehiveTestDId)
+            entityPayloadService.deleteEntityPayload(entity01Uri)
+            entityPayloadService.deleteEntityPayload(entity02Uri)
         }
     }
 
     @Test
-    fun `it should retrieve entities according to ids, types and attrs`() = runTest {
+    fun `it should retrieve entities according to ids and types and attrs`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    ids = setOf(entity02Uri, entity01Uri),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
         assertEquals(2, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId, beehiveTestDId)
+        assertThat(entitiesIds).contains(entity01Uri, entity02Uri)
     }
 
     @Test
-    fun `it should retrieve entities according to query (q by equal query)`() = runTest {
+    fun `it should retrieve entities according to attrs and types`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    q = "incoming==1543",
-                    types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    context = APIC_COMPOUND_CONTEXT
-                )
-            ) { null }
-
-        assertEquals(2, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId, beehiveTestDId)
-    }
-
-    @Test
-    fun `it should retrieve entities according to query (q by regex query)`() = runTest {
-        val entitiesIds =
-            entityPayloadService.queryEntities(
-                QueryParams(
-                    offset = 0,
-                    limit = 2,
-                    q = "name~=\"(?i)paris.*\"",
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
@@ -115,42 +97,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             ) { null }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId)
-    }
-
-    @Test
-    fun `it should retrieve entities according to query (q with datetime value)`() = runTest {
-        val entitiesIds =
-            entityPayloadService.queryEntities(
-                QueryParams(
-                    offset = 0,
-                    limit = 2,
-                    q = "dateOfFirstBee==2018-12-04T12:00:00.00Z",
-                    types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(DATE_OF_FIRST_BEE_PROPERTY),
-                    context = APIC_COMPOUND_CONTEXT
-                )
-            ) { null }
-
-        assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId)
-    }
-
-    @Test
-    fun `it should not retrieve entities when doing a regex query on a datetime`() = runTest {
-        val entitiesIds =
-            entityPayloadService.queryEntities(
-                QueryParams(
-                    offset = 0,
-                    limit = 2,
-                    q = "dateOfFirstBee=~2018-12-04T12:00:00.00Z",
-                    types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(DATE_OF_FIRST_BEE_PROPERTY),
-                    context = APIC_COMPOUND_CONTEXT
-                )
-            ) { null }
-
-        assertEquals(0, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity01Uri)
     }
 
     @Test
@@ -160,14 +107,14 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 1,
-                    ids = setOf(beehiveTestDId),
+                    ids = setOf(entity02Uri),
                     types = setOf(BEEHIVE_TYPE),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestDId)
+        assertThat(entitiesIds).contains(entity02Uri)
     }
 
     @Test
@@ -177,9 +124,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 1,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -194,16 +139,41 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 1,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    idPattern = ".*urn:ngsi-ld:BeeHive:TESTD.*",
+                    idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestDId)
+        assertThat(entitiesIds).contains(entity01Uri)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "integer==213, 1, urn:ngsi-ld:BeeHive:01",
+        "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
+        "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
+        "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01"
+    )
+    fun `it should retrieve entities according to query (q by equal query)`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String
+    ) = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    q = q,
+                    types = setOf(BEEHIVE_TYPE),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(expectedCount, entitiesIds.size)
+        assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
     @Test
@@ -213,9 +183,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -223,27 +191,25 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 (
                     (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                     OR
-                    (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01'))
                 )
                 """.trimIndent()
             }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestDId)
+        assertThat(entitiesIds).contains(entity01Uri)
     }
 
     @Test
     fun `it should retrieve entities according to specific access policy`() = runTest {
-        updateSpecificAccessPolicy(beehiveTestCId, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
+        updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
 
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -251,29 +217,27 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 (
                     (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                     OR
-                    (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:03'))
                 )
                 """.trimIndent()
             }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId)
+        assertThat(entitiesIds).contains(entity01Uri)
 
-        restSpecificAccessPolicy(beehiveTestCId)
+        resetSpecificAccessPolicy(entity01Uri)
     }
 
     @Test
     fun `it should retrieve entities according to specific access policy and rights`() = runTest {
-        updateSpecificAccessPolicy(beehiveTestCId, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
+        updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
 
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -281,15 +245,15 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 (
                     (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                     OR
-                    (tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02'))
                 )
                 """.trimIndent()
             }
 
         assertEquals(2, entitiesIds.size)
-        assertThat(entitiesIds).contains(beehiveTestCId, beehiveTestDId)
+        assertThat(entitiesIds).contains(entity01Uri, entity02Uri)
 
-        restSpecificAccessPolicy(beehiveTestCId)
+        resetSpecificAccessPolicy(entity01Uri)
     }
 
     @Test
@@ -298,9 +262,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             QueryParams(
                 offset = 0,
                 limit = 30,
-                ids = setOf(beehiveTestDId, beehiveTestCId),
                 types = setOf(BEEHIVE_TYPE),
-                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { null }.shouldSucceedWith { assertEquals(2, it) }
@@ -312,11 +274,11 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             QueryParams(
                 offset = 0,
                 limit = 30,
-                ids = setOf(beehiveTestDId, beehiveTestCId),
+                ids = setOf(entity02Uri, entity01Uri),
                 types = setOf(BEEHIVE_TYPE),
                 context = APIC_COMPOUND_CONTEXT
             )
-        ) { "tea.entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
+        ) { "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')" }
             .shouldSucceedWith { assertEquals(1, it) }
     }
 
@@ -327,9 +289,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 10,
                     limit = 2,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
+                    ids = setOf(entity02Uri, entity01Uri),
                     types = setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -344,7 +305,6 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 10,
                     limit = 2,
-                    ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf("unknownAttribute"),
                     context = APIC_COMPOUND_CONTEXT
@@ -363,7 +323,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         EntityPayload::class.java
     ).block()
 
-    private fun restSpecificAccessPolicy(
+    private fun resetSpecificAccessPolicy(
         entityId: URI
     ) = r2dbcEntityTemplate.update(
         Query.query(Criteria.where("entity_id").`is`(entityId)),

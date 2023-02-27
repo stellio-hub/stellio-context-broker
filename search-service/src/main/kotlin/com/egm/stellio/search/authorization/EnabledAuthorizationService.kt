@@ -185,7 +185,7 @@ class EnabledAuthorizationService(
                             ( 
                                 (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
                                 OR
-                                (tea.entity_id IN (
+                                (entity_payload.entity_id IN (
                                     SELECT entity_id
                                     FROM entity_access_rights
                                     WHERE subject_id IN (${it.toListOfString()})

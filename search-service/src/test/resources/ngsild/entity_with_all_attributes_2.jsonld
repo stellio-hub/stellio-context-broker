@@ -1,0 +1,94 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:02",
+  "type": "BeeHive",
+  "string": {
+    "type": "Property",
+    "value": "anotherName"
+  },
+  "integer": {
+    "type": "Property",
+    "value": 143
+  },
+  "float": {
+    "type": "Property",
+    "value": 44.75
+  },
+  "listOfString": {
+    "type": "Property",
+    "value": [
+      "dataviz",
+      "stellio"
+    ]
+  },
+  "listOfInt": {
+    "type": "Property",
+    "value": [
+      14,
+      15
+    ]
+  },
+  "dateTime": {
+    "type": "Property",
+    "value": "2023-02-26T00:00:00Z"
+  },
+  "date": {
+    "type": "Property",
+    "value": "2023-02-26"
+  },
+  "time": {
+    "type": "Property",
+    "value": "00:00:00Z"
+  },
+  "boolean": {
+    "type": "Property",
+    "value": false
+  },
+  "jsonObject": {
+    "type": "Property",
+    "value": {
+      "anObject": {
+        "type": "River",
+        "id": "urn:ngsi-ld:River:02"
+      },
+      "aString": "flow monitoring",
+      "aNumber": 93.93,
+      "aList": [
+        "flow",
+        "river"
+      ]
+    }
+  },
+  "observedProperty": {
+    "type": "Property",
+    "value": 93.0,
+    "observedAt": "2023-02-25T12:02:06Z"
+  },
+  "propertyWithMetadata": {
+    "type": "Property",
+    "value": "propertyWithMetadata",
+    "unitCode": "MTR",
+    "license": {
+      "type": "Property",
+      "value": "GPL"
+    }
+  },
+  "multiInstanceProperty": [
+    {
+      "type": "Property",
+      "value": 92,
+      "datasetId": "urn:ngsi-ld:Dataset:01"
+    },
+    {
+      "type": "Property",
+      "value": 93,
+      "datasetId": "urn:ngsi-ld:Dataset:02"
+    }
+  ],
+  "relationship": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:AnotherEntity:02"
+  },
+  "@context": [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+  ]
+}

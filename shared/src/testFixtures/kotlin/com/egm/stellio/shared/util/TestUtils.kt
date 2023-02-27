@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import org.springframework.core.io.ClassPathResource
+import java.net.URI
 
 fun loadSampleData(filename: String = "beehive.jsonld"): String {
     val sampleData = ClassPathResource("/ngsild/$filename")
@@ -20,3 +21,6 @@ fun String.removeNoise(): String =
 
 fun String.matchContent(other: String?): Boolean =
     this.removeNoise() == other?.removeNoise()
+
+fun List<URI>.toListOfString(): List<String> =
+    this.map { it.toString() }

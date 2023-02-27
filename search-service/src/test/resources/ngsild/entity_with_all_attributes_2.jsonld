@@ -81,7 +81,7 @@
     {
       "type": "Property",
       "value": 93,
-      "datasetId": "urn:ngsi-ld:Dataset:02"
+      "datasetId": "urn:ngsi-ld:Dataset:03"
     }
   ],
   "relationship": {

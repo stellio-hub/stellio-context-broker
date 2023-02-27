@@ -33,12 +33,15 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
 
 fun String.prepareDateValue() =
     if (this.isDate() || this.isDateTime() || this.isTime())
-        "\"".plus(this).plus("\"")
+        this.quote()
     else
         this
 
 fun String.replaceSimpleQuote() =
     replace("'", "\"")
+
+fun String.quote(): String =
+    "\"".plus(this).plus("\"")
 
 fun String.isCompoundAttribute(): Boolean =
     this.contains("\\[.*?]".toRegex())

@@ -13,10 +13,8 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -177,7 +175,7 @@ class EntityPayloadService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, queryParams.context))
             else it
         }
 
@@ -209,7 +207,7 @@ class EntityPayloadService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
+                it.plus(" AND (").plus(buildQQuery(queryParams.q!!, queryParams.context)).plus(")")
             else it
         }
 
@@ -271,7 +269,7 @@ class EntityPayloadService(
             queryFilter.joinToString(separator = " AND ", prefix = prefix)
     }
 
-    private fun buildInnerQuery(rawQuery: String, context: String): String {
+    private fun buildQQuery(rawQuery: String, context: String): String {
         val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
 
         return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
@@ -286,10 +284,16 @@ class EntityPayloadService(
             val expandedAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[0], context)
 
             when {
-                mainAttributePath.size > 1 -> {
+                mainAttributePath.size > 1 && !query.third.isURI() -> {
                     val expandSubAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[1], context)
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    """.trimIndent()
+                }
+                mainAttributePath.size > 1 && query.third.isURI() -> {
+                    val expandSubAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[1], context)
+                    """
+                    entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
                     """.trimIndent()
                 }
                 query.second.isEmpty() ->
@@ -298,17 +302,11 @@ class EntityPayloadService(
                     """.trimIndent()
                 query.third.isURI() ->
                     """
-                    CASE
-                        WHEN jsonb_path_exists(entity_payload.payload, '${'$'}."$expandedAttribute"."$JSONLD_TYPE"[0] ? (@ == "$NGSILD_PROPERTY_TYPE")')
-                            THEN entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
-                        WHEN jsonb_path_exists(entity_payload.payload, '${'$'}."$expandedAttribute"."$JSONLD_TYPE"[0] ? (@ == "$NGSILD_RELATIONSHIP_TYPE")')
-                            THEN entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} $targetValue'
-                        ELSE false
-                    END
+                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
                     """.trimIndent()
                 else ->
                     """
-                    entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
                     """.trimIndent()
             }
         }

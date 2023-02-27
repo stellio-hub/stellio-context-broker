@@ -170,12 +170,15 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
         "jsonObject[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
-        "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02"
+        "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02",
+        "integer==143..213, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "integer==144..213, 1, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "integer==100..120, 0, "
     )
-    fun `it should retrieve entities according to query (q by equal query)`(
+    fun `it should retrieve entities according to q parameter`(
         q: String,
         expectedCount: Int,
-        expectedListOfEntities: String
+        expectedListOfEntities: String?
     ) = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
@@ -189,7 +192,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             ) { null }
 
         assertEquals(expectedCount, entitiesIds.size)
-        assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
     @Test

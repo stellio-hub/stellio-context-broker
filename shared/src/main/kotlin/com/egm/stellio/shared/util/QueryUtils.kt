@@ -46,6 +46,12 @@ fun String.quote(): String =
 fun String.isCompoundAttribute(): Boolean =
     this.contains("\\[.*?]".toRegex())
 
+fun String.isRange(): Boolean =
+    this.contains("..")
+
+fun String.rangeInterval(): Pair<Any, Any> =
+    Pair(this.split("..")[0], this.split("..")[1])
+
 fun String.parseAttributePath(): Pair<List<String>, List<String>> {
     val trailingPaths =
         if (this.contains("["))

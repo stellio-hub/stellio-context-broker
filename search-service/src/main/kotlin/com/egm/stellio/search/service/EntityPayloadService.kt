@@ -304,7 +304,7 @@ class EntityPayloadService(
                 trailingAttributePath.isNotEmpty() -> {
                     val expandedTrailingPaths = trailingAttributePath.map {
                         expandJsonLdTerm(it, context)
-                    }.joinToString(".") { "\"$it\""}
+                    }.joinToString(".") { "\"$it\"" }
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE".$expandedTrailingPaths.**{0 to 1}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
                     """.trimIndent()
@@ -317,6 +317,13 @@ class EntityPayloadService(
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
                     """.trimIndent()
+                query.third.isRange() -> {
+                    val (min, max) = query.third.rangeInterval()
+                    """
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ >= $min && @ <= $max)')
+                    """.trimIndent()
+                }
                 else ->
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'

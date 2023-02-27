@@ -51,8 +51,7 @@
     "type": "Property",
     "value": {
       "anObject": {
-        "type": "River",
-        "id": "urn:ngsi-ld:River:01"
+        "name": "City"
       },
       "aString": "precipitation monitoring",
       "aNumber": 12.4,

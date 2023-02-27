@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -281,17 +282,17 @@ class EntityPayloadService(
 
             val (mainAttributePath, trailingAttributePath) = query.first.parseAttributePath()
 
-            val expandedAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[0], context)
+            val expandedAttribute = expandJsonLdTerm(mainAttributePath[0], context)
 
             when {
                 mainAttributePath.size > 1 && !query.third.isURI() -> {
-                    val expandSubAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[1], context)
+                    val expandSubAttribute = expandJsonLdTerm(mainAttributePath[1], context)
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
                     """.trimIndent()
                 }
                 mainAttributePath.size > 1 && query.third.isURI() -> {
-                    val expandSubAttribute = JsonLdUtils.expandJsonLdTerm(mainAttributePath[1], context)
+                    val expandSubAttribute = expandJsonLdTerm(mainAttributePath[1], context)
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
                     """.trimIndent()
@@ -300,9 +301,17 @@ class EntityPayloadService(
                     """
                     entity_payload.payload ? '$expandedAttribute'
                     """.trimIndent()
+                trailingAttributePath.isNotEmpty() -> {
+                    val expandedTrailingPaths = trailingAttributePath.map {
+                        expandJsonLdTerm(it, context)
+                    }.joinToString(".") { "\"$it\""}
+                    """
+                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE".$expandedTrailingPaths.**{0 to 1}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    """.trimIndent()
+                }
                 query.second == "not_like_regex" ->
                     """
-                    NOT (entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" like_regex $targetValue')
+                    NOT (entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" like_regex $targetValue')
                     """.trimIndent()
                 query.third.isURI() ->
                     """

@@ -165,8 +165,12 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "observedProperty.observedAt>2023-02-01T00:00:00Z, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "name.createdAt>2023-02-01T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "propertyWithMetadata.unitCode==\"MTR\", 1, urn:ngsi-ld:BeeHive:02",
+        "propertyWithMetadata.license==\"GPL\", 1, urn:ngsi-ld:BeeHive:02",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:01, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01"
+        "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonObject[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
+        "jsonObject[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02"
     )
     fun `it should retrieve entities according to query (q by equal query)`(
         q: String,

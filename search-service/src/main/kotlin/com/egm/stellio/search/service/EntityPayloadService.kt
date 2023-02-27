@@ -300,6 +300,10 @@ class EntityPayloadService(
                     """
                     entity_payload.payload ? '$expandedAttribute'
                     """.trimIndent()
+                query.second == "not_like_regex" ->
+                    """
+                    NOT (entity_payload.payload @@ '${'$'}."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" like_regex $targetValue')
+                    """.trimIndent()
                 query.third.isURI() ->
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} ${targetValue.quote()}'

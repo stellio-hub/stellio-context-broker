@@ -157,6 +157,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
+        "string!~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:01",
         "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime>2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:02",
@@ -165,7 +166,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "name.createdAt>2023-02-01T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "propertyWithMetadata.unitCode==\"MTR\", 1, urn:ngsi-ld:BeeHive:02",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:01, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
+        "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01"
     )
     fun `it should retrieve entities according to query (q by equal query)`(
         q: String,

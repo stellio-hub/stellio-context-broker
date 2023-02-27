@@ -19,12 +19,12 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
             Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
         queryTerm.contains("<") ->
             Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
-        queryTerm.contains("~=") ->
-            Triple(queryTerm.split("~=")[0], "like_regex", queryTerm.split("~=")[1])
         queryTerm.contains("!~=") ->
             // there is no such operator in PG JSON functions
             // it will be later transformed in a NOT(attrName like_regex "...")
             Triple(queryTerm.split("!~=")[0], "not_like_regex", queryTerm.split("!~=")[1])
+        queryTerm.contains("~=") ->
+            Triple(queryTerm.split("~=")[0], "like_regex", queryTerm.split("~=")[1])
         else ->
             // no operator found, it is a check for the existence of an attribute
             Triple(queryTerm, "", "")

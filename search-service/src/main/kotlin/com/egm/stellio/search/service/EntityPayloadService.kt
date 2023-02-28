@@ -324,6 +324,16 @@ class EntityPayloadService(
                         '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ >= $min && @ <= $max)')
                     """.trimIndent()
                 }
+                query.third.isValueList() -> {
+                    // can't use directly the || operator since it will be replaced below when composing the filters
+                    // so use an intermediate JSONPATH_OR_FILTER placeholder
+                    val valuesFilter = query.third.listOfValues()
+                        .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
+                    """
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? ($valuesFilter)')
+                    """.trimIndent()
+                }
                 else ->
                     """
                     entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
@@ -332,6 +342,7 @@ class EntityPayloadService(
         }
             .replace(";", " AND ")
             .replace("|", " OR ")
+            .replace("JSONPATH_OR_FILTER", "||")
     }
 
     suspend fun hasSpecificAccessPolicies(

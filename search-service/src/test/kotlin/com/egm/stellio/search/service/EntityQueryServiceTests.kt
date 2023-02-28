@@ -173,7 +173,12 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02",
         "integer==143..213, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==144..213, 1, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "integer==100..120, 0, "
+        "integer==100..120, 0, ",
+        "listOfString==\"iot\", 1, urn:ngsi-ld:BeeHive:01",
+        "listOfString==\"stellio\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "'listOfString==\"iot\",\"dataviz\"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "'listOfInt==12,14', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01"
     )
     fun `it should retrieve entities according to q parameter`(
         q: String,

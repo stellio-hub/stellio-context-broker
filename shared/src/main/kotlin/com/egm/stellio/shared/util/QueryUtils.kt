@@ -52,6 +52,13 @@ fun String.isRange(): Boolean =
 fun String.rangeInterval(): Pair<Any, Any> =
     Pair(this.split("..")[0], this.split("..")[1])
 
+// a string value could contain a comma ... to be improved
+fun String.isValueList(): Boolean =
+    this.contains(",")
+
+fun String.listOfValues(): Set<String> =
+    this.split(",").toSet()
+
 fun String.parseAttributePath(): Pair<List<String>, List<String>> {
     val trailingPaths =
         if (this.contains("["))

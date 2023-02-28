@@ -652,9 +652,11 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
 fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
     if (dateTime != null)
         this.plus(
-            propertyKey to mapOf(
-                JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+            propertyKey to listOf(
+                mapOf(
+                    JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                    JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+                )
             )
         )
     else this

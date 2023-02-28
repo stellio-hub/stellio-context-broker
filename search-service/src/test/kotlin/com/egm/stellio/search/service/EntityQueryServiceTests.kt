@@ -178,7 +178,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "listOfString==\"stellio\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'listOfString==\"iot\",\"dataviz\"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'listOfInt==12,14', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01"
+        "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01",
+        "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
     )
     fun `it should retrieve entities according to q parameter`(
         q: String,

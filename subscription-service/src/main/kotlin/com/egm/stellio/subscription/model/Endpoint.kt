@@ -9,11 +9,6 @@ data class Endpoint(
     val accept: AcceptType = JSON,
     val info: List<EndpointInfo>? = null
 ) {
-    fun getInfoValue(key: String): String? {
-        return info?.find {
-            it.key == key
-        }?.value
-    }
 
     enum class AcceptType(val accept: String) {
         @JsonProperty("application/json")

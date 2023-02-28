@@ -1,11 +1,12 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
+import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -18,7 +19,7 @@ data class AttributeInstance private constructor(
     val value: String? = null,
     val measuredValue: Double? = null,
     val geoValue: WKTCoordinates? = null,
-    val payload: String,
+    val payload: Json,
     val sub: String? = null
 ) {
     companion object {
@@ -31,7 +32,7 @@ data class AttributeInstance private constructor(
             value: String? = null,
             measuredValue: Double? = null,
             geoValue: WKTCoordinates? = null,
-            payload: ExpandedAttributePayloadEntry,
+            payload: ExpandedAttributeInstance,
             sub: String? = null
         ): AttributeInstance {
             val parsedPayload = payload.toMutableMap()
@@ -49,7 +50,7 @@ data class AttributeInstance private constructor(
                 value = value,
                 measuredValue = measuredValue,
                 geoValue = geoValue,
-                payload = serializeObject(parsedPayload),
+                payload = Json.of(serializeObject(parsedPayload)),
                 sub = sub
             )
         }

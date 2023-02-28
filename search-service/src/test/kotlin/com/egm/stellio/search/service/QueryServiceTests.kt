@@ -3,12 +3,14 @@ package com.egm.stellio.search.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -51,7 +53,7 @@ class QueryServiceTests {
         val expandedPayload = loadSampleData("beehive_expanded.jsonld")
         val entityPayload = mockkClass(EntityPayload::class) {
             every { entityId } returns entityUri
-            every { entityPayload } returns expandedPayload
+            every { payload } returns Json.of(expandedPayload)
         }
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entityPayload.right()
 
@@ -59,7 +61,7 @@ class QueryServiceTests {
             .shouldSucceedWith {
                 assertEquals(entityUri.toString(), it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
-                assertEquals(6, it.properties.size)
+                assertEquals(6, it.members.size)
             }
     }
 
@@ -78,7 +80,7 @@ class QueryServiceTests {
         val expandedPayload = loadSampleData("beehive_expanded.jsonld")
         val entityPayload = mockkClass(EntityPayload::class) {
             every { entityId } returns entityUri
-            every { entityPayload } returns expandedPayload
+            every { payload } returns Json.of(expandedPayload)
         }
 
         coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns listOf(entityUri)
@@ -90,7 +92,7 @@ class QueryServiceTests {
                 assertEquals(1, it.second)
                 assertEquals(entityUri.toString(), it.first[0].id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
-                assertEquals(6, it.first[0].properties.size)
+                assertEquals(6, it.first[0].members.size)
             }
     }
 
@@ -148,7 +150,7 @@ class QueryServiceTests {
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = now,
-                    payload = EMPTY_PAYLOAD
+                    payload = EMPTY_JSON_PAYLOAD
                 )
             }
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns temporalEntityAttributes
@@ -204,7 +206,7 @@ class QueryServiceTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
@@ -284,7 +286,7 @@ class QueryServiceTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         coEvery {

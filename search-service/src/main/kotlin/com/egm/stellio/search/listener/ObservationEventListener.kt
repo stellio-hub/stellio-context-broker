@@ -3,9 +3,9 @@ package com.egm.stellio.search.listener
 import arrow.core.Either
 import arrow.core.left
 import com.egm.stellio.search.service.EntityEventService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import kotlinx.coroutines.CoroutineScope
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ObservationEventListener(
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityPayloadService: EntityPayloadService,
     private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -54,7 +54,7 @@ class ObservationEventListener(
     }
 
     suspend fun handleEntityCreate(observationEvent: EntityCreateEvent): Either<APIException, Unit> =
-        temporalEntityAttributeService.createEntityTemporalReferences(
+        entityPayloadService.createEntity(
             observationEvent.operationPayload,
             observationEvent.contexts,
             observationEvent.sub
@@ -68,13 +68,13 @@ class ObservationEventListener(
         }
 
     suspend fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent): Either<APIException, Unit> {
-        val expandedPayload = expandJsonLdFragment(
+        val expandedPayload = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
         )
 
-        return temporalEntityAttributeService.partialUpdateEntityAttribute(
+        return entityPayloadService.partialUpdateAttribute(
             observationEvent.entityId,
             expandedPayload,
             observationEvent.sub
@@ -100,14 +100,14 @@ class ObservationEventListener(
     }
 
     suspend fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent): Either<APIException, Unit> {
-        val expandedPayload = expandJsonLdFragment(
+        val expandedPayload = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
         )
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-        return temporalEntityAttributeService.appendEntityAttributes(
+        return entityPayloadService.appendAttributes(
             observationEvent.entityId,
             ngsiLdAttributes,
             expandedPayload,

@@ -6,24 +6,30 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.service.*
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
+import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -63,6 +69,7 @@ class TemporalEntityHandlerTests {
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val temporalEntityAttributeName = "speed"
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
+    private val sub = Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -80,6 +87,81 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+    }
+
+    @Test
+    fun `create temporal entity should return a 201`() {
+        val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_create_temporal_entity.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
+        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
+
+        val data =
+            loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, listOf(APIC_COMPOUND_CONTEXT))
+        val expectedInstancesFilePath =
+            "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
+        val jsonInstances =
+            loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedAttributesInstances
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/temporal/entities/$entityUri"))
+
+        coVerify { authorizationService.userCanCreateEntities(eq(sub)) }
+        coVerify { entityPayloadService.checkEntityExistence(eq(entityUri), true) }
+        coVerify {
+            entityPayloadService.createEntity(
+                any(),
+                eq(jsonLdEntity),
+                eq(sub.value)
+            )
+        }
+        coVerify {
+            entityPayloadService.upsertAttributes(
+                eq(entityUri),
+                eq(jsonInstances),
+                eq(sub.value)
+            )
+        }
+        coVerify { authorizationService.createAdminRight(eq(entityUri), eq(sub)) }
+    }
+
+    @Test
+    fun `update temporal entity should return a 204`() {
+        val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_update_temporal_entity.jsonld")
+
+        coEvery { authorizationService.userCanUpdateEntity(entityUri, sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.checkEntityExistence(any(), any())
+        } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TESTC")).left()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+
+        val expectedInstancesFilePath =
+            "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
+        val jsonInstances =
+            loadSampleData(expectedInstancesFilePath).deserializeAsMap() as ExpandedAttributesInstances
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify { authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub)) }
+        coVerify {
+            entityPayloadService.upsertAttributes(
+                eq(entityUri),
+                eq(jsonInstances),
+                eq(sub.value)
+            )
+        }
     }
 
     @Test
@@ -646,7 +728,7 @@ class TemporalEntityHandlerTests {
                     attributeName = it,
                     attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
-                    payload = EMPTY_PAYLOAD
+                    payload = EMPTY_JSON_PAYLOAD
                 )
             }
         val entityFileName = if (withTemporalValues)
@@ -1017,7 +1099,7 @@ class TemporalEntityHandlerTests {
     fun `delete attribute instance temporal should return 204`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
@@ -1033,7 +1115,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1044,10 +1126,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if entityId is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
-
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient
@@ -1067,53 +1147,25 @@ class TemporalEntityHandlerTests {
             )
 
         coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr)
+            entityPayloadService.checkEntityExistence(entityUri)
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(entityPayloadService)
     }
 
     @Test
-    fun `delete attribute instance temporal should return 404 if temporalEntityAttributeName is not found`() {
+    fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
-        } returns ResourceNotFoundException(attributeNotFoundMessage(expandedAttr)).left()
-
-        webClient
-            .method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
-            .exchange()
-            .expectStatus().isNotFound
-            .expectBody().json(
-                """
-                {
-                    "detail":"${attributeNotFoundMessage(expandedAttr)}",
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title":"The referred resource has not been found"
-                }
-                """.trimIndent()
-            )
-
-        coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr)
-        }
-        confirmVerified(temporalEntityAttributeService)
-    }
-
-    @Test
-    fun `delete attribute instance temporal should return 404 if attributeInstanceId is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
-
-        coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteInstance(any(), any(), any())
-        } returns ResourceNotFoundException(instanceNotFoundMessage(attributeInstanceId.toString())).left()
+        } returns ResourceNotFoundException(
+            attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())
+        ).left()
 
         webClient
             .method(HttpMethod.DELETE)
@@ -1124,14 +1176,14 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"${instanceNotFoundMessage(attributeInstanceId.toString())}",
+                    "detail":"${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found"
                 }
                 """.trimIndent()
             )
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1148,7 +1200,7 @@ class TemporalEntityHandlerTests {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
 
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
@@ -1171,7 +1223,7 @@ class TemporalEntityHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttr) }
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
         coVerify {
             authorizationService.userCanUpdateEntity(
                 eq(entityUri),

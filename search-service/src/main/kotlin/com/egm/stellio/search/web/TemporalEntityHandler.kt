@@ -3,15 +3,12 @@ package com.egm.stellio.search.web
 import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseAndCheckQueryParams
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.getDatasetId
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -24,6 +21,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -35,6 +33,66 @@ class TemporalEntityHandler(
     private val authorizationService: AuthorizationService,
     private val applicationProperties: ApplicationProperties
 ) {
+
+    /**
+     * Implements 6.18.3.1 - Create or Update (Upsert) Temporal Representation of Entity
+     */
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun create(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body)
+
+        return either<APIException, ResponseEntity<*>> {
+            val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
+            val entityUri = jsonLdTemporalEntity.id.toUri()
+            val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
+
+            val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
+            jsonLdInstances.checkValidity().bind()
+            val sortedJsonLdInstances = jsonLdInstances.sorted()
+
+            if (entityDoesNotExist) {
+                authorizationService.userCanCreateEntities(sub).bind()
+
+                // create a view of the entity containing only the most recent instance of each attribute
+                val jsonLdEntity = JsonLdEntity(
+                    sortedJsonLdInstances
+                        .keepFirstInstances()
+                        .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
+                    contexts
+                )
+                val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+
+                entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
+                entityPayloadService.upsertAttributes(
+                    entityUri,
+                    sortedJsonLdInstances.removeFirstInstances(),
+                    sub.orNull()
+                ).bind()
+                authorizationService.createAdminRight(entityUri, sub).bind()
+
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
+                    .build<String>()
+            } else {
+                authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+                entityPayloadService.upsertAttributes(
+                    entityUri,
+                    sortedJsonLdInstances,
+                    sub.orNull()
+                ).bind()
+
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+            }
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
 
     /**
      * Implements 6.20.3.1 - Add attributes to Temporal Representation of Entity
@@ -174,7 +232,7 @@ class TemporalEntityHandler(
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
 
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 

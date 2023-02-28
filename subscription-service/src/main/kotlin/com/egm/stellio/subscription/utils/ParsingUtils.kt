@@ -15,11 +15,14 @@ import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
 
-    suspend fun parseSubscription(input: Map<String, Any>, context: List<String>): Either<APIException, Subscription> =
+    suspend fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         try {
             either {
-                val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
-                subscription.expandTypes(context)
+                val subscription = mapper.convertValue(
+                    input.plus(JSONLD_CONTEXT to contexts),
+                    Subscription::class.java
+                )
+                subscription.expand(contexts)
                 subscription
             }
         } catch (e: Exception) {
@@ -62,7 +65,7 @@ object ParsingUtils {
 
     fun Any.toSqlValue(columnName: String): Any? =
         when (columnName) {
-            "watchedAttributes" -> {
+            "watchedAttributes", "contexts" -> {
                 val valueAsArrayList = this as ArrayList<String>
                 if (valueAsArrayList.isEmpty())
                     null

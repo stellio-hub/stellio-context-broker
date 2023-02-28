@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -20,7 +21,13 @@ fun attributeNotFoundMessage(attributeName: String, datasetId: URI? = null) =
     else
         "Attribute $attributeName (datasetId: $datasetId) was not found"
 
-fun instanceNotFoundMessage(instanceId: String) = "Instance $instanceId was not found"
+fun attributeOrInstanceNotFoundMessage(
+    attributeName: String,
+    instanceId: String
+) = "Instance $instanceId does not exist or attribute $attributeName was not found"
+
+fun invalidTemporalInstanceMessage() =
+    "One attribute instance is missing the required $NGSILD_OBSERVED_AT_PROPERTY temporal property"
 
 fun entityOrAttrsNotFoundMessage(
     entityId: String,

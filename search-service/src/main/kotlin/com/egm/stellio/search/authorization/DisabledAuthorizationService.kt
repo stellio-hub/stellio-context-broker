@@ -29,13 +29,15 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun createAdminRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createAdminLinks(
+    override suspend fun createAdminRights(
         entitiesId: List<URI>,
         sub: Option<Sub>
     ): Either<APIException, Unit> = Unit.right()
+
+    override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> = Unit.right()
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,

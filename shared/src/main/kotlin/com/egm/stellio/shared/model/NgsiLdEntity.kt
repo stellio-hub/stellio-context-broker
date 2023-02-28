@@ -365,9 +365,16 @@ fun checkAttributeDuplicateDatasetId(name: String, instances: List<NgsiLdAttribu
 }
 
 fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute> =
-    attributes.mapValues {
-        JsonLdUtils.expandValueAsListOfMap(it.value)
-    }.map {
+    parseAttributesInstancesToNgsiLdAttributes(
+        attributes.mapValues {
+            JsonLdUtils.expandValueAsListOfMap(it.value)
+        }
+    )
+
+fun parseAttributesInstancesToNgsiLdAttributes(
+    attributesInstances: Map<String, List<Map<String, List<Any>>>>
+): List<NgsiLdAttribute> =
+    attributesInstances.map {
         when {
             isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
             isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)
@@ -380,7 +387,7 @@ fun String.isNgsiLdSupportedName() =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
-    NgsiLdEntity(this.properties, this.contexts)
+    NgsiLdEntity(this.members, this.contexts)
 
 fun Map<String, List<Any>>.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()

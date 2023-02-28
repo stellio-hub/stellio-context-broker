@@ -1,10 +1,11 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Some
 import arrow.core.right
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
-import com.egm.stellio.shared.util.ExpandedAttributePayloadEntry
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
@@ -46,7 +47,7 @@ class SubscriptionEventListenerServiceTests {
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
+    private lateinit var authorizationService: AuthorizationService
 
     @Test
     fun `it should parse a subscription and create a temporal entity reference`() = runTest {
@@ -56,7 +57,7 @@ class SubscriptionEventListenerServiceTests {
             entityPayloadService.createEntityPayload(any(), any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery { temporalEntityAttributeService.create(any()) } returns Unit.right()
-        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
 
         subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
@@ -75,9 +76,9 @@ class SubscriptionEventListenerServiceTests {
                         entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri()
                 }
             )
-            entityAccessRightsService.setAdminRoleOnEntity(
-                eq("1343760C-9375-4E3F-B6C1-8A845340EB59"),
-                eq("urn:ngsi-ld:Subscription:04".toUri())
+            authorizationService.createAdminRight(
+                eq("urn:ngsi-ld:Subscription:04".toUri()),
+                eq(Some("1343760C-9375-4E3F-B6C1-8A845340EB59"))
             )
         }
     }
@@ -96,7 +97,7 @@ class SubscriptionEventListenerServiceTests {
         )
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.updateStatus(any(), any(), any<ExpandedAttributePayloadEntry>())
+            temporalEntityAttributeService.updateStatus(any(), any(), any<ExpandedAttributeInstance>())
         } returns Unit.right()
 
         subscriptionEventListenerService.dispatchNotificationMessage(notificationEvent)
@@ -107,7 +108,7 @@ class SubscriptionEventListenerServiceTests {
                 match {
                     it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid &&
-                        it.payload.matchContent(
+                        it.payload.asString().matchContent(
                             """
                             {
                                 "@type":["https://uri.etsi.org/ngsi-ld/Property"],
@@ -129,7 +130,7 @@ class SubscriptionEventListenerServiceTests {
             temporalEntityAttributeService.updateStatus(
                 eq(temporalEntityAttributeUuid),
                 any(),
-                any<ExpandedAttributePayloadEntry>()
+                any<ExpandedAttributeInstance>()
             )
         }
     }
@@ -138,14 +139,14 @@ class SubscriptionEventListenerServiceTests {
     fun `it should delete subscription temporal references`() = runTest {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionDeleteEvent.jsonld")
 
-        coEvery { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Unit.right()
-        coEvery { entityAccessRightsService.removeRolesOnEntity(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         subscriptionEventListenerService.dispatchSubscriptionMessage(subscriptionEvent)
 
         coVerify {
-            temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))
-            entityAccessRightsService.removeRolesOnEntity(eq("urn:ngsi-ld:Subscription:04".toUri()))
+            entityPayloadService.deleteEntityPayload(eq("urn:ngsi-ld:Subscription:04".toUri()))
+            authorizationService.removeRightsOnEntity(eq("urn:ngsi-ld:Subscription:04".toUri()))
         }
     }
 }

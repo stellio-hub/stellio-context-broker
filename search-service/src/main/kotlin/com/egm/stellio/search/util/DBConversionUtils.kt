@@ -1,5 +1,7 @@
 package com.egm.stellio.search.util
 
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -18,8 +20,12 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
     (entry as? OffsetDateTime)?.atZoneSameInstant(ZoneOffset.UTC)
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
+fun toJson(entry: Any?): Json = entry as Json
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
 inline fun <reified T : Enum<T>> toEnum(entry: Any) = enumValueOf<T>(entry as String)
 inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
     (entry as? String)?.let { enumValueOf<T>(it) }
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
+
+fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().deserializeExpandedPayload()
+fun Json.deserializeAsMap(): Map<String, Any> = this.asString().deserializeAsMap()

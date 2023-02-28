@@ -7,9 +7,11 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -24,12 +26,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -69,7 +70,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = INCOMING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(incomingTemporalEntityAttribute)
@@ -79,7 +80,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = OUTGOING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(outgoingTemporalEntityAttribute)
@@ -210,7 +211,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(temporalEntityAttribute2)
@@ -472,7 +473,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeName = OUTGOING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         createTemporalEntityAttribute(temporalEntityAttribute2)
@@ -585,7 +586,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == null &&
                         it.measuredValue == 550.0 &&
-                        it.payload.matchContent(
+                        it.payload.asString().matchContent(
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/observedAt":[{
@@ -635,7 +636,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == "false" &&
                         it.measuredValue == null &&
-                        it.payload.matchContent(
+                        it.payload.asString().matchContent(
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/observedAt":[{
@@ -668,14 +669,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
-            attributeInstanceService.addAttributeInstance(
-                incomingTemporalEntityAttribute.id,
-                OUTGOING_PROPERTY,
-                attributeValues
-            )
+        attributeInstanceService.addAttributeInstance(
+            incomingTemporalEntityAttribute.id,
+            OUTGOING_PROPERTY,
+            attributeValues
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", it.message)
         }
-        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", exception.message)
     }
 
     @Test
@@ -689,14 +690,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
-            attributeInstanceService.addAttributeInstance(
-                incomingTemporalEntityAttribute.id,
-                OUTGOING_PROPERTY,
-                attributeValues
-            )
+        attributeInstanceService.addAttributeInstance(
+            incomingTemporalEntityAttribute.id,
+            OUTGOING_PROPERTY,
+            attributeValues
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", it.message)
         }
-        assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", exception.message)
     }
 
     @Test
@@ -715,6 +716,49 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         assertThat(enrichedEntity)
             .isEmpty()
+    }
+
+    @Test
+    fun `it should not delete attribute instance if attribute name is not found`() = runTest {
+        val attributeInstance = gimmeAttributeInstance()
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.deleteInstance(
+            incomingTemporalEntityAttribute.entityId,
+            outgoingTemporalEntityAttribute.attributeName,
+            attributeInstance.instanceId
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(
+                attributeOrInstanceNotFoundMessage(
+                    outgoingTemporalEntityAttribute.attributeName,
+                    attributeInstance.instanceId.toString()
+                ),
+                it.message
+            )
+        }
+    }
+
+    @Test
+    fun `it should not delete attribute instance if instanceID is not found`() = runTest {
+        val attributeInstance = gimmeAttributeInstance()
+        val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.deleteInstance(
+            incomingTemporalEntityAttribute.entityId,
+            incomingTemporalEntityAttribute.attributeName,
+            instanceId
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(
+                attributeOrInstanceNotFoundMessage(
+                    incomingTemporalEntityAttribute.attributeName,
+                    instanceId.toString()
+                ),
+                it.message
+            )
+        }
     }
 
     @Test
@@ -792,19 +836,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .hasSize(5)
         assertThat(attributeInstanceService.search(temporalQuery, incomingTemporalEntityAttribute, false))
             .isEmpty()
-    }
-
-    @Test
-    fun `it should not delete attribute instance if instance is not found`() = runTest {
-        val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
-        attributeInstanceService.deleteInstance(
-            incomingTemporalEntityAttribute.entityId,
-            incomingTemporalEntityAttribute.attributeName,
-            attributeInstanceId
-        ).fold(
-            { assertEquals("Instance $attributeInstanceId was not found", it.message) },
-            { fail("The referred resource should have not been found") }
-        )
     }
 
     private fun gimmeAttributeInstance(

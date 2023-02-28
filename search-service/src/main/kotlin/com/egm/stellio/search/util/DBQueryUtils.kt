@@ -16,8 +16,6 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
 
-const val DATETIME_TEMPLATE: String = "\"YYYY-MM-DD\\\"T\\\"HH24:MI:SS.US\\\"Z\\\"\""
-
 fun DatabaseClient.GenericExecuteSpec.allToFlow(): Flow<Map<String, Any>> =
     this.fetch().all().asFlow()
 

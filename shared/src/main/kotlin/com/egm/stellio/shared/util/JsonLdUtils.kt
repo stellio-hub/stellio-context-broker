@@ -5,14 +5,17 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -56,8 +59,8 @@ object JsonLdUtils {
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
     val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
-    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
-    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
+    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
+    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
     val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
@@ -83,6 +86,7 @@ object JsonLdUtils {
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
+    const val NGSILD_NAME_TERM = "name"
     const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
 
     const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
@@ -153,7 +157,6 @@ object JsonLdUtils {
 
     fun expandJsonLdTerm(term: String, contexts: List<String>): String {
         val expandedType = JsonLdProcessor.expand(mapOf(term to mapOf<String, Any>()), defaultJsonLdOptions(contexts))
-        logger.debug("Expanded type $term to $expandedType")
         return if (expandedType.isNotEmpty())
             (expandedType[0] as Map<String, Any>).keys.first()
         else
@@ -163,10 +166,10 @@ object JsonLdUtils {
     fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         doJsonLdExpansion(fragment, contexts)
 
-    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> =
-        expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
+    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
+        expandJsonLdFragment(fragment.deserializeAsMap(), contexts) as Map<String, List<Any>>
 
-    fun expandJsonLdFragment(
+    fun expandAttribute(
         attributeName: String,
         attributePayload: String,
         contexts: List<String>
@@ -192,19 +195,6 @@ object JsonLdUtils {
             throw BadRequestDataException("Unable to expand input payload")
 
         return expandedFragment[0] as Map<String, Any>
-    }
-
-    fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
-        val updatedPayload = deserializeListOfObjects(listOfElements)
-            .map {
-                it.plus(Pair(JSONLD_CONTEXT, contexts))
-            }
-        return serializeObject(updatedPayload)
-    }
-
-    fun addContextToElement(element: String, contexts: List<String>): String {
-        val parsedPayload = deserializeObject(element).plus(Pair(JSONLD_CONTEXT, contexts))
-        return serializeObject(parsedPayload)
     }
 
     fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =
@@ -303,7 +293,7 @@ object JsonLdUtils {
         expandedAttributes: Map<String, Any>,
         expandedAttributeName: String,
         datasetId: URI?
-    ): ExpandedAttributePayloadEntry? {
+    ): ExpandedAttributeInstance? {
         if (!expandedAttributes.containsKey(expandedAttributeName))
             return null
 
@@ -357,11 +347,11 @@ object JsonLdUtils {
         val contexts = addCoreContextIfMissing(listOfNotNull(context))
 
         return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .mapValues(restoreGeoPropertyValue())
         else
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to contexts)
                 .mapValues(restoreGeoPropertyValue())
@@ -375,11 +365,11 @@ object JsonLdUtils {
         val allContexts = addCoreContextIfMissing(contexts)
 
         return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .mapValues(restoreGeoPropertyValue())
         else
-            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
                 .mapValues(restoreGeoPropertyValue())
@@ -420,13 +410,6 @@ object JsonLdUtils {
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
             .mapValues(restoreGeoPropertyValue())
 
-    fun compactAndSerialize(
-        jsonLdEntity: JsonLdEntity,
-        contexts: List<String>,
-        mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): String =
-        serializeObject(compact(jsonLdEntity, contexts, mediaType))
-
     fun filterCompactedEntityOnAttributes(
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>
@@ -439,7 +422,7 @@ object JsonLdUtils {
         input: JsonLdEntity,
         includedAttributes: Set<String>
     ): Map<String, Any> {
-        val inputToMap = { i: JsonLdEntity -> i.properties }
+        val inputToMap = { i: JsonLdEntity -> i.members }
         return filterEntityOnAttributes(input, inputToMap, includedAttributes, true)
     }
 
@@ -503,7 +486,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedProperty(value: Any): ExpandedAttributePayload =
+    fun buildExpandedProperty(value: Any): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
@@ -527,7 +510,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedRelationship(value: URI): ExpandedAttributePayload =
+    fun buildExpandedRelationship(value: URI): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
@@ -572,19 +555,20 @@ object JsonLdUtils {
         )
 }
 
-typealias ExpandedAttributePayload = List<ExpandedAttributePayloadEntry>
-typealias ExpandedAttributePayloadEntry = Map<String, List<Any>>
+typealias ExpandedAttributesInstances = Map<ExpandedTerm, ExpandedAttributeInstances>
+typealias ExpandedAttributeInstances = List<ExpandedAttributeInstance>
+typealias ExpandedAttributeInstance = Map<String, List<Any>>
 
-fun ExpandedAttributePayload.addSubAttribute(
+fun ExpandedAttributeInstances.addSubAttribute(
     subAttributeName: ExpandedTerm,
     subAttributePayload: List<Map<String, Any>>
-): ExpandedAttributePayload {
+): ExpandedAttributeInstances {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
     return listOf(this[0].plus(subAttributeName to subAttributePayload))
 }
 
-fun ExpandedAttributePayload.getSingleEntry(): ExpandedAttributePayloadEntry {
+fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
     return this[0]
@@ -668,9 +652,42 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
 fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
     if (dateTime != null)
         this.plus(
-            propertyKey to mapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                JsonLdUtils.JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+            propertyKey to listOf(
+                mapOf(
+                    JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                    JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
+                )
             )
         )
     else this
+
+fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =
+    this.values.all { expandedInstances ->
+        expandedInstances.all { expandedAttributePayloadEntry ->
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
+        }
+    }.let {
+        if (it) Unit.right()
+        else BadRequestDataException(invalidTemporalInstanceMessage()).left()
+    }
+
+fun ExpandedAttributesInstances.sorted(): ExpandedAttributesInstances =
+    this.mapValues {
+        it.value.sortedByDescending { expandedAttributePayloadEntry ->
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY)
+        }
+    }
+
+fun ExpandedAttributesInstances.keepFirstInstances(): ExpandedAttributesInstances =
+    this.mapValues { listOf(it.value.first()) }
+
+fun ExpandedAttributesInstances.removeFirstInstances(): ExpandedAttributesInstances =
+    this.mapValues {
+        it.value.drop(1)
+    }
+
+fun ExpandedAttributesInstances.addCoreMembers(
+    entityId: String,
+    entityTypes: List<ExpandedTerm>
+): Map<String, Any> =
+    this.plus(listOf(JSONLD_ID to entityId, JSONLD_TYPE to entityTypes))

@@ -37,7 +37,7 @@ data class EntityAccessRights(
     ) {
         val datasetId: URI = (DATASET_ID_PREFIX + uri.extractSub()).toUri()
 
-        fun serializeProperties(): ExpandedAttributePayload =
+        fun serializeProperties(): ExpandedAttributeInstances =
             buildExpandedRelationship(uri)
                 .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId.toString()))
                 .addSubAttribute(AUTH_PROP_SUBJECT_INFO, buildExpandedSubjectInfo(subjectInfo))
@@ -100,7 +100,7 @@ data class EntityAccessRights(
  *   }
  * ]
  */
-private fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttributePayload =
+private fun buildExpandedSubjectInfo(value: Map<String, String>): ExpandedAttributeInstances =
     listOf(
         mapOf(
             JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),

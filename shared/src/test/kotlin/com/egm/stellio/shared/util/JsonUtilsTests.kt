@@ -1,8 +1,10 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -110,19 +112,13 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should parse an event of type ENTITY_UPDATE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityUpdateEvent.json"))
-        Assertions.assertTrue(parsedEvent is EntityUpdateEvent)
-    }
-
-    @Test
     fun `it should serialize an event of type ENTITY_CREATE`() {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 "0123456789-1234-5678-987654321",
                 entityId,
-                listOf(BEEHIVE_COMPACT_TYPE),
-                entityPayload,
+                listOf(BEEHIVE_TYPE),
+                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )
@@ -135,7 +131,7 @@ class JsonUtilsTests {
             EntityDeleteEvent(
                 null,
                 entityId,
-                listOf(BEEHIVE_COMPACT_TYPE),
+                listOf(BEEHIVE_TYPE),
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )

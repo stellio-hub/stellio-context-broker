@@ -14,8 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.instanceNotFoundMessage
-import io.r2dbc.postgresql.codec.Json
+import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -89,7 +88,7 @@ class AttributeInstanceService(
             }
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
             .bind("instance_id", attributeInstance.instanceId)
-            .bind("payload", Json.of(attributeInstance.payload))
+            .bind("payload", attributeInstance.payload)
             .let {
                 if (attributeInstance.timeProperty != AttributeInstance.TemporalProperty.OBSERVED_AT)
                     it.bind("time_property", attributeInstance.timeProperty.toString())
@@ -106,9 +105,10 @@ class AttributeInstanceService(
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Attribute $attributeName has an instance without a value")
+            ?: return BadRequestDataException("Attribute $attributeName has an instance without a value").left()
         val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: throw BadRequestDataException("Attribute $attributeName has an instance without an observed date")
+            ?: return BadRequestDataException("Attribute $attributeName has an instance without an observed date")
+                .left()
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
@@ -278,7 +278,7 @@ class AttributeInstanceService(
         val deleteQuery =
             """
             DELETE FROM attribute_instance
-            WHERE temporal_entity_attribute = ( 
+            WHERE temporal_entity_attribute = any( 
                 SELECT id 
                 FROM temporal_entity_attribute 
                 WHERE entity_id = :entity_id 
@@ -294,7 +294,9 @@ class AttributeInstanceService(
             .bind("instance_id", instanceId)
             .executeExpected {
                 if (it == 0L)
-                    ResourceNotFoundException(instanceNotFoundMessage(instanceId.toString())).left()
+                    ResourceNotFoundException(
+                        attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                    ).left()
                 else Unit.right()
             }
     }

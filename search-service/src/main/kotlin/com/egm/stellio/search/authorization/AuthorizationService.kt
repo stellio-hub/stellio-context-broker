@@ -16,13 +16,15 @@ interface AuthorizationService {
     suspend fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
-    suspend fun createAdminLink(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
-    suspend fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
+
+    suspend fun createAdminRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
+    suspend fun createAdminRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
+    suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit>
 
     suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
         context: String,
-        sub: Option<Sub>,
+        sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
 
     suspend fun getGroupsMemberships(

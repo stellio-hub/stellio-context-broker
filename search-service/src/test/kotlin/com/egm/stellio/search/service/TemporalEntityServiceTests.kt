@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
@@ -34,7 +35,7 @@ class TemporalEntityServiceTests {
             attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to emptyList<AttributeInstanceResult>()
@@ -43,7 +44,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
-            entityPayload = EMPTY_PAYLOAD,
+            payload = EMPTY_JSON_PAYLOAD,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
         val temporalEntity = temporalEntityService.buildTemporalEntity(
@@ -76,7 +77,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
-            entityPayload = EMPTY_PAYLOAD,
+            payload = EMPTY_JSON_PAYLOAD,
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
 
@@ -122,7 +123,7 @@ class TemporalEntityServiceTests {
             attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
-            payload = EMPTY_PAYLOAD
+            payload = EMPTY_JSON_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
@@ -149,7 +150,7 @@ class TemporalEntityServiceTests {
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
             createdAt = now,
-            entityPayload = EMPTY_PAYLOAD,
+            payload = EMPTY_JSON_PAYLOAD,
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
 

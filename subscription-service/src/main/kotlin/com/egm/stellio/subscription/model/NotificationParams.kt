@@ -1,20 +1,21 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.ZonedDateTime
 
 data class NotificationParams(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
-    var attributes: List<String>?,
+    var attributes: List<ExpandedTerm>?,
     val format: FormatType = FormatType.NORMALIZED,
     val endpoint: Endpoint,
-    var status: StatusType?,
+    var status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
-    val lastNotification: ZonedDateTime?,
-    val lastFailure: ZonedDateTime?,
-    val lastSuccess: ZonedDateTime?
+    val lastNotification: ZonedDateTime? = null,
+    val lastFailure: ZonedDateTime? = null,
+    val lastSuccess: ZonedDateTime? = null
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")

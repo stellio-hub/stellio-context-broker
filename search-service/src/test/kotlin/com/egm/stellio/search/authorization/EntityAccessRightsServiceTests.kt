@@ -5,6 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
@@ -17,6 +18,7 @@ import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -339,7 +341,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE),
+            setOf(BEEHIVE_TYPE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -372,16 +374,35 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
-            emptySet(),
+            emptySet()
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
     }
 
     @Test
+    fun `it should return only one entity with higher right if user has access through different paths`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        } returns listOf(groupUuid, subjectUuid).right()
+
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_ADMIN)
+
+        entityAccessRightsService.getSubjectAccessRights(Some(subjectUuid), emptyList(), setOf(BEEHIVE_TYPE), 100, 0)
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                val entityAccessControl = it[0]
+                assertEquals(entityId01, entityAccessControl.id)
+                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+            }
+    }
+
+    @Test
     fun `it should return nothing when list of entities is empty`() = runTest {
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), emptyList())
-            .shouldSucceedWith { assertTrue(it.isNullOrEmpty()) }
+            .shouldSucceedWith { assertTrue(it.isEmpty()) }
     }
 
     @Test
@@ -475,7 +496,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     private suspend fun createSubjectReferential(
         subjectId: String,
         subjectType: SubjectType,
-        subjectInfo: String,
+        subjectInfo: Json,
         serviceAccountId: String? = null
     ) {
         subjectReferentialService.create(

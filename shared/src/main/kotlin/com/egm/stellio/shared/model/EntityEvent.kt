@@ -24,14 +24,14 @@ open class EntityEvent(
     val operationType: EventsType,
     open val sub: String?,
     open val entityId: URI,
-    open val entityTypes: List<String>,
+    open val entityTypes: List<ExpandedTerm>,
     open val contexts: List<String>
 ) {
     @JsonIgnore
     open fun getEntity(): String? = null
 
     @JsonIgnore
-    open fun getAttribute(): String? = null
+    open fun getAttribute(): ExpandedTerm? = null
 
     @JsonIgnore
     fun successfulHandlingMessage(): String =
@@ -46,7 +46,7 @@ open class EntityEvent(
 data class EntityCreateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
+    override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_CREATE, sub, entityId, entityTypes, contexts) {
@@ -57,7 +57,7 @@ data class EntityCreateEvent(
 data class EntityReplaceEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
+    override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_REPLACE, sub, entityId, entityTypes, contexts) {
@@ -68,7 +68,7 @@ data class EntityReplaceEvent(
 data class EntityUpdateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
+    override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
@@ -78,7 +78,7 @@ data class EntityUpdateEvent(
 data class EntityDeleteEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
+    override val entityTypes: List<ExpandedTerm>,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_DELETE, sub, entityId, entityTypes, contexts)
 
@@ -86,8 +86,8 @@ data class EntityDeleteEvent(
 data class AttributeAppendEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
-    val attributeName: String,
+    override val entityTypes: List<ExpandedTerm>,
+    val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val overwrite: Boolean = true,
     val operationPayload: String,
@@ -102,8 +102,8 @@ data class AttributeAppendEvent(
 data class AttributeReplaceEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
-    val attributeName: String,
+    override val entityTypes: List<ExpandedTerm>,
+    val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
@@ -117,8 +117,8 @@ data class AttributeReplaceEvent(
 data class AttributeUpdateEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
-    val attributeName: String,
+    override val entityTypes: List<ExpandedTerm>,
+    val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
@@ -132,8 +132,8 @@ data class AttributeUpdateEvent(
 data class AttributeDeleteEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
-    val attributeName: String,
+    override val entityTypes: List<ExpandedTerm>,
+    val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val updatedEntity: String,
     override val contexts: List<String>
@@ -145,8 +145,8 @@ data class AttributeDeleteEvent(
 data class AttributeDeleteAllInstancesEvent(
     override val sub: String?,
     override val entityId: URI,
-    override val entityTypes: List<String>,
-    val attributeName: String,
+    override val entityTypes: List<ExpandedTerm>,
+    val attributeName: ExpandedTerm,
     val updatedEntity: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, entityId, entityTypes, contexts) {

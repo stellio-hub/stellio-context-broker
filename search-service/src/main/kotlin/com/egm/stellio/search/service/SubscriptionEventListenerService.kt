@@ -1,10 +1,11 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
+import arrow.core.Some
 import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
@@ -16,6 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.addSubAttribute
 import com.egm.stellio.shared.util.entityNotFoundMessage
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +32,7 @@ class SubscriptionEventListenerService(
     private val entityPayloadService: EntityPayloadService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val attributeInstanceService: AttributeInstanceService,
-    private val entityAccessRightsService: EntityAccessRightsService
+    private val authorizationService: AuthorizationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -107,7 +109,7 @@ class SubscriptionEventListenerService(
             attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = subscription.createdAt,
-            payload = "{}"
+            payload = Json.of("{}")
         )
 
         return either {
@@ -120,7 +122,7 @@ class SubscriptionEventListenerService(
             ).bind()
             temporalEntityAttributeService.create(entityTemporalProperty).bind()
             subscriptionCreateEvent.sub?.let {
-                entityAccessRightsService.setAdminRoleOnEntity(it, subscriptionCreateEvent.entityId).bind()
+                authorizationService.createAdminRight(subscriptionCreateEvent.entityId, Some(it)).bind()
             }
         }
     }
@@ -129,8 +131,8 @@ class SubscriptionEventListenerService(
         subscriptionDeleteEvent: EntityDeleteEvent
     ): Either<APIException, Unit> =
         either {
-            temporalEntityAttributeService.deleteTemporalEntityReferences(subscriptionDeleteEvent.entityId).bind()
-            entityAccessRightsService.removeRolesOnEntity(subscriptionDeleteEvent.entityId).bind()
+            entityPayloadService.deleteEntityPayload(subscriptionDeleteEvent.entityId).bind()
+            authorizationService.removeRightsOnEntity(subscriptionDeleteEvent.entityId).bind()
         }
 
     private suspend fun handleNotificationCreateEvent(

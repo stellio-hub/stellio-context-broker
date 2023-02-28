@@ -286,9 +286,11 @@ class EntityPayloadService(
 
             when {
                 mainAttributePath.size > 1 && !query.third.isURI() -> {
-                    val expandSubAttribute = expandJsonLdTerm(mainAttributePath[1], context)
+                    val expandedSubAttributePath = mainAttributePath.drop(1).map {
+                        expandJsonLdTerm(it, context)
+                    }.joinToString(".") { "\"$it\"" }
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    entity_payload.payload @@ '$."$expandedAttribute".$expandedSubAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
                     """.trimIndent()
                 }
                 mainAttributePath.size > 1 && query.third.isURI() -> {

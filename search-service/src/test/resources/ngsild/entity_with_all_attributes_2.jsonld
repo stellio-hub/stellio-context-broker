@@ -68,7 +68,11 @@
     "unitCode": "MTR",
     "license": {
       "type": "Property",
-      "value": "GPL"
+      "value": "GPL",
+      "since": {
+        "type": "Property",
+        "value": "2023"
+      }
     }
   },
   "multiInstanceProperty": [

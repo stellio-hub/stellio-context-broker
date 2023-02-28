@@ -1,5 +1,8 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import arrow.core.right
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.GeoQueryUtils.DISTANCE_QUERY_CLAUSE
 import com.egm.stellio.shared.util.GeoQueryUtils.MAX_DISTANCE_QUERY_CLAUSE
@@ -18,7 +21,10 @@ object GeoQueryUtils {
     const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
 }
 
-fun parseAndCheckGeoQuery(requestParams: MultiValueMap<String, String>, contextLink: String): GeoQuery {
+fun parseGeoQueryParameters(
+    requestParams: MultiValueMap<String, String>,
+    contextLink: String
+): Either<APIException, GeoQuery> {
     val georel = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_GEOREL)
     val geometry = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_GEOMETRY)
     val coordinates = requestParams.getFirst(GeoQueryUtils.GEO_QUERY_PARAM_COORDINATES)?.decode()
@@ -31,7 +37,7 @@ fun parseAndCheckGeoQuery(requestParams: MultiValueMap<String, String>, contextL
         geometry = geometry,
         coordinates = coordinates,
         geoproperty = geoproperty
-    )
+    ).right()
 }
 
 fun extractGeorelParams(georel: String): Triple<String, String?, String?> {

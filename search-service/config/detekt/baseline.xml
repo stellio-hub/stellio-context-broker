@@ -22,8 +22,8 @@
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( temporalEntityAttribute: TemporalEntityAttribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>SwallowedException:QueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>ThrowsCount:QueryUtils.kt$fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false): TemporalQuery</ID>
+    <ID>ReturnCount:TemporalQueryUtils.kt$fun buildTemporalQuery( params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false ): Either&lt;APIException, TemporalQuery&gt;</ID>
+    <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>TooManyFunctions:EntityPayloadService.kt$EntityPayloadService</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>

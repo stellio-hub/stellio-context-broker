@@ -4,7 +4,7 @@ import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.*
-import com.egm.stellio.search.util.parseAndCheckQueryParams
+import com.egm.stellio.search.util.parseQueryAndTemporalParams
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -155,7 +155,7 @@ class TemporalEntityHandler(
             val mediaType = getApplicableMediaType(httpHeaders)
 
             val temporalEntitiesQuery =
-                parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink, true)
+                parseQueryAndTemporalParams(applicationProperties.pagination, params, contextLink, true).bind()
 
             val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
             val (temporalEntities, total) = queryService.queryTemporalEntities(
@@ -199,7 +199,7 @@ class TemporalEntityHandler(
             authorizationService.userCanReadEntity(entityUri, sub).bind()
 
             val temporalEntitiesQuery =
-                parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
+                parseQueryAndTemporalParams(applicationProperties.pagination, requestParams, contextLink).bind()
 
             val temporalEntity = queryService.queryTemporalEntity(
                 entityUri,

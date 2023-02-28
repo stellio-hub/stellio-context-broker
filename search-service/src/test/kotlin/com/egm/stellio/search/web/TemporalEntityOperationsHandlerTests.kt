@@ -1,12 +1,14 @@
 package com.egm.stellio.search.web
 
 import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseAndCheckQueryParams
+import com.egm.stellio.search.util.parseQueryAndTemporalParams
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
@@ -54,12 +56,12 @@ class TemporalEntityOperationsHandlerTests {
             }
             .build()
 
-        mockkStatic(::parseAndCheckQueryParams)
+        mockkStatic(::parseQueryAndTemporalParams)
     }
 
     @AfterAll
     fun clearMock() {
-        unmockkStatic(::parseAndCheckQueryParams)
+        unmockkStatic(::parseQueryAndTemporalParams)
     }
 
     @Test
@@ -70,7 +72,7 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns
+        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
                     types = setOf("BeeHive", "Apiary"),
@@ -82,7 +84,7 @@ class TemporalEntityOperationsHandlerTests {
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
-            )
+            ).right()
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
@@ -101,8 +103,8 @@ class TemporalEntityOperationsHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify {
-            parseAndCheckQueryParams(
+        coVerify {
+            parseQueryAndTemporalParams(
                 any(),
                 queryParams,
                 APIC_COMPOUND_CONTEXT
@@ -132,7 +134,7 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns
+        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
                     types = setOf("BeeHive", "Apiary"),
@@ -145,7 +147,7 @@ class TemporalEntityOperationsHandlerTests {
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
-            )
+            ).right()
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
@@ -165,8 +167,8 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
 
-        verify {
-            parseAndCheckQueryParams(
+        coVerify {
+            parseQueryAndTemporalParams(
                 any(),
                 queryParams,
                 APIC_COMPOUND_CONTEXT
@@ -194,9 +196,9 @@ class TemporalEntityOperationsHandlerTests {
     fun `it should raise a 400 if required parameters are missing`() {
         val queryParams = mapOf("timerel" to "before")
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } throws BadRequestDataException(
+        coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns BadRequestDataException(
             "'timerel' and 'time' must be used in conjunction"
-        )
+        ).left()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")

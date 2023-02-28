@@ -9,6 +9,7 @@
     <ID>Filename:db.migration.V0_29__JsonLd_migration.kt:1</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt; ): ResponseEntity&lt;*&gt;</ID>
+    <ID>LongMethod:EntityPayloadService.kt$EntityPayloadService$private fun buildQQuery(rawQuery: String, context: String): String</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>

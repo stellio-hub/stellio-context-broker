@@ -819,63 +819,56 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should return true if query is null`() = runTest {
         val query = null
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should return false if query is invalid`() = runTest {
         val query = "foodQuantity.invalidAttribute>=150"
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
     fun `it should return true if entity matches query`() = runTest {
         val query = "foodQuantity<150"
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should return false if entity doesn't match query`() = runTest {
         val query = "foodQuantity>=150"
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
     fun `it should support multiple predicates query`() = runTest {
-        val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes==\"urn:ngsi-ld:Feeder:018z5\""
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
-            .shouldSucceedWith { assertTrue(it) }
-    }
-
-    @Test
-    fun `it should support single quoted predicates query`() = runTest {
-        val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes=='urn:ngsi-ld:Feeder:018z5'"
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes==urn:ngsi-ld:Feeder:018z5"
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should support multiple predicates query with logical operator`() = runTest {
         val query = "foodQuantity>150;executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
     fun `it should support multiple predicates query with or logical operator`() = runTest {
         val query = "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should support boolean value type`() = runTest {
-        val query = "foodName[isHealthy]!=false"
-        subscriptionService.isMatchingQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
+        val query = "foodName.isHealthy!=false"
+        subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
     }
 

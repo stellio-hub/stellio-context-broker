@@ -1,15 +1,8 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.subscription.model.GeoQuery
 
 object QueryUtils {
@@ -19,75 +12,11 @@ object QueryUtils {
     private const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
     private const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
 
-    /**
-     * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.
-     * The query param is subscription related query to be transformed.
-     * the entity param is the used to define the query attributes types (Property, Relationship, other)
-     * which is used to extract the value to be compared as mandated by clause 4.9.
-
-     * Examples of transformations:
-     * foodQuantity>=150 -> @.foodQuantity.value>=150
-     * foodQuantity>150;executes.createdAt=="2018-11-26T21:32:52.98601Z" ->
-     *     @.foodQuantity.value>150&&@.executes.createdAt=="2018-11-26T21:32:52.98601Z"
-     * (executes=="urn:ngsi-ld:Feeder:018z5"|executes[createdAt]=="2018-11-26T21:32:52.98601Z)" ->
-     *     (@.executes.object=="urn:ngsi-ld:Feeder:018z5"||@.executes["createdAt"]=="2018-11-26T21:32:52.98601Z")
-     */
-
     fun createQueryStatement(query: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): String {
-        val filterQuery = buildInnerQuery(query, jsonLdEntity, contexts)
+        val filterQuery = buildQQuery(query, contexts, jsonLdEntity)
         return """
         SELECT $filterQuery AS match
         """.trimIndent()
-    }
-
-    private fun buildInnerQuery(rawQuery: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): String {
-        val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
-
-        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
-            // restoring the eventual inline options for regex expressions (replaced above)
-            val fixedValue = matchResult.value.unescapeRegexPattern()
-            val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.prepareDateValue().replaceSimpleQuote()
-
-            val queryAttribute =
-                if (query.first.isCompoundAttribute()) {
-                    query.first.replace("]", "").split("[")
-                } else {
-                    query.first.split(".")
-                }
-
-            val expandedAttribute = expandJsonLdTerm(queryAttribute[0], contexts)
-            val attributeType = getAttributeType(expandedAttribute, jsonLdEntity)
-
-            if (queryAttribute.size > 1) {
-                val expandSubAttribute = expandJsonLdTerm(queryAttribute[1], contexts)
-                """
-                jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
-                    '$."$expandedAttribute"."$expandSubAttribute" ?
-                    (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
-                """.trimIndent()
-            } else {
-                when (attributeType) {
-                    NGSILD_PROPERTY_TYPE ->
-                        """
-                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
-                            '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE" ?
-                                (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
-                        """.trimIndent()
-
-                    NGSILD_RELATIONSHIP_TYPE ->
-                        """
-                        jsonb_path_exists('${JsonUtils.serializeObject(jsonLdEntity.members.toMutableMap())}',
-                            '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT" ?
-                                (@."$JSONLD_ID" ${query.second} $targetValue)')
-                        """.trimIndent()
-
-                    else -> throw ResourceNotFoundException("Attribute type are not food : ${attributeType.uri}")
-                }
-            }
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
     }
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, geoProperty: NgsiLdGeoProperty): String {
@@ -106,7 +35,7 @@ object QueryUtils {
             """.trimIndent()
     }
 
-    fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
+    private fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
         if (georel.contains(NEAR_QUERY_CLAUSE)) {
             val comparisonParams = georel.split(";")[1].split("==")
             return when (comparisonParams[0]) {
@@ -117,13 +46,5 @@ object QueryUtils {
             }
         }
         return Triple(georel, null, null)
-    }
-
-    private fun getAttributeType(expandedAttribute: ExpandedTerm, jsonLdEntity: JsonLdEntity): AttributeType {
-        val jsonLdAttribute = (jsonLdEntity.members[expandedAttribute] as? List<Map<String, Any>>)?.get(0)
-            ?: throw BadRequestDataException(
-                "Unmatched query since it contains an unknown attribute $expandedAttribute"
-            )
-        return AttributeType((jsonLdAttribute[JSONLD_TYPE] as List<String>)[0])
     }
 }

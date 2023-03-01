@@ -10,12 +10,7 @@ import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -176,7 +171,7 @@ class EntityPayloadService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, queryParams.context))
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
             else it
         }
 
@@ -208,7 +203,7 @@ class EntityPayloadService(
             accessRightFilter
         ).let {
             if (queryParams.q != null)
-                it.plus(" AND (").plus(buildQQuery(queryParams.q!!, queryParams.context)).plus(")")
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
             else it
         }
 
@@ -268,117 +263,6 @@ class EntityPayloadService(
             queryFilter.joinToString(separator = " AND ")
         else
             queryFilter.joinToString(separator = " AND ", prefix = prefix)
-    }
-
-    private fun buildQQuery(rawQuery: String, context: String): String {
-        val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
-
-        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
-            // restoring the eventual inline options for regex expressions (replaced above)
-            val fixedValue = matchResult.value.unescapeRegexPattern()
-
-            val query = extractComparisonParametersFromQuery(fixedValue)
-
-            val (mainAttributePath, trailingAttributePath) = query.first.parseAttributePath()
-                .let { (attrPath, trailingPath) ->
-                    Pair(
-                        attrPath.map { expandJsonLdTerm(it, context) },
-                        trailingPath.map { expandJsonLdTerm(it, context) }
-                    )
-                }
-            val operator = query.second
-            val value = query.third.prepareDateValue()
-
-            transformQQueryToSqlJsonPath(
-                mainAttributePath,
-                trailingAttributePath,
-                operator,
-                value
-            )
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
-            .replace("JSONPATH_OR_FILTER", "||")
-    }
-
-    private fun transformQQueryToSqlJsonPath(
-        mainAttributePath: List<ExpandedTerm>,
-        trailingAttributePath: List<ExpandedTerm>,
-        operator: String,
-        value: String
-    ) = when {
-        mainAttributePath.size > 1 && !value.isURI() -> {
-            val jsonAttributePath = mainAttributePath.joinToString(".") { "\"$it\"" }
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
-                '{ "value": $value }')
-            """.trimIndent()
-        }
-        mainAttributePath.size > 1 && value.isURI() -> {
-            val jsonAttributePath = mainAttributePath.joinToString(".") { "\"$it\"" }
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$.$jsonAttributePath.**{0 to 2}."$JSONLD_ID" ? (@ $operator ${'$'}value)',
-                '{ "value": ${value.quote()} }')
-            """.trimIndent()
-        }
-        operator.isEmpty() ->
-            """
-            jsonb_path_exists(entity_payload.payload, '$."${mainAttributePath[0]}"')
-            """.trimIndent()
-        trailingAttributePath.isNotEmpty() -> {
-            val jsonTrailingPath = trailingAttributePath.joinToString(".") { "\"$it\"" }
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE_KW" ? 
-                    (@ $operator ${'$'}value)',
-                '{ "value": $value }')
-            """.trimIndent()
-        }
-        operator == "like_regex" ->
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)')
-            """.trimIndent()
-        operator == "not_like_regex" ->
-            """
-            NOT (jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)'))
-            """.trimIndent()
-        value.isURI() ->
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ? 
-                    (@ $operator ${'$'}value)',
-                '{ "value": ${value.quote()} }')
-            """.trimIndent()
-        value.isRange() -> {
-            val (min, max) = value.rangeInterval()
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? 
-                    (@ >= ${'$'}min && @ <= ${'$'}max)',
-                '{ "min": $min, "max": $max }')
-            """.trimIndent()
-        }
-        value.isValueList() -> {
-            // can't use directly the || operator since it will be replaced below when composing the filters
-            // so use an intermediate JSONPATH_OR_FILTER placeholder
-            val valuesFilter = value.listOfValues()
-                .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? ($valuesFilter)')
-            """.trimIndent()
-        }
-
-        else ->
-            """
-            jsonb_path_exists(entity_payload.payload,
-                '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
-                '{ "value": $value }')
-            """.trimIndent()
     }
 
     suspend fun hasSpecificAccessPolicies(

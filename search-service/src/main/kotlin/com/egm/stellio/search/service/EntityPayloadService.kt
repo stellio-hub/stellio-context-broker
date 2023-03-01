@@ -278,11 +278,11 @@ class EntityPayloadService(
             val fixedValue = matchResult.value.unescapeRegexPattern()
 
             val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.prepareDateValue()
 
             val (mainAttributePath, trailingAttributePath) = query.first.parseAttributePath()
-
             val expandedAttribute = expandJsonLdTerm(mainAttributePath[0], context)
+            val operator = query.second
+            val value = query.third.prepareDateValue()
 
             when {
                 mainAttributePath.size > 1 && !query.third.isURI() -> {
@@ -290,43 +290,58 @@ class EntityPayloadService(
                         expandJsonLdTerm(it, context)
                     }.joinToString(".") { "\"$it\"" }
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute".$expandedSubAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute".$expandedSubAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
+                        '{ "value": $value }')
                     """.trimIndent()
                 }
                 mainAttributePath.size > 1 && query.third.isURI() -> {
                     val expandSubAttribute = expandJsonLdTerm(mainAttributePath[1], context)
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$expandSubAttribute".**{0 to 2}."$JSONLD_ID" ? (@ $operator ${'$'}value)',
+                        '{ "value": ${value.quote()} }')
                     """.trimIndent()
                 }
-                query.second.isEmpty() ->
+                operator.isEmpty() ->
                     """
-                    entity_payload.payload ? '$expandedAttribute'
+                    jsonb_path_exists(entity_payload.payload, '$."$expandedAttribute"')
                     """.trimIndent()
                 trailingAttributePath.isNotEmpty() -> {
                     val expandedTrailingPaths = trailingAttributePath.map {
                         expandJsonLdTerm(it, context)
                     }.joinToString(".") { "\"$it\"" }
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE".$expandedTrailingPaths.**{0 to 1}."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE".$expandedTrailingPaths.**{0 to 1}."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
+                        '{ "value": $value }')
                     """.trimIndent()
                 }
-                query.second == "not_like_regex" ->
+                operator == "like_regex" ->
                     """
-                    NOT (entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" like_regex $targetValue')
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)')
                     """.trimIndent()
-                query.third.isURI() ->
+                operator == "not_like_regex" ->
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ${query.second} ${targetValue.quote()}'
+                    NOT (jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)'))
                     """.trimIndent()
-                query.third.isRange() -> {
+                value.isURI() ->
+                    """
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
+                        '{ "value": ${value.quote()} }')
+                    """.trimIndent()
+                value.isRange() -> {
                     val (min, max) = query.third.rangeInterval()
                     """
                     jsonb_path_exists(entity_payload.payload,
-                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ >= $min && @ <= $max)')
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ >= ${'$'}min && @ <= ${'$'}max)',
+                        '{ "min": $min, "max": $max }')
                     """.trimIndent()
                 }
-                query.third.isValueList() -> {
+                value.isValueList() -> {
                     // can't use directly the || operator since it will be replaced below when composing the filters
                     // so use an intermediate JSONPATH_OR_FILTER placeholder
                     val valuesFilter = query.third.listOfValues()
@@ -338,7 +353,9 @@ class EntityPayloadService(
                 }
                 else ->
                     """
-                    entity_payload.payload @@ '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ${query.second} $targetValue'
+                    jsonb_path_exists(entity_payload.payload,
+                        '$."$expandedAttribute"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
+                        '{ "value": $value }')
                     """.trimIndent()
             }
         }

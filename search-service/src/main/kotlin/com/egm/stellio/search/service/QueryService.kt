@@ -95,9 +95,9 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
-            val entiitesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
+            val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
             val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
-                entiitesIds,
+                entitiesIds,
                 temporalEntitiesQuery.queryParams
             )
 

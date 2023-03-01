@@ -83,8 +83,8 @@ class QueryServiceTests {
             every { payload } returns Json.of(expandedPayload)
         }
 
-        coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns listOf(entityUri)
-        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
+        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns listOf(entityPayload)
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
@@ -98,8 +98,8 @@ class QueryServiceTests {
 
     @Test
     fun `it should return an empty list if no entity matched the query`() = runTest {
-        coEvery { temporalEntityAttributeService.getForEntities(any(), any()) } returns emptyList()
-        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 0.right()
+        coEvery { entityPayloadService.queryEntities(any(), any()) } returns emptyList()
+        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 0.right()
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
             .shouldSucceedWith {
@@ -208,10 +208,11 @@ class QueryServiceTests {
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
+        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
-        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
+        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
@@ -246,13 +247,13 @@ class QueryServiceTests {
 
         coVerify {
             temporalEntityAttributeService.getForTemporalEntities(
+                listOf(entityUri),
                 QueryParams(
                     offset = 2,
                     limit = 2,
                     types = setOf(BEEHIVE_TYPE, APIARY_TYPE),
                     context = APIC_COMPOUND_CONTEXT
-                ),
-                any()
+                )
             )
             attributeInstanceService.search(
                 match { temporalQuery ->
@@ -262,7 +263,7 @@ class QueryServiceTests {
                 any<List<TemporalEntityAttribute>>(),
                 false
             )
-            temporalEntityAttributeService.getCountForEntities(
+            entityPayloadService.queryEntitiesCount(
                 QueryParams(
                     offset = 2,
                     limit = 2,
@@ -289,11 +290,12 @@ class QueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
+        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns mockkClass(EntityPayload::class).right()
-        coEvery { temporalEntityAttributeService.getCountForEntities(any(), any()) } returns 1.right()
+        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
         } returns emptyList()

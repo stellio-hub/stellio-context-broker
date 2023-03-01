@@ -162,6 +162,109 @@ class EntityPayloadService(
             }
     }
 
+    suspend fun queryEntities(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
+    ): List<URI> {
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
+            else it
+        }
+
+        val selectQuery =
+            """
+            SELECT DISTINCT(entity_payload.entity_id)
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
+            WHERE $filterQuery
+            ORDER BY entity_id
+            LIMIT :limit
+            OFFSET :offset   
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("limit", queryParams.limit)
+            .bind("offset", queryParams.offset)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
+    suspend fun queryEntitiesCount(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?
+    ): Either<APIException, Int> {
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
+            else it
+        }
+
+        val countQuery =
+            """
+            SELECT count(distinct(entity_payload.entity_id)) as count_entity
+            FROM entity_payload
+            LEFT JOIN temporal_entity_attribute tea
+            ON tea.entity_id = entity_payload.entity_id
+            WHERE $filterQuery
+            """.trimIndent()
+
+        return databaseClient
+            .sql(countQuery)
+            .oneToResult { it["count_entity"] as Long }
+            .map { it.toInt() }
+    }
+
+    fun buildEntitiesQueryFilter(
+        queryParams: QueryParams,
+        accessRightFilter: () -> String?,
+        prefix: String = ""
+    ): String {
+        val formattedIds =
+            if (queryParams.ids.isNotEmpty())
+                queryParams.ids.joinToString(
+                    separator = ",",
+                    prefix = "entity_payload.entity_id in(",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+        val formattedIdPattern =
+            if (!queryParams.idPattern.isNullOrEmpty())
+                "entity_payload.entity_id ~ '${queryParams.idPattern}'"
+            else null
+        val formattedTypes =
+            if (queryParams.types.isNotEmpty())
+                queryParams.types.joinToString(
+                    separator = ",",
+                    prefix = "entity_payload.types && ARRAY[",
+                    postfix = "]"
+                ) { "'$it'" }
+            else null
+        val formattedAttrs =
+            if (queryParams.attrs.isNotEmpty())
+                queryParams.attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+
+        val queryFilter =
+            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
+
+        return if (queryFilter.isEmpty())
+            queryFilter.joinToString(separator = " AND ")
+        else
+            queryFilter.joinToString(separator = " AND ", prefix = prefix)
+    }
+
     suspend fun hasSpecificAccessPolicies(
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>

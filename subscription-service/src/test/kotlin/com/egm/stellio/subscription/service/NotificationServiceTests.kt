@@ -82,7 +82,7 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -114,7 +114,7 @@ class NotificationServiceTests {
                 setOf(NGSILD_NAME_PROPERTY)
             )
         }
-        coVerify { subscriptionService.isMatchingQuery(subscription.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription.q, any(), any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         coVerify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
         confirmVerified(subscriptionService)
@@ -133,7 +133,7 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -177,7 +177,7 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -210,7 +210,7 @@ class NotificationServiceTests {
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
 
             coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
-            coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+            coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
             coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
             coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
             coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -242,7 +242,7 @@ class NotificationServiceTests {
                     setOf(NGSILD_NAME_PROPERTY)
                 )
             }
-            coVerify { subscriptionService.isMatchingQuery(subscription.q, any(), any()) }
+            coVerify { subscriptionService.isMatchingQQuery(subscription.q, any(), any()) }
             coVerify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
             coVerify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
             confirmVerified(subscriptionService)
@@ -258,7 +258,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -280,8 +280,8 @@ class NotificationServiceTests {
                 setOf(NGSILD_NAME_PROPERTY)
             )
         }
-        coVerify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
-        coVerify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         coVerify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -309,7 +309,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
         coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
@@ -337,8 +337,8 @@ class NotificationServiceTests {
                 setOf(NGSILD_NAME_PROPERTY)
             )
         }
-        coVerify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
-        coVerify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         coVerify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -355,7 +355,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
-        coEvery { subscriptionService.isMatchingQuery(any(), any(), any()) } returns true.right()
+        coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } returns false.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
@@ -379,8 +379,8 @@ class NotificationServiceTests {
                 setOf(NGSILD_NAME_PROPERTY)
             )
         }
-        coVerify { subscriptionService.isMatchingQuery(subscription1.q, any(), any()) }
-        coVerify { subscriptionService.isMatchingQuery(subscription2.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
+        coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         coVerify(exactly = 1) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }

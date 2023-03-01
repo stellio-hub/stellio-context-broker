@@ -1197,8 +1197,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 403 if user is not allowed`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
-
         coEvery {
             entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()

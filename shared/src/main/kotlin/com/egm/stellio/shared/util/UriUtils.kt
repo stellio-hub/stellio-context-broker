@@ -19,5 +19,10 @@ fun String.toUri(): URI =
 fun List<String>.toListOfUri(): List<URI> =
     this.map { it.toUri() }
 
-fun List<URI>.toListOfString(): List<String> =
-    this.map { it.toString() }
+fun Any.isURI(): Boolean =
+    kotlin.runCatching {
+        (this as? String)?.toUri()
+    }.fold(
+        { it != null },
+        { false }
+    )

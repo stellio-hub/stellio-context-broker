@@ -36,7 +36,7 @@ class NotificationService(
             val types = ngsiLdEntity.types
             subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
                 .filter {
-                    subscriptionService.isMatchingQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
+                    subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
                 }
                 .filter {
                     subscriptionService.isMatchingGeoQuery(

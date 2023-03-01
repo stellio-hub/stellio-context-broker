@@ -93,11 +93,11 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val queryParams = parseAndCheckParams(
+            val queryParams = parseQueryParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
                 params,
                 contextLink
-            )
+            ).bind()
 
             if (
                 queryParams.ids.isEmpty() &&
@@ -161,13 +161,13 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        val queryParams = parseAndCheckParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-            params,
-            contextLink
-        )
-
         return either<APIException, ResponseEntity<*>> {
+            val queryParams = parseQueryParams(
+                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+                params,
+                contextLink
+            ).bind()
+
             entityPayloadService.checkEntityExistence(entityUri).bind()
 
             authorizationService.userCanReadEntity(entityUri, sub).bind()

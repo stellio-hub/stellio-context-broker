@@ -3,6 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>CyclomaticComplexMethod:ExceptionHandler.kt$ExceptionHandler$@ExceptionHandler fun transformErrorResponse(throwable: Throwable): ResponseEntity&lt;ProblemDetail&gt;</ID>
+    <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>
     <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, queryParams: QueryParams, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contextLink: String )</ID>
     <ID>LongParameterList:ApiResponses.kt$( entities: List&lt;CompactedJsonLdEntity&gt;, count: Int, resourceUrl: String, queryParams: QueryParams, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contextLink: String )</ID>
     <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdGeoPropertyInstance$( val coordinates: WKTCoordinates, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime? = null, datasetId: URI? = null, properties: List&lt;NgsiLdProperty&gt; = emptyList(), relationships: List&lt;NgsiLdRelationship&gt; = emptyList() )</ID>

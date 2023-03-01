@@ -8,10 +8,10 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -651,14 +651,21 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
 
 fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
     if (dateTime != null)
-        this.plus(
-            propertyKey to listOf(
-                mapOf(
-                    JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                    JSONLD_VALUE_KW to dateTime.toNgsiLdFormat()
-                )
-            )
-        )
+        this.plus(propertyKey to buildNonReifiedDateTime(dateTime))
+    else this
+
+fun Map<String, Any>.addSysAttrs(
+    withSysAttrs: Boolean,
+    createdAt: ZonedDateTime,
+    modifiedAt: ZonedDateTime?
+): Map<String, Any> =
+    if (withSysAttrs)
+        this.plus(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY to buildNonReifiedDateTime(createdAt))
+            .let {
+                if (modifiedAt != null)
+                    it.plus(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
+                else it
+            }
     else this
 
 fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =

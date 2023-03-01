@@ -1,32 +1,33 @@
 package com.egm.stellio.search.util
 
 import arrow.core.*
+import arrow.core.continuations.either
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 import java.util.Optional
 
-fun parseAndCheckQueryParams(
+suspend fun parseQueryAndTemporalParams(
     pagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contextLink: String,
     inQueryEntities: Boolean = false
-): TemporalEntitiesQuery {
-    val queryParams = parseAndCheckParams(
+): Either<APIException, TemporalEntitiesQuery> = either {
+    val queryParams = parseQueryParams(
         Pair(pagination.limitDefault, pagination.limitMax),
         requestParams,
         contextLink
-    )
+    ).bind()
+
     if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
-        throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+        BadRequestDataException("Either type or attrs need to be present in request parameters")
+            .left().bind<TemporalEntitiesQuery>()
 
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
@@ -36,9 +37,9 @@ fun parseAndCheckQueryParams(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
         OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities)
+    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities).bind()
 
-    return TemporalEntitiesQuery(
+    TemporalEntitiesQuery(
         queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
@@ -46,7 +47,10 @@ fun parseAndCheckQueryParams(
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: Boolean = false): TemporalQuery {
+fun buildTemporalQuery(
+    params: MultiValueMap<String, String>,
+    inQueryEntities: Boolean = false
+): Either<APIException, TemporalQuery> {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
@@ -58,19 +62,19 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 
     if (timerelParam == "between" && endTimeAtParam == null)
-        throw BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'")
+        return BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'").left()
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
         ?.getOrElse {
-            throw BadRequestDataException(it)
+            return BadRequestDataException(it).left()
         }
 
     val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrElse {
-        throw BadRequestDataException(it)
+        return BadRequestDataException(it).left()
     }
 
     if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
-        throw BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction")
+        return BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction").left()
 
     val aggregate = aggregateParam?.let {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
@@ -91,7 +95,7 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, inQueryEntities: B
         aggregate = aggregate,
         lastN = lastN,
         timeproperty = timeproperty
-    )
+    ).right()
 }
 
 fun buildTimerelAndTime(
@@ -117,17 +121,3 @@ fun buildTimerelAndTime(
     } else {
         "'timerel' and 'time' must be used in conjunction".left()
     }
-
-fun Map<String, Any>.addSysAttrs(
-    withSysAttrs: Boolean,
-    createdAt: ZonedDateTime,
-    modifiedAt: ZonedDateTime?
-): Map<String, Any> =
-    if (withSysAttrs)
-        this.plus(NGSILD_CREATED_AT_PROPERTY to buildNonReifiedDateTime(createdAt))
-            .let {
-                if (modifiedAt != null)
-                    it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
-                else it
-            }
-    else this

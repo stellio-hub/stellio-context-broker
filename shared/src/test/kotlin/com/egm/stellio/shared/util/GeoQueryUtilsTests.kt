@@ -14,7 +14,8 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should parse geo query parameters`() {
         val requestParams = gimmeFullParamsMap()
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
@@ -29,7 +30,8 @@ class GeoQueryUtilsTests {
     fun `it should parse geo query parameters with geoproperty operation space`() {
         val requestParams = gimmeFullParamsMap("operationSpace")
 
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
@@ -43,7 +45,8 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should correctly extract georel of a geo query`() {
         val requestParams = gimmeFullParamsMap()
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
         val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, "<=", "1500")
 
@@ -53,7 +56,8 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should correctly extract georel of a geo query with min distance`() {
         val requestParams = gimmeFullParamsMap(georel = "near;minDistance==1500")
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
         val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, ">=", "1500")
 
@@ -63,7 +67,8 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should not extract near param of georel if it is not present`() {
         val requestParams = gimmeFullParamsMap(georel = "distant")
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
         val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
         val georel = Triple(geoQueryParams.georel, null, null)
 
@@ -73,7 +78,8 @@ class GeoQueryUtilsTests {
     @Test
     fun `function isSupportedGeoQuery should return true`() {
         val requestParams = gimmeFullParamsMap()
-        val geoQueryParams = parseAndCheckGeoQuery(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         Assertions.assertTrue(isSupportedGeoQuery(geoQueryParams))
     }

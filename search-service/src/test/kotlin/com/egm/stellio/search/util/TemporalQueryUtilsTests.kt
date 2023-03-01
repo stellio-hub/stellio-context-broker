@@ -7,40 +7,39 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import io.mockk.every
 import io.mockk.mockkClass
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import java.time.ZonedDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
-class QueryUtilsTests {
+class TemporalQueryUtilsTests {
 
     @Test
-    fun `it should throw a BadRequestData exception if type or attrs are not present when querying entites`() {
+    fun `it should not validate the query if type or attrs are not present when querying entites`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseAndCheckQueryParams(
-                pagination,
-                queryParams,
-                APIC_COMPOUND_CONTEXT,
-                true
-            )
+        parseQueryAndTemporalParams(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXT,
+            true
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Either type or attrs need to be present in request parameters", it.message)
         }
-        assertEquals(
-            "Either type or attrs need to be present in request parameters",
-            exception.message
-        )
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if timerel is present without time`() {
+    fun `it should not validate the query if timerel is present without time`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "before")
 
@@ -48,21 +47,18 @@ class QueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseAndCheckQueryParams(
-                pagination,
-                queryParams,
-                APIC_COMPOUND_CONTEXT
-            )
+        parseQueryAndTemporalParams(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXT
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("'timerel' and 'time' must be used in conjunction", it.message)
         }
-        assertEquals(
-            "'timerel' and 'time' must be used in conjunction",
-            exception.message
-        )
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if timerel and time is not present when querying entites`() {
+    fun `it should not validate the query if timerel and time is not present when querying entites`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("type", "Beehive")
 
@@ -70,29 +66,27 @@ class QueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseAndCheckQueryParams(
-                pagination,
-                queryParams,
-                APIC_COMPOUND_CONTEXT,
-                true
-            )
+        parseQueryAndTemporalParams(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXT,
+            true
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("'timerel' and 'time' must be used in conjunction", it.message)
         }
-        assertEquals(
-            "'timerel' and 'time' must be used in conjunction",
-            exception.message
-        )
     }
 
     @Test
-    fun `it should parse query parameters`() {
+    fun `it should parse query parameters`() = runTest {
         val queryParams = gimmeFullParamsMap()
 
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        val temporalEntitiesQuery = parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalEntitiesQuery =
+            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
@@ -116,7 +110,7 @@ class QueryUtilsTests {
     }
 
     @Test
-    fun `it should parse query parameters with audit enabled`() {
+    fun `it should parse query parameters with audit enabled`() = runTest {
         val queryParams = gimmeFullParamsMap()
         queryParams["options"] = listOf("audit")
 
@@ -124,7 +118,8 @@ class QueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        val temporalEntitiesQuery = parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalEntitiesQuery =
+            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertTrue(temporalEntitiesQuery.withAudit)
     }
@@ -145,7 +140,7 @@ class QueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a query containing one attrs parameter`() {
+    fun `it should parse a query containing one attrs parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -155,14 +150,15 @@ class QueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalQuery =
+            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(1, temporalQuery.queryParams.attrs.size)
         assertTrue(temporalQuery.queryParams.attrs.contains(OUTGOING_PROPERTY))
     }
 
     @Test
-    fun `it should parse a query containing two attrs parameter`() {
+    fun `it should parse a query containing two attrs parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -172,14 +168,15 @@ class QueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalQuery =
+            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.queryParams.attrs.size)
         assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.queryParams.attrs)
     }
 
     @Test
-    fun `it should parse a query containing no attrs parameter`() {
+    fun `it should parse a query containing no attrs parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -188,98 +185,73 @@ class QueryUtilsTests {
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalQuery =
+            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
         assertTrue(temporalQuery.queryParams.attrs.isEmpty())
     }
 
     @Test
-    fun `it should parse lastN parameter if it is a positive integer`() {
+    fun `it should parse lastN parameter if it is a positive integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.lastN)
     }
 
     @Test
-    fun `it should ignore lastN parameter if it is not an integer`() {
+    fun `it should ignore lastN parameter if it is not an integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertNull(temporalQuery.lastN)
     }
 
     @Test
-    fun `it should ignore lastN parameter if it is not a positive integer`() {
+    fun `it should ignore lastN parameter if it is not a positive integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertNull(temporalQuery.lastN)
     }
 
     @Test
-    fun `it should treat time and timerel properties as optional`() {
+    fun `it should treat time and timerel properties as optional`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertNull(temporalQuery.timeAt)
         assertNull(temporalQuery.timerel)
     }
 
     @Test
-    fun `it should parse a query containing a timeproperty parameter`() {
+    fun `it should parse a query containing a timeproperty parameter`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "createdAt")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
     }
 
     @Test
-    fun `it should set timeproperty to observedAt if no value is provided in query parameters`() {
+    fun `it should set timeproperty to observedAt if no value is provided in query parameters`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
-    }
-
-    @Test
-    fun `it should add createdAt information into an attribute`() {
-        val attrPayload = mapOf(
-            "type" to "Property",
-            "value" to 12.0
-        )
-
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), null)
-
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertFalse(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
-    }
-
-    @Test
-    fun `it should add createdAt and modifiedAt information into an attribute`() {
-        val attrPayload = mapOf(
-            "type" to "Property",
-            "value" to 12.0
-        )
-
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), ZonedDateTime.now())
-
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
     }
 }

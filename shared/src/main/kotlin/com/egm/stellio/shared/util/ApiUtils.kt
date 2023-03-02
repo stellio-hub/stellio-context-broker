@@ -44,6 +44,7 @@ const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val typesPattern: Pattern = Pattern.compile("([^(),;|]+)")
 
 /**
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
@@ -122,6 +123,13 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
+fun parseAndExpandTypesSelection(requestParam: String?, contextLink: String): String? {
+    val regex = """[\p{N}\p{L}_]+""".toRegex()
+    return requestParam?.replace(regex) {
+        JsonLdUtils.expandJsonLdTerm(it.value.trim(), contextLink)
+    }
+}
+
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {
@@ -177,7 +185,7 @@ suspend fun parseQueryParams(
     contextLink: String
 ): Either<APIException, QueryParams> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val types = parseAndExpandTypesSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
         runCatching {
             Pattern.compile(idPattern)

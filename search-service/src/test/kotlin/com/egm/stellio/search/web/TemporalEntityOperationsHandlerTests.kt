@@ -75,7 +75,7 @@ class TemporalEntityOperationsHandlerTests {
         coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
+                    types = "BeeHive,Apiary",
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 1,
                     offset = 0,
@@ -116,7 +116,7 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.queryParams.limit == 1 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == "BeeHive,Apiary" &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -137,7 +137,7 @@ class TemporalEntityOperationsHandlerTests {
         coEvery { parseQueryAndTemporalParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
-                    types = setOf("BeeHive", "Apiary"),
+                    types = "BeeHive,Apiary",
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 0,
                     offset = 1,
@@ -180,7 +180,7 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.queryParams.limit == 0 &&
                         temporalEntitiesQuery.queryParams.offset == 1 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.queryParams.types == "BeeHive,Apiary" &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count

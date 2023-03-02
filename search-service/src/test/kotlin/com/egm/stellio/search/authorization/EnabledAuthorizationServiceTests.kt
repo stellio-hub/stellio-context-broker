@@ -296,7 +296,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             QueryParams(
-                types = setOf(BEEHIVE_TYPE),
+                types = BEEHIVE_TYPE,
                 limit = 10,
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT
@@ -351,7 +351,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             QueryParams(
-                types = setOf(BEEHIVE_TYPE),
+                types = BEEHIVE_TYPE,
                 limit = 10,
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT

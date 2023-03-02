@@ -18,8 +18,7 @@ const val BEEHIVE_TYPE = "https://ontology.eglobalmark.com/apic#$BEEHIVE_COMPACT
 const val BEEKEEPER_COMPACT_TYPE = "Beekeeper"
 const val BEEKEEPER_TYPE = "https://ontology.eglobalmark.com/apic#$BEEKEEPER_COMPACT_TYPE"
 const val APIARY_COMPACT_TYPE = "Apiary"
-const val APIARY_TYPE = "https://ontology.eglobalmark.com/apic#Apiary"
-
+const val APIARY_TYPE = "https://ontology.eglobalmark.com/apic#$APIARY_COMPACT_TYPE"
 const val INCOMING_COMPACT_PROPERTY = "incoming"
 const val INCOMING_PROPERTY = "https://ontology.eglobalmark.com/apic#$INCOMING_COMPACT_PROPERTY"
 const val OUTGOING_COMPACT_PROPERTY = "outgoing"

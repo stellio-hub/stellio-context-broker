@@ -239,7 +239,7 @@ class EntityPayloadService(
             if (!queryParams.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${queryParams.idPattern}'"
             else null
-        val formattedTypes = queryParams.types?.let { buildTypesQuery(it) }
+        val formattedType = queryParams.type?.let { buildTypeQuery(it) }
         val formattedAttrs =
             if (queryParams.attrs.isNotEmpty())
                 queryParams.attrs.joinToString(
@@ -250,7 +250,7 @@ class EntityPayloadService(
             else null
 
         val queryFilter =
-            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
+            listOfNotNull(formattedIds, formattedIdPattern, formattedType, formattedAttrs, accessRightFilter())
 
         return if (queryFilter.isEmpty())
             queryFilter.joinToString(separator = " AND ")

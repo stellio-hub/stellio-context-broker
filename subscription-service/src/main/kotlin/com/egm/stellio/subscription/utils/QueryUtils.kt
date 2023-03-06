@@ -1,8 +1,10 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.util.buildQQuery
+import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.subscription.model.GeoQuery
 
 object QueryUtils {
@@ -11,6 +13,13 @@ object QueryUtils {
     private const val DISTANCE_QUERY_CLAUSE = "distance"
     private const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
     private const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
+
+    fun createTypeStatement(typesQuery: List<String>, types: List<ExpandedTerm>): String {
+        val filterTypesQuery = typesQuery.joinToString(" OR ") { buildTypeQuery(it, types) }
+        return """
+        SELECT $filterTypesQuery AS match
+        """.trimIndent()
+    }
 
     fun createQueryStatement(query: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): String {
         val filterQuery = buildQQuery(query, contexts, jsonLdEntity)

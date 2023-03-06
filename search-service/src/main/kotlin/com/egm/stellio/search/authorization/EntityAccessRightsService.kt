@@ -180,7 +180,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (!types.isNullOrEmpty()) " AND ${buildTypesQuery(types!!)}" else ""}
+                ${if (!types.isNullOrEmpty()) " AND ${buildTypeQuery(types!!)}" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
                 OFFSET :offset;
@@ -231,7 +231,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (!types.isNullOrEmpty()) " AND ${buildTypesQuery(types!!)}" else ""}
+                ${if (!types.isNullOrEmpty()) " AND ${buildTypeQuery(types!!)}" else ""}
                 """.trimIndent()
             )
             .let {

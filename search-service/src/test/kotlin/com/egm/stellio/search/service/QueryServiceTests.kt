@@ -233,7 +233,7 @@ class QueryServiceTests {
                 QueryParams(
                     offset = 2,
                     limit = 2,
-                    types = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(
@@ -251,7 +251,7 @@ class QueryServiceTests {
                 QueryParams(
                     offset = 2,
                     limit = 2,
-                    types = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     context = APIC_COMPOUND_CONTEXT
                 )
             )
@@ -267,7 +267,7 @@ class QueryServiceTests {
                 QueryParams(
                     offset = 2,
                     limit = 2,
-                    types = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 any()
@@ -306,7 +306,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 QueryParams(
-                    types = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     offset = 2,
                     limit = 2,
                     context = APIC_COMPOUND_CONTEXT

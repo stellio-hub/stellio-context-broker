@@ -34,7 +34,13 @@ class NotificationService(
         either {
             val id = ngsiLdEntity.id
             val types = ngsiLdEntity.types
-            subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
+            subscriptionService.getMatchingSubscriptions(id, updatedAttributes)
+                .filter {
+                    subscriptionService.isMatchingTypesQuery(
+                        it.entities.map { entityInfo -> entityInfo.type },
+                        types
+                    ).bind()
+                }
                 .filter {
                     subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
                 }

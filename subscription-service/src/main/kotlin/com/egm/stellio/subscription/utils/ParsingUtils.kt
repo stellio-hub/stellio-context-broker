@@ -8,8 +8,9 @@ import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.parseAndExpandTypeSelection
 import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.EntityTypeSelector
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
 
@@ -29,10 +30,10 @@ object ParsingUtils {
             e.toAPIException().left()
         }
 
-    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
-        val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        entityInfo.type = JsonLdUtils.expandJsonLdTerm(entityInfo.type, contexts!!)
-        return entityInfo
+    fun parseEntityTypeSelector(input: Map<String, Any>, contexts: List<String>): EntityTypeSelector {
+        val entityTypeSelector = mapper.convertValue(input, EntityTypeSelector::class.java)
+        entityTypeSelector.type = parseAndExpandTypeSelection(entityTypeSelector.type, contexts)!!
+        return entityTypeSelector
     }
 
     fun parseEndpointInfo(input: String?): List<EndpointInfo>? {

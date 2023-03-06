@@ -9,7 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.EntityTypeSelector
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.Subscription
@@ -24,6 +24,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
@@ -86,8 +88,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 1",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE),
-                EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE),
+                EntityTypeSelector(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
             )
         )
         subscription1Id = createSubscription(subscription)
@@ -100,8 +102,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 2",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE),
-                EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE),
+                EntityTypeSelector(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = BEEHIVE_TYPE)
             ),
             expiresAt = Instant.now().atZone(ZoneOffset.UTC).plusDays(1)
         )
@@ -115,7 +117,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 3",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = APIARY_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = APIARY_TYPE)
             ),
             isActive = false
         )
@@ -129,7 +131,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 4",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             isActive = false,
             watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
@@ -143,7 +145,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 5",
             entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
             ),
             isActive = true,
             expiresAt = null
@@ -157,7 +159,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 6",
             entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = DEVICE_TYPE)
             ),
             isActive = false,
             expiresAt = ZonedDateTime.parse("2012-08-12T08:33:38Z")
@@ -169,7 +171,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "Subscription 7",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = APIARY_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = APIARY_TYPE)
             ),
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -181,9 +183,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:88".toUri(),
-                listOf(DEVICE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(DEVICE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription).isEmpty()
     }
@@ -193,9 +199,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:77".toUri(),
-                listOf(DEVICE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(DEVICE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription).hasSize(1)
     }
@@ -205,9 +215,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEHIVE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription).hasSize(2)
     }
@@ -400,7 +414,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             createdAt = createdAt,
             entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
             )
         )
         val notifiedAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
@@ -447,9 +461,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:12345678".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEKEEPER_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription).hasSize(2)
     }
@@ -459,14 +477,19 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:9876543".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEKEEPER_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
-            .hasSize(1)
-            .element(0).matches {
-                it.subscriptionName == "Subscription 2"
+            .hasSize(2)
+            .allMatch {
+                it.subscriptionName == "Subscription 1" ||
+                    it.subscriptionName == "Subscription 2"
             }
     }
 
@@ -475,19 +498,19 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:ABCD".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEHIVE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
-            .hasSize(1)
-            .element(0).matches {
-                it.subscriptionName == "Subscription 1" &&
-                    it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD
-                ) &&
-                    it.entities.isEmpty()
+            .hasSize(2)
+            .allMatch {
+                it.subscriptionName == "Subscription 1" ||
+                    it.subscriptionName == "Subscription 2"
             }
     }
 
@@ -496,9 +519,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEHIVE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
             .hasSize(2)
@@ -509,9 +536,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(BEEHIVE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
             .hasSize(1)
@@ -522,9 +553,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Sensor:1234567890".toUri(),
-                listOf(SENSOR_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(SENSOR_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
             .isEmpty()
@@ -535,9 +570,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:77".toUri(),
-                listOf(DEVICE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(DEVICE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
             .hasSize(1)
@@ -551,9 +590,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:88".toUri(),
-                listOf(DEVICE_TYPE),
                 setOf(INCOMING_PROPERTY)
-            )
+            ).filter {
+                subscriptionService.isMatchingTypesQuery(
+                    it.entities.map { it.type },
+                    listOf(DEVICE_TYPE)
+                ).shouldSucceedAndResult()
+            }
 
         assertThat(persistedSubscription)
             .isEmpty()
@@ -564,7 +607,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "My subscription",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             watchedAttributes = null
         )
@@ -574,7 +617,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
             )
 
@@ -590,7 +632,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             val subscription = gimmeRawSubscription().copy(
                 subscriptionName = "My subscription",
                 entities = setOf(
-                    EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                    EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
                 ),
                 watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
             )
@@ -600,7 +642,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             val subscriptions =
                 subscriptionService.getMatchingSubscriptions(
                     "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                    listOf(BEEHIVE_TYPE),
                     setOf(INCOMING_PROPERTY)
                 )
 
@@ -615,7 +656,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "My subscription",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             watchedAttributes = listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
         )
@@ -625,7 +666,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscriptions =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY)
             )
 
@@ -714,14 +754,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         assertThat(subscription)
             .matches {
                 it.entities.contains(
-                    EntityInfo(
+                    EntityTypeSelector(
                         id = "urn:ngsi-ld:Beehive:123".toUri(),
                         idPattern = null,
                         type = BEEHIVE_TYPE
                     )
                 ) &&
                     it.entities.contains(
-                        EntityInfo(
+                        EntityTypeSelector(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beehive:12*",
                             type = BEEHIVE_TYPE
@@ -816,6 +856,30 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             }
     }
 
+    @ParameterizedTest
+    @CsvSource(
+        "$BEEHIVE_TYPE, $BEEHIVE_TYPE, True",
+        "'$APIARY_TYPE|$BEEKEEPER_TYPE', $APIARY_TYPE,$DEVICE_TYPE', True",
+        "'$APIARY_TYPE,$BEEKEEPER_TYPE', '$APIARY_TYPE,$BEEKEEPER_TYPE', True",
+        "$BEEKEEPER_TYPE, $DEVICE_TYPE, False",
+        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', '$APIARY_TYPE,$DEVICE_TYPE', False",
+        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', '$BEEKEEPER_TYPE,$DEVICE_TYPE', True",
+        "$SENSOR_TYPE, $BEEHIVE_TYPE, False",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$DEVICE_TYPE', True",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$APIARY_TYPE,$BEEHIVE_TYPE', True",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$BEEHIVE_TYPE', False"
+    )
+    fun `it should return result according types selection languages`(
+        typesQuery: String,
+        types: String,
+        expectedResult: Boolean
+    ) = runTest {
+        subscriptionService.isMatchingTypesQuery(
+            listOf(typesQuery),
+            types.split(",")
+        ).shouldSucceedWith { it == expectedResult }
+    }
+
     @Test
     fun `it should return true if query is null`() = runTest {
         val query = null
@@ -879,7 +943,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 500
         ).copy(
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             )
         )
 
@@ -890,7 +954,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 5000
         ).copy(
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
             )
         )
         val subscriptionId2 = createSubscription(subscription2)
@@ -914,7 +978,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 1
         ).copy(
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             )
         )
 
@@ -925,7 +989,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 5000
         ).copy(
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
             )
         )
         val subscriptionId2 = createSubscription(subscription2)

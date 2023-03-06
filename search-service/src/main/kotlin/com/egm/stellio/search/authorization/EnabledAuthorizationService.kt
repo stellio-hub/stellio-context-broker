@@ -102,7 +102,7 @@ class EnabledAuthorizationService(
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,
-            queryParams.types,
+            queryParams.type,
             queryParams.limit,
             queryParams.offset
         ).bind()
@@ -133,7 +133,7 @@ class EnabledAuthorizationService(
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
             accessRights,
-            queryParams.types
+            queryParams.type
         ).bind()
 
         Pair(count, entitiesAccessControlWithSubjectRights)

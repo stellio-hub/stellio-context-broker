@@ -3,6 +3,7 @@ package com.egm.stellio.search.support
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 
 interface WithTimescaleContainer {
@@ -23,6 +24,7 @@ interface WithTimescaleContainer {
             withEnv("POSTGRES_DBNAME", DB_NAME)
             withEnv("POSTGRES_MULTIPLE_EXTENSIONS", "postgis,timescaledb,pgcrypto")
             withExposedPorts(5432)
+            setWaitStrategy(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
         }
 
         @JvmStatic

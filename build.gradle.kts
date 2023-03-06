@@ -17,6 +17,7 @@ extra["testcontainersVersion"] = "1.17.5"
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
     java
+    `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.0.5" apply false
@@ -54,8 +55,6 @@ subprojects {
     }
 
     dependencies {
-        implementation("org.jetbrains.kotlin:kotlin-reflect")
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
         implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 

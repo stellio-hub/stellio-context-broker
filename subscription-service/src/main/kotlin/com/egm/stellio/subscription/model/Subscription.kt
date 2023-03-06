@@ -25,7 +25,7 @@ data class Subscription(
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
-    val entities: Set<EntityTypeSelector>,
+    val entities: Set<EntitySelector>,
     var watchedAttributes: List<ExpandedTerm>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
@@ -64,7 +64,7 @@ data class Subscription(
     fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities.map {
-                EntityTypeSelector(it.id, it.idPattern, compactTypeSelection(it.type, contexts))
+                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.type, contexts))
             }.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }

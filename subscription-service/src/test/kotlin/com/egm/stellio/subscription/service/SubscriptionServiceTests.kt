@@ -9,7 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityTypeSelector
+import com.egm.stellio.subscription.model.EntitySelector
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.Subscription
@@ -88,8 +88,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 1",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE),
-                EntityTypeSelector(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE),
+                EntitySelector(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
             )
         )
         subscription1Id = createSubscription(subscription)
@@ -102,8 +102,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 2",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE),
-                EntityTypeSelector(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEKEEPER_TYPE),
+                EntitySelector(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = BEEHIVE_TYPE)
             ),
             expiresAt = Instant.now().atZone(ZoneOffset.UTC).plusDays(1)
         )
@@ -117,7 +117,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 3",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = APIARY_TYPE)
+                EntitySelector(id = null, idPattern = null, type = APIARY_TYPE)
             ),
             isActive = false
         )
@@ -131,7 +131,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 4",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             isActive = false,
             watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
@@ -145,7 +145,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 5",
             entities = setOf(
-                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntitySelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
             ),
             isActive = true,
             expiresAt = null
@@ -159,7 +159,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         ).copy(
             subscriptionName = "Subscription 6",
             entities = setOf(
-                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntitySelector(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = DEVICE_TYPE)
             ),
             isActive = false,
             expiresAt = ZonedDateTime.parse("2012-08-12T08:33:38Z")
@@ -171,7 +171,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "Subscription 7",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = APIARY_TYPE)
+                EntitySelector(id = null, idPattern = null, type = APIARY_TYPE)
             ),
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
@@ -414,7 +414,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             createdAt = createdAt,
             entities = setOf(
-                EntityTypeSelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
+                EntitySelector(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
             )
         )
         val notifiedAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
@@ -607,7 +607,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "My subscription",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             watchedAttributes = null
         )
@@ -632,7 +632,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             val subscription = gimmeRawSubscription().copy(
                 subscriptionName = "My subscription",
                 entities = setOf(
-                    EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                    EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
                 ),
                 watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
             )
@@ -656,7 +656,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription().copy(
             subscriptionName = "My subscription",
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             ),
             watchedAttributes = listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
         )
@@ -754,14 +754,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         assertThat(subscription)
             .matches {
                 it.entities.contains(
-                    EntityTypeSelector(
+                    EntitySelector(
                         id = "urn:ngsi-ld:Beehive:123".toUri(),
                         idPattern = null,
                         type = BEEHIVE_TYPE
                     )
                 ) &&
                     it.entities.contains(
-                        EntityTypeSelector(
+                        EntitySelector(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beehive:12*",
                             type = BEEHIVE_TYPE
@@ -943,7 +943,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 500
         ).copy(
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             )
         )
 
@@ -954,7 +954,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 5000
         ).copy(
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
             )
         )
         val subscriptionId2 = createSubscription(subscription2)
@@ -978,7 +978,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 1
         ).copy(
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEHIVE_TYPE)
             )
         )
 
@@ -989,7 +989,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             timeInterval = 5000
         ).copy(
             entities = setOf(
-                EntityTypeSelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+                EntitySelector(id = null, idPattern = null, type = BEEKEEPER_TYPE)
             )
         )
         val subscriptionId2 = createSubscription(subscription2)

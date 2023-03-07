@@ -10,13 +10,10 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
@@ -33,7 +30,6 @@ import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.regex.Pattern
 
 @Service
 class TemporalEntityAttributeService(
@@ -342,207 +338,33 @@ class TemporalEntityAttributeService(
             .bind("attribute_name", attributeName)
             .execute()
 
-    suspend fun getForEntities(
-        queryParams: QueryParams,
-        accessRightFilter: () -> String?
-    ): List<URI> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
-            else it
-        }
-
-        val selectQuery =
-            """
-            SELECT DISTINCT(entity_payload.entity_id)
-            FROM entity_payload
-            LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
-            WHERE $filterQuery
-            ORDER BY entity_id
-            LIMIT :limit
-            OFFSET :offset   
-            """.trimIndent()
-
-        return databaseClient
-            .sql(selectQuery)
-            .bind("limit", queryParams.limit)
-            .bind("offset", queryParams.offset)
-            .allToMappedList { toUri(it["entity_id"]) }
-    }
-
     suspend fun getForTemporalEntities(
-        queryParams: QueryParams,
-        accessRightFilter: () -> String?
+        entitiesIds: List<URI>,
+        queryParams: QueryParams
     ): List<TemporalEntityAttribute> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildInnerQuery(queryParams.q!!, queryParams.context))
-            else it
-        }
-
-        val filterOnAttributesQuery = buildEntitiesQueryFilter(
-            queryParams.copy(ids = emptySet(), idPattern = null, types = emptySet()),
-            { null },
-            " AND "
-        )
-
-        val selectQuery =
-            """
-            WITH entities AS (
-                SELECT DISTINCT(tea.entity_id)
-                FROM temporal_entity_attribute tea
-                JOIN entity_payload ON tea.entity_id = entity_payload.entity_id
-                WHERE $filterQuery
-                ORDER BY entity_id
-                LIMIT :limit
-                OFFSET :offset   
-            )
-            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
-                dataset_id, payload
-            FROM temporal_entity_attribute            
-            WHERE entity_id IN (SELECT entity_id FROM entities) 
-            $filterOnAttributesQuery
-            ORDER BY entity_id
-            """.trimIndent()
-
-        return databaseClient
-            .sql(selectQuery)
-            .bind("limit", queryParams.limit)
-            .bind("offset", queryParams.offset)
-            .allToMappedList { rowToTemporalEntityAttribute(it) }
-    }
-
-    suspend fun getCountForEntities(
-        queryParams: QueryParams,
-        accessRightFilter: () -> String?
-    ): Either<APIException, Int> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.plus(" AND (").plus(buildInnerQuery(queryParams.q!!, queryParams.context)).plus(")")
-            else it
-        }
-
-        val countQuery =
-            """
-            SELECT count(distinct(entity_payload.entity_id)) as count_entity
-            FROM entity_payload
-            LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
-            WHERE $filterQuery
-            """.trimIndent()
-
-        return databaseClient
-            .sql(countQuery)
-            .oneToResult { it["count_entity"] as Long }
-            .map { it.toInt() }
-    }
-
-    fun buildEntitiesQueryFilter(
-        queryParams: QueryParams,
-        accessRightFilter: () -> String?,
-        prefix: String = ""
-    ): String {
-        val formattedIds =
-            if (queryParams.ids.isNotEmpty())
-                queryParams.ids.joinToString(
-                    separator = ",",
-                    prefix = "entity_payload.entity_id in(",
-                    postfix = ")"
-                ) { "'$it'" }
-            else null
-        val formattedIdPattern =
-            if (!queryParams.idPattern.isNullOrEmpty())
-                "entity_payload.entity_id ~ '${queryParams.idPattern}'"
-            else null
-        val formattedTypes =
-            if (queryParams.types.isNotEmpty())
-                queryParams.types.joinToString(
-                    separator = ",",
-                    prefix = "entity_payload.types && ARRAY[",
-                    postfix = "]"
-                ) { "'$it'" }
-            else null
-        val formattedAttrs =
+        val filterOnAttributes =
             if (queryParams.attrs.isNotEmpty())
-                queryParams.attrs.joinToString(
+                " AND " + queryParams.attrs.joinToString(
                     separator = ",",
                     prefix = "attribute_name in (",
                     postfix = ")"
                 ) { "'$it'" }
-            else null
+            else ""
 
-        val queryFilter =
-            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
-
-        return if (queryFilter.isEmpty())
-            queryFilter.joinToString(separator = " AND ")
-        else
-            queryFilter.joinToString(separator = " AND ", prefix = prefix)
-    }
-
-    private val innerRegexPattern: Pattern = Pattern.compile(".*(=~\"\\(\\?i\\)).*")
-
-    private fun buildInnerQuery(rawQuery: String, context: String): String {
-        // Quick hack to allow inline options for regex expressions
-        // (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
-        // When matched, parenthesis are replaced by special characters that are later restored after the main
-        // qPattern regex has been processed
-        val rawQueryWithPatternEscaped =
-            if (rawQuery.matches(innerRegexPattern.toRegex())) {
-                rawQuery.replace(innerRegexPattern.toRegex()) { matchResult ->
-                    matchResult.value
-                        .replace("(", "##")
-                        .replace(")", "//")
-                }
-            } else rawQuery
-
-        return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
-            // restoring the eventual inline options for regex expressions (replaced above)
-            val fixedValue = matchResult.value
-                .replace("##", "(")
-                .replace("//", ")")
-            val query = extractComparisonParametersFromQuery(fixedValue)
-            val targetValue = query.third.prepareDateValue(query.second)
+        val selectQuery =
             """
-            EXISTS(
-               SELECT 1
-               FROM temporal_entity_attribute
-               WHERE tea.entity_id = temporal_entity_attribute.entity_id
-               AND (attribute_name = '${expandJsonLdTerm(query.first, listOf(context))}'
-                    AND CASE 
-                        WHEN attribute_type = 'Property' AND attribute_value_type IN ('DATETIME', 'DATE', 'TIME') THEN
-                            CASE 
-                                WHEN '${query.second}' != 'like_regex' THEN
-                                    jsonb_path_exists(temporal_entity_attribute.payload,
-                                        '$."$NGSILD_PROPERTY_VALUE" ? 
-                                            (@."$JSONLD_VALUE_KW".datetime($DATETIME_TEMPLATE) ${query.second} $targetValue)')
-                            END
-                        WHEN attribute_type = 'Property' THEN
-                            jsonb_path_exists(temporal_entity_attribute.payload,
-                                '$."$NGSILD_PROPERTY_VALUE" ? 
-                                    (@."$JSONLD_VALUE_KW" ${query.second} $targetValue)')
-                        WHEN attribute_type = 'Relationship' THEN
-                            jsonb_path_exists(temporal_entity_attribute.payload,
-                                '$."$NGSILD_RELATIONSHIP_HAS_OBJECT" ? 
-                                    (@."$JSONLD_ID" ${query.second} $targetValue)')
-                        END
-                        
-               )
-            )
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
+                dataset_id, payload
+            FROM temporal_entity_attribute            
+            WHERE entity_id IN (:entities_ids) 
+            $filterOnAttributes
+            ORDER BY entity_id
             """.trimIndent()
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entities_ids", entitiesIds)
+            .allToMappedList { rowToTemporalEntityAttribute(it) }
     }
 
     suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {

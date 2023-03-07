@@ -19,12 +19,12 @@ plugins {
     java
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.0.3" apply false
+    id("org.springframework.boot") version "3.0.4" apply false
     id("io.spring.dependency-management") version "1.1.0" apply false
     id("org.graalvm.buildtools.native") version "0.9.20"
     kotlin("jvm") version "1.8.10" apply false
     kotlin("plugin.spring") version "1.8.10" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "11.2.0"
+    id("org.jlleitschuh.gradle.ktlint") version "11.3.1"
     id("com.google.cloud.tools.jib") version "3.3.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
     id("org.sonarqube") version "4.0.0.2929"
@@ -84,7 +84,7 @@ subprojects {
             // to ensure we are using mocks and spies from springmockk (and not from Mockito)
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:4.0.0")
+        testImplementation("com.ninja-squad:springmockk:4.0.1")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")

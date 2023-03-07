@@ -34,11 +34,11 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<JsonLdEntity>, Int>> =
         either {
-            val entitiesIds = temporalEntityAttributeService.getForEntities(
+            val entitiesIds = entityPayloadService.queryEntities(
                 queryParams,
                 accessRightFilter
             )
-            val count = temporalEntityAttributeService.getCountForEntities(
+            val count = entityPayloadService.queryEntitiesCount(
                 queryParams,
                 accessRightFilter
             ).bind()
@@ -95,9 +95,10 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
+            val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
             val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
-                temporalEntitiesQuery.queryParams,
-                accessRightFilter
+                entitiesIds,
+                temporalEntitiesQuery.queryParams
             )
 
             val temporalEntityAttributesWithMatchingInstances =
@@ -127,7 +128,7 @@ class QueryService(
                     // since we are now iterating over the map of TEAs with their instances
                     .sortedBy { it.first.entityId }
 
-            val count = temporalEntityAttributeService.getCountForEntities(
+            val count = entityPayloadService.queryEntitiesCount(
                 temporalEntitiesQuery.queryParams,
                 accessRightFilter
             ).getOrElse { 0 }

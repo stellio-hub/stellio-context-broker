@@ -44,11 +44,11 @@ class EntityAccessControlHandler(
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
 
-            val queryParams = parseAndCheckParams(
+            val queryParams = parseQueryParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
                 params,
                 contextLink
-            )
+            ).bind()
 
             if (!queryParams.attrs.all { ALL_IAM_RIGHTS.contains(it) })
                 BadRequestDataException(
@@ -97,11 +97,11 @@ class EntityAccessControlHandler(
         return either<APIException, ResponseEntity<*>> {
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
             val mediaType = getApplicableMediaType(httpHeaders)
-            val queryParams = parseAndCheckParams(
+            val queryParams = parseQueryParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
                 params,
                 contextLink
-            )
+            ).bind()
 
             val countAndGroupEntities =
                 authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, sub).bind()

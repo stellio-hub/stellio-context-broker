@@ -556,27 +556,17 @@ class SubscriptionService(
             .allToMappedList { rowToRawSubscription(it) }
     }
 
-    suspend fun isMatchingQuery(
+    suspend fun isMatchingQQuery(
         query: String?,
         jsonLdEntity: JsonLdEntity,
         contexts: List<String>
-    ): Either<APIException, Boolean> {
-        // TODO Add support for REGEX
-        return if (query == null)
-            true.right()
-        else {
-            runQuery(query, jsonLdEntity, contexts)
-        }
-    }
-
-    suspend fun runQuery(
-        query: String,
-        jsonLdEntity: JsonLdEntity,
-        contexts: List<String>
     ): Either<APIException, Boolean> =
-        databaseClient
-            .sql(createQueryStatement(query, jsonLdEntity, contexts))
-            .oneToResult { toBoolean(it["match"]) }
+        if (query == null)
+            true.right()
+        else
+            databaseClient
+                .sql(createQueryStatement(query, jsonLdEntity, contexts))
+                .oneToResult { toBoolean(it["match"]) }
 
     suspend fun isMatchingGeoQuery(
         subscriptionId: URI,

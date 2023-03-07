@@ -1,8 +1,10 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -126,21 +128,25 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
             JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
         }.toSet()
 
-fun extractAndValidatePaginationParameters(
+fun parsePaginationParameters(
     queryParams: MultiValueMap<String, String>,
     limitDefault: Int,
     limitMax: Int,
     isAskingForCount: Boolean = false
-): Pair<Int, Int> {
+): Either<APIException, Pair<Int, Int>> {
     val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
     val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: limitDefault
     if (!isAskingForCount && (limit <= 0 || offset < 0))
-        throw BadRequestDataException("Offset must be greater than zero and limit must be strictly greater than zero")
+        return BadRequestDataException(
+            "Offset must be greater than zero and limit must be strictly greater than zero"
+        ).left()
     if (isAskingForCount && (limit < 0 || offset < 0))
-        throw BadRequestDataException("Offset and limit must be greater than zero")
+        return BadRequestDataException("Offset and limit must be greater than zero").left()
     if (limit > limitMax)
-        throw BadRequestDataException("You asked for $limit results, but the supported maximum limit is $limitMax")
-    return Pair(offset, limit)
+        return BadRequestDataException(
+            "You asked for $limit results, but the supported maximum limit is $limitMax"
+        ).left()
+    return Pair(offset, limit).right()
 }
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
@@ -165,18 +171,18 @@ fun List<MediaType>.getApplicable(): MediaType {
         JSON_LD_MEDIA_TYPE
 }
 
-fun parseAndCheckParams(
+suspend fun parseQueryParams(
     pagination: Pair<Int, Int>,
     requestParams: MultiValueMap<String, String>,
     contextLink: String
-): QueryParams {
+): Either<APIException, QueryParams> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
         runCatching {
             Pattern.compile(idPattern)
         }.onFailure {
-            throw BadRequestDataException("Invalid value for idPattern: $idPattern ($it)")
+            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
         }
     }
 
@@ -191,16 +197,16 @@ fun parseAndCheckParams(
         .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
     val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
         .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
-    val (offset, limit) = extractAndValidatePaginationParameters(
+    val (offset, limit) = parsePaginationParameters(
         requestParams,
         pagination.first,
         pagination.second,
         count
-    )
+    ).bind()
 
-    val geoQuery = parseAndCheckGeoQuery(requestParams, contextLink)
+    val geoQuery = parseGeoQueryParameters(requestParams, contextLink).bind()
 
-    return QueryParams(
+    QueryParams(
         ids = ids,
         types = types,
         idPattern = idPattern,

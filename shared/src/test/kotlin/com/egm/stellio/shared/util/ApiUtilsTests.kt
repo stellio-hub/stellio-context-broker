@@ -4,6 +4,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -15,6 +17,7 @@ import org.springframework.util.LinkedMultiValueMap
 import java.net.URI
 import java.util.Optional
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class ApiUtilsTests {
     private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(
@@ -143,9 +146,9 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should parse query parameters`() {
+    fun `it should parse query parameters`() = runTest {
         val requestParams = gimmeFullParamsMap()
-        val queryParams = parseAndCheckParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT)
+        val queryParams = parseQueryParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE), queryParams.types)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), queryParams.attrs)
@@ -163,27 +166,27 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() {
+    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("options", "sysAttrs")
-        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(true, queryParams.includeSysAttrs)
     }
 
     @Test
-    fun `it should decode q in query parameters`() {
+    fun `it should decode q in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
-        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         assertEquals("speed>50;foodName==dietary fibres", queryParams.q)
     }
 
     @Test
-    fun `it should set default values in query parameters`() {
+    fun `it should set default values in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
-        val queryParams = parseAndCheckParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT)
+        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(emptySet<String>(), queryParams.types)
         assertEquals(emptySet<String>(), queryParams.attrs)

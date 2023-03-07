@@ -83,11 +83,11 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val queryParams = parseAndCheckParams(
+            val queryParams = parseQueryParams(
                 Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
                 params,
                 contextLink
-            )
+            ).bind()
             val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
                 .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
             val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()

@@ -30,7 +30,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
@@ -1090,6 +1092,128 @@ class TemporalEntityHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(entityUri)
+            authorizationService.userCanAdminEntity(eq(entityUri), eq(sub))
+            entityPayloadService.deleteEntityPayload(eq(entityUri))
+            authorizationService.removeRightsOnEntity(eq(entityUri))
+        }
+    }
+
+    @Test
+    fun `delete temporal entity should return a 404 if entity to be deleted has not been found`() {
+        coEvery {
+            entityPayloadService.checkEntityExistence(entityUri)
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title":"The referred resource has not been found",
+                  "detail":"${entityNotFoundMessage(entityUri.toString())}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 404 if entity to be deleted has not been validated`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/beehive")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                  "title":"The request includes input data which does not meet the requirements of the operation",
+                  "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 404 if entity to be deleted has not been informed`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                  "title":"The request includes input data which does not meet the requirements of the operation",
+                  "detail":"Missing entity id when trying to delete temporal entity"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 500 if entity could not be deleted`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteEntityPayload(any())
+        } throws RuntimeException("Unexpected server error")
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json(
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title":"There has been an error during the operation execution",
+                      "detail":"java.lang.RuntimeException: Unexpected server error"
+                    }
+                    """
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 403 is user is not authorized to delete an entity`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanAdminEntity(entityUri, sub)
+        } returns AccessDeniedException("User forbidden admin access to entity $entityUri").left()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden admin access to entity $entityUri"
                 }
                 """.trimIndent()
             )

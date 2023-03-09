@@ -216,6 +216,33 @@ class TemporalEntityHandler(
     }
 
     /**
+     * Implements 6.19.3.2  - Delete Temporal Representation of an Entity
+     */
+    @DeleteMapping("/{entityId}")
+    suspend fun deleteTemporalEntity(
+        @PathVariable entityId: String
+    ): ResponseEntity<*> {
+        val entityUri = entityId.toUri()
+        val sub = getSubFromSecurityContext()
+
+        return either<APIException, ResponseEntity<*>> {
+            entityPayloadService.checkEntityExistence(entityUri).bind()
+            authorizationService.userCanAdminEntity(entityUri, sub).bind()
+            entityPayloadService.deleteEntityPayload(entityUri).bind()
+            authorizationService.removeRightsOnEntity(entityUri).bind()
+
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
+
+    @DeleteMapping("/", "")
+    suspend fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to delete temporal entity")
+
+    /**
      * Implements 6.22.3.2 - Delete Attribute instance from Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}/{instanceId}")

@@ -1140,7 +1140,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `delete temporal entity should return a 400 if the entity_id parameter is not valid`() {
+    fun `delete temporal entity should return a 400 if the provided id is not a valid URI`() {
         webClient.delete()
             .uri("/ngsi-ld/v1/temporal/entities/beehive")
             .exchange()
@@ -1157,7 +1157,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `delete temporal entity should return a 400 if the entity_id parameter is missing`() {
+    fun `delete temporal entity should return a 400 if entity id is missing`() {
         webClient.delete()
             .uri("/ngsi-ld/v1/temporal/entities/")
             .exchange()

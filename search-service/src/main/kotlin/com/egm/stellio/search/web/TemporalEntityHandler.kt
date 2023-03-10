@@ -243,6 +243,51 @@ class TemporalEntityHandler(
         missingPathErrorResponse("Missing entity id when trying to delete temporal entity")
 
     /**
+     * Implements 6.21.3.1 - Delete Attribute from Temporal Representation of an Entity
+     */
+    @DeleteMapping("/{entityId}/attrs/{attrId}")
+    suspend fun deleteAttributeTemporal(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        val entityUri = entityId.toUri()
+        val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
+        val datasetId = params.getFirst("datasetId")?.toUri()
+
+        return either<APIException, ResponseEntity<*>> {
+            val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
+
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(
+                entityUri,
+                expandedAttrId,
+                datasetId
+            ).bind()
+
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+            entityPayloadService.deleteAttribute(
+                entityUri,
+                expandedAttrId,
+                datasetId,
+                deleteAll
+            ).bind()
+
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
+
+    @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
+    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute temporal")
+
+    /**
      * Implements 6.22.3.2 - Delete Attribute instance from Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}/{instanceId}")

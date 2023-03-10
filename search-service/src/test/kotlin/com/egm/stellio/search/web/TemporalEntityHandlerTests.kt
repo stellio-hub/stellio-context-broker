@@ -1131,9 +1131,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                  "title":"The referred resource has not been found",
-                  "detail":"${entityNotFoundMessage(entityUri.toString())}"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """.trimIndent()
             )
@@ -1148,9 +1148,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title":"The request includes input data which does not meet the requirements of the operation",
-                  "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
                 }
                 """.trimIndent()
             )
@@ -1165,9 +1165,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title":"The request includes input data which does not meet the requirements of the operation",
-                  "detail":"Missing entity id when trying to delete temporal entity"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id when trying to delete temporal entity"
                 }
                 """.trimIndent()
             )
@@ -1188,9 +1188,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                      "title":"There has been an error during the operation execution",
-                      "detail":"java.lang.RuntimeException: Unexpected server error"
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                        "title":"There has been an error during the operation execution",
+                        "detail":"java.lang.RuntimeException: Unexpected server error"
                     }
                     """
             )
@@ -1314,9 +1314,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BeeHive:TESTC was not found\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                }
+                """.trimIndent()
             )
     }
 
@@ -1335,9 +1339,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Attribute Not Found\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Attribute Not Found"
+                }
+                """.trimIndent()
             )
     }
 
@@ -1358,9 +1366,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title": "The request includes input data which does not meet the requirements of the operation",
-                  "detail": "Something is wrong with the request"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "The request includes input data which does not meet the requirements of the operation",
+                    "detail": "Something is wrong with the request"
                 }
                 """.trimIndent()
             )
@@ -1375,9 +1383,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title":"The request includes input data which does not meet the requirements of the operation",
-                  "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
                 }
                 """.trimIndent()
             )
@@ -1392,9 +1400,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title":"The request includes input data which does not meet the requirements of the operation",
-                  "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
                 }
                 """.trimIndent()
             )
@@ -1409,9 +1417,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title":"The request includes input data which does not meet the requirements of the operation",
-                  "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
                 }
                 """.trimIndent()
             )

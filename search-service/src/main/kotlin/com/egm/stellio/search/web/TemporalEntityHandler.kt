@@ -141,6 +141,10 @@ class TemporalEntityHandler(
         )
     }
 
+    @PostMapping("/attrs")
+    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to append attribute")
+
     /**
      * Partial implementation of 6.18.3.2 - Query Temporal Evolution of Entities
      */
@@ -302,6 +306,7 @@ class TemporalEntityHandler(
             val entityUri = entityId.toUri()
             val instanceUri = instanceId.toUri()
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+            attrId.checkNameIsNgsiLdSupported().bind()
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
             entityPayloadService.checkEntityExistence(entityUri).bind()
@@ -316,4 +321,10 @@ class TemporalEntityHandler(
             { it }
         )
     }
+
+    @DeleteMapping("/attrs/{attrId}/{instanceId}")
+    suspend fun handleMissingEntityIdOrAttrOnDeleteAttrInstance(): ResponseEntity<*> =
+        missingPathErrorResponse(
+            "Missing entity, attribute or instance id when trying to delete an attribute instance"
+        )
 }

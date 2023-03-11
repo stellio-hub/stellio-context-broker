@@ -263,6 +263,7 @@ class TemporalEntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+            attrId.checkNameIsNgsiLdSupported().bind()
             val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(

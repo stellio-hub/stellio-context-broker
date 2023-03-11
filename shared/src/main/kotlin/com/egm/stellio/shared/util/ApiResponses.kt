@@ -32,6 +32,9 @@ fun attributeOrInstanceNotFoundMessage(
     instanceId: String
 ) = "Instance $instanceId does not exist or attribute $attributeName was not found"
 
+fun invalidCharacterInName(name: String) =
+    "The following NGSI-LD element has invalid characters (4.6.2): $name"
+
 fun invalidTemporalInstanceMessage() =
     "One attribute instance is missing the required $NGSILD_OBSERVED_AT_PROPERTY temporal property"
 

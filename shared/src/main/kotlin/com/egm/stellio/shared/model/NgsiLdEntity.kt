@@ -1,7 +1,9 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.AttributeType
-import com.egm.stellio.shared.util.JsonLdUtils
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -20,8 +22,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -383,8 +383,12 @@ fun parseAttributesInstancesToNgsiLdAttributes(
         }
     }
 
-fun String.isNgsiLdSupportedName() =
+fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
+
+fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
+    if (this.isNgsiLdSupportedName()) Unit.right()
+    else BadRequestDataException(invalidCharacterInName(this)).left()
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.members, this.contexts)

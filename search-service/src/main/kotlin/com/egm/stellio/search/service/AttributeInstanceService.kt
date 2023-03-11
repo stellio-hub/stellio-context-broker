@@ -178,9 +178,9 @@ class AttributeInstanceService(
         }
 
         if (temporalEntitiesQuery.withAggregatedValues)
-            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin ORDER BY origin DESC")
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin ORDER BY origin ASC")
         else
-            sqlQueryBuilder.append(" ORDER BY time DESC")
+            sqlQueryBuilder.append(" ORDER BY time ASC")
 
         if (temporalQuery.lastN != null)
             sqlQueryBuilder.append(" LIMIT ${temporalQuery.lastN}")

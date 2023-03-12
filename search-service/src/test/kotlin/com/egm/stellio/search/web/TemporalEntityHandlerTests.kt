@@ -170,15 +170,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle an attribute with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -189,18 +183,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                eq(INCOMING_PROPERTY)
-            )
-        }
-        coVerify {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                eq(INCOMING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 1
+                },
+                any()
             )
         }
     }
@@ -209,15 +197,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle an attribute with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -228,18 +210,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                eq(INCOMING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 2) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                eq(INCOMING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 1
+                },
+                any()
             )
         }
     }
@@ -248,15 +224,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle many attributes with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -266,19 +236,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 2) {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+        coVerify {
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 2) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 2
+                },
+                any()
             )
         }
     }
@@ -287,15 +251,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle many attributes with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -305,19 +263,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 4) {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+        coVerify {
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 4) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 2
+                },
+                any()
             )
         }
     }

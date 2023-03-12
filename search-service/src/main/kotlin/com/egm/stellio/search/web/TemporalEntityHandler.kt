@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
@@ -108,31 +107,19 @@ class TemporalEntityHandler(
             val entityUri = entityId.toUri()
 
             entityPayloadService.checkEntityExistence(entityUri).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
             val body = requestBody.awaitFirst().deserializeAsMap()
             val contexts = checkAndGetContext(httpHeaders, body)
-            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+            val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
+            jsonLdInstances.checkValidity().bind()
+            val sortedJsonLdInstances = jsonLdInstances.sorted()
 
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-
-            jsonLdAttributes
-                .forEach { attributeEntry ->
-                    val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
-                    attributeInstances.forEach { attributeInstance ->
-                        val datasetId = attributeInstance.getDatasetId()
-                        val temporalEntityAttribute = temporalEntityAttributeService.getForEntityAndAttribute(
-                            entityId.toUri(),
-                            attributeEntry.key,
-                            datasetId
-                        ).bind()
-
-                        attributeInstanceService.addAttributeInstance(
-                            temporalEntityAttribute.id,
-                            attributeEntry.key,
-                            attributeInstance
-                        ).bind()
-                    }
-                }
+            entityPayloadService.upsertAttributes(
+                entityUri,
+                sortedJsonLdInstances,
+                sub.orNull()
+            ).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(

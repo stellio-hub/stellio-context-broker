@@ -169,6 +169,7 @@ class QueryService(
                     tea.id == attributeInstanceResult.temporalEntityAttribute
                 }!!
             }
+            .mapValues { it.value.sorted() }
     }
 
     private fun fillWithTEAWithoutInstances(

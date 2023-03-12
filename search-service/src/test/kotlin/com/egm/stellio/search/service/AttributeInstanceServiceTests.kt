@@ -262,35 +262,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only return the last n aggregates asked in the temporal query`() = runTest {
-        (1..10).forEachIndexed { index, _ ->
-            val attributeInstance =
-                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
-                    .copy(
-                        measuredValue = 1.0,
-                        time = now.minusHours(index.toLong())
-                    )
-            attributeInstanceService.create(attributeInstance)
-        }
-
-        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
-                timeAt = now.minusHours(12),
-                aggrPeriodDuration = "PT2H",
-                aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
-                lastN = 3
-            ),
-            withAggregatedValues = true
-        )
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-            .shouldSucceedWith {
-                assertThat(it)
-                    .hasSize(3)
-            }
-    }
-
-    @Test
     fun `it should set the start time to the timeAt value if asking for an after timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =

@@ -134,9 +134,6 @@ class AttributeInstanceService(
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
 
-        val temporalEntityAttributesIds =
-            temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
-
         // time_bucket has a default origin set to 2000-01-03
         // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
         // so we force the default origin to:
@@ -144,7 +141,7 @@ class AttributeInstanceService(
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
         val origin =
             if (temporalEntitiesQuery.withAggregatedValues)
-                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributesIds)
+                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributes)
             else null
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, origin))
@@ -156,14 +153,14 @@ class AttributeInstanceService(
             sqlQueryBuilder.append(
                 """
                 FROM attribute_instance
-                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                WHERE temporal_entity_attribute = teas.id
                 """
             )
         else
             sqlQueryBuilder.append(
                 """
                 FROM attribute_instance_audit
-                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                WHERE temporal_entity_attribute = teas.id
                 AND time_property = '${temporalQuery.timeproperty.name}'
                 """
             )
@@ -178,22 +175,39 @@ class AttributeInstanceService(
         }
 
         if (temporalEntitiesQuery.withAggregatedValues)
-            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin ORDER BY origin ASC")
-        else
-            sqlQueryBuilder.append(" ORDER BY time ASC")
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin")
+        else if (temporalQuery.lastN != null)
+        // in order to get last instances, need to order by time desc
+        // final ascending ordering of instances is done in query service
+            sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
 
-        if (temporalQuery.lastN != null)
-            sqlQueryBuilder.append(" LIMIT ${temporalQuery.lastN}")
+        val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 
-        return databaseClient.sql(sqlQueryBuilder.toString())
+        return databaseClient.sql(finalTemporalQuery)
             .runCatching {
-                this.allToMappedList {
-                    rowToAttributeInstanceResult(it, temporalEntitiesQuery)
-                }
+                this.allToMappedList { rowToAttributeInstanceResult(it, temporalEntitiesQuery) }
             }.fold(
                 { it.right() },
                 { OperationNotSupportedException(INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE).left() }
             )
+    }
+
+    private fun composeFinalTemporalQuery(
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        aiLateralQuery: String
+    ): String {
+        val temporalEntityAttributesIds = temporalEntityAttributes.joinToString(",") { "('${it.id}'::uuid)" }
+
+        return """
+        SELECT ai_limited.*
+        FROM (
+            SELECT distinct(id)
+            FROM (VALUES $temporalEntityAttributesIds) as t (id)
+        ) teas
+        JOIN LATERAL (
+            $aiLateralQuery
+        ) ai_limited ON true;
+        """.trimIndent()
     }
 
     private fun composeSearchSelectStatement(
@@ -230,8 +244,9 @@ class AttributeInstanceService(
 
     suspend fun selectOldestDate(
         temporalQuery: TemporalQuery,
-        temporalEntityAttributesIds: String
+        temporalEntityAttributes: List<TemporalEntityAttribute>
     ): ZonedDateTime? {
+        val temporalEntityAttributesIds = temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
         var selectQuery =
             """
             SELECT min(time) as first

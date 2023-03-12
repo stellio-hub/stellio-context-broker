@@ -86,7 +86,7 @@ fun buildTemporalQuery(
 
     val aggregate = aggrMethodsParam?.split(",")?.map {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
-            TemporalQuery.Aggregate.valueOf(it)
+            TemporalQuery.Aggregate.forMethod(it)!!
         else
             return BadRequestDataException(
                 "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"

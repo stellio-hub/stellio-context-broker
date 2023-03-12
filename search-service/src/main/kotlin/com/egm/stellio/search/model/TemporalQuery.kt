@@ -29,10 +29,10 @@ data class TemporalQuery(
 
         companion object {
             fun isSupportedAggregate(method: String): Boolean =
-                values().toList().any { it.method == method }
+                values().any { it.method == method }
 
             fun forMethod(method: String): Aggregate? =
-                Aggregate.values().find { it.method == method }
+                values().find { it.method == method }
         }
     }
 }

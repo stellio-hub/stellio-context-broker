@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,8 +20,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -657,6 +657,44 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", it.message)
         }
+    }
+
+    @Test
+    fun `it should modify attribute instance`() = runTest {
+        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+        attributeInstanceService.create(attributeInstance)
+        attributeInstanceService.create(
+            attributeInstance.copy(timeProperty = AttributeInstance.TemporalProperty.CREATED_AT)
+        )
+
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+            )
+        )
+        val oldInstanceResult =
+            attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+                .shouldSucceedAndResult()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_PROPERTY,
+            attributeInstance.instanceId,
+            JsonLdUtils.expandJsonLdFragment(
+                instanceTemporalFragment.deserializeAsMap(),
+                DEFAULT_CONTEXTS
+            ) as Map<String, List<Any>>
+        ).shouldSucceedAndResult()
+
+        val newInstanceResult =
+            attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+                .shouldSucceedAndResult()
+
+        assertNotEquals(oldInstanceResult, newInstanceResult)
     }
 
     @Test

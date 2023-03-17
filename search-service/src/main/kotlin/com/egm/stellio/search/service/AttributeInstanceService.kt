@@ -1,6 +1,8 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
+import arrow.core.computations.ResultEffect.bind
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import arrow.fx.coroutines.parTraverseEither
@@ -9,11 +11,16 @@ import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateR
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -307,6 +314,110 @@ class AttributeInstanceService(
             timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
+    }
+
+    private suspend fun retrieveTeaUUID(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        instanceId: URI
+    ): Either<APIException, UUID> {
+        val modifiedQuery =
+            """
+            SELECT temporal_entity_attribute
+            FROM attribute_instance
+            WHERE temporal_entity_attribute = ( 
+                SELECT id 
+                FROM temporal_entity_attribute 
+                WHERE entity_id = :entity_id 
+                AND attribute_name = :attribute_name
+            )
+            AND instance_id = :instance_id
+            """.trimIndent()
+
+        return databaseClient
+            .sql(modifiedQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .bind("instance_id", instanceId)
+            .oneToResult(
+                ResourceNotFoundException(
+                    attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                )
+            ) {
+                it["temporal_entity_attribute"] as UUID
+            }
+    }
+
+    @Transactional
+    suspend fun modifyAttributeInstance(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        instanceId: URI,
+        expandedPayload: Map<String, List<Any>>
+    ): Either<APIException, Unit> = either {
+        val teaUUID = retrieveTeaUUID(entityId, attributeName, instanceId).bind()
+        val payload = expandedPayload.plus(
+            NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedProperty(instanceId.toString())
+        )
+        val measuredValue = valueToDoubleOrNull(
+            (expandedPayload[NGSILD_PROPERTY_VALUE] as List<Map<String, String>>).first()[JSONLD_VALUE_KW]!!
+        )!!
+        val newInstance = AttributeInstance(
+            time = getPropertyValueFromMapAsDateTime(expandedPayload, NGSILD_OBSERVED_AT_PROPERTY)!!,
+            measuredValue = measuredValue,
+            payload = payload,
+            instanceId = instanceId,
+            temporalEntityAttribute = teaUUID,
+            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+
+        )
+        deleteInstance(entityId, attributeName, instanceId).bind()
+        create(newInstance).bind()
+        updateAttributeInstancePayload(
+            entityId,
+            attributeName,
+            instanceId,
+            measuredValue,
+            Json.of(JsonUtils.serializeObject(payload))
+        ).bind()
+    }
+
+    @Transactional
+    suspend fun updateAttributeInstancePayload(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        instanceId: URI,
+        measuredValue: Double,
+        payload: Json
+    ): Either<APIException, Unit> {
+        val updateQuery =
+            """
+            UPDATE attribute_instance_audit
+            SET payload = :payload,
+                measured_value = :measured_value
+            WHERE temporal_entity_attribute = any( 
+                SELECT id 
+                FROM temporal_entity_attribute 
+                WHERE entity_id = :entity_id 
+                AND attribute_name = :attribute_name
+            )
+            AND instance_id = :instance_id
+            """.trimIndent()
+
+        return databaseClient
+            .sql(updateQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .bind("instance_id", instanceId)
+            .bind("measured_value", measuredValue)
+            .bind("payload", payload)
+            .executeExpected {
+                if (it == 0L)
+                    ResourceNotFoundException(
+                        attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                    ).left()
+                else Unit.right()
+            }
     }
 
     @Transactional

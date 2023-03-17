@@ -19,6 +19,8 @@ import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -1069,6 +1071,133 @@ class TemporalEntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `modify attribute instance should return a 204 if an instance has been successfully modified`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
+        coVerify {
+            attributeInstanceService.modifyAttributeInstance(
+                entityUri,
+                TEMPERATURE_PROPERTY,
+                attributeInstanceId,
+                expandJsonLdFragment(
+                    instanceTemporalFragment.deserializeAsMap(),
+                    DEFAULT_CONTEXTS
+                ) as Map<String, List<Any>>
+            )
+        }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 403 is user is not authorized to update an entity `() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(any(), sub)
+        } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity $entityUri"
+                }
+                """.trimIndent()
+            )
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 404 if entity to be update has not been found`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery {
+            entityPayloadService.checkEntityExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                }
+                """.trimIndent()
+            )
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any())
+        } returns ResourceNotFoundException(
+            attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())
+        ).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "detail":"${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found"
+                }
+                """.trimIndent()
+            )
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
     }
 
     @Test

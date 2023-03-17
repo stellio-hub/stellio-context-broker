@@ -199,6 +199,53 @@ class TemporalEntityHandler(
     )
 
     /**
+     * Implements 6.22.3.1 - Modify Attribute Instance in Temporal Representation of Entity
+     *
+     */
+    @PatchMapping(
+        "/{entityId}/attrs/{attrId}/{instanceId}",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
+    suspend fun modifyAttributeInstanceTemporal(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @PathVariable instanceId: String,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        return either<APIException, ResponseEntity<*>> {
+            val sub = getSubFromSecurityContext()
+            val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+
+            val entityUri = entityId.toUri()
+            val instanceUri = instanceId.toUri()
+            attrId.checkNameIsNgsiLdSupported().bind()
+            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
+
+            entityPayloadService.checkEntityExistence(entityUri).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val expandedPayload = expandJsonLdFragment(
+                JsonLdUtils.removeContextFromInput(body),
+                contexts
+            )
+
+            attributeInstanceService.modifyAttributeInstance(
+                entityUri,
+                expandedAttrId,
+                instanceUri,
+                expandedPayload as Map<String, List<Any>>
+            ).bind()
+
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
+    }
+
+    /**
      * Implements 6.19.3.2  - Delete Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}")

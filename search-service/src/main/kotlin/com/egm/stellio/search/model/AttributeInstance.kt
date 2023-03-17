@@ -13,7 +13,7 @@ import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
-data class AttributeInstance private constructor(
+data class AttributeInstance constructor(
     val temporalEntityAttribute: UUID,
     val instanceId: URI,
     val timeProperty: TemporalProperty,

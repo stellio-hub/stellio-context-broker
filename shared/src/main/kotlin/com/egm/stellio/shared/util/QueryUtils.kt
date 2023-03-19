@@ -44,14 +44,8 @@ fun String.prepareDateValue() =
     else
         this
 
-fun String.replaceSimpleQuote() =
-    replace("'", "\"")
-
 fun String.quote(): String =
     "\"".plus(this).plus("\"")
-
-fun String.isCompoundAttribute(): Boolean =
-    this.contains("\\[.*?]".toRegex())
 
 fun String.isRange(): Boolean =
     this.contains("..")

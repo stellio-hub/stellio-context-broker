@@ -5,6 +5,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.convertToMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -26,10 +27,10 @@ data class Subscription(
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
-    var watchedAttributes: List<ExpandedTerm>? = null,
+    val watchedAttributes: List<ExpandedTerm>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
-    val geoQ: GeoQuery? = null,
+    val geoQ: GeoQ? = null,
     val notification: NotificationParams,
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = JsonBooleanFilter::class)
     val isActive: Boolean = true,
@@ -50,16 +51,25 @@ data class Subscription(
         else
             SubscriptionStatus.ACTIVE
 
-    fun expand(contexts: List<String>) {
-        this.entities.forEach {
-            it.type = JsonLdUtils.expandJsonLdTerm(it.type, contexts)
-        }
-        this.notification.attributes = this.notification.attributes?.map {
-            JsonLdUtils.expandJsonLdTerm(it, contexts)
-        }
-        this.geoQ?.geoproperty = this.geoQ?.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts) }
-        this.watchedAttributes = this.watchedAttributes?.map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
-    }
+    fun expand(contexts: List<String>): Subscription =
+        this.copy(
+            entities = entities.map { entityInfo ->
+                entityInfo.copy(
+                    type = expandJsonLdTerm(entityInfo.type, contexts)
+                )
+            }.toSet(),
+            notification = notification.copy(
+                attributes = notification.attributes?.map { attributeName ->
+                    expandJsonLdTerm(attributeName, contexts)
+                }
+            ),
+            geoQ = geoQ?.copy(
+                geoproperty = expandJsonLdTerm(geoQ.geoproperty, contexts)
+            ),
+            watchedAttributes = watchedAttributes?.map { attributeName ->
+                expandJsonLdTerm(attributeName, contexts)
+            }
+        )
 
     fun compact(contexts: List<String>): Subscription =
         this.copy(
@@ -70,7 +80,7 @@ data class Subscription(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
             ),
             geoQ = geoQ?.copy(
-                geoproperty = geoQ.geoproperty?.let { compactTerm(it, contexts) }
+                geoproperty = compactTerm(geoQ.geoproperty, contexts)
             ),
             watchedAttributes = this.watchedAttributes?.map { compactTerm(it, contexts) }
         )

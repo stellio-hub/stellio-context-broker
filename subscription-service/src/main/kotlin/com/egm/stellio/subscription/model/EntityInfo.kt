@@ -6,5 +6,5 @@ import java.net.URI
 data class EntityInfo(
     val id: URI?,
     val idPattern: String?,
-    var type: ExpandedTerm
+    val type: ExpandedTerm
 )

@@ -643,6 +643,9 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
             val geoAttribute = jsonFragment[geoProperty] as MutableMap<String, Any>
             val geoJsonAsString = geoAttribute[JSONLD_VALUE]
             val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
+                .fold({
+                    throw BadRequestDataException(it.message)
+                }, { it })
             geoAttribute[JSONLD_VALUE] = wktGeom
         }
     }

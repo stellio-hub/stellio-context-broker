@@ -50,19 +50,18 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
 
         return either<APIException, ResponseEntity<*>> {
-            val parsedSubscription = parseSubscription(body, contexts).bind()
-            subscriptionService.validateNewSubscription(parsedSubscription).bind()
-            checkSubscriptionNotExists(parsedSubscription).bind()
+            val subscription = parseSubscription(body, contexts).bind()
+            checkSubscriptionNotExists(subscription).bind()
 
-            subscriptionService.create(parsedSubscription, sub).bind()
+            subscriptionService.create(subscription, sub).bind()
             subscriptionEventService.publishSubscriptionCreateEvent(
                 sub.orNull(),
-                parsedSubscription.id,
+                subscription.id,
                 contexts
             )
 
             ResponseEntity.status(HttpStatus.CREATED)
-                .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
+                .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
                 .build<String>()
         }.fold(
             { it.toErrorResponse() },

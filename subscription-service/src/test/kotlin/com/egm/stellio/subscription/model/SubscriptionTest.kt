@@ -29,7 +29,7 @@ class SubscriptionTest {
                 type = BEEHIVE_COMPACT_TYPE
             )
         ),
-        geoQ = GeoQuery(
+        geoQ = GeoQ(
             georel = "within",
             geometry = "Polygon",
             coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
@@ -51,8 +51,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should expand a subscription`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         assertThat(subscription)
             .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
@@ -68,8 +67,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should compact a subscription`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val compactedSubscription = subscription.compact(APIC_COMPOUND_CONTEXT)
 
@@ -87,8 +85,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON and add the status attribute`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
 
@@ -100,8 +97,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON without createdAt and modifiedAt if not specified`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
 
@@ -113,8 +109,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON with createdAt and modifiedAt if specified`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
 
@@ -125,8 +120,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription with a context if JSON-LD media type is asked`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
 
@@ -137,8 +131,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription without context if JSON media type is asked`() {
-        val subscription = subscription.copy()
-        subscription.expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
         val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
 

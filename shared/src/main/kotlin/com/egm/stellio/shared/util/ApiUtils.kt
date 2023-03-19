@@ -205,7 +205,7 @@ suspend fun parseQueryParams(
         count
     ).bind()
 
-    val geoQuery = parseGeoQueryParameters(requestParams, contextLink).bind()
+    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
 
     QueryParams(
         ids = ids,

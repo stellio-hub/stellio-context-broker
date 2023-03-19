@@ -283,8 +283,9 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 400 if validation of the subscription fails`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_with_conflicting_timeInterval_watchedAttributes.json")
 
+        coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery {
-            subscriptionService.validateNewSubscription(any())
+            subscriptionService.create(any(), any())
         } returns BadRequestDataException("You can't use 'timeInterval' with 'watchedAttributes' in conjunction").left()
 
         @Suppress("MaxLineLength")

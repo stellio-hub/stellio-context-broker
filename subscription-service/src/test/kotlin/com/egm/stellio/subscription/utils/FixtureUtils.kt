@@ -14,7 +14,8 @@ fun gimmeRawSubscription(
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within",
-    coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
+    geometry: String = "Polygon",
+    coordinates: String = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
     timeInterval: Int? = null,
     contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
 ): Subscription {
@@ -24,11 +25,11 @@ fun gimmeRawSubscription(
         else
             null
 
-    val geoQuery =
+    val geoQ =
         if (withQueryAndGeoQuery.second)
-            GeoQuery(
+            GeoQ(
                 georel = georel,
-                geometry = "Polygon",
+                geometry = geometry,
                 coordinates = coordinates,
                 pgisGeometry = "100000101000101010100010100054300"
             )
@@ -50,7 +51,7 @@ fun gimmeRawSubscription(
         q = q,
         timeInterval = timeInterval,
         entities = emptySet(),
-        geoQ = geoQuery,
+        geoQ = geoQ,
         notification = NotificationParams(
             attributes = withNotifParams.second,
             format = withNotifParams.first,

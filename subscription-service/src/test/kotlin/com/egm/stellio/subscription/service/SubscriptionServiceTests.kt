@@ -24,6 +24,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
@@ -870,6 +872,43 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val query = "foodName.isHealthy!=false"
         subscriptionService.isMatchingQQuery(query, jsonldEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `it shoud return true if a subscription has no geoquery`() = runTest {
+        subscriptionService.isMatchingGeoQuery(subscription1Id, jsonldEntity)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "near;minDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', false",
+        "near;maxDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', true",
+        "contains, Polygon, '[[[90.0, 0.0], [100.0, 10.0], [110.0, 0.0], [100.0, -10.0], [90.0, 0.0]]]', true",
+        "contains, Polygon, '[[[80.0, 0.0], [90.0, 5.0], [90.0, 0.0], [80.0, 0.0]]]', false",
+        "equals, Point, '[100.0, 0.0]', true",
+        "equals, Point, '[101.0, 0.0]', false",
+        "intersects, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]', true",
+        "intersects, Polygon, '[[[101.0, 0.0], [102.0, 0.0], [102.0, -1.0], [101.0, 0.0]]]', false",
+        "disjoint, Point, '[101.0, 0.0]', true",
+        "disjoint, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', false"
+    )
+    fun `it shoud correctly matches the geoquery provided with a subscription`(
+        georel: String,
+        geometry: String,
+        coordinates: String,
+        expectedResult: Boolean
+    ) = runTest {
+        val subscription = gimmeRawSubscription(
+            withQueryAndGeoQuery = Pair(false, true),
+            georel = georel,
+            geometry = geometry,
+            coordinates = coordinates
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.isMatchingGeoQuery(subscription.id, jsonldEntity)
+            .shouldSucceedWith { assertEquals(expectedResult, it) }
     }
 
     @Test

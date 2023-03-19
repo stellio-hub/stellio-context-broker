@@ -1,123 +1,198 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.GeoQuery
+import com.egm.stellio.shared.model.GeoQuery.GeometryType
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
-import org.junit.jupiter.api.Assertions
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.util.LinkedMultiValueMap
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class GeoQueryUtilsTests {
 
     @Test
-    fun `it should parse geo query parameters`() {
+    fun `it should parse geo query parameters`() = runTest {
         val requestParams = gimmeFullParamsMap()
         val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
-            geometry = "Point",
+            geometry = GeometryType.POINT,
             coordinates = "[57.5522, -20.3484]",
+            wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
             geoproperty = NGSILD_LOCATION_PROPERTY
         )
-        Assertions.assertEquals(geoQuery, geoQueryParams)
+        assertEquals(geoQuery, geoQueryParams)
     }
 
     @Test
-    fun `it should parse geo query parameters with geoproperty operation space`() {
+    fun `it should parse geo query parameters with geoproperty operation space`() = runTest {
         val requestParams = gimmeFullParamsMap("operationSpace")
 
         val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
-            geometry = "Point",
+            geometry = GeometryType.POINT,
             coordinates = "[57.5522, -20.3484]",
+            wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
             geoproperty = NGSILD_OPERATION_SPACE_PROPERTY
         )
-        Assertions.assertEquals(geoQuery, geoQueryParams)
+        assertEquals(geoQuery, geoQueryParams)
     }
 
     @Test
-    fun `it should correctly extract georel of a geo query`() {
-        val requestParams = gimmeFullParamsMap()
-        val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-        val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
-        val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, "<=", "1500")
-
-        Assertions.assertEquals(georel, georelParams)
+    fun `it should fail to create a geoquery if georel has an invalid near clause`() = runTest {
+        val requestParams = gimmeFullParamsMap(georel = "near;distance<100")
+        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Invalid expression for 'near' georel: near;distance<100", it.message)
+        }
     }
 
     @Test
-    fun `it should correctly extract georel of a geo query with min distance`() {
-        val requestParams = gimmeFullParamsMap(georel = "near;minDistance==1500")
-        val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-        val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
-        val georel = Triple(GeoQueryUtils.DISTANCE_QUERY_CLAUSE, ">=", "1500")
-
-        Assertions.assertEquals(georel, georelParams)
+    fun `it should fail to create a geoquery if georel is not recognized`() = runTest {
+        val requestParams = gimmeFullParamsMap(georel = "unrecognized")
+        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Invalid 'georel' parameter provided: unrecognized", it.message)
+        }
     }
 
     @Test
-    fun `it should not extract near param of georel if it is not present`() {
-        val requestParams = gimmeFullParamsMap(georel = "distant")
-        val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-        val georelParams = geoQueryParams.georel?.let { extractGeorelParams(it) }
-        val georel = Triple(geoQueryParams.georel, null, null)
-
-        Assertions.assertEquals(georel, georelParams)
+    fun `it should fail to create a geoquery if geometry is not recognized`() = runTest {
+        val requestParams = gimmeFullParamsMap(geometry = "Unrecognized")
+        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Unrecognized is not a recognized value for 'geometry' parameter", it.message)
+        }
     }
 
     @Test
-    fun `function isSupportedGeoQuery should return true`() {
-        val requestParams = gimmeFullParamsMap()
-        val geoQueryParams =
-            parseGeoQueryParameters(requestParams, JsonLdUtils.NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-
-        Assertions.assertTrue(isSupportedGeoQuery(geoQueryParams))
-    }
-
-    @Test
-    fun `function isSupportedGeoQuery should return false`() {
-        val geoQueryWithoutGeorel = GeoQuery()
-
-        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithoutGeorel))
-
-        val geoQueryWithOperationSpace = GeoQuery(geoproperty = NGSILD_OPERATION_SPACE_PROPERTY)
-
-        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithOperationSpace))
-
-        val geoQueryWithPolygon = GeoQuery(
-            georel = "distant",
-            geometry = "Polygon"
+    fun `it should fail to create a geoquery if a required parameter is missing`() = runTest {
+        val geoQueryParameters = mapOf(
+            "geometry" to "Point",
+            "coordinates" to "[57.5522,%20-20.3484]"
         )
+        parseGeoQueryParameters(geoQueryParameters, NGSILD_CORE_CONTEXT).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Missing at least one geo parameter between 'geometry', 'georel' and 'coordinates'",
+                it.message
+            )
+        }
+    }
 
-        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithPolygon))
-
-        val geoQueryWithoutCoordinates = GeoQuery(
-            georel = "distant",
-            geometry = "Point"
+    @Test
+    fun `it should fail to create a geoquery if coordinates are invalid`() = runTest {
+        val geoQueryParameters = mapOf(
+            "georel" to "within",
+            "geometry" to "Polygon",
+            "coordinates" to "[57.5522,%20-20.3484]"
         )
+        parseGeoQueryParameters(geoQueryParameters, NGSILD_CORE_CONTEXT).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEqualsIgnoringNoise(
+                """
+                Invalid geometry definition: {
+                    "type": "Polygon",
+                    "coordinates": [57.5522, -20.3484]
+                } (org.locationtech.jts.io.ParseException: Could not parse Polygon from GeoJson string.)
+                """.trimIndent(),
+                it.message
+            )
+        }
+    }
 
-        Assertions.assertFalse(isSupportedGeoQuery(geoQueryWithoutCoordinates))
+    @Test
+    fun `it should create a disjoint geoquery statement`() = runTest {
+        val geoQuery = GeoQuery(
+            "disjoint",
+            GeometryType.POLYGON,
+            "[[[0 1],[1, 1],[0, 1]]]",
+            geoJsonToWkt(GeometryType.POLYGON, "[[[0 1],[1, 1],[0, 1]]]").getOrNull()!!
+        )
+        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 24.30623, 60.07966)
+
+        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+
+        assertEqualsIgnoringNoise(
+            """
+            ST_disjoint(
+                ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))'), 
+                ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}',
+                    '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))
+            )
+            """,
+            queryStatement
+        )
+    }
+
+    @Test
+    fun `it should create a maxDistance geoquery statement`() = runTest {
+        val geoQuery = GeoQuery(
+            "near;maxDistance==2000",
+            GeometryType.POINT,
+            "[60.10000, 24.60000]",
+            geoJsonToWkt(GeometryType.POINT, "[60.10000, 24.60000]").getOrNull()!!
+        )
+        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 60.07966, 24.30623)
+
+        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+
+        assertEqualsIgnoringNoise(
+            """
+            ST_Distance(
+                'SRID=4326;POINT(60.124.6)'::geography,
+                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                false
+            ) <= 2000
+            """,
+            queryStatement
+        )
+    }
+
+    @Test
+    fun `it should create a minDistance geoquery statement`() = runTest {
+        val geoQuery = GeoQuery(
+            "near;minDistance==15",
+            GeometryType.POINT,
+            "[60.10000, 24.60000]",
+            geoJsonToWkt(GeometryType.POINT, "[60.10000, 24.60000]").getOrNull()!!
+        )
+        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 60.30623, 30.07966)
+
+        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+
+        assertEqualsIgnoringNoise(
+            """
+            ST_Distance(
+                'SRID=4326;POINT(60.124.6)'::geography,
+                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                false
+            ) >= 15
+            """,
+            queryStatement
+        )
     }
 
     private fun gimmeFullParamsMap(
-        geoproperty: String? = "location",
-        georel: String? = "near;maxDistance==1500"
-    ): LinkedMultiValueMap<String, String> {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("georel", georel)
-        requestParams.add("geometry", "Point")
-        requestParams.add("coordinates", "[57.5522,%20-20.3484]")
-        requestParams.add("geoproperty", geoproperty)
-        return requestParams
-    }
+        geoproperty: String = "location",
+        georel: String = "near;maxDistance==1500",
+        geometry: String = "Point"
+    ): Map<String, String> = mapOf(
+        "georel" to georel,
+        "geometry" to geometry,
+        "coordinates" to "[57.5522,%20-20.3484]",
+        "geoproperty" to geoproperty
+    )
 }

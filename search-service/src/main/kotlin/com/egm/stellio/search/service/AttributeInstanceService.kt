@@ -8,6 +8,7 @@ import arrow.core.right
 import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.model.AttributeInstance.Companion.generateRandomInstanceId
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE

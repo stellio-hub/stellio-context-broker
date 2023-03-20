@@ -64,7 +64,7 @@ data class AttributeInstance constructor(
             )
         }
 
-        private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+        fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }
 
     // a TemporalProperty as defined in 4.8

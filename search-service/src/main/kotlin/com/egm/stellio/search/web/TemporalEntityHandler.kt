@@ -254,6 +254,20 @@ class TemporalEntityHandler(
             "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
         )
 
+    @PatchMapping(
+        "/attrs/{attrId}/{instanceId}",
+        "/{entityId}/attrs/{instanceId}",
+        "/{entityId}/attrs/{attrId}",
+        "/attrs/{instanceId}",
+        "/attrs/{attrId}",
+        "/{entityId}/attrs",
+        "/attrs"
+    )
+    suspend fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
+        missingPathErrorResponse(
+            "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
+        )
+
     /**
      * Implements 6.19.3.2  - Delete Temporal Representation of an Entity
      */

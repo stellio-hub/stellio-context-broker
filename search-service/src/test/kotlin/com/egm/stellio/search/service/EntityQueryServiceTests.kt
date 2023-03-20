@@ -4,6 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
@@ -251,6 +252,47 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         assertEquals(expectedCount, entitiesIds.size)
         if (expectedListOfEntities != null)
             assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "near;minDistance==1600000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0",
+        "near;maxDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 1",
+        "contains, Polygon, '[[[90.0, 0.0], [100.0, 10.0], [110.0, 0.0], [100.0, -10.0], [90.0, 0.0]]]', 1",
+        "contains, Polygon, '[[[80.0, 0.0], [90.0, 5.0], [90.0, 0.0], [80.0, 0.0]]]', 0",
+        "equals, Point, '[100.0, 0.0]', 1",
+        "equals, Point, '[101.0, 0.0]', 0",
+        "intersects, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]', 1",
+        "intersects, Polygon, '[[[101.0, 0.0], [102.0, 0.0], [102.0, -1.0], [101.0, 0.0]]]', 0",
+        "disjoint, Point, '[101.0, 0.0]', 2",
+        "disjoint, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 1"
+    )
+    fun `it should retrieve entities according to geoquery parameter`(
+        georel: String,
+        geometry: String,
+        coordinates: String,
+        expectedCount: Int
+    ) = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 2,
+                    geoQuery = GeoQuery(
+                        georel = georel,
+                        geometry = GeoQuery.GeometryType.forType(geometry)!!,
+                        coordinates = coordinates,
+                        wktCoordinates = geoJsonToWkt(
+                            GeoQuery.GeometryType.forType(geometry)!!,
+                            coordinates
+                        ).getOrNull()!!
+                    ),
+                    types = setOf(BEEHIVE_TYPE),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(expectedCount, entitiesIds.size)
     }
 
     @Test

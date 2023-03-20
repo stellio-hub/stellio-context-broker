@@ -166,14 +166,7 @@ class EntityPayloadService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): List<URI> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
-            else it
-        }
+        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
 
         val selectQuery =
             """
@@ -198,14 +191,7 @@ class EntityPayloadService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Either<APIException, Int> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
-            else it
-        }
+        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
 
         val countQuery =
             """
@@ -221,6 +207,20 @@ class EntityPayloadService(
             .oneToResult { it["count_entity"] as Long }
             .map { it.toInt() }
     }
+
+    private fun buildFullEntitiesFilter(queryParams: QueryParams, accessRightFilter: () -> String?): String =
+        buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
+            else it
+        }.let {
+            if (queryParams.geoQuery != null)
+                it.wrapToAndClause(buildGeoQuery(queryParams.geoQuery!!))
+            else it
+        }
 
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,

@@ -8,7 +8,7 @@ fun gimmeSimpleEntityWithGeoProperty(
     longitude: Double,
     latitude: Double
 ): JsonLdEntity {
-    val locationFragment =
+    val entityWithLocation =
         """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -26,7 +26,7 @@ fun gimmeSimpleEntityWithGeoProperty(
         }
         """.trimIndent()
 
-    return JsonLdUtils.expandJsonLdEntity(locationFragment, DEFAULT_CONTEXTS)
+    return JsonLdUtils.expandJsonLdEntity(entityWithLocation, DEFAULT_CONTEXTS)
 }
 
 fun buildDefaultQueryParams(): QueryParams =

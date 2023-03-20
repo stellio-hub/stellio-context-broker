@@ -386,7 +386,7 @@ class AttributeInstanceService(
             measuredValue,
             newInstance.payload
         ).bind()
-        
+
         val newInstanceId = generateRandomInstanceId()
         create(
             newInstance.copy(

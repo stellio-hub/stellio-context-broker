@@ -8,7 +8,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
@@ -85,7 +84,41 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should get a single @context from a JSON-LD input`() {
+    fun `it should extract a @context from a valid Link header`() = runTest {
+        getContextFromLinkHeader(listOf(buildContextLinkHeader(APIC_COMPOUND_CONTEXT))).shouldSucceedWith {
+            assertNotNull(it)
+            assertEquals(APIC_COMPOUND_CONTEXT, it)
+        }
+    }
+
+    @Test
+    fun `it should return a null @context if no Link header was provided`() = runTest {
+        getContextFromLinkHeader(emptyList()).shouldSucceedWith {
+            assertNull(it)
+        }
+    }
+
+    @Test
+    fun `it should return a BadRequestData error if @context provided in Link header is invalid`() = runTest {
+        getContextFromLinkHeader(listOf(APIC_COMPOUND_CONTEXT)).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Badly formed Link header: $APIC_COMPOUND_CONTEXT",
+                it.message
+            )
+        }
+    }
+
+    @Test
+    fun `it should return the default @context if no Link header was provided and default is asked`() = runTest {
+        val httpHeaders = HttpHeaders()
+        getContextFromLinkHeaderOrDefault(httpHeaders).shouldSucceedWith {
+            assertEquals(NGSILD_CORE_CONTEXT, it)
+        }
+    }
+
+    @Test
+    fun `it should get a single @context from a JSON-LD input`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -95,13 +128,14 @@ class ApiUtilsTests {
             "@context" to "https://fiware.github.io/data-models/context.jsonld"
         )
 
-        val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
-        assertEquals(1, contexts.size)
-        assertEquals("https://fiware.github.io/data-models/context.jsonld", contexts[0])
+        checkAndGetContext(httpHeaders, jsonLdInput).shouldSucceedWith {
+            assertEquals(1, it.size)
+            assertEquals("https://fiware.github.io/data-models/context.jsonld", it[0])
+        }
     }
 
     @Test
-    fun `it should get a list of @context from a JSON-LD input`() {
+    fun `it should get a list of @context from a JSON-LD input`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -114,20 +148,21 @@ class ApiUtilsTests {
             )
         )
 
-        val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
-        assertEquals(2, contexts.size)
-        assertTrue(
-            contexts.containsAll(
-                listOf(
-                    "https://fiware.github.io/data-models/context.jsonld",
-                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+        checkAndGetContext(httpHeaders, jsonLdInput).shouldSucceedWith {
+            assertEquals(2, it.size)
+            assertTrue(
+                it.containsAll(
+                    listOf(
+                        "https://fiware.github.io/data-models/context.jsonld",
+                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+                    )
                 )
             )
-        )
+        }
     }
 
     @Test
-    fun `it should throw an exception if a JSON-LD input has no @context`() {
+    fun `it should throw an exception if a JSON-LD input has no @context`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -136,13 +171,13 @@ class ApiUtilsTests {
             "type" to "Building"
         )
 
-        val exception = assertThrows<BadRequestDataException> {
-            checkAndGetContext(httpHeaders, jsonLdInput)
+        checkAndGetContext(httpHeaders, jsonLdInput).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Request payload must contain @context term for a request having an application/ld+json content type",
+                it.message
+            )
         }
-        assertEquals(
-            "Request payload must contain @context term for a request having an application/ld+json content type",
-            exception.message
-        )
     }
 
     @Test

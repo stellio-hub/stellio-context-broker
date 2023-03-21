@@ -640,13 +640,20 @@ fun CompactedJsonLdEntity.toFinalRepresentation(
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
-            val geoAttribute = jsonFragment[geoProperty] as MutableMap<String, Any>
-            val geoJsonAsString = geoAttribute[JSONLD_VALUE]
-            val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
-                .fold({
-                    throw BadRequestDataException(it.message)
-                }, { it })
-            geoAttribute[JSONLD_VALUE] = wktGeom
+            // when creating a temporal entity, a geoproperty can be represented as a list of instances
+            val geoAttributes =
+                if (jsonFragment[geoProperty] is MutableMap<*, *>)
+                    listOf(jsonFragment[geoProperty] as MutableMap<String, Any>)
+                else
+                    jsonFragment[geoProperty] as List<MutableMap<String, Any>>
+            geoAttributes.forEach { geoAttribute ->
+                val geoJsonAsString = geoAttribute[JSONLD_VALUE]
+                val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
+                    .fold({
+                        throw BadRequestDataException(it.message)
+                    }, { it })
+                geoAttribute[JSONLD_VALUE] = wktGeom
+            }
         }
     }
     return jsonFragment

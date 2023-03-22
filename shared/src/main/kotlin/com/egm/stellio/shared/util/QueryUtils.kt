@@ -92,7 +92,7 @@ fun String.unescapeRegexPattern(): String =
         .replace("//", ")")
 
 fun buildTypeQuery(rawQuery: String): String =
-    rawQuery.replace(typePattern.toRegex()) { matchResult ->
+    rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
         types && ARRAY['${matchResult.value}']
         """.trimIndent()

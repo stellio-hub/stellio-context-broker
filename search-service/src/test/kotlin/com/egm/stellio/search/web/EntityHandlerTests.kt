@@ -924,7 +924,7 @@ class EntityHandlerTests {
         coEvery {
             queryService.queryEntities(
                 QueryParams(
-                    types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+                    type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     includeSysAttrs = true,
                     offset = 0,
                     limit = 30,

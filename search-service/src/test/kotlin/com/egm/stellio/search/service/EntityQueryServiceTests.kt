@@ -44,17 +44,26 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     val entity01Uri = "urn:ngsi-ld:BeeHive:01".toUri()
     val entity02Uri = "urn:ngsi-ld:BeeHive:02".toUri()
+    val entity03Uri = "urn:ngsi-ld:MultiTypes:03".toUri()
+    val entity04Uri = "urn:ngsi-ld:Beekeeper:04".toUri()
+    val entity05Uri = "urn:ngsi-ld:Apiary:05".toUri()
 
     @BeforeAll
     fun createEntities() {
         val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
         val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
+        val thirdRawEntity = loadSampleData("entity_with_multi_types.jsonld")
+        val fourthRawEntity = loadSampleData("beekeeper.jsonld")
+        val fifthRawEntity = loadSampleData("apiary.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
         runBlocking {
             entityPayloadService.createEntity(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             entityPayloadService.createEntity(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            entityPayloadService.createEntity(thirdRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            entityPayloadService.createEntity(fourthRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            entityPayloadService.createEntity(fifthRawEntity, listOf(APIC_COMPOUND_CONTEXT))
         }
     }
 
@@ -63,7 +72,42 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         runBlocking {
             entityPayloadService.deleteEntityPayload(entity01Uri)
             entityPayloadService.deleteEntityPayload(entity02Uri)
+            entityPayloadService.deleteEntityPayload(entity03Uri)
+            entityPayloadService.deleteEntityPayload(entity04Uri)
+            entityPayloadService.deleteEntityPayload(entity05Uri)
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "$BEEHIVE_TYPE, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "'$APIARY_TYPE|$BEEKEEPER_TYPE', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'$APIARY_TYPE,$BEEKEEPER_TYPE', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "$BEEKEEPER_TYPE, 2, 'urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'$BEEKEEPER_TYPE;$SENSOR_TYPE', 1, urn:ngsi-ld:MultiTypes:03",
+        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', 0, ",
+        "$DEVICE_TYPE, 0, ",
+        "$SENSOR_TYPE, 1, urn:ngsi-ld:MultiTypes:03",
+        "'($BEEKEEPER_TYPE;$SENSOR_TYPE),$DEVICE_TYPE', 1, urn:ngsi-ld:MultiTypes:03"
+    )
+    fun `it should retrieve entities according types selection languages`(
+        types: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                QueryParams(
+                    offset = 0,
+                    limit = 30,
+                    type = types,
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
     @Test
@@ -74,7 +118,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     offset = 0,
                     limit = 2,
                     ids = setOf(entity02Uri, entity01Uri),
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -90,7 +134,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 2,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -108,7 +152,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     offset = 0,
                     limit = 1,
                     ids = setOf(entity02Uri),
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -124,7 +168,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 1,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -139,7 +183,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 1,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -199,7 +243,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     offset = 0,
                     limit = 2,
                     q = q,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -216,7 +260,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -242,7 +286,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -270,7 +314,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 0,
                     limit = 30,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -295,7 +339,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             QueryParams(
                 offset = 0,
                 limit = 30,
-                types = setOf(BEEHIVE_TYPE),
+                type = BEEHIVE_TYPE,
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { null }.shouldSucceedWith { assertEquals(2, it) }
@@ -308,7 +352,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 offset = 0,
                 limit = 30,
                 ids = setOf(entity02Uri, entity01Uri),
-                types = setOf(BEEHIVE_TYPE),
+                type = BEEHIVE_TYPE,
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')" }
@@ -323,7 +367,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     offset = 10,
                     limit = 2,
                     ids = setOf(entity02Uri, entity01Uri),
-                    types = setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
+                    type = "https://ontology.eglobalmark.com/apic#UnknownType",
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -338,7 +382,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 QueryParams(
                     offset = 10,
                     limit = 2,
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     attrs = setOf("unknownAttribute"),
                     context = APIC_COMPOUND_CONTEXT
                 )

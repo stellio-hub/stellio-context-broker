@@ -185,7 +185,7 @@ class ApiUtilsTests {
         val requestParams = gimmeFullParamsMap()
         val queryParams = parseQueryParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
-        assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE), queryParams.types)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", queryParams.type)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), queryParams.attrs)
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
@@ -223,7 +223,7 @@ class ApiUtilsTests {
         val requestParams = LinkedMultiValueMap<String, String>()
         val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
 
-        assertEquals(emptySet<String>(), queryParams.types)
+        assertEquals(null, queryParams.type)
         assertEquals(emptySet<String>(), queryParams.attrs)
         assertEquals(emptySet<URI>(), queryParams.ids)
         assertEquals(null, queryParams.idPattern)
@@ -233,6 +233,16 @@ class ApiUtilsTests {
         assertEquals(30, queryParams.limit)
         assertEquals(false, queryParams.useSimplifiedRepresentation)
         assertEquals(false, queryParams.includeSysAttrs)
+    }
+
+    @Test
+    fun `it should parse and expand entity type selection query`() {
+        val query = "(TypeA|TypeB);(TypeC,TypeD)"
+        val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
+        val expandedQuery = parseAndExpandTypeSelection(query, NGSILD_CORE_CONTEXT)
+        val expectedExpandTypeSelection =
+            "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
+        assertEquals(expectedExpandTypeSelection, expandedQuery)
     }
 
     private fun gimmeFullParamsMap(): LinkedMultiValueMap<String, String> {

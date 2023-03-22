@@ -82,7 +82,7 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
+                        temporalEntitiesQuery.queryParams.type == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -126,7 +126,7 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE, APIARY_TYPE) &&
+                        temporalEntitiesQuery.queryParams.type == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.queryParams.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.queryParams.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&

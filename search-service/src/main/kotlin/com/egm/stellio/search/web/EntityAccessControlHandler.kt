@@ -37,249 +37,238 @@ class EntityAccessControlHandler(
     suspend fun getAuthorizedEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
-            val mediaType = getApplicableMediaType(httpHeaders)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val mediaType = getApplicableMediaType(httpHeaders)
 
-            val queryParams = parseQueryParams(
-                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-                params,
-                contextLink
-            ).bind()
+        val queryParams = parseQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        ).bind()
 
-            if (!queryParams.attrs.all { ALL_IAM_RIGHTS.contains(it) })
-                BadRequestDataException(
-                    "The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
-                ).left().bind<ResponseEntity<*>>()
+        if (!queryParams.attrs.all { ALL_IAM_RIGHTS.contains(it) })
+            BadRequestDataException(
+                "The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
+            ).left().bind<ResponseEntity<*>>()
 
-            val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
-                queryParams,
-                contextLink,
-                sub
-            ).bind()
+        val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
+            queryParams,
+            contextLink,
+            sub
+        ).bind()
 
-            if (countAndAuthorizedEntities.first == -1) {
-                return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+        if (countAndAuthorizedEntities.first == -1) {
+            return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
 
-            val compactedEntities = JsonLdUtils.compactEntities(
-                countAndAuthorizedEntities.second,
-                queryParams.useSimplifiedRepresentation,
-                contextLink,
-                mediaType
-            )
-
-            buildQueryResponse(
-                compactedEntities,
-                countAndAuthorizedEntities.first,
-                "/ngsi-ld/v1/entityAccessControl/entities",
-                queryParams,
-                params,
-                mediaType,
-                contextLink
-            )
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndAuthorizedEntities.second,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
         )
-    }
+
+        buildQueryResponse(
+            compactedEntities,
+            countAndAuthorizedEntities.first,
+            "/ngsi-ld/v1/entityAccessControl/entities",
+            queryParams,
+            params,
+            mediaType,
+            contextLink
+        )
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @GetMapping("/groups", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getGroupsMemberships(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).addAuthzContextIfNeeded()
-            val mediaType = getApplicableMediaType(httpHeaders)
-            val queryParams = parseQueryParams(
-                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-                params,
-                contextLink
-            ).bind()
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val queryParams = parseQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        ).bind()
 
-            val countAndGroupEntities =
-                authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, sub).bind()
+        val countAndGroupEntities =
+            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, sub).bind()
 
-            if (countAndGroupEntities.first == -1) {
-                return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+        if (countAndGroupEntities.first == -1) {
+            return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
 
-            val compactedEntities = JsonLdUtils.compactEntities(
-                countAndGroupEntities.second,
-                queryParams.useSimplifiedRepresentation,
-                contextLink,
-                mediaType
-            )
-
-            buildQueryResponse(
-                compactedEntities,
-                countAndGroupEntities.first,
-                "/ngsi-ld/v1/entityAccessControl/groups",
-                queryParams,
-                params,
-                mediaType,
-                contextLink
-            )
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndGroupEntities.second,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
         )
-    }
+
+        buildQueryResponse(
+            compactedEntities,
+            countAndGroupEntities.first,
+            "/ngsi-ld/v1/entityAccessControl/groups",
+            queryParams,
+            params,
+            mediaType,
+            contextLink
+        )
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subjectId: String,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val body = requestBody.awaitFirst().deserializeAsMap()
-            val contexts = checkAndGetContext(httpHeaders, body).addAuthzContextIfNeeded()
-            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
 
-            // ensure payload contains only relationships and that they are of a known type
-            val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
-                it is NgsiLdRelationship &&
-                    ALL_IAM_RIGHTS.contains(it.name)
-            }
-            val invalidAttributesDetails = invalidAttributes.map {
-                NotUpdatedDetails(it.name, "Not a relationship or not an authorized relationship name")
-            }
+        // ensure payload contains only relationships and that they are of a known type
+        val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
+            it is NgsiLdRelationship &&
+                ALL_IAM_RIGHTS.contains(it.name)
+        }
+        val invalidAttributesDetails = invalidAttributes.map {
+            NotUpdatedDetails(it.name, "Not a relationship or not an authorized relationship name")
+        }
 
-            val (authorizedInstances, unauthorizedInstances) = validAttributes
-                .map { it as NgsiLdRelationship }
-                .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
-                .flatten()
-                .partition {
-                    // we don't have any sub-relationships here, so let's just take the first
-                    val targetEntityId = it.second.getLinkedEntitiesIds().first()
-                    authorizationService.userCanAdminEntity(targetEntityId, sub).isRight()
+        val (authorizedInstances, unauthorizedInstances) = validAttributes
+            .map { it as NgsiLdRelationship }
+            .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
+            .flatten()
+            .partition {
+                // we don't have any sub-relationships here, so let's just take the first
+                val targetEntityId = it.second.getLinkedEntitiesIds().first()
+                authorizationService.userCanAdminEntity(targetEntityId, sub).isRight()
+            }
+        val unauthorizedInstancesDetails = unauthorizedInstances.map {
+            NotUpdatedDetails(
+                it.first.compactName,
+                "User is not authorized to manage rights on entity ${it.second.objectId}"
+            )
+        }
+
+        val results = authorizedInstances.map {
+            val (ngsiLdRel, ngsiLdRelInstance) = it
+            entityAccessRightsService.setRoleOnEntity(
+                subjectId,
+                ngsiLdRelInstance.objectId,
+                AccessRight.forAttributeName(ngsiLdRel.compactName).orNull()!!
+            ).fold(
+                ifLeft = { apiException ->
+                    UpdateAttributeResult(
+                        ngsiLdRel.compactName,
+                        ngsiLdRelInstance.datasetId,
+                        UpdateOperationResult.FAILED,
+                        apiException.message
+                    )
+                },
+                ifRight = {
+                    UpdateAttributeResult(
+                        ngsiLdRel.compactName,
+                        ngsiLdRelInstance.datasetId,
+                        UpdateOperationResult.APPENDED,
+                        null
+                    )
                 }
-            val unauthorizedInstancesDetails = unauthorizedInstances.map {
-                NotUpdatedDetails(
-                    it.first.compactName,
-                    "User is not authorized to manage rights on entity ${it.second.objectId}"
-                )
-            }
+            )
+        }
+        val appendResult = updateResultFromDetailedResult(results)
 
-            val results = authorizedInstances.map {
-                val (ngsiLdRel, ngsiLdRelInstance) = it
-                entityAccessRightsService.setRoleOnEntity(
-                    subjectId,
-                    ngsiLdRelInstance.objectId,
-                    AccessRight.forAttributeName(ngsiLdRel.compactName).orNull()!!
-                ).fold(
-                    ifLeft = { apiException ->
-                        UpdateAttributeResult(
-                            ngsiLdRel.compactName,
-                            ngsiLdRelInstance.datasetId,
-                            UpdateOperationResult.FAILED,
-                            apiException.message
-                        )
-                    },
-                    ifRight = {
-                        UpdateAttributeResult(
-                            ngsiLdRel.compactName,
-                            ngsiLdRelInstance.datasetId,
-                            UpdateOperationResult.APPENDED,
-                            null
-                        )
-                    }
-                )
-            }
-            val appendResult = updateResultFromDetailedResult(results)
-
-            if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            else {
-                val fullAppendResult = appendResult.copy(
-                    updated = appendResult.updated,
-                    notUpdated = appendResult.notUpdated.plus(invalidAttributesDetails)
-                        .plus(unauthorizedInstancesDetails)
-                )
-                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(fullAppendResult)
-            }
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else {
+            val fullAppendResult = appendResult.copy(
+                updated = appendResult.updated,
+                notUpdated = appendResult.notUpdated.plus(invalidAttributesDetails)
+                    .plus(unauthorizedInstancesDetails)
+            )
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(fullAppendResult)
+        }
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @DeleteMapping("/{subjectId}/attrs/{entityId}")
     suspend fun removeRightsOnEntity(
         @PathVariable subjectId: String,
         @PathVariable entityId: String
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
+        val entityUri = entityId.toUri()
 
-        return either<APIException, ResponseEntity<*>> {
-            authorizationService.userCanAdminEntity(entityId.toUri(), sub).bind()
+        authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-            entityAccessRightsService.removeRoleOnEntity(subjectId, entityId.toUri()).bind()
+        entityAccessRightsService.removeRoleOnEntity(subjectId, entityUri).bind()
 
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @PostMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun updateSpecificAccessPolicy(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val entityUri = entityId.toUri()
-            authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        val entityUri = entityId.toUri()
+        authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-            val body = requestBody.awaitFirst().deserializeAsMap()
-            val contexts = checkAndGetContext(httpHeaders, body).addAuthzContextIfNeeded()
-            val rawPayload = mapOf(AUTH_TERM_SAP to JsonLdUtils.removeContextFromInput(body))
-            val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
-            val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-            if (ngsiLdAttributes[0].name != AUTH_PROP_SAP)
-                BadRequestDataException(
-                    "${ngsiLdAttributes[0].name} is not authorized property name"
-                ).left().bind<ResponseEntity<*>>()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
+        val rawPayload = mapOf(AUTH_TERM_SAP to JsonLdUtils.removeContextFromInput(body))
+        val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
+        if (ngsiLdAttributes[0].name != AUTH_PROP_SAP)
+            BadRequestDataException(
+                "${ngsiLdAttributes[0].name} is not authorized property name"
+            ).left().bind<ResponseEntity<*>>()
 
-            entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()
+        entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()
 
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun deleteSpecificAccessPolicy(
         @PathVariable entityId: String
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val entityUri = entityId.toUri()
-            authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        val entityUri = entityId.toUri()
+        authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-            entityPayloadService.removeSpecificAccessPolicy(entityId.toUri()).bind()
+        entityPayloadService.removeSpecificAccessPolicy(entityUri).bind()
 
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 }

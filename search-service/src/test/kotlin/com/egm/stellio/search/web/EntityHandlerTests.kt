@@ -1752,9 +1752,7 @@ class EntityHandlerTests {
             }
             """.trimIndent()
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
-        val wrongContext =
-            "<https://easyglobalmarket.com/contexts/diat.jsonld>; " +
-                "rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+        val wrongContext = buildContextLinkHeader("https://easyglobalmarket.com/contexts/diat.jsonld")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

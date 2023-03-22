@@ -44,30 +44,28 @@ class SubscriptionHandler(
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
+    ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body)
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val subscription = parseSubscription(body, contexts).bind()
-            checkSubscriptionNotExists(subscription).bind()
+        val subscription = parseSubscription(body, contexts).bind()
+        checkSubscriptionNotExists(subscription).bind()
 
-            subscriptionService.create(subscription, sub).bind()
-            subscriptionEventService.publishSubscriptionCreateEvent(
-                sub.orNull(),
-                subscription.id,
-                contexts
-            )
-
-            ResponseEntity.status(HttpStatus.CREATED)
-                .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
-                .build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        subscriptionService.create(subscription, sub).bind()
+        subscriptionEventService.publishSubscriptionCreateEvent(
+            sub.orNull(),
+            subscription.id,
+            contexts
         )
-    }
+
+        ResponseEntity.status(HttpStatus.CREATED)
+            .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
+            .build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Implements 6.10.3.2 - Query Subscriptions
@@ -76,35 +74,33 @@ class SubscriptionHandler(
     suspend fun getSubscriptions(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
-    ): ResponseEntity<*> {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+    ): ResponseEntity<*> = either {
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        return either<APIException, ResponseEntity<*>> {
-            val queryParams = parseQueryParams(
-                Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
-                params,
-                contextLink
-            ).bind()
-            val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
-                .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
-            val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
+        val queryParams = parseQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        ).bind()
+        val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
+            .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
+        val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
 
-            buildQueryResponse(
-                subscriptions,
-                subscriptionsCount,
-                "/ngsi-ld/v1/subscriptions",
-                queryParams,
-                params,
-                mediaType,
-                contextLink
-            )
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        buildQueryResponse(
+            subscriptions,
+            subscriptionsCount,
+            "/ngsi-ld/v1/subscriptions",
+            queryParams,
+            params,
+            mediaType,
+            contextLink
         )
-    }
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Implements 6.11.3.1 - Retrieve Subscription
@@ -114,26 +110,24 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subscriptionId: String,
         @RequestParam options: Optional<String>
-    ): ResponseEntity<*> {
-        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+    ): ResponseEntity<*> = either {
+        val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        return either<APIException, ResponseEntity<*>> {
-            val subscriptionIdUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionIdUri).bind()
+        val subscriptionIdUri = subscriptionId.toUri()
+        checkSubscriptionExists(subscriptionIdUri).bind()
 
-            val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionIdUri, sub).bind()
-            val subscription = subscriptionService.getById(subscriptionIdUri)
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).bind()
+        val subscription = subscriptionService.getById(subscriptionIdUri)
 
-            prepareGetSuccessResponse(mediaType, contextLink)
-                .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        prepareGetSuccessResponse(mediaType, contextLink)
+            .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Return the contexts associated to a given subscription.
@@ -142,17 +136,15 @@ class SubscriptionHandler(
      * one link.
      */
     @GetMapping("/{subscriptionId}/context", produces = [MediaType.APPLICATION_JSON_VALUE])
-    suspend fun getSubscriptionContext(@PathVariable subscriptionId: String): ResponseEntity<*> {
-        return either<APIException, ResponseEntity<*>> {
-            val subscriptionUri = subscriptionId.toUri()
-            val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
+    suspend fun getSubscriptionContext(@PathVariable subscriptionId: String): ResponseEntity<*> = either {
+        val subscriptionUri = subscriptionId.toUri()
+        val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
 
-            ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Implements 6.11.3.2 - Update Subscription
@@ -165,29 +157,27 @@ class SubscriptionHandler(
         @PathVariable subscriptionId: String,
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
-        return either<APIException, ResponseEntity<*>> {
-            val subscriptionIdUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionIdUri).bind()
+    ): ResponseEntity<*> = either {
+        val subscriptionIdUri = subscriptionId.toUri()
+        checkSubscriptionExists(subscriptionIdUri).bind()
 
-            val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionIdUri, sub).bind()
-            val body = requestBody.awaitFirst().deserializeAsMap()
-            val contexts = checkAndGetContext(httpHeaders, body)
-            subscriptionService.update(subscriptionIdUri, body, contexts).bind()
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        subscriptionService.update(subscriptionIdUri, body, contexts).bind()
 
-            subscriptionEventService.publishSubscriptionUpdateEvent(
-                sub.orNull(),
-                subscriptionIdUri,
-                removeContextFromInput(body).serialize(),
-                contexts
-            )
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        subscriptionEventService.publishSubscriptionUpdateEvent(
+            sub.orNull(),
+            subscriptionIdUri,
+            removeContextFromInput(body).serialize(),
+            contexts
         )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @PatchMapping("/", "")
     suspend fun handleMissingIdOnUpdate(): ResponseEntity<*> =
@@ -197,27 +187,25 @@ class SubscriptionHandler(
      * Implements 6.11.3.3 - Delete Subscription
      */
     @DeleteMapping("/{subscriptionId}")
-    suspend fun delete(@PathVariable subscriptionId: String): ResponseEntity<*> {
-        return either<APIException, ResponseEntity<*>> {
-            val subscriptionUri = subscriptionId.toUri()
-            checkSubscriptionExists(subscriptionUri).bind()
+    suspend fun delete(@PathVariable subscriptionId: String): ResponseEntity<*> = either {
+        val subscriptionUri = subscriptionId.toUri()
+        checkSubscriptionExists(subscriptionUri).bind()
 
-            val sub = getSubFromSecurityContext()
-            checkIsAllowed(subscriptionUri, sub).bind()
-            val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
-            subscriptionService.delete(subscriptionUri).bind()
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionUri, sub).bind()
+        val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
+        subscriptionService.delete(subscriptionUri).bind()
 
-            subscriptionEventService.publishSubscriptionDeleteEvent(
-                sub.orNull(),
-                subscriptionUri,
-                contexts
-            )
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        subscriptionEventService.publishSubscriptionDeleteEvent(
+            sub.orNull(),
+            subscriptionUri,
+            contexts
         )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @DeleteMapping("/", "")
     suspend fun handleMissingIdOnDelete(): ResponseEntity<*> =

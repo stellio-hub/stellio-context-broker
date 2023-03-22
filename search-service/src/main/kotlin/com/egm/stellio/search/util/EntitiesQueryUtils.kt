@@ -18,7 +18,7 @@ fun composeEntitiesQuery(
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val type = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
 
     /**
@@ -87,7 +87,7 @@ fun composeEntitiesQueryFromPostRequest(
 ): Either<APIException, EntitiesQuery> = either {
     val entitySelector = query.entities?.get(0)
     val id = entitySelector?.id?.toUri()
-    val type = parseAndExpandTypeSelection(entitySelector?.type, contextLink)
+    val type = expandTypeSelection(entitySelector?.type, contextLink)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
     val geoQuery = if (query.geoQ != null) {

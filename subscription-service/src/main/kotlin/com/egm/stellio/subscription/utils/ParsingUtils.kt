@@ -11,7 +11,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.EntitySelector
 import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
@@ -25,10 +25,10 @@ object ParsingUtils {
             { it.toAPIException("Failed to parse subscription").left() }
         )
 
-    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>): EntityInfo {
-        val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        return entityInfo.copy(
-            type = expandJsonLdTerm(entityInfo.type, contexts)
+    fun parseEntitySelector(input: Map<String, Any>, contexts: List<String>): EntitySelector {
+        val entitySelector = mapper.convertValue(input, EntitySelector::class.java)
+        return entitySelector.copy(
+            type = expandJsonLdTerm(entitySelector.type, contexts)
         )
     }
 

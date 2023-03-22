@@ -153,12 +153,19 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
-fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
-    parseAndExpandTypeSelection(type, listOf(contextLink))
+typealias EntityTypeSelection = String
 
-fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
+fun expandTypeSelection(type: EntityTypeSelection?, contextLink: String): String? =
+    expandTypeSelection(type, listOf(contextLink))
+
+fun expandTypeSelection(type: EntityTypeSelection?, contexts: List<String>): String? =
     type?.replace(typeSelectionRegex) {
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+    }
+
+fun compactTypeSelection(type: EntityTypeSelection, contexts: List<String>): String =
+    type.replace(typeSelectionRegex) {
+        JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =

@@ -84,9 +84,8 @@ class NotificationServiceTests {
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
-        coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
-        } returns listOf(subscription)
+        coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -112,12 +111,12 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf(APIARY_TYPE),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
             )
         }
         coVerify { subscriptionService.isMatchingScopeQQuery(subscription.scopeQ, any()) }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription.getTypesSelections(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription.q, any(), any()) }
         coVerify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         coVerify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -136,9 +135,8 @@ class NotificationServiceTests {
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
-        coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
-        } returns listOf(subscription)
+        coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -186,9 +184,8 @@ class NotificationServiceTests {
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
-        coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
-        } returns listOf(subscription)
+        coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -225,9 +222,8 @@ class NotificationServiceTests {
             val jsonLdEntity = expandJsonLdEntity(rawEntity)
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
-            coEvery {
-                subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
-            } returns listOf(subscription)
+            coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
+            coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
             coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
             coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
             coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -253,11 +249,11 @@ class NotificationServiceTests {
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
                     apiaryId.toUri(),
-                    listOf(APIARY_TYPE),
                     setOf(NGSILD_NAME_PROPERTY),
                     ATTRIBUTE_UPDATED
                 )
             }
+            coVerify { subscriptionService.isMatchingTypeQuery(subscription.getTypesSelections(), any()) }
             coVerify { subscriptionService.isMatchingQQuery(subscription.q, any(), any()) }
             coVerify { subscriptionService.isMatchingScopeQQuery(subscription.scopeQ, any()) }
             coVerify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
@@ -273,8 +269,9 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -297,11 +294,12 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf(APIARY_TYPE),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_DELETED
             )
         }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription1.getTypesSelections(), any()) }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription2.getTypesSelections(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingScopeQQuery(subscription1.scopeQ, any()) }
@@ -331,8 +329,9 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
@@ -361,11 +360,12 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf(APIARY_TYPE),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_CREATED
             )
         }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription1.getTypesSelections(), any()) }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription2.getTypesSelections(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingScopeQQuery(subscription1.scopeQ, any()) }
@@ -384,8 +384,9 @@ class NotificationServiceTests {
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
-            subscriptionService.getMatchingSubscriptions(any(), any(), any(), any())
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2)
+        coEvery { subscriptionService.isMatchingTypeQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingScopeQQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } returns true.right()
@@ -410,11 +411,12 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf(APIARY_TYPE),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
             )
         }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription1.getTypesSelections(), any()) }
+        coVerify { subscriptionService.isMatchingTypeQuery(subscription2.getTypesSelections(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription1.q, any(), any()) }
         coVerify { subscriptionService.isMatchingQQuery(subscription2.q, any(), any()) }
         coVerify { subscriptionService.isMatchingScopeQQuery(subscription1.scopeQ, any()) }

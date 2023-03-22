@@ -42,7 +42,10 @@ class NotificationService(
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
         val id = ngsiLdEntity.id
         val types = ngsiLdEntity.types
-        subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes, notificationTrigger)
+        subscriptionService.getMatchingSubscriptions(id, updatedAttributes, notificationTrigger)
+            .filter {
+                subscriptionService.isMatchingTypeQuery(it.getTypesSelections(), types).bind()
+            }
             .filter {
                 subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
             }

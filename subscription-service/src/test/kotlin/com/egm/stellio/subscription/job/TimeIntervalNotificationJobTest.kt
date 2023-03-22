@@ -2,12 +2,15 @@ package com.egm.stellio.subscription.job
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.ApplicationProperties.TenantConfiguration
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.subscription.config.WebClientConfig
-import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.EntitySelector
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.NotificationService
@@ -52,22 +55,22 @@ class TimeIntervalNotificationJobTest {
     @Test
     fun `it should compose the query string used to get matching entities`() {
         val entities = setOf(
-            EntityInfo(
+            EntitySelector(
                 id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
                 idPattern = null,
                 type = "FishContainment"
             ),
-            EntityInfo(
+            EntitySelector(
                 id = null,
                 idPattern = null,
                 type = "FishContainment"
             ),
-            EntityInfo(
+            EntitySelector(
                 id = null,
                 idPattern = ".*FishContainment.*",
                 type = "FishContainment"
             ),
-            EntityInfo(
+            EntitySelector(
                 id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
                 idPattern = ".*FishContainment.*",
                 type = "https://uri.fiware.org/ns/data-models#FishContainment"
@@ -157,12 +160,12 @@ class TimeIntervalNotificationJobTest {
     fun `it should not return twice the same entity if there is overlap between 2 entity infos`() {
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
-                EntityInfo(
+                EntitySelector(
                     id = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                     idPattern = null,
                     type = "BeeHive"
                 ),
-                EntityInfo(id = null, idPattern = null, type = "BeeHive")
+                EntitySelector(id = null, idPattern = null, type = "BeeHive")
             ),
             q = null
         )
@@ -225,7 +228,7 @@ class TimeIntervalNotificationJobTest {
         val entity = loadSampleData("beehive.jsonld")
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
-                EntityInfo(
+                EntitySelector(
                     id = null,
                     idPattern = null,
                     type = "https://uri.fiware.org/ns/data-models#BeeHive"

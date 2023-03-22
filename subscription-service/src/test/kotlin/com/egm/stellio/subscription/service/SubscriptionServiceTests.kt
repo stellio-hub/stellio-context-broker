@@ -360,7 +360,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:01".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 emptySet(),
                 ATTRIBUTE_CREATED
             )
@@ -381,7 +380,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:01".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 emptySet(),
                 ATTRIBUTE_CREATED
             )
@@ -403,7 +401,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:12345678".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 emptySet(),
                 ATTRIBUTE_UPDATED
             )
@@ -425,7 +422,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:3456789".toUri(),
-                listOf(BEEKEEPER_TYPE),
                 emptySet(),
                 ATTRIBUTE_UPDATED
             )
@@ -789,14 +785,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             .matches {
                 it.entities != null &&
                     it.entities!!.contains(
-                        EntityInfo(
+                        EntitySelector(
                             id = "urn:ngsi-ld:Beehive:123".toUri(),
                             idPattern = null,
                             type = BEEHIVE_TYPE
                         )
                     ) &&
                     it.entities!!.contains(
-                        EntityInfo(
+                        EntitySelector(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beehive:12*",
                             type = BEEHIVE_TYPE
@@ -930,6 +926,30 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 it is NotImplementedException &&
                     it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: throttling"
             }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "$BEEHIVE_TYPE, $BEEHIVE_TYPE, True",
+        "'$APIARY_TYPE|$BEEKEEPER_TYPE', $APIARY_TYPE,$DEVICE_TYPE', True",
+        "'$APIARY_TYPE,$BEEKEEPER_TYPE', '$APIARY_TYPE,$BEEKEEPER_TYPE', True",
+        "$BEEKEEPER_TYPE, $DEVICE_TYPE, False",
+        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', '$APIARY_TYPE,$DEVICE_TYPE', False",
+        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', '$BEEKEEPER_TYPE,$DEVICE_TYPE', True",
+        "$SENSOR_TYPE, $BEEHIVE_TYPE, False",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$DEVICE_TYPE', True",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$APIARY_TYPE,$BEEHIVE_TYPE', True",
+        "'($BEEKEEPER_TYPE;$APIARY_TYPE),$DEVICE_TYPE', '$BEEKEEPER_TYPE,$BEEHIVE_TYPE', False"
+    )
+    fun `it should return result according types selection languages`(
+        typesQuery: String,
+        types: String,
+        expectedResult: Boolean
+    ) = runTest {
+        subscriptionService.isMatchingTypeQuery(
+            listOf(typesQuery),
+            types.split(",")
+        ).shouldSucceedWith { assertEquals(expectedResult, it) }
     }
 
     @Test

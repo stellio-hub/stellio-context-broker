@@ -1,15 +1,12 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.convertToMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -35,7 +32,7 @@ data class Subscription(
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
-    val entities: Set<EntityInfo>? = null,
+    val entities: Set<EntitySelector>?,
     val watchedAttributes: List<ExpandedTerm>? = null,
     val notificationTrigger: List<String> = defaultNotificationTriggers,
     val timeInterval: Int? = null,
@@ -85,7 +82,7 @@ data class Subscription(
     fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities?.map {
-                EntityInfo(it.id, it.idPattern, compactTerm(it.type, contexts))
+                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.type, contexts))
             }?.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
@@ -114,6 +111,9 @@ data class Subscription(
         includeSysAttrs: Boolean = false
     ): String =
         serialize(listOf(context), mediaType, includeSysAttrs)
+
+    fun getTypesSelections(): List<EntityTypeSelection> =
+        this.entities?.map { it.type } ?: emptyList()
 }
 
 // Default for booleans is false, so add a simple filter to only include "isActive" is it is false

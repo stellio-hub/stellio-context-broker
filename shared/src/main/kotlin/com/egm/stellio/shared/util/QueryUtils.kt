@@ -89,15 +89,21 @@ fun String.unescapeRegexPattern(): String =
     this.replace("##", "(")
         .replace("//", ")")
 
-fun buildTypeQuery(rawQuery: String): String =
+fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
-        types && ARRAY['${matchResult.value}']
+        #{TARGET}# && ARRAY['${matchResult.value}']
         """.trimIndent()
     }
         .replace(";", " AND ")
         .replace("|", " OR ")
         .replace(",", " OR ")
+        .let {
+            if (target == null)
+                it.replace("#{TARGET}#", "types")
+            else
+                it.replace("#{TARGET}#", "ARRAY[${target.joinToString(",", "'", "'")}]")
+        }
 
 // Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.
 fun buildQQuery(rawQuery: String, contexts: List<String>, target: JsonLdEntity? = null): String {

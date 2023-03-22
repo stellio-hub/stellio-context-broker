@@ -183,7 +183,7 @@ class ApiUtilsTests {
     fun `it should parse and expand entity type selection query`() {
         val query = "(TypeA|TypeB);(TypeC,TypeD)"
         val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
-        val expandedQuery = parseAndExpandTypeSelection(query, NGSILD_CORE_CONTEXT)
+        val expandedQuery = expandTypeSelection(query, NGSILD_CORE_CONTEXT)
         val expectedExpandTypeSelection =
             "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
         assertEquals(expectedExpandTypeSelection, expandedQuery)

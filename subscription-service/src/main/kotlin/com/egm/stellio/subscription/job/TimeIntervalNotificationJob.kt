@@ -5,7 +5,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
-import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.EntitySelector
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.NotificationService
@@ -50,11 +50,11 @@ class TimeIntervalNotificationJob(
         }
     }
 
-    fun prepareQueryParams(entityInfo: EntityInfo, q: String?, attributes: List<String>?): String {
+    fun prepareQueryParams(entitySelector: EntitySelector, q: String?, attributes: List<String>?): String {
         val param = java.lang.StringBuilder()
-        param.append("?$QUERY_PARAM_TYPE=${entityInfo.type.encode()}")
-        if (entityInfo.id != null) param.append("&$QUERY_PARAM_ID=${entityInfo.id}")
-        if (entityInfo.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entityInfo.idPattern}")
+        param.append("?$QUERY_PARAM_TYPE=${entitySelector.type.encode()}")
+        if (entitySelector.id != null) param.append("&$QUERY_PARAM_ID=${entitySelector.id}")
+        if (entitySelector.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entitySelector.idPattern}")
         if (q != null) param.append("&$QUERY_PARAM_Q=${q.encode()}")
         if (!attributes.isNullOrEmpty())
             param.append("&$QUERY_PARAM_ATTRS=${attributes.joinToString(",") { it.encode() }}")

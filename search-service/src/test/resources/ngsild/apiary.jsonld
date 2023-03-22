@@ -1,0 +1,21 @@
+{
+   "id":"urn:ngsi-ld:Apiary:05",
+   "type":"Apiary",
+   "name":{
+      "type":"Property",
+      "value":"ApiarySophia"
+   },
+   "location": {
+      "type": "GeoProperty",
+      "value": {
+         "type": "Point",
+         "coordinates": [
+            24.30623,
+            60.07966
+         ]
+      }
+   },
+   "@context":[
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}

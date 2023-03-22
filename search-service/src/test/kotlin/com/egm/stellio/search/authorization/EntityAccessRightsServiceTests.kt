@@ -260,9 +260,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -274,8 +273,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            emptyList(),
-            emptySet()
+            emptyList()
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -294,9 +292,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(2, it.size)
             it.forEach { entityAccessControl ->
@@ -306,8 +303,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            emptyList(),
-            emptySet()
+            emptyList()
         ).shouldSucceedWith {
             assertEquals(2, it)
         }
@@ -328,7 +324,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE),
+            BEEHIVE_TYPE,
             100,
             0
         ).shouldSucceedWith {
@@ -341,7 +337,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE)
+            BEEHIVE_TYPE
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -362,9 +358,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -373,8 +368,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE),
-            emptySet()
+            listOf(AccessRight.R_CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -390,13 +384,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE)
         entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_ADMIN)
 
-        entityAccessRightsService.getSubjectAccessRights(Some(subjectUuid), emptyList(), setOf(BEEHIVE_TYPE), 100, 0)
-            .shouldSucceedWith {
-                assertEquals(1, it.size)
-                val entityAccessControl = it[0]
-                assertEquals(entityId01, entityAccessControl.id)
-                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
-            }
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            BEEHIVE_TYPE,
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId01, entityAccessControl.id)
+            assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+        }
     }
 
     @Test

@@ -45,6 +45,8 @@ const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val typePattern: Pattern = Pattern.compile("([^(),;|]+)")
+val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
@@ -136,6 +138,13 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
+fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
+    parseAndExpandTypeSelection(type, listOf(contextLink))
+fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
+    type?.replace(typeSelectionRegex) {
+        JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+    }
+
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {
@@ -191,7 +200,7 @@ suspend fun parseQueryParams(
     contextLink: String
 ): Either<APIException, QueryParams> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
         runCatching {
             Pattern.compile(idPattern)
@@ -222,7 +231,7 @@ suspend fun parseQueryParams(
 
     QueryParams(
         ids = ids,
-        types = types,
+        type = type,
         idPattern = idPattern,
         q = q,
         limit = limit,

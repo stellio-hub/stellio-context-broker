@@ -100,7 +100,7 @@ class EntityHandler(
         if (
             queryParams.ids.isEmpty() &&
             queryParams.q.isNullOrEmpty() &&
-            queryParams.types.isEmpty() &&
+            queryParams.type.isNullOrEmpty() &&
             queryParams.attrs.isEmpty()
         )
             BadRequestDataException(

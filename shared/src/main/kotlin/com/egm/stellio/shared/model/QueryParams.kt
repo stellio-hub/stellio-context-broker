@@ -4,7 +4,7 @@ import java.net.URI
 
 data class QueryParams(
     val ids: Set<URI> = emptySet(),
-    val types: Set<ExpandedTerm> = emptySet(),
+    val type: String? = null,
     val idPattern: String? = null,
     val q: String? = null,
     val limit: Int,

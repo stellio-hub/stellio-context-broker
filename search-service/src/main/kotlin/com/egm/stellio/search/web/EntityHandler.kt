@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -37,7 +38,7 @@ class EntityHandler(
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
-) {
+) : BaseHandler() {
 
     /**
      * Implements 6.4.3.1 - Create Entity
@@ -87,15 +88,14 @@ class EntityHandler(
     @PatchMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun merge(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestParam options: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
@@ -109,7 +109,7 @@ class EntityHandler(
         val expandedAttributes = expandAttributes(body, contexts)
 
         val updateResult = entityPayloadService.mergeEntity(
-            entityUri,
+            entityId,
             expandedAttributes,
             observedAt,
             sub.getOrNull()
@@ -118,7 +118,7 @@ class EntityHandler(
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
                 sub.getOrNull(),
-                entityUri,
+                entityId,
                 expandedAttributes,
                 updateResult,
                 true,
@@ -145,10 +145,9 @@ class EntityHandler(
     @PutMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun replace(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
         val sub = getSubFromSecurityContext()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -158,15 +157,15 @@ class EntityHandler(
         val jsonLdEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        if (ngsiLdEntity.id != entityUri)
+        if (ngsiLdEntity.id != entityId)
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
                 .left().bind<ResponseEntity<*>>()
 
         entityPayloadService.replaceEntity(
-            entityUri,
+            entityId,
             ngsiLdEntity,
             jsonLdEntity,
             sub.getOrNull()
@@ -260,10 +259,9 @@ class EntityHandler(
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
@@ -274,11 +272,11 @@ class EntityHandler(
             contextLink
         ).bind()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
 
-        authorizationService.userCanReadEntity(entityUri, sub).bind()
+        authorizationService.userCanReadEntity(entityId, sub).bind()
 
-        val jsonLdEntity = queryService.queryEntity(entityUri, listOf(contextLink)).bind()
+        val jsonLdEntity = queryService.queryEntity(entityId, listOf(contextLink)).bind()
 
         jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
@@ -306,20 +304,19 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun delete(
-        @PathVariable entityId: String
+        @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
         // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
-        val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
-        authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        val entity = entityPayloadService.retrieve(entityId).bind()
+        authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityPayloadService.deleteEntity(entityUri).bind()
-        authorizationService.removeRightsOnEntity(entityUri).bind()
+        entityPayloadService.deleteEntity(entityId).bind()
+        authorizationService.removeRightsOnEntity(entityId).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId.toUri(), entity.types, entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId, entity.types, entity.contexts)
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -338,15 +335,14 @@ class EntityHandler(
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun appendEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestParam options: Optional<String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
@@ -355,10 +351,10 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val updateResult = entityPayloadService.appendAttributes(
-            entityUri,
+            entityId,
             expandedAttributes,
             disallowOverwrite,
             sub.getOrNull()
@@ -367,7 +363,7 @@ class EntityHandler(
         if (updateResult.hasSuccessfulUpdate()) {
             entityEventService.publishAttributeChangeEvents(
                 sub.getOrNull(),
-                entityUri,
+                entityId,
                 expandedAttributes,
                 updateResult,
                 true,
@@ -398,22 +394,21 @@ class EntityHandler(
     )
     suspend fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val updateResult = entityPayloadService.updateAttributes(
-            entityUri,
+            entityId,
             expandedAttributes,
             sub.getOrNull()
         ).bind()
@@ -421,7 +416,7 @@ class EntityHandler(
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
                 sub.getOrNull(),
-                entityUri,
+                entityId,
                 expandedAttributes,
                 updateResult,
                 true,
@@ -452,15 +447,14 @@ class EntityHandler(
     )
     suspend fun partialAttributeUpdate(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -471,7 +465,7 @@ class EntityHandler(
         val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
 
         entityPayloadService.partialUpdateAttribute(
-            entityUri,
+            entityId,
             expandedAttribute,
             sub.getOrNull()
         )
@@ -482,7 +476,7 @@ class EntityHandler(
                 else {
                     entityEventService.publishAttributeChangeEvents(
                         sub.getOrNull(),
-                        entityUri,
+                        entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
                         false,
@@ -507,22 +501,21 @@ class EntityHandler(
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     suspend fun deleteEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         entityPayloadService.deleteAttribute(
-            entityUri,
+            entityId,
             expandedAttrId,
             datasetId,
             deleteAll
@@ -530,7 +523,7 @@ class EntityHandler(
 
         entityEventService.publishAttributeDeleteEvent(
             sub.getOrNull(),
-            entityUri,
+            entityId,
             expandedAttrId,
             datasetId,
             deleteAll,

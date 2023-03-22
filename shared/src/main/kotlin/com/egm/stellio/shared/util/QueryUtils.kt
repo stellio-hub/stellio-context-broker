@@ -92,7 +92,7 @@ fun String.unescapeRegexPattern(): String =
         .replace("//", ")")
 
 fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String =
-    rawQuery.replace(typePattern.toRegex()) { matchResult ->
+    rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
         #{TARGET}# && ARRAY['${matchResult.value}']
         """.trimIndent()

@@ -74,7 +74,7 @@ data class Subscription(
     fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities.map {
-                EntitySelector(it.id, it.idPattern, compactTerm(it.type, contexts))
+                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.type, contexts))
             }.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }

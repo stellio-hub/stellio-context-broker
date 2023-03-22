@@ -46,7 +46,6 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typePattern: Pattern = Pattern.compile("([^(),;|]+)")
-val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
@@ -142,7 +141,7 @@ fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
     parseAndExpandTypeSelection(type, listOf(contextLink))
 
 fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
-    type?.replace(typeSelectionRegex) {
+    type?.replace(typePattern.toRegex()) {
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
     }
 

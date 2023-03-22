@@ -25,10 +25,9 @@ suspend fun parseQueryAndTemporalParams(
         contextLink
     ).bind()
 
-    if (queryParams.type.isNullOrEmpty() && queryParams.attrs.isEmpty() && inQueryEntities) BadRequestDataException(
-        "Either type or attrs need to be present in request parameters"
-    )
-        .left().bind<TemporalEntitiesQuery>()
+    if (queryParams.type.isNullOrEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
+        BadRequestDataException("Either type or attrs need to be present in request parameters")
+            .left().bind<TemporalEntitiesQuery>()
 
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),

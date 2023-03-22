@@ -23,7 +23,7 @@ class SubscriptionTest {
         id = "urn:ngsi-ld:Subscription:01".toUri(),
         type = NGSILD_SUBSCRIPTION_TERM,
         entities = setOf(
-            EntityInfo(
+            EntitySelector(
                 id = null,
                 idPattern = null,
                 type = BEEHIVE_COMPACT_TYPE

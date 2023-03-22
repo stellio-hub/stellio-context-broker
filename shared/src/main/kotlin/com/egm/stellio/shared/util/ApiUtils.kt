@@ -146,6 +146,11 @@ fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? 
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
     }
 
+fun compactTypeSelection(type: String, contexts: List<String>): String =
+    type.replace(typeSelectionRegex) {
+        JsonLdUtils.compactTerm(it.value.trim(), contexts)
+    }
+
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {

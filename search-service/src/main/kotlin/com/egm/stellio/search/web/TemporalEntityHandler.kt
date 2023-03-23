@@ -213,36 +213,34 @@ class TemporalEntityHandler(
         @PathVariable attrId: String,
         @PathVariable instanceId: String,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
-        return either<APIException, ResponseEntity<*>> {
-            val sub = getSubFromSecurityContext()
-            val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-            val body = requestBody.awaitFirst().deserializeAsList()
-            val entityUri = entityId.toUri()
-            val instanceUri = instanceId.toUri()
-            attrId.checkNameIsNgsiLdSupported().bind()
-            val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
+    ): ResponseEntity<*> = either{
+        val sub = getSubFromSecurityContext()
+        val body = requestBody.awaitFirst().deserializeAsList()
+        val contexts = checkAndGetContext(httpHeaders, body.first()).bind()
+        val entityUri = entityId.toUri()
+        val instanceUri = instanceId.toUri()
+        attrId.checkNameIsNgsiLdSupported().bind()
+        val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
-            entityPayloadService.checkEntityExistence(entityUri).bind()
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInputList(body)) as Map<String, Any>
-            val jsonLdInstance = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
-            jsonLdInstance.checkValidity().bind()
+        val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInputList(body))
+        val jsonLdInstance = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
+        jsonLdInstance.checkValidity().bind()
 
-            attributeInstanceService.modifyAttributeInstance(
-                entityUri,
-                expandedAttrId,
-                instanceUri,
-                jsonLdInstance[expandedAttrId]!!.first()
-            ).bind()
+        attributeInstanceService.modifyAttributeInstance(
+            entityUri,
+            expandedAttrId,
+            instanceUri,
+            jsonLdInstance[expandedAttrId]!!.first()
+        ).bind()
 
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     @PatchMapping(
         "/attrs/{attrId}/{instanceId}",

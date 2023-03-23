@@ -213,7 +213,7 @@ class TemporalEntityHandler(
         @PathVariable attrId: String,
         @PathVariable instanceId: String,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> = either{
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsList()
         val contexts = checkAndGetContext(httpHeaders, body.first()).bind()

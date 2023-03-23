@@ -320,7 +320,7 @@ class AttributeInstanceService(
         val measuredValue = getPropertyValueFromMap(expandedAttributeInstance, NGSILD_PROPERTY_VALUE)
             ?: BadRequestDataException("Attribute $attributeName has an instance without a value")
         val observedAt = getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!
-        val modifiedAt = ZonedDateTime.now()
+        val modifiedAt = ngsiLdDateTime()
         val payload = expandedAttributeInstance.toMutableMap()
         payload.putIfAbsent(
             JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY,

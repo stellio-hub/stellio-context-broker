@@ -10,6 +10,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
@@ -214,6 +216,8 @@ object JsonLdUtils {
             emptyList()
     }
 
+    fun removeContextFromInputList(input: List<Map<String, Any>>): List<Map<String, Any>> =
+        input.map { removeContextFromInput(it) }
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
 
@@ -681,7 +685,10 @@ fun Map<String, Any>.addSysAttrs(
 fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
-            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null &&
+                expandedAttributePayloadEntry.keys.any {
+                    it == NGSILD_PROPERTY_VALUE || it == NGSILD_RELATIONSHIP_HAS_OBJECT
+                }
         }
     }.let {
         if (it) Unit.right()

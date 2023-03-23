@@ -226,8 +226,7 @@ class TemporalEntityHandler(
             entityPayloadService.checkEntityExistence(entityUri).bind()
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            val attributeInstance =
-                mapOf(attrId to JsonLdUtils.removeContextFromInputList(body))
+            val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInputList(body)) as Map<String, Any>
             val jsonLdInstance = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
             jsonLdInstance.checkValidity().bind()
 

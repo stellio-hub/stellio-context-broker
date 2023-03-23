@@ -221,8 +221,8 @@ class TemporalEntityHandler(
         val instanceUri = instanceId.toUri()
         attrId.checkNameIsNgsiLdSupported().bind()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+            entityPayloadService.checkEntityExistence(entityUri).bind()
+            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
         val expandedAttributesInstances =

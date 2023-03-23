@@ -405,7 +405,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
             )
         )
-        val notifiedAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
+        val notifiedAt = ngsiLdDateTime()
 
         subscriptionService.create(subscription, mockUserSub)
         subscriptionService.updateSubscriptionNotification(

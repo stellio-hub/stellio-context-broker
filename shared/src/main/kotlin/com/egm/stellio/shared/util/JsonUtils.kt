@@ -2,17 +2,13 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
-import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import java.time.ZonedDateTime
 import kotlin.reflect.KClass
 
 val mapper: ObjectMapper =
@@ -82,9 +78,4 @@ object JsonUtils {
 
     fun convertToMap(input: Any): Map<String, Any> =
         mapper.convertValue(input)
-}
-
-class DateTimeSerializer : StdSerializer<ZonedDateTime>(ZonedDateTime::class.java) {
-    override fun serialize(value: ZonedDateTime, gen: JsonGenerator, provider: SerializerProvider) =
-        gen.writeString(value.toNgsiLdFormat())
 }

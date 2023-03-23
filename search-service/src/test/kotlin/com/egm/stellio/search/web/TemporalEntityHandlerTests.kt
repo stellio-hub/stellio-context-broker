@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -1099,9 +1100,9 @@ class TemporalEntityHandlerTests {
                 TEMPERATURE_PROPERTY,
                 attributeInstanceId,
                 expandJsonLdFragment(
-                    instanceTemporalFragment.deserializeAsMap(),
+                    instanceTemporalFragment.deserializeAsList().first(),
                     DEFAULT_CONTEXTS
-                ) as Map<String, List<Any>>
+                ) as ExpandedAttributeInstance
             )
         }
     }

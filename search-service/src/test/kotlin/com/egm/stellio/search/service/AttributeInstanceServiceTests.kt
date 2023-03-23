@@ -12,7 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -663,9 +663,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should modify attribute instance`() = runTest {
         val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance)
-        attributeInstanceService.create(
-            attributeInstance.copy(timeProperty = AttributeInstance.TemporalProperty.CREATED_AT)
-        )
 
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
@@ -685,9 +682,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             INCOMING_PROPERTY,
             attributeInstance.instanceId,
             JsonLdUtils.expandJsonLdFragment(
-                instanceTemporalFragment.deserializeAsMap(),
+                instanceTemporalFragment.deserializeAsList().first(),
                 DEFAULT_CONTEXTS
-            ) as Map<String, List<Any>>
+            ) as ExpandedAttributeInstance
         ).shouldSucceedAndResult()
 
         val newInstanceResult =

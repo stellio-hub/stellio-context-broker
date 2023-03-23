@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
@@ -216,7 +217,7 @@ class TemporalEntityHandler(
         return either<APIException, ResponseEntity<*>> {
             val sub = getSubFromSecurityContext()
             val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-
+            val body = requestBody.awaitFirst().deserializeAsList()
             val entityUri = entityId.toUri()
             val instanceUri = instanceId.toUri()
             attrId.checkNameIsNgsiLdSupported().bind()
@@ -225,17 +226,16 @@ class TemporalEntityHandler(
             entityPayloadService.checkEntityExistence(entityUri).bind()
             authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-            val body = requestBody.awaitFirst().deserializeAsMap()
-            val expandedPayload = expandJsonLdFragment(
-                JsonLdUtils.removeContextFromInput(body),
-                contexts
-            )
+            val attributeInstance =
+                mapOf(attrId to JsonLdUtils.removeContextFromInputList(body))
+            val jsonLdInstance = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
+            jsonLdInstance.checkValidity().bind()
 
             attributeInstanceService.modifyAttributeInstance(
                 entityUri,
                 expandedAttrId,
                 instanceUri,
-                expandedPayload as Map<String, List<Any>>
+                jsonLdInstance[expandedAttrId]!!.first()
             ).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -248,9 +248,7 @@ class TemporalEntityHandler(
     @PatchMapping(
         "/attrs/{attrId}/{instanceId}",
         "/{entityId}/attrs/{instanceId}",
-        "/{entityId}/attrs/{attrId}",
         "/attrs/{instanceId}",
-        "/attrs/{attrId}",
         "/{entityId}/attrs",
         "/attrs"
     )

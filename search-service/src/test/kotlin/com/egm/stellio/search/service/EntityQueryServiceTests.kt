@@ -287,7 +287,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                             coordinates
                         ).getOrNull()!!
                     ),
-                    types = setOf(BEEHIVE_TYPE),
+                    type = BEEHIVE_TYPE,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }

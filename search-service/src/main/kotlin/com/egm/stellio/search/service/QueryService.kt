@@ -92,6 +92,15 @@ class QueryService(
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
             val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
+            val count = entityPayloadService.queryEntitiesCount(
+                temporalEntitiesQuery.queryParams,
+                accessRightFilter
+            ).getOrElse { 0 }
+
+            // we can have an empty list of entities with a non-zero count (e.g., offset too high)
+            if (entitiesIds.isEmpty())
+                return@either Pair<List<CompactedJsonLdEntity>, Int>(emptyList(), count)
+
             val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
                 entitiesIds,
                 temporalEntitiesQuery.queryParams
@@ -119,11 +128,6 @@ class QueryService(
                     // the ordering made when searching matching temporal entity attributes is lost
                     // since we are now iterating over the map of TEAs with their instances
                     .sortedBy { it.first.entityId }
-
-            val count = entityPayloadService.queryEntitiesCount(
-                temporalEntitiesQuery.queryParams,
-                accessRightFilter
-            ).getOrElse { 0 }
 
             Pair(
                 TemporalEntityBuilder.buildTemporalEntities(

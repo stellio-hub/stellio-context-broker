@@ -91,6 +91,16 @@
     "type": "Relationship",
     "object": "urn:ngsi-ld:AnotherEntity:01"
   },
+  "location": {
+    "type": "GeoProperty",
+    "value": {
+      "type": "Point",
+      "coordinates": [
+        100.0,
+        0
+      ]
+    }
+  },
   "@context": [
     "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
   ]

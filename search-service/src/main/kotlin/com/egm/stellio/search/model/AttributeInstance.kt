@@ -13,7 +13,7 @@ import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
-data class AttributeInstance constructor(
+data class AttributeInstance private constructor(
     val temporalEntityAttribute: UUID,
     val instanceId: URI,
     val timeProperty: TemporalProperty,
@@ -64,7 +64,7 @@ data class AttributeInstance constructor(
             )
         }
 
-        fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+        private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }
 
     // a TemporalProperty as defined in 4.8

@@ -314,29 +314,23 @@ class AttributeInstanceService(
         entityId: URI,
         attributeName: ExpandedTerm,
         instanceId: URI,
-        expandedAttributeInstance: ExpandedAttributeInstance
+        expandedAttributeInstance: ExpandedAttributesInstances
     ): Either<APIException, Unit> = either {
         val teaUUID = retrieveTeaUUID(entityId, attributeName, instanceId).bind()
-        val measuredValue = getPropertyValueFromMap(expandedAttributeInstance, NGSILD_PROPERTY_VALUE)
-            ?: BadRequestDataException("Attribute $attributeName has an instance without a value")
-        val observedAt = getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!
-        val modifiedAt = ngsiLdDateTime()
-        val payload = expandedAttributeInstance.toMutableMap()
-        payload.putIfAbsent(
-            JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY,
-            JsonLdUtils.buildNonReifiedProperty(instanceId.toString())
-        )
-        payload.putIfAbsent(
-            JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY,
-            JsonLdUtils.buildNonReifiedDateTime(modifiedAt)
-        )
+        val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(expandedAttributeInstance)[0]
+        val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+
         deleteInstance(entityId, attributeName, instanceId).bind()
         create(
             AttributeInstance(
                 temporalEntityAttribute = teaUUID,
-                time = observedAt,
-                payload = payload,
-                measuredValue = valueToDoubleOrNull(measuredValue),
+                time = attributeMetadata.observedAt!!,
+                modifiedAt = ngsiLdDateTime(),
+                instanceId = instanceId,
+                payload = expandedAttributeInstance.entries.first().value.first(),
+                measuredValue = attributeMetadata.measuredValue,
+                value = attributeMetadata.value,
                 timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
             )
         ).bind()
@@ -351,7 +345,7 @@ class AttributeInstanceService(
             """
             SELECT temporal_entity_attribute
             FROM attribute_instance
-            WHERE temporal_entity_attribute = ( 
+            WHERE temporal_entity_attribute = any( 
                 SELECT id 
                 FROM temporal_entity_attribute 
                 WHERE entity_id = :entity_id 

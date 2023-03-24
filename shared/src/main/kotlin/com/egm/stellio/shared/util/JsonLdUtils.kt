@@ -218,6 +218,7 @@ object JsonLdUtils {
 
     fun removeContextFromInputList(input: List<Map<String, Any>>): List<Map<String, Any>> =
         input.map { removeContextFromInput(it) }
+    
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
 
@@ -682,13 +683,10 @@ fun Map<String, Any>.addSysAttrs(
             }
     else this
 
-fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =
+fun ExpandedAttributesInstances.checkTemporalInstanceContainsObservedAtProperty(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
-            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null &&
-                expandedAttributePayloadEntry.keys.any {
-                    it == NGSILD_PROPERTY_VALUE || it == NGSILD_RELATIONSHIP_HAS_OBJECT
-                }
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
         }
     }.let {
         if (it) Unit.right()

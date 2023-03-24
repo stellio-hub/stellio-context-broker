@@ -51,7 +51,7 @@ class TemporalEntityHandler(
         val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
 
         val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
-        jsonLdInstances.checkValidity().bind()
+        jsonLdInstances.checkTemporalInstanceContainsObservedAtProperty().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         if (entityDoesNotExist) {
@@ -110,7 +110,7 @@ class TemporalEntityHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
-        jsonLdInstances.checkValidity().bind()
+        jsonLdInstances.checkTemporalInstanceContainsObservedAtProperty().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         entityPayloadService.upsertAttributes(
@@ -219,21 +219,19 @@ class TemporalEntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body.first()).bind()
         val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
-        attrId.checkNameIsNgsiLdSupported().bind()
-        val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInputList(body))
-        val jsonLdInstance = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
-        jsonLdInstance.checkValidity().bind()
+        val jsonLdAttribute = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
+        jsonLdAttribute.checkTemporalInstanceContainsObservedAtProperty().bind()
 
         attributeInstanceService.modifyAttributeInstance(
             entityUri,
-            expandedAttrId,
+            jsonLdAttribute.entries.first().key,
             instanceUri,
-            jsonLdInstance[expandedAttrId]!!.first()
+            jsonLdAttribute
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

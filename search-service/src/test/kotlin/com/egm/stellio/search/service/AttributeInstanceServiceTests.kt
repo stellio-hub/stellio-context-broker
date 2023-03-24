@@ -8,11 +8,14 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -666,6 +669,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
+        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsList())
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
+            attributeInstancePayload,
+            listOf(APIC_COMPOUND_CONTEXT)
+        ) as ExpandedAttributesInstances
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             TemporalQuery(
@@ -673,25 +681,23 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
             )
         )
-        val oldInstanceResult =
-            attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-                .shouldSucceedAndResult()
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
             INCOMING_PROPERTY,
             attributeInstance.instanceId,
-            JsonLdUtils.expandJsonLdFragment(
-                instanceTemporalFragment.deserializeAsList().first(),
-                DEFAULT_CONTEXTS
-            ) as ExpandedAttributeInstance
+            jsonLdAttribute
         ).shouldSucceedAndResult()
 
-        val newInstanceResult =
-            attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-                .shouldSucceedAndResult()
-
-        assertNotEquals(oldInstanceResult, newInstanceResult)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).single { result ->
+                    result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
+                        result.payload.deserializeAsMap().any {
+                            it.key == NGSILD_MODIFIED_AT_PROPERTY || it.key == NGSILD_INSTANCE_ID_PROPERTY
+                        }
+                }
+            }
     }
 
     @Test

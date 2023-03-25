@@ -5,10 +5,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class JsonUtilsTests {
 
     private val entityId = "urn:ngsi-ld:BeeHive:01".toUri()
@@ -112,7 +115,7 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should serialize an event of type ENTITY_CREATE`() {
+    fun `it should serialize an event of type ENTITY_CREATE`() = runTest {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 "0123456789-1234-5678-987654321",

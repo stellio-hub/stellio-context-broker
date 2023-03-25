@@ -11,7 +11,7 @@ fun loadSampleData(filename: String = "beehive.jsonld"): String {
     return String(sampleData.inputStream.readAllBytes())
 }
 
-fun String.sampleDataToNgsiLdEntity(): Pair<JsonLdEntity, NgsiLdEntity> {
+suspend fun String.sampleDataToNgsiLdEntity(): Pair<JsonLdEntity, NgsiLdEntity> {
     val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(this)
     return Pair(jsonLdEntity, jsonLdEntity.toNgsiLdEntity())
 }

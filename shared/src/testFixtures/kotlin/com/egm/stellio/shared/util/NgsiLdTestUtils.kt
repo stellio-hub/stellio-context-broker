@@ -3,7 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 
-fun gimmeSimpleEntityWithGeoProperty(
+suspend fun gimmeSimpleEntityWithGeoProperty(
     propertyKey: String,
     longitude: Double,
     latitude: Double

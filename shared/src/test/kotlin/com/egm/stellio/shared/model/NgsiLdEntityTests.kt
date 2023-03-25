@@ -5,18 +5,21 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.toUri
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class NgsiLdEntityTests {
 
     private val targetRelationshipUri = "urn:ngsi-ld:Entity:target".toUri()
     private val targetRelationshipUri2 = "urn:ngsi-ld:Entity:target2".toUri()
 
     @Test
-    fun `it should parse a minimal entity`() {
+    fun `it should parse a minimal entity`() = runTest {
         val rawEntity =
             """
             {
@@ -32,7 +35,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without an id`() {
+    fun `it should not parse an entity without an id`() = runTest {
         val rawEntity =
             """
             {
@@ -50,7 +53,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without a type`() {
+    fun `it should not parse an entity without a type`() = runTest {
         val rawEntity =
             """
             {
@@ -72,7 +75,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with an invalid type name`() {
+    fun `it should not parse an entity with an invalid type name`() = runTest {
         val rawEntity =
             """
             {
@@ -91,7 +94,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with allowed characters for attribute name`() {
+    fun `it should parse an entity with allowed characters for attribute name`() = runTest {
         val rawEntity =
             """
             {
@@ -110,7 +113,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with an invalid attribute name`() {
+    fun `it should not parse an entity with an invalid attribute name`() = runTest {
         val rawEntity =
             """
             {
@@ -133,7 +136,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a minimal property`() {
+    fun `it should parse an entity with a minimal property`() = runTest {
         val rawEntity =
             """
             {
@@ -159,7 +162,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property whose name contains a colon`() {
+    fun `it should parse an entity with a property whose name contains a colon`() = runTest {
         val rawEntity =
             """
             {
@@ -179,7 +182,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property having a JSON object value`() {
+    fun `it should parse an entity with a property having a JSON object value`() = runTest {
         val rawEntity =
             """
             {
@@ -219,7 +222,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property having all core fields`() {
+    fun `it should parse an entity with a property having all core fields`() = runTest {
         val rawEntity =
             """
             {
@@ -245,7 +248,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property having createdAt and modifiedAt information`() {
+    fun `it should parse an entity with a property having createdAt and modifiedAt information`() = runTest {
         val rawEntity =
             """
             {
@@ -268,7 +271,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multi-attribute property`() {
+    fun `it should parse an entity with a multi-attribute property`() = runTest {
         val rawEntity =
             """
             {
@@ -299,7 +302,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with different type instances`() {
+    fun `it should not parse a property with different type instances`() = runTest {
         val rawProperty =
             """
             {
@@ -327,7 +330,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with a duplicated datasetId`() {
+    fun `it should not parse a property with a duplicated datasetId`() = runTest {
         val rawProperty =
             """
             {
@@ -368,7 +371,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with more than one default instance`() {
+    fun `it should not parse a property with more than one default instance`() = runTest {
         val rawProperty =
             """
             {
@@ -402,7 +405,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse a property with a datasetId`() {
+    fun `it should parse a property with a datasetId`() = runTest {
         val rawProperty =
             """
             {
@@ -427,7 +430,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a minimal relationship`() {
+    fun `it should parse an entity with a minimal relationship`() = runTest {
         val rawEntity =
             """
             {
@@ -453,7 +456,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a relationship having all core fields`() {
+    fun `it should parse an entity with a relationship having all core fields`() = runTest {
         val rawEntity =
             """
             {
@@ -477,7 +480,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multi-attribute relationship`() {
+    fun `it should parse an entity with a multi-attribute relationship`() = runTest {
         val rawEntity =
             """
             {
@@ -506,7 +509,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with more than one default instance`() {
+    fun `it should not parse a relationship with more than one default instance`() = runTest {
         val rawRelationship =
             """
             {
@@ -536,7 +539,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with a duplicated datasetId`() {
+    fun `it should not parse a relationship with a duplicated datasetId`() = runTest {
         val rawRelationship =
             """
             {
@@ -568,7 +571,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with different type instances`() {
+    fun `it should not parse a relationship with different type instances`() = runTest {
         val rawRelationship =
             """
             {
@@ -603,7 +606,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a Polygon location`() {
+    fun `it should parse an entity with a Polygon location`() = runTest {
         val rawEntity =
             """
             {
@@ -638,7 +641,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a MultiPolygon location`() {
+    fun `it should parse an entity with a MultiPolygon location`() = runTest {
         val rawEntity =
             """
             {
@@ -688,7 +691,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a Point location`() {
+    fun `it should parse an entity with a Point location`() = runTest {
         val rawEntity =
             """
             {
@@ -718,7 +721,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should find relationships of entity`() {
+    fun `it should find relationships of entity`() = runTest {
         val expandedEntity = expandJsonLdEntity(
             """
             { 
@@ -737,7 +740,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should find relationships of properties`() {
+    fun `it should find relationships of properties`() = runTest {
         val expandedEntity = expandJsonLdEntity(
             """
             { 
@@ -767,7 +770,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should find relationships of relationships`() {
+    fun `it should find relationships of relationships`() = runTest {
         val expandedEntity = expandJsonLdEntity(
             """
             { 

@@ -28,6 +28,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,6 +43,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
 import java.time.Duration
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
 @Import(WebSecurityTestConfig::class)
@@ -570,7 +573,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return entities I have a right on`() {
+    fun `get authorized entities should return entities I have a right on`() = runTest {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(
@@ -767,7 +770,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
     }
 
-    private fun createJsonLdEntity(
+    private suspend fun createJsonLdEntity(
         entityAccessRights: EntityAccessRights,
         context: String = NGSILD_CORE_CONTEXT
     ): JsonLdEntity {

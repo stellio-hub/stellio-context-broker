@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
+import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
 import org.slf4j.LoggerFactory
@@ -83,15 +84,16 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         contextsToTransform[it]!!
                     } else it
                 }
-            val originalExpandedEntity = expandDeserializedPayload(deserializedPayload, contexts)
-                .mapKeys {
-                    // replace the faulty expanded terms (only at the rool level of the entity)
-                    if (keysToTransform.containsKey(it.key))
-                        keysToTransform[it.key]!!
-                    else it.key
-                }
-                .keepOnlyOneInstanceByDatasetId()
-
+            val originalExpandedEntity = runBlocking {
+                expandDeserializedPayload(deserializedPayload, contexts)
+                    .mapKeys {
+                        // replace the faulty expanded terms (only at the rool level of the entity)
+                        if (keysToTransform.containsKey(it.key))
+                            keysToTransform[it.key]!!
+                        else it.key
+                    }
+                    .keepOnlyOneInstanceByDatasetId()
+            }
             // extract specific access policy (if any) from the payload to be able to store it in entity_payload
             // then remove it from the expanded payload
             val specificAccessPolicy =

@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -21,12 +22,9 @@ class MockkedHandler : customExceptionHandler() {
     fun post() = ResponseEntity.status(HttpStatus.CREATED).build<String>()
 
     @PostMapping("/validate-json-ld-fragment")
-    fun validateJsonLdFragment(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return body.map {
-            val input = it.deserializeAsMap()
-            expandJsonLdFragment(input, extractContextFromInput(input))
-        }.map {
-            ResponseEntity.status(HttpStatus.CREATED).build<String>()
-        }
+    suspend fun validateJsonLdFragment(@RequestBody body: Mono<String>): ResponseEntity<*> {
+        val payload = body.awaitFirst().deserializeAsMap()
+        expandJsonLdFragment(payload, extractContextFromInput(payload))
+        return ResponseEntity.status(HttpStatus.CREATED).build<String>()
     }
 }

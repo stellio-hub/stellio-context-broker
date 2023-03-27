@@ -224,14 +224,15 @@ class TemporalEntityHandler(
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
-        val jsonLdAttribute = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
-        jsonLdAttribute.checkTemporalAttributeInstance().bind()
+        val expandedAttributesInstances =
+            expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
+        expandedAttributesInstances.checkTemporalAttributeInstance().bind()
 
         attributeInstanceService.modifyAttributeInstance(
             entityUri,
-            jsonLdAttribute.entries.first().key,
+            expandedAttributesInstances.entries.first().key,
             instanceUri,
-            jsonLdAttribute.entries.first().value
+            expandedAttributesInstances.entries.first().value
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

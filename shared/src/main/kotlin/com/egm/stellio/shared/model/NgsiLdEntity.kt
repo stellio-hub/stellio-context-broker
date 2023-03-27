@@ -372,7 +372,7 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
     )
 
 fun parseAttributesInstancesToNgsiLdAttributes(
-    attributesInstances: Map<String, List<Map<String, List<Any>>>>
+    attributesInstances: ExpandedAttributesInstances
 ): List<NgsiLdAttribute> =
     attributesInstances.map {
         parseAttributeInstancesToNgsiLdAttribute(it.key, it.value)
@@ -380,7 +380,7 @@ fun parseAttributesInstancesToNgsiLdAttributes(
 
 fun parseAttributeInstancesToNgsiLdAttribute(
     attributeName: ExpandedTerm,
-    attributeInstances: List<Map<String, List<Any>>>
+    attributeInstances: ExpandedAttributeInstances
 ): NgsiLdAttribute =
     when {
         isAttributeOfType(attributeInstances[0], NGSILD_PROPERTY_TYPE) ->

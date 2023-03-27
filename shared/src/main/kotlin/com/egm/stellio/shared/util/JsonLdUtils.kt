@@ -214,9 +214,6 @@ object JsonLdUtils {
             emptyList()
     }
 
-    fun removeContextFromInputList(input: List<Map<String, Any>>): List<Map<String, Any>> =
-        input.map { removeContextFromInput(it) }
-
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
 
@@ -573,7 +570,7 @@ fun ExpandedAttributeInstances.addSubAttribute(
 
 fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+        throw BadRequestDataException("Expected a single entry but got none or more than one: $this")
     return this[0]
 }
 

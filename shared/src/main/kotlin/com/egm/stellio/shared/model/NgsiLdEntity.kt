@@ -375,12 +375,21 @@ fun parseAttributesInstancesToNgsiLdAttributes(
     attributesInstances: Map<String, List<Map<String, List<Any>>>>
 ): List<NgsiLdAttribute> =
     attributesInstances.map {
-        when {
-            isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_GEOPROPERTY_TYPE) -> NgsiLdGeoProperty(it.key, it.value)
-            else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
-        }
+        parseAttributeInstancesToNgsiLdAttribute(it.key, it.value)
+    }
+
+fun parseAttributeInstancesToNgsiLdAttribute(
+    attributeName: ExpandedTerm,
+    attributeInstances: List<Map<String, List<Any>>>
+): NgsiLdAttribute =
+    when {
+        isAttributeOfType(attributeInstances[0], NGSILD_PROPERTY_TYPE) ->
+            NgsiLdProperty(attributeName, attributeInstances)
+        isAttributeOfType(attributeInstances[0], NGSILD_RELATIONSHIP_TYPE) ->
+            NgsiLdRelationship(attributeName, attributeInstances)
+        isAttributeOfType(attributeInstances[0], NGSILD_GEOPROPERTY_TYPE) ->
+            NgsiLdGeoProperty(attributeName, attributeInstances)
+        else -> throw BadRequestDataException("Unrecognized type for $attributeName")
     }
 
 fun String.isNgsiLdSupportedName(): Boolean =

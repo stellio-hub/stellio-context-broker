@@ -314,10 +314,10 @@ class AttributeInstanceService(
         entityId: URI,
         attributeName: ExpandedTerm,
         instanceId: URI,
-        expandedAttributeInstance: ExpandedAttributesInstances
+        expandedAttributeInstances: ExpandedAttributeInstances
     ): Either<APIException, Unit> = either {
         val teaUUID = retrieveTeaUUID(entityId, attributeName, instanceId).bind()
-        val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(expandedAttributeInstance)[0]
+        val ngsiLdAttribute = parseAttributeInstancesToNgsiLdAttribute(attributeName, expandedAttributeInstances)
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
 
@@ -328,7 +328,7 @@ class AttributeInstanceService(
                 time = attributeMetadata.observedAt!!,
                 modifiedAt = ngsiLdDateTime(),
                 instanceId = instanceId,
-                payload = expandedAttributeInstance.entries.first().value.first(),
+                payload = expandedAttributeInstances.first(),
                 measuredValue = attributeMetadata.measuredValue,
                 value = attributeMetadata.value,
                 timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT

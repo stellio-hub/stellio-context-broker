@@ -51,7 +51,7 @@ class TemporalEntityHandler(
         val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
 
         val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
-        jsonLdInstances.checkTemporalInstanceContainsObservedAtProperty().bind()
+        jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         if (entityDoesNotExist) {
@@ -110,7 +110,7 @@ class TemporalEntityHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
-        jsonLdInstances.checkTemporalInstanceContainsObservedAtProperty().bind()
+        jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         entityPayloadService.upsertAttributes(
@@ -215,23 +215,23 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsList()
-        val contexts = checkAndGetContext(httpHeaders, body.first()).bind()
+        val body = requestBody.awaitFirst().deserializeAsList().first()
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
         val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-        val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInputList(body))
+        val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
         val jsonLdAttribute = expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
-        jsonLdAttribute.checkTemporalInstanceContainsObservedAtProperty().bind()
+        jsonLdAttribute.checkTemporalAttributeInstance().bind()
 
         attributeInstanceService.modifyAttributeInstance(
             entityUri,
             jsonLdAttribute.entries.first().key,
             instanceUri,
-            jsonLdAttribute
+            jsonLdAttribute.entries.first().value
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

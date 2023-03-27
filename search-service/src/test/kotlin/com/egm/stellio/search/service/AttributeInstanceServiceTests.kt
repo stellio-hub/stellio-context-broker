@@ -686,16 +686,15 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             entityId,
             INCOMING_PROPERTY,
             attributeInstance.instanceId,
-            jsonLdAttribute
-        ).shouldSucceedAndResult()
+            jsonLdAttribute.entries.first().value
+        ).shouldSucceed()
 
         attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
             .shouldSucceedWith {
                 (it as List<FullAttributeInstanceResult>).single { result ->
                     result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
-                        result.payload.deserializeAsMap().any {
-                            it.key == NGSILD_MODIFIED_AT_PROPERTY || it.key == NGSILD_INSTANCE_ID_PROPERTY
-                        }
+                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_PROPERTY) ||
+                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_PROPERTY)
                 }
             }
     }

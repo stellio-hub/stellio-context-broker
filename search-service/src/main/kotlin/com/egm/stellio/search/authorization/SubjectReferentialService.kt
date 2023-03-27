@@ -177,17 +177,19 @@ class SubjectReferentialService(
             .bind("subject_id", (sub as Some).value)
             .oneToResult { it["count"] as Long == 1L }
 
-    suspend fun getGlobalRoles(sub: Option<Sub>): List<Option<GlobalRole>> =
+    suspend fun hasGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient
             .sql(
                 """
-                SELECT unnest(global_roles) as global_roles
+                SELECT COUNT(subject_id) as count
                 FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id IN(:uuids)
+                AND global_roles && :roles
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
-            .allToMappedList { GlobalRole.forKey(it["global_roles"] as String) }
+            .bind("uuids", uuids)
+            .bind("roles", roles.map { it.key }.toTypedArray())
+            .oneToResult { it["count"] as Long >= 1L }
 
     @Transactional
     suspend fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Either<APIException, Unit> =

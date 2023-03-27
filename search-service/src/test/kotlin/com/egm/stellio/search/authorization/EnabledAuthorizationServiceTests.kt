@@ -47,24 +47,25 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return an access denied if user has no global role`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns emptyList()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userIsOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
-            .shouldFail {
-                assertInstanceOf(AccessDeniedException::class.java, it)
-            }
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+            .shouldSucceedWith { false }
 
-        coVerify { subjectReferentialService.getGlobalRoles(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.hasGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
     fun `it should allow an user that has one of the required roles`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns listOf(Some(GlobalRole.STELLIO_CREATOR))
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userIsOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
-            .shouldSucceed()
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid)).shouldSucceedWith { true }
 
-        coVerify { subjectReferentialService.getGlobalRoles(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.hasGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
@@ -225,7 +226,8 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return serialized groups memberships along with a count for an admin`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns listOf(Some(GlobalRole.STELLIO_ADMIN))
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns true.right()
         coEvery {
             subjectReferentialService.getAllGroups(any(), any(), any())
         } returns listOf(
@@ -253,7 +255,8 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return serialized groups memberships along with a count for an user without any roles`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns emptyList()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getGroups(any(), any(), any())
         } returns listOf(

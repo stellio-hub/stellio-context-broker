@@ -22,20 +22,19 @@ class EnabledAuthorizationService(
 ) : AuthorizationService {
 
     override suspend fun userIsAdmin(sub: Option<Sub>): Either<APIException, Unit> =
-        userIsOneOfGivenRoles(ADMIN_ROLES, sub)
+        userHasOneOfGivenRoles(ADMIN_ROLES, sub)
+            .toAccessDecision("User does not have any of the required roles: $ADMIN_ROLES")
 
     override suspend fun userCanCreateEntities(sub: Option<Sub>): Either<APIException, Unit> =
-        userIsOneOfGivenRoles(CREATION_ROLES, sub)
+        userHasOneOfGivenRoles(CREATION_ROLES, sub)
+            .toAccessDecision("User does not have any of the required roles: $CREATION_ROLES")
 
-    internal suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
-        val matchingRoles = subjectReferentialService.getGlobalRoles(sub)
-            .flattenOption()
-            .intersect(roles)
-
-        return if (matchingRoles.isEmpty())
-            AccessDeniedException("User does not have any of the required roles: $roles").left()
-        else Unit.right()
-    }
+    internal suspend fun userHasOneOfGivenRoles(
+        roles: Set<GlobalRole>,
+        sub: Option<Sub>
+    ): Either<APIException, Boolean> =
+        subjectReferentialService.getSubjectAndGroupsUUID(sub)
+            .flatMap { uuids -> subjectReferentialService.hasGlobalRoles(uuids, roles) }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
         this.flatMap {

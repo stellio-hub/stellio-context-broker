@@ -447,53 +447,37 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should get global roles for user with no role`() = runTest {
+    fun `it should return false when user does not have the requested roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
-
         subjectReferentialService.create(subjectReferential)
-
-        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
-
-        assertEquals(emptyList<Some<GlobalRole>>(), globalRoles)
+        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), CREATION_ROLES).shouldSucceedWith { false }
     }
 
     @Test
-    fun `it should get global roles for user with one role`() = runTest {
+    fun `it should return true when user has admin roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
-
-        val expectedGlobalRoles = listOf(Some(STELLIO_ADMIN))
-
         subjectReferentialService.create(subjectReferential)
-
-        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
-
-        assertEquals(expectedGlobalRoles, globalRoles)
+        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), ADMIN_ROLES).shouldSucceedWith { true }
     }
 
     @Test
-    fun `it should get global roles for user with more two roles`() = runTest {
+    fun `it should return true when user has creation roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
         )
-
-        val expectedGlobalRoles = listOf(Some(STELLIO_CREATOR), Some(STELLIO_ADMIN))
-
         subjectReferentialService.create(subjectReferential)
-
-        val globalRoles = subjectReferentialService.getGlobalRoles(Some(subjectUuid))
-
-        assertEquals(expectedGlobalRoles, globalRoles)
+        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), CREATION_ROLES).shouldSucceedWith { true }
     }
 }

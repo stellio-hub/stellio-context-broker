@@ -61,7 +61,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } answers { false.right() }
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } answers { false.right() }
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { listOf(subjectUuid).right() }
@@ -157,10 +157,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having a read role on a entity both directly and via a group membership`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { listOf(groupUuid, subjectUuid).right() }
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
+        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
         entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
@@ -179,13 +180,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having the stellio-admin role to read any entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
         entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).shouldSucceed()
 
         coVerify {
-            subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
             subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called
         }
     }

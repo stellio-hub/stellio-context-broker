@@ -278,21 +278,21 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
             .shouldSucceedWith {
                 assertTrue(it)
             }
 
         subjectReferentialService.resetGlobalRoles(subjectUuid)
 
-        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
             .shouldSucceedWith {
                 assertFalse(it)
             }
 
         subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR))
 
-        subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
             .shouldSucceedWith {
                 assertTrue(it)
             }

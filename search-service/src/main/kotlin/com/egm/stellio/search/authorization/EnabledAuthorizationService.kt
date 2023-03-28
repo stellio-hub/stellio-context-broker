@@ -170,32 +170,28 @@ class EnabledAuthorizationService(
         }
     }
 
-    override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
-        if (subjectReferentialService.hasStellioAdminRole(sub).getOrElse { false })
-            return { null }
-        else {
-            return subjectReferentialService.getSubjectAndGroupsUUID(sub)
-                .map {
-                    if (it.isEmpty()) {
-                        { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
-                    } else {
-                        {
-                            """
-                            ( 
-                                (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                                OR
-                                (entity_payload.entity_id IN (
-                                    SELECT entity_id
-                                    FROM entity_access_rights
-                                    WHERE subject_id IN (${it.toListOfString()})
-                                ))
-                            )
-                            """.trimIndent()
-                        }
-                    }
-                }.getOrElse { { "1 = 0" } }
-        }
-    }
+    override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? =
+        subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
+            if (uuids.isEmpty()) {
+                { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
+            } else if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
+                { null }
+            } else {
+                {
+                    """
+                    ( 
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_payload.entity_id IN (
+                            SELECT entity_id
+                            FROM entity_access_rights
+                            WHERE subject_id IN (${uuids.toListOfString()})
+                        ))
+                    )
+                    """.trimIndent()
+                }
+            }
+        }.getOrElse { { "1 = 0" } }
 
     private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
 }

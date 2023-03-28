@@ -194,7 +194,10 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return a null filter is user has the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
         val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
         assertNull(accessRightFilter())
@@ -202,10 +205,10 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns false.right()
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } returns listOf(subjectUuid, groupUuid).right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
         assertEquals(
@@ -222,6 +225,8 @@ class EnabledAuthorizationServiceTests {
             """.trimIndent(),
             accessRightFilter()
         )
+
+        coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }
     }
 
     @Test

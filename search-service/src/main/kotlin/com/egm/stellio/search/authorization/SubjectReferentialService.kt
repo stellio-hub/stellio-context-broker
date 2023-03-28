@@ -7,6 +7,7 @@ import arrow.core.getOrElse
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -161,21 +162,8 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
-    suspend fun hasStellioAdminRole(sub: Option<Sub>): Either<APIException, Boolean> =
-        hasStellioRole(sub, GlobalRole.STELLIO_ADMIN)
-
-    suspend fun hasStellioRole(sub: Option<Sub>, globalRole: GlobalRole): Either<APIException, Boolean> =
-        databaseClient
-            .sql(
-                """
-                SELECT COUNT(subject_id) as count
-                FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
-                AND '${globalRole.key}' = ANY(global_roles)
-                """.trimIndent()
-            )
-            .bind("subject_id", (sub as Some).value)
-            .oneToResult { it["count"] as Long == 1L }
+    suspend fun hasStellioAdminRole(uuids: List<Sub>): Either<APIException, Boolean> =
+        hasGlobalRoles(uuids, ADMIN_ROLES)
 
     suspend fun hasGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient

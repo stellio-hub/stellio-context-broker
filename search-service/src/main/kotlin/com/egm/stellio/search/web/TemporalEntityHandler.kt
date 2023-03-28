@@ -219,6 +219,7 @@ class TemporalEntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
+        attrId.checkNameIsNgsiLdSupported().bind()
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()

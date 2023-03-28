@@ -154,15 +154,16 @@ class SubscriptionEventListenerService(
             val payload = buildExpandedProperty(entitiesIds)
                 .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(notification.notifiedAt))
                 .first()
-            val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = tea.id,
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                time = notification.notifiedAt,
-                value = entitiesIds,
-                instanceId = notification.id,
-                payload = payload
-            )
-            attributeInstanceService.create(attributeInstance).bind()
+            attributeInstanceService.create(
+                AttributeInstance(
+                    temporalEntityAttribute = tea.id,
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                    time = notification.notifiedAt,
+                    value = entitiesIds,
+                    instanceId = notification.id,
+                    payload = payload
+                )
+            ).bind()
             temporalEntityAttributeService.updateStatus(tea.id, ZonedDateTime.now(ZoneOffset.UTC), payload).bind()
         }
     }

@@ -238,16 +238,17 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         (1..10).forEach { _ ->
             val observedAt = Instant.now().atZone(ZoneOffset.UTC)
-            val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute2.id,
-                value = "some value",
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                time = observedAt,
-                payload = buildExpandedProperty("some value")
-                    .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
-                    .getSingleEntry()
+            attributeInstanceService.create(
+                AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute2.id,
+                    value = "some value",
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                    time = observedAt,
+                    payload = buildExpandedProperty("some value")
+                        .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
+                        .getSingleEntry()
+                )
             )
-            attributeInstanceService.create(attributeInstance)
         }
 
         attributeInstanceService.search(

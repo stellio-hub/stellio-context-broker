@@ -143,25 +143,30 @@ class TemporalEntityAttributeService(
                     payload = Json.of(serializeObject(attributePayload))
                 )
                 create(temporalEntityAttribute).bind()
-
-                val attributeCreatedAtInstance = AttributeInstance(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
-                    timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                    time = createdAt,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
-                    payload = attributePayload,
-                    sub = sub
-                )
-                attributeInstanceService.create(attributeCreatedAtInstance).bind()
-
-                if (attributeMetadata.observedAt != null) {
-                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
-                        time = attributeMetadata.observedAt,
-                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                attributeInstanceService.create(
+                    AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
+                        timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+                        time = createdAt,
+                        measuredValue = attributeMetadata.measuredValue,
+                        value = attributeMetadata.value,
+                        geoValue = attributeMetadata.geoValue,
+                        payload = attributePayload,
+                        sub = sub
                     )
-                    attributeInstanceService.create(attributeObservedAtInstance).bind()
+                ).bind()
+                if (attributeMetadata.observedAt != null) {
+                    attributeInstanceService.create(
+                        AttributeInstance(
+                            temporalEntityAttribute = temporalEntityAttribute.id,
+                            time = attributeMetadata.observedAt,
+                            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                            measuredValue = attributeMetadata.measuredValue,
+                            value = attributeMetadata.value,
+                            geoValue = attributeMetadata.geoValue,
+                            payload = attributePayload
+                        )
+                    ).bind()
                 }
             }
     }
@@ -213,25 +218,30 @@ class TemporalEntityAttributeService(
                 payload = Json.of(serializeObject(attributePayload))
             )
             create(temporalEntityAttribute).bind()
-
-            val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
-                payload = attributePayload,
-                sub = sub
-            )
-            attributeInstanceService.create(attributeInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
-                    time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+            attributeInstanceService.create(
+                AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+                    time = createdAt,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
+                    geoValue = attributeMetadata.geoValue,
+                    payload = attributePayload,
+                    sub = sub
                 )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
+            ).bind()
+            if (attributeMetadata.observedAt != null) {
+                attributeInstanceService.create(
+                    AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
+                        time = attributeMetadata.observedAt,
+                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                        measuredValue = attributeMetadata.measuredValue,
+                        value = attributeMetadata.value,
+                        geoValue = attributeMetadata.geoValue,
+                        payload = attributePayload
+                    )
+                ).bind()
             }
         }
 
@@ -251,25 +261,30 @@ class TemporalEntityAttributeService(
                 temporalEntityAttribute.entityId
             )
             update(temporalEntityAttribute.id, attributeMetadata, createdAt, serializeObject(attributePayload)).bind()
-
-            val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
-                time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
-                payload = attributePayload,
-                sub = sub
-            )
-            attributeInstanceService.create(attributeInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
-                    time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+            attributeInstanceService.create(
+                AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+                    time = createdAt,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
+                    geoValue = attributeMetadata.geoValue,
+                    payload = attributePayload,
+                    sub = sub
                 )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
+            ).bind()
+            if (attributeMetadata.observedAt != null) {
+                attributeInstanceService.create(
+                    AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
+                        time = attributeMetadata.observedAt,
+                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                        measuredValue = attributeMetadata.measuredValue,
+                        value = attributeMetadata.value,
+                        geoValue = attributeMetadata.geoValue,
+                        payload = attributePayload
+                    )
+                ).bind()
             }
         }
 
@@ -663,18 +678,18 @@ class TemporalEntityAttributeService(
                             Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
 
                     val value = getValueFromPartialAttributePayload(tea, deserializedPayload)
-                    val attributeInstance = AttributeInstance(
-                        temporalEntityAttribute = tea.id,
-                        timeProperty = timeAndProperty.second,
-                        time = timeAndProperty.first,
-                        value = value.first,
-                        measuredValue = value.second,
-                        geoValue = value.third,
-                        payload = deserializedPayload,
-                        sub = sub
-                    )
-                    attributeInstanceService.create(attributeInstance).bind()
-
+                    attributeInstanceService.create(
+                        AttributeInstance(
+                            temporalEntityAttribute = tea.id,
+                            timeProperty = timeAndProperty.second,
+                            time = timeAndProperty.first,
+                            value = value.first,
+                            measuredValue = value.second,
+                            geoValue = value.third,
+                            payload = deserializedPayload,
+                            sub = sub
+                        )
+                    ).bind()
                     UpdateAttributeResult(
                         expandedAttributeName,
                         datasetId,

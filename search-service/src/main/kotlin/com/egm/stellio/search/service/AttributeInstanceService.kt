@@ -54,7 +54,7 @@ class AttributeInstanceService(
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
-                              instance_id = :instance_id
+                              instance_id = :instance_id, geo_value = ST_GeomFromText(:geo_value)
                 """.trimIndent()
             else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -65,7 +65,8 @@ class AttributeInstanceService(
                     (:time, :measured_value, :value, :temporal_entity_attribute, 
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
-                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
+                              instance_id = :instance_id                 
                 """.trimIndent()
             else if (attributeInstance.geoValue != null)
                 """
@@ -119,15 +120,16 @@ class AttributeInstanceService(
             ?: return BadRequestDataException("Attribute $attributeName has an instance without an observed date")
                 .left()
 
-        val attributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttributeUuid,
-            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-            time = observedAt,
-            value = valueToStringOrNull(attributeValue),
-            measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = attributeValues
+        return create(
+            AttributeInstance(
+                temporalEntityAttribute = temporalEntityAttributeUuid,
+                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                time = observedAt,
+                value = valueToStringOrNull(attributeValue),
+                measuredValue = valueToDoubleOrNull(attributeValue),
+                payload = attributeValues
+            )
         )
-        return create(attributeInstance)
     }
 
     suspend fun search(

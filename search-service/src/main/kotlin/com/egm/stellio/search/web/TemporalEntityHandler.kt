@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
@@ -50,7 +51,7 @@ class TemporalEntityHandler(
         val entityDoesNotExist = entityPayloadService.checkEntityExistence(entityUri, true).isRight()
 
         val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
-        jsonLdInstances.checkValidity().bind()
+        jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         if (entityDoesNotExist) {
@@ -109,7 +110,7 @@ class TemporalEntityHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
-        jsonLdInstances.checkValidity().bind()
+        jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         entityPayloadService.upsertAttributes(
@@ -197,6 +198,61 @@ class TemporalEntityHandler(
         { it.toErrorResponse() },
         { it }
     )
+
+    /**
+     * Implements 6.22.3.1 - Modify Attribute Instance in Temporal Representation of Entity
+     *
+     */
+    @PatchMapping(
+        "/{entityId}/attrs/{attrId}/{instanceId}",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
+    suspend fun modifyAttributeInstanceTemporal(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @PathVariable instanceId: String,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> = either {
+        val sub = getSubFromSecurityContext()
+        val body = requestBody.awaitFirst().deserializeAsList().first()
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val entityUri = entityId.toUri()
+        val instanceUri = instanceId.toUri()
+        attrId.checkNameIsNgsiLdSupported().bind()
+
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+        val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
+        val expandedAttributesInstances =
+            expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
+        expandedAttributesInstances.checkTemporalAttributeInstance().bind()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityUri,
+            expandedAttributesInstances.entries.first().key,
+            instanceUri,
+            expandedAttributesInstances.entries.first().value
+        ).bind()
+
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @PatchMapping(
+        "/attrs/{attrId}/{instanceId}",
+        "/{entityId}/attrs/{instanceId}",
+        "/attrs/{instanceId}",
+        "/{entityId}/attrs",
+        "/attrs"
+    )
+    suspend fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
+        missingPathErrorResponse(
+            "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
+        )
 
     /**
      * Implements 6.19.3.2  - Delete Temporal Representation of an Entity

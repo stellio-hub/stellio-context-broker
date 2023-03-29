@@ -570,7 +570,7 @@ fun ExpandedAttributeInstances.addSubAttribute(
 
 fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+        throw BadRequestDataException("Expected a single entry but got none or more than one: $this")
     return this[0]
 }
 
@@ -678,7 +678,7 @@ fun Map<String, Any>.addSysAttrs(
             }
     else this
 
-fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =
+fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null

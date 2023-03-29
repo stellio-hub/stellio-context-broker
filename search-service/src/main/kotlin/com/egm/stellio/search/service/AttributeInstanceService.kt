@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import arrow.fx.coroutines.parTraverseEither
@@ -8,12 +9,11 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -307,6 +307,65 @@ class AttributeInstanceService(
             timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
+    }
+
+    @Transactional
+    suspend fun modifyAttributeInstance(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        instanceId: URI,
+        expandedAttributeInstances: ExpandedAttributeInstances
+    ): Either<APIException, Unit> = either {
+        val teaUUID = retrieveTeaUUID(entityId, attributeName, instanceId).bind()
+        val ngsiLdAttribute = parseAttributeInstancesToNgsiLdAttribute(attributeName, expandedAttributeInstances)
+        val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+
+        deleteInstance(entityId, attributeName, instanceId).bind()
+        create(
+            AttributeInstance(
+                temporalEntityAttribute = teaUUID,
+                time = attributeMetadata.observedAt!!,
+                modifiedAt = ngsiLdDateTime(),
+                instanceId = instanceId,
+                payload = expandedAttributeInstances.first(),
+                measuredValue = attributeMetadata.measuredValue,
+                value = attributeMetadata.value,
+                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+            )
+        ).bind()
+    }
+
+    private suspend fun retrieveTeaUUID(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        instanceId: URI
+    ): Either<APIException, UUID> {
+        val selectedQuery =
+            """
+            SELECT temporal_entity_attribute
+            FROM attribute_instance
+            WHERE temporal_entity_attribute = any( 
+                SELECT id 
+                FROM temporal_entity_attribute 
+                WHERE entity_id = :entity_id 
+                AND attribute_name = :attribute_name
+            )
+            AND instance_id = :instance_id
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectedQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .bind("instance_id", instanceId)
+            .oneToResult(
+                ResourceNotFoundException(
+                    attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                )
+            ) {
+                it["temporal_entity_attribute"] as UUID
+            }
     }
 
     @Transactional

@@ -3,6 +3,8 @@ package com.egm.stellio.search.model
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
@@ -29,6 +31,7 @@ data class AttributeInstance private constructor(
             instanceId: URI? = null,
             timeProperty: TemporalProperty,
             time: ZonedDateTime,
+            modifiedAt: ZonedDateTime? = null,
             value: String? = null,
             measuredValue: Double? = null,
             geoValue: WKTCoordinates? = null,
@@ -41,6 +44,12 @@ data class AttributeInstance private constructor(
                 NGSILD_INSTANCE_ID_PROPERTY,
                 buildNonReifiedProperty(attributeInstanceId.toString())
             )
+            modifiedAt?.let {
+                parsedPayload.putIfAbsent(
+                    NGSILD_MODIFIED_AT_PROPERTY,
+                    buildNonReifiedDateTime(it)
+                )
+            }
 
             return AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute,

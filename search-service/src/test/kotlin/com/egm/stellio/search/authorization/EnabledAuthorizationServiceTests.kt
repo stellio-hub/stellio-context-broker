@@ -46,26 +46,27 @@ class EnabledAuthorizationServiceTests {
     private val entityId02 = "urn:ngsi-ld:Beehive:02".toUri()
 
     @Test
-    fun `it should return an access denied if user has no global role`() = runTest {
+    fun `it should return false if user has no global role`() = runTest {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns false.right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
 
         enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
-            .shouldSucceedWith { false }
+            .shouldSucceedWith { assertFalse(it) }
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
-        coVerify { subjectReferentialService.hasGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
-    fun `it should allow an user that has one of the required roles`() = runTest {
+    fun `it should return true if user has one of the required roles`() = runTest {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid)).shouldSucceedWith { true }
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+            .shouldSucceedWith { assertTrue(it) }
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
-        coVerify { subjectReferentialService.hasGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
@@ -232,7 +233,7 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should return serialized groups memberships along with a count for an admin`() = runTest {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
         coEvery {
             subjectReferentialService.getAllGroups(any(), any(), any())
         } returns listOf(
@@ -261,7 +262,7 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should return serialized groups memberships along with a count for an user without any roles`() = runTest {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasGlobalRoles(any(), any()) } returns false.right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getGroups(any(), any(), any())
         } returns listOf(

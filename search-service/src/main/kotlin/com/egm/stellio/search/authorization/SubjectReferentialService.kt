@@ -163,9 +163,9 @@ class SubjectReferentialService(
             .oneToResult { toInt(it["count"]) }
 
     suspend fun hasStellioAdminRole(uuids: List<Sub>): Either<APIException, Boolean> =
-        hasGlobalRoles(uuids, ADMIN_ROLES)
+        hasOneOfGlobalRoles(uuids, ADMIN_ROLES)
 
-    suspend fun hasGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
+    suspend fun hasOneOfGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient
             .sql(
                 """

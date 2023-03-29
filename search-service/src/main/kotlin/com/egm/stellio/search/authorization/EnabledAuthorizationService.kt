@@ -34,7 +34,7 @@ class EnabledAuthorizationService(
         sub: Option<Sub>
     ): Either<APIException, Boolean> =
         subjectReferentialService.getSubjectAndGroupsUUID(sub)
-            .flatMap { uuids -> subjectReferentialService.hasGlobalRoles(uuids, roles) }
+            .flatMap { uuids -> subjectReferentialService.hasOneOfGlobalRoles(uuids, roles) }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
         this.flatMap {
@@ -172,10 +172,10 @@ class EnabledAuthorizationService(
 
     override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? =
         subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
-            if (uuids.isEmpty()) {
-                { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
-            } else if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
+            if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
                 { null }
+            } else if (uuids.isEmpty()) {
+                { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
             } else {
                 {
                     """

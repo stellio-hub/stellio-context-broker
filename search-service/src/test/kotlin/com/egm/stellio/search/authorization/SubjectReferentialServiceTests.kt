@@ -454,7 +454,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), CREATION_ROLES).shouldSucceedWith { false }
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), CREATION_ROLES)
+            .shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
@@ -466,7 +467,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             globalRoles = listOf(STELLIO_ADMIN)
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), ADMIN_ROLES).shouldSucceedWith { true }
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), ADMIN_ROLES)
+            .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
@@ -478,6 +480,31 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasGlobalRoles(listOf(subjectUuid), CREATION_ROLES).shouldSucceedWith { true }
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), CREATION_ROLES)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `it should return true when user has global (inherited from group) `() = runTest {
+        subjectReferentialService.create(
+            SubjectReferential(
+                subjectId = subjectUuid,
+                subjectType = SubjectType.USER,
+                subjectInfo = EMPTY_JSON_PAYLOAD,
+                globalRoles = emptyList(),
+                groupsMemberships = listOf(groupUuid)
+            )
+        )
+        subjectReferentialService.create(
+            SubjectReferential(
+                subjectId = groupUuid,
+                subjectType = SubjectType.GROUP,
+                subjectInfo = getSubjectInfoForGroup(groupUuid),
+                globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
+            )
+        )
+        val uuids = subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)).shouldSucceedAndResult()
+        subjectReferentialService.hasOneOfGlobalRoles(uuids, CREATION_ROLES)
+            .shouldSucceedWith { assertTrue(it) }
     }
 }

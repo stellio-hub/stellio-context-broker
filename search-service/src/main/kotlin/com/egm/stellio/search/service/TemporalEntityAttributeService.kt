@@ -157,9 +157,14 @@ class TemporalEntityAttributeService(
                 attributeInstanceService.create(attributeCreatedAtInstance).bind()
 
                 if (attributeMetadata.observedAt != null) {
-                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
+                    val attributeObservedAtInstance = AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
                         time = attributeMetadata.observedAt,
-                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                        measuredValue = attributeMetadata.measuredValue,
+                        value = attributeMetadata.value,
+                        geoValue = attributeMetadata.geoValue,
+                        payload = attributePayload
                     )
                     attributeInstanceService.create(attributeObservedAtInstance).bind()
                 }
@@ -227,9 +232,14 @@ class TemporalEntityAttributeService(
             attributeInstanceService.create(attributeInstance).bind()
 
             if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
+                val attributeObservedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
                     time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
+                    geoValue = attributeMetadata.geoValue,
+                    payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
             }
@@ -265,9 +275,14 @@ class TemporalEntityAttributeService(
             attributeInstanceService.create(attributeInstance).bind()
 
             if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
+                val attributeObservedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
                     time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
+                    geoValue = attributeMetadata.geoValue,
+                    payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
             }

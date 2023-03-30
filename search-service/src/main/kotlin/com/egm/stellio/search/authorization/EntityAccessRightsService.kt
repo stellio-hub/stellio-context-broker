@@ -122,22 +122,22 @@ class EntityAccessRightsService(
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>,
         accessRights: List<AccessRight>
-    ): Either<APIException, Boolean> {
+    ): Either<APIException, Boolean> = either {
         if (!applicationProperties.authentication.enabled)
-            return true.right()
+            true.right()
 
-        return subjectReferentialService.hasStellioAdminRole(sub)
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
                 if (!it)
                     entityPayloadService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
                 else true.right()
-            }
-            .flatMap {
+            }.flatMap {
                 if (!it)
-                    subjectReferentialService.getSubjectAndGroupsUUID(sub)
-                        .flatMap { uuids -> hasDirectAccessRightOnEntity(uuids, entityId, accessRights) }
+                    hasDirectAccessRightOnEntity(subjectUuids, entityId, accessRights)
                 else true.right()
-            }
+            }.bind()
     }
 
     private suspend fun hasDirectAccessRightOnEntity(
@@ -167,10 +167,8 @@ class EntityAccessRightsService(
         limit: Int,
         offset: Int
     ): Either<APIException, List<EntityAccessRights>> = either {
-        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
-        val subjectUuids =
-            if (isStellioAdmin) emptyList()
-            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
             .sql(
@@ -189,7 +187,7 @@ class EntityAccessRightsService(
             .bind("limit", limit)
             .bind("offset", offset)
             .let {
-                if (subjectUuids.isNotEmpty())
+                if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
                 else it
             }
@@ -218,10 +216,8 @@ class EntityAccessRightsService(
         accessRights: List<AccessRight>,
         type: String? = null
     ): Either<APIException, Int> = either {
-        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
-        val subjectUuids =
-            if (isStellioAdmin) emptyList()
-            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
             .sql(
@@ -235,7 +231,7 @@ class EntityAccessRightsService(
                 """.trimIndent()
             )
             .let {
-                if (subjectUuids.isNotEmpty())
+                if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
                 else it
             }

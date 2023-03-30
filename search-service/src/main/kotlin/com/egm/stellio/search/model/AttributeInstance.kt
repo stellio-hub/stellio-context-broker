@@ -28,7 +28,7 @@ data class AttributeInstance private constructor(
 
         operator fun invoke(
             temporalEntityAttribute: UUID,
-            instanceId: URI? = null,
+            instanceId: URI = generateRandomInstanceId(),
             timeProperty: TemporalProperty,
             time: ZonedDateTime,
             modifiedAt: ZonedDateTime? = null,
@@ -37,32 +37,30 @@ data class AttributeInstance private constructor(
             geoValue: WKTCoordinates? = null,
             payload: ExpandedAttributeInstance,
             sub: String? = null
-        ): AttributeInstance {
-            val parsedPayload = payload.toMutableMap()
-            val attributeInstanceId = instanceId ?: generateRandomInstanceId()
-            parsedPayload.putIfAbsent(
-                NGSILD_INSTANCE_ID_PROPERTY,
-                buildNonReifiedProperty(attributeInstanceId.toString())
-            )
-            modifiedAt?.let {
-                parsedPayload.putIfAbsent(
-                    NGSILD_MODIFIED_AT_PROPERTY,
-                    buildNonReifiedDateTime(it)
-                )
-            }
+        ): AttributeInstance = AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute,
+            instanceId = instanceId,
+            timeProperty = timeProperty,
+            time = time,
+            value = value,
+            measuredValue = measuredValue,
+            geoValue = geoValue,
+            payload = payload.composePayload(instanceId, modifiedAt).toJson(),
+            sub = sub
+        )
 
-            return AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute,
-                instanceId = attributeInstanceId,
-                timeProperty = timeProperty,
-                time = time,
-                value = value,
-                measuredValue = measuredValue,
-                geoValue = geoValue,
-                payload = Json.of(serializeObject(parsedPayload)),
-                sub = sub
-            )
-        }
+        private fun ExpandedAttributeInstance.toJson(): Json = Json.of(serializeObject(this))
+
+        private fun ExpandedAttributeInstance.composePayload(
+            instanceId: URI,
+            modifiedAt: ZonedDateTime? = null
+        ): ExpandedAttributeInstance =
+            this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedProperty(instanceId.toString()))
+                .let {
+                    if (modifiedAt != null)
+                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
+                    else it
+                }
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }

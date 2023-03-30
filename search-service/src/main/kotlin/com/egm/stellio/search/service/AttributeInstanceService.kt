@@ -374,44 +374,6 @@ class AttributeInstanceService(
     }
 
     @Transactional
-    suspend fun updateAttributeInstancePayload(
-        entityId: URI,
-        attributeName: ExpandedTerm,
-        instanceId: URI,
-        measuredValue: Double,
-        payload: Json
-    ): Either<APIException, Unit> {
-        val updateQuery =
-            """
-            UPDATE attribute_instance_audit
-            SET payload = :payload,
-                measured_value = :measured_value
-            WHERE temporal_entity_attribute = any( 
-                SELECT id 
-                FROM temporal_entity_attribute 
-                WHERE entity_id = :entity_id 
-                AND attribute_name = :attribute_name
-            )
-            AND instance_id = :instance_id
-            """.trimIndent()
-
-        return databaseClient
-            .sql(updateQuery)
-            .bind("entity_id", entityId)
-            .bind("attribute_name", attributeName)
-            .bind("instance_id", instanceId)
-            .bind("measured_value", measuredValue)
-            .bind("payload", payload)
-            .executeExpected {
-                if (it == 0L)
-                    ResourceNotFoundException(
-                        attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
-                    ).left()
-                else Unit.right()
-            }
-    }
-
-    @Transactional
     suspend fun deleteInstance(
         entityId: URI,
         attributeName: ExpandedTerm,

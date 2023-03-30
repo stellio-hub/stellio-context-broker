@@ -214,8 +214,6 @@ object JsonLdUtils {
             emptyList()
     }
 
-    fun removeContextFromInputList(input: List<Map<String, Any>>): List<Map<String, Any>> =
-        input.map { removeContextFromInput(it) }
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
 

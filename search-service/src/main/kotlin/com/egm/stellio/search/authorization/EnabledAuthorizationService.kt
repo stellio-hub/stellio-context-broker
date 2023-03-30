@@ -174,8 +174,6 @@ class EnabledAuthorizationService(
         subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
             if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
                 { null }
-            } else if (uuids.isEmpty()) {
-                { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
             } else {
                 {
                     """

@@ -485,7 +485,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return true when user has global (inherited from group) `() = runTest {
+    fun `it should return true when user has a global role inherited from a group`() = runTest {
         subjectReferentialService.create(
             SubjectReferential(
                 subjectId = subjectUuid,

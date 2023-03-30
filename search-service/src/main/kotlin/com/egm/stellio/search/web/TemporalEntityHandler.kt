@@ -221,8 +221,8 @@ class TemporalEntityHandler(
         val instanceUri = instanceId.toUri()
         attrId.checkNameIsNgsiLdSupported().bind()
 
-            entityPayloadService.checkEntityExistence(entityUri).bind()
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
         val expandedAttributesInstances =
@@ -246,20 +246,6 @@ class TemporalEntityHandler(
         "/attrs/{attrId}/{instanceId}",
         "/{entityId}/attrs/{instanceId}",
         "/attrs/{instanceId}",
-        "/{entityId}/attrs",
-        "/attrs"
-    )
-    suspend fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
-        missingPathErrorResponse(
-            "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
-        )
-
-    @PatchMapping(
-        "/attrs/{attrId}/{instanceId}",
-        "/{entityId}/attrs/{instanceId}",
-        "/{entityId}/attrs/{attrId}",
-        "/attrs/{instanceId}",
-        "/attrs/{attrId}",
         "/{entityId}/attrs",
         "/attrs"
     )

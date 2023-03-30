@@ -683,10 +683,7 @@ fun Map<String, Any>.addSysAttrs(
 fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
-            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null &&
-                expandedAttributePayloadEntry.keys.any {
-                    it == NGSILD_PROPERTY_VALUE || it == NGSILD_RELATIONSHIP_HAS_OBJECT
-                }
+            getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
         }
     }.let {
         if (it) Unit.right()

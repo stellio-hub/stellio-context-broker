@@ -2,7 +2,6 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.*
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -243,7 +242,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 measuredValue = null,
                 value = "some value",
                 geoValue = null,
-                valueType= TemporalEntityAttribute.AttributeValueType.STRING,
+                valueType = TemporalEntityAttribute.AttributeValueType.STRING,
                 datasetId = null,
                 type = TemporalEntityAttribute.AttributeType.Property,
                 observedAt = observedAt
@@ -533,7 +532,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             measuredValue = 550.0,
             value = null,
             geoValue = null,
-            valueType= TemporalEntityAttribute.AttributeValueType.NUMBER,
+            valueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             datasetId = null,
             type = TemporalEntityAttribute.AttributeType.Property,
             observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")
@@ -592,7 +591,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             measuredValue = null,
             value = false.toString(),
             geoValue = null,
-            valueType= TemporalEntityAttribute.AttributeValueType.BOOLEAN,
+            valueType = TemporalEntityAttribute.AttributeValueType.BOOLEAN,
             datasetId = null,
             type = TemporalEntityAttribute.AttributeType.Property,
             observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")

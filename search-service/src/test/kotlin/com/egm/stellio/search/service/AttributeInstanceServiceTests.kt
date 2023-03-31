@@ -605,7 +605,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to attributeMetadata.value
+                    JSONLD_VALUE_KW to false
                 )
             )
         )

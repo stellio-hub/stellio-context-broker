@@ -1,8 +1,6 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -10,6 +8,7 @@ import com.egm.stellio.shared.util.addSubAttribute
 import com.egm.stellio.shared.util.getSingleEntry
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -17,16 +16,27 @@ fun gimmeAttributeInstance(
     teaUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ): AttributeInstance {
-    val measuredValue = Random.nextDouble()
-    val observedAt = Instant.now().atZone(ZoneOffset.UTC)
+    val attributeMetadata = AttributeMetadata(
+        measuredValue = Random.nextDouble(),
+        value = null,
+        geoValue = null,
+        valueType= TemporalEntityAttribute.AttributeValueType.NUMBER,
+        datasetId = null,
+        type = TemporalEntityAttribute.AttributeType.Property,
+        observedAt = Instant.now().atZone(ZoneOffset.UTC)
+    )
+    val payload = JsonLdUtils.buildExpandedProperty(attributeMetadata.measuredValue!!)
+        .addSubAttribute(
+            JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY,
+            JsonLdUtils.buildNonReifiedDateTime(attributeMetadata.observedAt!!)
+        )
+        .getSingleEntry()
+
     return AttributeInstance(
         temporalEntityAttribute = teaUuid,
-        measuredValue = measuredValue,
+        attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
-        time = observedAt,
-        payload = JsonLdUtils.buildExpandedProperty(measuredValue)
-            .addSubAttribute(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, JsonLdUtils.buildNonReifiedDateTime(observedAt))
-            .getSingleEntry()
+        payload = payload
     )
 }
 

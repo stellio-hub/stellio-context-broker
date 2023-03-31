@@ -148,9 +148,7 @@ class TemporalEntityAttributeService(
                     temporalEntityAttribute = temporalEntityAttribute.id,
                     timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                     time = createdAt,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
+                    attributeMetadata = attributeMetadata,
                     payload = attributePayload,
                     sub = sub
                 )
@@ -159,11 +157,7 @@ class TemporalEntityAttributeService(
                 if (attributeMetadata.observedAt != null) {
                     val attributeObservedAtInstance = AttributeInstance(
                         temporalEntityAttribute = temporalEntityAttribute.id,
-                        time = attributeMetadata.observedAt,
-                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                        measuredValue = attributeMetadata.measuredValue,
-                        value = attributeMetadata.value,
-                        geoValue = attributeMetadata.geoValue,
+                        attributeMetadata = attributeMetadata,
                         payload = attributePayload
                     )
                     attributeInstanceService.create(attributeObservedAtInstance).bind()
@@ -223,9 +217,7 @@ class TemporalEntityAttributeService(
                 temporalEntityAttribute = temporalEntityAttribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                 time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
+                attributeMetadata = attributeMetadata,
                 payload = attributePayload,
                 sub = sub
             )
@@ -234,11 +226,7 @@ class TemporalEntityAttributeService(
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
-                    time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
+                    attributeMetadata = attributeMetadata,
                     payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
@@ -266,9 +254,7 @@ class TemporalEntityAttributeService(
                 temporalEntityAttribute = temporalEntityAttribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
                 time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
+                attributeMetadata = attributeMetadata,
                 payload = attributePayload,
                 sub = sub
             )
@@ -277,11 +263,7 @@ class TemporalEntityAttributeService(
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
-                    time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
+                    attributeMetadata = attributeMetadata,
                     payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
@@ -680,11 +662,8 @@ class TemporalEntityAttributeService(
                     val value = getValueFromPartialAttributePayload(tea, deserializedPayload)
                     val attributeInstance = AttributeInstance(
                         temporalEntityAttribute = tea.id,
-                        timeProperty = timeAndProperty.second,
-                        time = timeAndProperty.first,
-                        value = value.first,
-                        measuredValue = value.second,
-                        geoValue = value.third,
+                        timeAndProperty = timeAndProperty,
+                        value = value,
                         payload = deserializedPayload,
                         sub = sub
                     )
@@ -742,7 +721,7 @@ class TemporalEntityAttributeService(
             logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
             attributeInstanceService.addAttributeInstance(
                 currentTea.id,
-                currentTea.attributeName,
+                attributeMetadata,
                 jsonLdAttribute[currentTea.attributeName]!!.first()
             ).bind()
         }

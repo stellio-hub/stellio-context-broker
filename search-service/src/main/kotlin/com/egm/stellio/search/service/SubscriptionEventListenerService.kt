@@ -156,10 +156,8 @@ class SubscriptionEventListenerService(
                 .first()
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = tea.id,
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-                time = notification.notifiedAt,
+                notification = notification,
                 value = entitiesIds,
-                instanceId = notification.id,
                 payload = payload
             )
             attributeInstanceService.create(attributeInstance).bind()

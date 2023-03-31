@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.addSubAttribute
 import com.egm.stellio.shared.util.getSingleEntry
 import java.time.Instant
 import java.time.ZoneOffset
-import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -20,7 +19,7 @@ fun gimmeAttributeInstance(
         measuredValue = Random.nextDouble(),
         value = null,
         geoValue = null,
-        valueType= TemporalEntityAttribute.AttributeValueType.NUMBER,
+        valueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
         datasetId = null,
         type = TemporalEntityAttribute.AttributeType.Property,
         observedAt = Instant.now().atZone(ZoneOffset.UTC)

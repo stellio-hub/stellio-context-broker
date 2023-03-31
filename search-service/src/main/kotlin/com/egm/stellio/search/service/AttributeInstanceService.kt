@@ -10,10 +10,6 @@ import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateR
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -102,21 +98,12 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
-        attributeName: ExpandedTerm,
+        attributeMetadata: AttributeMetadata,
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
-        val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: return BadRequestDataException("Attribute $attributeName has an instance without a value").left()
-        val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: return BadRequestDataException("Attribute $attributeName has an instance without an observed date")
-                .left()
-
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-            time = observedAt,
-            value = valueToStringOrNull(attributeValue),
-            measuredValue = valueToDoubleOrNull(attributeValue),
+            attributeMetadata = attributeMetadata,
             payload = attributeValues
         )
         return create(attributeInstance)
@@ -326,13 +313,10 @@ class AttributeInstanceService(
         create(
             AttributeInstance(
                 temporalEntityAttribute = teaUUID,
-                time = attributeMetadata.observedAt!!,
+                attributeMetadata = attributeMetadata,
                 modifiedAt = ngsiLdDateTime(),
                 instanceId = instanceId,
-                payload = expandedAttributeInstances.first(),
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                payload = expandedAttributeInstances.first()
             )
         ).bind()
     }

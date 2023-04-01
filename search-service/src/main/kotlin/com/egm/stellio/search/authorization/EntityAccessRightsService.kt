@@ -178,7 +178,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type!!)}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
                 OFFSET :offset;
@@ -227,7 +227,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type!!)}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
                 """.trimIndent()
             )
             .let {
@@ -248,7 +248,7 @@ class EntityAccessRightsService(
         sub: Option<Sub>,
         entities: List<URI>
     ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
-        if (entities.isNullOrEmpty())
+        if (entities.isEmpty())
             return@either emptyMap()
 
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()

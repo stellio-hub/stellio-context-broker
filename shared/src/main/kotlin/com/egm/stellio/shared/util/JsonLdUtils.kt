@@ -58,10 +58,9 @@ object JsonLdUtils {
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
-    val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
+    val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
-    val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
@@ -78,8 +77,6 @@ object JsonLdUtils {
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
     const val NGSILD_SUBSCRIPTION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Subscription"
     const val NGSILD_NOTIFICATION_TERM = "Notification"
-    const val NGSILD_NOTIFICATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Notification"
-    const val NGSILD_NOTIFICATION_ATTR_TERM = "notification"
     const val NGSILD_NOTIFICATION_ATTR_PROPERTY = "https://uri.etsi.org/ngsi-ld/notification"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"

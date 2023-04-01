@@ -120,7 +120,7 @@ class TemporalEntityAttributeService(
         createdAt: ZonedDateTime,
         sub: String? = null
     ): Either<APIException, Unit> = either {
-        logger.debug("Creating ${attributesMetadata.size} attributes in entity: ${ngsiLdEntity.id}")
+        logger.debug("Creating {} attributes in entity: {}", attributesMetadata.size, ngsiLdEntity.id)
 
         attributesMetadata
             .filter {
@@ -193,6 +193,7 @@ class TemporalEntityAttributeService(
             .bind("modified_at", modifiedAt)
             .execute()
 
+    @Transactional
     suspend fun addAttribute(
         entityId: URI,
         ngsiLdAttribute: NgsiLdAttribute,
@@ -202,7 +203,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
-            logger.debug("Adding attribute ${ngsiLdAttribute.name} to entity $entityId")
+            logger.debug("Adding attribute {} to entity {}", ngsiLdAttribute.name, entityId)
             val temporalEntityAttribute = TemporalEntityAttribute(
                 entityId = entityId,
                 attributeName = ngsiLdAttribute.name,
@@ -235,6 +236,7 @@ class TemporalEntityAttributeService(
             }
         }
 
+    @Transactional
     suspend fun replaceAttribute(
         temporalEntityAttribute: TemporalEntityAttribute,
         ngsiLdAttribute: NgsiLdAttribute,
@@ -283,6 +285,7 @@ class TemporalEntityAttributeService(
             .bind("entity_id", entityId)
             .execute()
 
+    @Transactional
     suspend fun deleteTemporalAttribute(
         entityId: URI,
         attributeName: String,
@@ -290,7 +293,7 @@ class TemporalEntityAttributeService(
         deleteAll: Boolean = false
     ): Either<APIException, Unit> =
         either {
-            logger.debug("Deleting attribute $attributeName from entity $entityId (all: $deleteAll)")
+            logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
             if (deleteAll) {
                 attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
                 deleteTemporalAttributeAllInstancesReferences(entityId, attributeName).bind()
@@ -510,7 +513,7 @@ class TemporalEntityAttributeService(
         either {
             val attributeInstances = ngsiLdAttributes.flatOnInstances()
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Appending attribute ${ngsiLdAttribute.name} in entity $entityUri")
+                logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
                 val currentTea =
                     getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                         .fold({ null }, { it })
@@ -578,7 +581,7 @@ class TemporalEntityAttributeService(
         either {
             val attributeInstances = ngsiLdAttributes.flatOnInstances()
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Updating attribute ${ngsiLdAttribute.name} in entity $entityUri")
+                logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
                 val currentTea =
                     getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                         .fold({ null }, { it })
@@ -633,7 +636,12 @@ class TemporalEntityAttributeService(
         either {
             val expandedAttributeName = expandedPayload.keys.first()
             val attributeValues = expandedPayload.values.first()[0]
-            logger.debug("Updating attribute $expandedAttributeName of entity $entityId with values: $attributeValues")
+            logger.debug(
+                "Updating attribute {} of entity {} with values: {}",
+                expandedAttributeName,
+                entityId,
+                attributeValues
+            )
 
             val datasetId = attributeValues.getDatasetId()
             val exists = hasAttribute(entityId, expandedAttributeName, datasetId).bind()
@@ -652,9 +660,8 @@ class TemporalEntityAttributeService(
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
-                    val isNewObservation = attributeValues.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
                     val timeAndProperty =
-                        if (isNewObservation)
+                        if (attributeValues.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
                             Pair(
                                 getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)!!,
                                 AttributeInstance.TemporalProperty.OBSERVED_AT
@@ -702,7 +709,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, Unit> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
-        logger.debug("Upserting temporal attribute ${ngsiLdAttribute.name} in entity $entityUri")
+        logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
         val currentTea =
             getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                 .fold({ null }, { it })
@@ -714,7 +721,11 @@ class TemporalEntityAttributeService(
         )!!
 
         if (currentTea == null) {
-            logger.debug("Creating attribute and instance for attribute ${ngsiLdAttribute.name} in entity $entityUri")
+            logger.debug(
+                "Creating attribute and instance for attribute {} in entity {}",
+                ngsiLdAttribute.name,
+                entityUri
+            )
             addAttribute(
                 entityUri,
                 ngsiLdAttribute,
@@ -724,7 +735,7 @@ class TemporalEntityAttributeService(
                 sub
             ).bind()
         } else {
-            logger.debug("Adding instance to attribute ${currentTea.attributeName} to entity $entityUri")
+            logger.debug("Adding instance to attribute {} to entity {}", currentTea.attributeName, entityUri)
             attributeInstanceService.addAttributeInstance(
                 currentTea.id,
                 currentTea.attributeName,

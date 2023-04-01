@@ -77,7 +77,7 @@ class EntityEventListenerService(
         entityPayload: String,
         contexts: List<String>
     ): Either<APIException, Unit> {
-        logger.debug("Attributes considered in the event: $updatedAttributes")
+        logger.debug("Attributes considered in the event: {}", updatedAttributes)
         val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
         return notificationService.notifyMatchingSubscribers(
             jsonLdEntity,

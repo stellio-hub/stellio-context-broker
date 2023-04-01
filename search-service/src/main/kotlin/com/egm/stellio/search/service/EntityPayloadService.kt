@@ -50,7 +50,7 @@ class EntityPayloadService(
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
-        logger.debug("Creating entity ${ngsiLdEntity.id}")
+        logger.debug("Creating entity {}", ngsiLdEntity.id)
 
         createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(

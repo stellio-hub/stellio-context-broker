@@ -32,7 +32,6 @@ val GEO_QUERY_ALL_GEORELS = listOf(
 )
 const val GEOREL_NEAR_DISTANCE_MODIFIER = "distance"
 const val GEOREL_NEAR_MAXDISTANCE_MODIFIER = "maxDistance"
-const val GEOREL_NEAR_MINDISTANCE_MODIFIER = "minDistance"
 
 private val georelNearRegex = "^near;(?:minDistance|maxDistance)==\\d+$".toRegex()
 

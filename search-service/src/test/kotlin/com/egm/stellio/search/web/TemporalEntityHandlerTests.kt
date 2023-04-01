@@ -1165,7 +1165,7 @@ class TemporalEntityHandlerTests {
     fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -1551,7 +1551,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
         coEvery {
             entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
@@ -1608,7 +1608,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
 
         coEvery {
             entityPayloadService.checkEntityExistence(any())

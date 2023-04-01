@@ -25,8 +25,6 @@ const val OUTGOING_COMPACT_PROPERTY = "outgoing"
 const val OUTGOING_PROPERTY = "https://ontology.eglobalmark.com/apic#$OUTGOING_COMPACT_PROPERTY"
 const val TEMPERATURE_COMPACT_PROPERTY = "temperature"
 const val TEMPERATURE_PROPERTY = "https://ontology.eglobalmark.com/apic#$TEMPERATURE_COMPACT_PROPERTY"
-const val DATE_OF_FIRST_BEE_COMPACT_PROPERTY = "dateOfFirstBee"
-const val DATE_OF_FIRST_BEE_PROPERTY = "https://ontology.eglobalmark.com/apic#$DATE_OF_FIRST_BEE_COMPACT_PROPERTY"
 
 const val MANAGED_BY_COMPACT_RELATIONSHIP = "managedBy"
 const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAGED_BY_COMPACT_RELATIONSHIP"

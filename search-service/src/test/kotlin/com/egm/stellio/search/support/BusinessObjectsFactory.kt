@@ -2,12 +2,7 @@ package com.egm.stellio.search.support
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.addSubAttribute
-import com.egm.stellio.shared.util.getSingleEntry
-import java.time.Instant
-import java.time.ZoneOffset
+import com.egm.stellio.shared.util.*
 import java.util.UUID
 import kotlin.random.Random
 
@@ -22,7 +17,7 @@ fun gimmeAttributeInstance(
         valueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
         datasetId = null,
         type = TemporalEntityAttribute.AttributeType.Property,
-        observedAt = Instant.now().atZone(ZoneOffset.UTC)
+        observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedProperty(attributeMetadata.measuredValue!!)
         .addSubAttribute(

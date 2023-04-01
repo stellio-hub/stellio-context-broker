@@ -656,7 +656,7 @@ class TemporalEntityAttributeService(
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
                     )
                     val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributeInstance
+                    val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
@@ -669,12 +669,12 @@ class TemporalEntityAttributeService(
                         else
                             Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
 
-                    val value = getValueFromPartialAttributePayload(tea, deserializedPayload)
+                    val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
                     val attributeInstance = AttributeInstance(
                         temporalEntityAttribute = tea.id,
                         timeAndProperty = timeAndProperty,
                         value = value,
-                        payload = deserializedPayload,
+                        payload = updatedAttributeInstance,
                         sub = sub
                     )
                     attributeInstanceService.create(attributeInstance).bind()

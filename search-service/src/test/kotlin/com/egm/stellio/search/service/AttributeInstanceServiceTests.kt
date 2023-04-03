@@ -2,7 +2,6 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.*
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -239,12 +238,20 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         (1..10).forEach { _ ->
             val observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            val attributeMetadata = AttributeMetadata(
+                measuredValue = null,
+                value = "some value",
+                geoValue = null,
+                valueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                datasetId = null,
+                type = TemporalEntityAttribute.AttributeType.Property,
+                observedAt = observedAt
+            )
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute2.id,
-                value = "some value",
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
                 time = observedAt,
-                payload = buildExpandedProperty("some value")
+                attributeMetadata = attributeMetadata,
+                payload = buildExpandedProperty(attributeMetadata.value!!)
                     .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
                     .getSingleEntry()
             )
@@ -522,23 +529,32 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should create an attribute instance if it has a non null value`() = runTest {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeMetadata = AttributeMetadata(
+            measuredValue = 550.0,
+            value = null,
+            geoValue = null,
+            valueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            datasetId = null,
+            type = TemporalEntityAttribute.AttributeType.Property,
+            observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")
+        )
         val attributeValues = mapOf(
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
+                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to 550.0
+                    JSONLD_VALUE_KW to attributeMetadata.measuredValue
                 )
             )
         )
 
         attributeInstanceService.addAttributeInstance(
             incomingTemporalEntityAttribute.id,
-            OUTGOING_PROPERTY,
+            attributeMetadata,
             attributeValues
         )
 
@@ -572,10 +588,19 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should create an attribute instance with boolean value`() = runTest {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeMetadata = AttributeMetadata(
+            measuredValue = null,
+            value = false.toString(),
+            geoValue = null,
+            valueType = TemporalEntityAttribute.AttributeValueType.BOOLEAN,
+            datasetId = null,
+            type = TemporalEntityAttribute.AttributeType.Property,
+            observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")
+        )
         val attributeValues = mapOf(
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
+                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
             ),
@@ -588,7 +613,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addAttributeInstance(
             incomingTemporalEntityAttribute.id,
-            "https://uri.etsi.org/ngsi-ld/default-context/hasBee",
+            attributeMetadata,
             attributeValues
         )
 
@@ -616,49 +641,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                         )
                 }
             )
-        }
-    }
-
-    @Test
-    fun `it should not create an attribute instance if it has a null value and null measuredValue`() = runTest {
-        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
-        val attributeValues = mapOf(
-            NGSILD_OBSERVED_AT_PROPERTY to listOf(
-                mapOf(
-                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
-                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
-                )
-            )
-        )
-
-        attributeInstanceService.addAttributeInstance(
-            incomingTemporalEntityAttribute.id,
-            OUTGOING_PROPERTY,
-            attributeValues
-        ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without a value", it.message)
-        }
-    }
-
-    @Test
-    fun `it should not create an attribute instance if it has no observedAt property`() = runTest {
-        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
-        val attributeValues = mapOf(
-            NGSILD_PROPERTY_VALUE to listOf(
-                mapOf(
-                    JSONLD_VALUE_KW to 550.0
-                )
-            )
-        )
-
-        attributeInstanceService.addAttributeInstance(
-            incomingTemporalEntityAttribute.id,
-            OUTGOING_PROPERTY,
-            attributeValues
-        ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("Attribute $OUTGOING_PROPERTY has an instance without an observed date", it.message)
         }
     }
 

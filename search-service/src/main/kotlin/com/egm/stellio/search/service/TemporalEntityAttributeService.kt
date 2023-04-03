@@ -148,18 +148,18 @@ class TemporalEntityAttributeService(
                     temporalEntityAttribute = temporalEntityAttribute.id,
                     timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                     time = createdAt,
-                    measuredValue = attributeMetadata.measuredValue,
-                    value = attributeMetadata.value,
-                    geoValue = attributeMetadata.geoValue,
+                    attributeMetadata = attributeMetadata,
                     payload = attributePayload,
                     sub = sub
                 )
                 attributeInstanceService.create(attributeCreatedAtInstance).bind()
 
                 if (attributeMetadata.observedAt != null) {
-                    val attributeObservedAtInstance = attributeCreatedAtInstance.copy(
+                    val attributeObservedAtInstance = AttributeInstance(
+                        temporalEntityAttribute = temporalEntityAttribute.id,
                         time = attributeMetadata.observedAt,
-                        timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                        attributeMetadata = attributeMetadata,
+                        payload = attributePayload
                     )
                     attributeInstanceService.create(attributeObservedAtInstance).bind()
                 }
@@ -219,18 +219,18 @@ class TemporalEntityAttributeService(
                 temporalEntityAttribute = temporalEntityAttribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                 time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
+                attributeMetadata = attributeMetadata,
                 payload = attributePayload,
                 sub = sub
             )
             attributeInstanceService.create(attributeInstance).bind()
 
             if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
+                val attributeObservedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
                     time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    attributeMetadata = attributeMetadata,
+                    payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
             }
@@ -258,18 +258,18 @@ class TemporalEntityAttributeService(
                 temporalEntityAttribute = temporalEntityAttribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
                 time = createdAt,
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                geoValue = attributeMetadata.geoValue,
+                attributeMetadata = attributeMetadata,
                 payload = attributePayload,
                 sub = sub
             )
             attributeInstanceService.create(attributeInstance).bind()
 
             if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = attributeInstance.copy(
+                val attributeObservedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = temporalEntityAttribute.id,
                     time = attributeMetadata.observedAt,
-                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                    attributeMetadata = attributeMetadata,
+                    payload = attributePayload
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
             }
@@ -656,7 +656,7 @@ class TemporalEntityAttributeService(
                         objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
                     )
                     val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val deserializedPayload = jsonTargetObject.toMap() as ExpandedAttributeInstance
+                    val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
@@ -669,15 +669,12 @@ class TemporalEntityAttributeService(
                         else
                             Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
 
-                    val value = getValueFromPartialAttributePayload(tea, deserializedPayload)
+                    val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
                     val attributeInstance = AttributeInstance(
                         temporalEntityAttribute = tea.id,
-                        timeProperty = timeAndProperty.second,
-                        time = timeAndProperty.first,
-                        value = value.first,
-                        measuredValue = value.second,
-                        geoValue = value.third,
-                        payload = deserializedPayload,
+                        timeAndProperty = timeAndProperty,
+                        value = value,
+                        payload = updatedAttributeInstance,
                         sub = sub
                     )
                     attributeInstanceService.create(attributeInstance).bind()
@@ -738,7 +735,7 @@ class TemporalEntityAttributeService(
             logger.debug("Adding instance to attribute {} to entity {}", currentTea.attributeName, entityUri)
             attributeInstanceService.addAttributeInstance(
                 currentTea.id,
-                currentTea.attributeName,
+                attributeMetadata,
                 jsonLdAttribute[currentTea.attributeName]!!.first()
             ).bind()
         }

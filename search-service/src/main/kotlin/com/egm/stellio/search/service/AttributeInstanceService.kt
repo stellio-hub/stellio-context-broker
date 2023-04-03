@@ -10,10 +10,6 @@ import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateR
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -45,7 +41,7 @@ class AttributeInstanceService(
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
-                              instance_id = :instance_id
+                              instance_id = :instance_id, geo_value = ST_GeomFromText(:geo_value)
                 """.trimIndent()
             else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -56,7 +52,8 @@ class AttributeInstanceService(
                     (:time, :measured_value, :value, :temporal_entity_attribute, 
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
-                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
+                                    instance_id = :instance_id
                 """.trimIndent()
             else if (attributeInstance.geoValue != null)
                 """
@@ -101,21 +98,13 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
-        attributeName: ExpandedTerm,
+        attributeMetadata: AttributeMetadata,
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
-        val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: return BadRequestDataException("Attribute $attributeName has an instance without a value").left()
-        val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
-            ?: return BadRequestDataException("Attribute $attributeName has an instance without an observed date")
-                .left()
-
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
-            time = observedAt,
-            value = valueToStringOrNull(attributeValue),
-            measuredValue = valueToDoubleOrNull(attributeValue),
+            time = attributeMetadata.observedAt!!,
+            attributeMetadata = attributeMetadata,
             payload = attributeValues
         )
         return create(attributeInstance)
@@ -326,12 +315,10 @@ class AttributeInstanceService(
             AttributeInstance(
                 temporalEntityAttribute = teaUUID,
                 time = attributeMetadata.observedAt!!,
+                attributeMetadata = attributeMetadata,
                 modifiedAt = ngsiLdDateTime(),
                 instanceId = instanceId,
-                payload = expandedAttributeInstances.first(),
-                measuredValue = attributeMetadata.measuredValue,
-                value = attributeMetadata.value,
-                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+                payload = expandedAttributeInstances.first()
             )
         ).bind()
     }

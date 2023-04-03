@@ -1,7 +1,7 @@
--- we modify the instancesId of the column if it is different from the one is contained in the payload
--- this sql query works for expanded payload
+-- modify the value of the instance_id column if different from the instance_id value contained in the payload
 -- jsonb_path_query_first returns null if the key doesn't exist
 -- and the operator "!=" returns null (not true or false) when either input is null (https://www.postgresql.org/docs/current/functions-comparison.html)
+-- this query works for expanded payloads
 update attribute_instance
 set instance_id = jsonb_path_query_first(payload, '$."https://uri.etsi.org/ngsi-ld/instanceId"[0]')->>'@id'
 where instance_id != jsonb_path_query_first(payload, '$."https://uri.etsi.org/ngsi-ld/instanceId"[0]')->>'@id';

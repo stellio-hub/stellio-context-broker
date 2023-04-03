@@ -11,7 +11,8 @@ update attribute_instance
 set instance_id = jsonb_path_query_first(payload, '$')->>'instanceId'
 where instance_id != jsonb_path_query_first(payload, '$')->>'instanceId';
 
--- Currently the two attributes instances tables have the same instanceId. We fix this to only have different instanceId
+-- the two attributes instances tables have the same instanceId for some updates of attributes
+-- to prevent from any inconsistency, reset all the values of instanceId in audit table
 update attribute_instance_audit
 set instance_id = concat('urn:ngsi-ld:Instance:', gen_random_uuid());
 

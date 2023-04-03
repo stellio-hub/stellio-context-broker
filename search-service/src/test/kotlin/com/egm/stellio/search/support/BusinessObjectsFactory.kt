@@ -33,6 +33,7 @@ fun gimmeAttributeInstance(
 
     return AttributeInstance(
         temporalEntityAttribute = teaUuid,
+        time = attributeMetadata.observedAt!!,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload

@@ -103,6 +103,7 @@ class AttributeInstanceService(
     ): Either<APIException, Unit> {
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
+            time = attributeMetadata.observedAt!!,
             attributeMetadata = attributeMetadata,
             payload = attributeValues
         )
@@ -313,6 +314,7 @@ class AttributeInstanceService(
         create(
             AttributeInstance(
                 temporalEntityAttribute = teaUUID,
+                time = attributeMetadata.observedAt!!,
                 attributeMetadata = attributeMetadata,
                 modifiedAt = ngsiLdDateTime(),
                 instanceId = instanceId,

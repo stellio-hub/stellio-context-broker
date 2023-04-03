@@ -34,13 +34,13 @@ data class AttributeInstance private constructor(
             modifiedAt: ZonedDateTime? = null,
             attributeMetadata: AttributeMetadata,
             payload: ExpandedAttributeInstance,
-            time: ZonedDateTime? = null,
+            time: ZonedDateTime,
             sub: String? = null
         ): AttributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute,
             instanceId = instanceId,
             timeProperty = timeProperty,
-            time = (time ?: attributeMetadata.observedAt)!!,
+            time = time,
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,

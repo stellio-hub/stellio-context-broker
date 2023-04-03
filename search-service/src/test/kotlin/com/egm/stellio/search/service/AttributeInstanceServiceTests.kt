@@ -249,6 +249,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute2.id,
+                time = observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = buildExpandedProperty(attributeMetadata.value!!)
                     .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
@@ -620,7 +621,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
-                        it.value == false.toString() &&
+                        it.value == "false" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """

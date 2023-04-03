@@ -157,6 +157,7 @@ class TemporalEntityAttributeService(
                 if (attributeMetadata.observedAt != null) {
                     val attributeObservedAtInstance = AttributeInstance(
                         temporalEntityAttribute = temporalEntityAttribute.id,
+                        time = attributeMetadata.observedAt,
                         attributeMetadata = attributeMetadata,
                         payload = attributePayload
                     )
@@ -227,6 +228,7 @@ class TemporalEntityAttributeService(
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
+                    time = attributeMetadata.observedAt,
                     attributeMetadata = attributeMetadata,
                     payload = attributePayload
                 )
@@ -265,6 +267,7 @@ class TemporalEntityAttributeService(
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
+                    time = attributeMetadata.observedAt,
                     attributeMetadata = attributeMetadata,
                     payload = attributePayload
                 )

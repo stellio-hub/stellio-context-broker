@@ -6,7 +6,7 @@ update attribute_instance
 set instance_id = jsonb_path_query_first(payload, '$."https://uri.etsi.org/ngsi-ld/instanceId"[0]')->>'@id'
 where instance_id != jsonb_path_query_first(payload, '$."https://uri.etsi.org/ngsi-ld/instanceId"[0]')->>'@id';
 
--- this sql query is the same as above but for not expanded payload (version before v2)
+-- same query as above but for compacted payloads (version before v2)
 update attribute_instance
 set instance_id = jsonb_path_query_first(payload, '$')->>'instanceId'
 where instance_id != jsonb_path_query_first(payload, '$')->>'instanceId';

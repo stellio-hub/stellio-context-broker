@@ -393,10 +393,10 @@ class AttributeInstanceService(
         attributeName: ExpandedTerm,
         datasetId: URI?
     ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither {
+        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
             val deleteQuery =
                 """
-                DELETE FROM $it
+                DELETE FROM $attributeInstanceTable
                 WHERE temporal_entity_attribute = ( 
                     SELECT id 
                     FROM temporal_entity_attribute 
@@ -422,10 +422,10 @@ class AttributeInstanceService(
         entityId: URI,
         attributeName: ExpandedTerm
     ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither {
+        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
             val deleteQuery =
                 """
-                DELETE FROM $it
+                DELETE FROM $attributeInstanceTable
                 WHERE temporal_entity_attribute IN ( 
                     SELECT id 
                     FROM temporal_entity_attribute 
@@ -445,10 +445,10 @@ class AttributeInstanceService(
     suspend fun deleteInstancesOfEntity(
         entityId: URI
     ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither {
+        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
             val deleteQuery =
                 """
-                DELETE FROM $it
+                DELETE FROM $attributeInstanceTable
                 WHERE temporal_entity_attribute IN ( 
                     SELECT id 
                     FROM temporal_entity_attribute 

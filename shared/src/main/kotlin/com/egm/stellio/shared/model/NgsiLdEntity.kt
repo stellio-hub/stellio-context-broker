@@ -1,7 +1,9 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.AttributeType
-import com.egm.stellio.shared.util.JsonLdUtils
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -20,8 +22,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -372,19 +372,32 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
     )
 
 fun parseAttributesInstancesToNgsiLdAttributes(
-    attributesInstances: Map<String, List<Map<String, List<Any>>>>
+    attributesInstances: ExpandedAttributesInstances
 ): List<NgsiLdAttribute> =
     attributesInstances.map {
-        when {
-            isAttributeOfType(it.value[0], NGSILD_PROPERTY_TYPE) -> NgsiLdProperty(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_RELATIONSHIP_TYPE) -> NgsiLdRelationship(it.key, it.value)
-            isAttributeOfType(it.value[0], NGSILD_GEOPROPERTY_TYPE) -> NgsiLdGeoProperty(it.key, it.value)
-            else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
-        }
+        parseAttributeInstancesToNgsiLdAttribute(it.key, it.value)
     }
 
-fun String.isNgsiLdSupportedName() =
+fun parseAttributeInstancesToNgsiLdAttribute(
+    attributeName: ExpandedTerm,
+    attributeInstances: ExpandedAttributeInstances
+): NgsiLdAttribute =
+    when {
+        isAttributeOfType(attributeInstances[0], NGSILD_PROPERTY_TYPE) ->
+            NgsiLdProperty(attributeName, attributeInstances)
+        isAttributeOfType(attributeInstances[0], NGSILD_RELATIONSHIP_TYPE) ->
+            NgsiLdRelationship(attributeName, attributeInstances)
+        isAttributeOfType(attributeInstances[0], NGSILD_GEOPROPERTY_TYPE) ->
+            NgsiLdGeoProperty(attributeName, attributeInstances)
+        else -> throw BadRequestDataException("Unrecognized type for $attributeName")
+    }
+
+fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
+
+fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
+    if (this.isNgsiLdSupportedName()) Unit.right()
+    else BadRequestDataException(invalidCharacterInName(this)).left()
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.members, this.contexts)

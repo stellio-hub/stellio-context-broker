@@ -50,7 +50,7 @@ class EntityPayloadService(
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
-        logger.debug("Creating entity ${ngsiLdEntity.id}")
+        logger.debug("Creating entity {}", ngsiLdEntity.id)
 
         createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
@@ -166,14 +166,7 @@ class EntityPayloadService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): List<URI> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
-            else it
-        }
+        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
 
         val selectQuery =
             """
@@ -198,14 +191,7 @@ class EntityPayloadService(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Either<APIException, Int> {
-        val filterQuery = buildEntitiesQueryFilter(
-            queryParams,
-            accessRightFilter
-        ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
-            else it
-        }
+        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
 
         val countQuery =
             """
@@ -221,6 +207,20 @@ class EntityPayloadService(
             .oneToResult { it["count_entity"] as Long }
             .map { it.toInt() }
     }
+
+    private fun buildFullEntitiesFilter(queryParams: QueryParams, accessRightFilter: () -> String?): String =
+        buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        ).let {
+            if (queryParams.q != null)
+                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
+            else it
+        }.let {
+            if (queryParams.geoQuery != null)
+                it.wrapToAndClause(buildGeoQuery(queryParams.geoQuery!!))
+            else it
+        }
 
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,
@@ -239,14 +239,7 @@ class EntityPayloadService(
             if (!queryParams.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${queryParams.idPattern}'"
             else null
-        val formattedTypes =
-            if (queryParams.types.isNotEmpty())
-                queryParams.types.joinToString(
-                    separator = ",",
-                    prefix = "entity_payload.types && ARRAY[",
-                    postfix = "]"
-                ) { "'$it'" }
-            else null
+        val formattedType = queryParams.type?.let { buildTypeQuery(it) }
         val formattedAttrs =
             if (queryParams.attrs.isNotEmpty())
                 queryParams.attrs.joinToString(
@@ -257,7 +250,7 @@ class EntityPayloadService(
             else null
 
         val queryFilter =
-            listOfNotNull(formattedIds, formattedIdPattern, formattedTypes, formattedAttrs, accessRightFilter())
+            listOfNotNull(formattedIds, formattedIdPattern, formattedType, formattedAttrs, accessRightFilter())
 
         return if (queryFilter.isEmpty())
             queryFilter.joinToString(separator = " AND ")

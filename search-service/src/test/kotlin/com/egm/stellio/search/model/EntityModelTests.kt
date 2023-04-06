@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -51,7 +51,11 @@ class EntityModelTests {
     fun `it should serialize entityPayload with SAP if present and compact term if specified`() {
         val entityPayloadWithSAP =
             entityPayload.copy(specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val serializedEntity = entityPayloadWithSAP.serializeProperties(false, true, listOf(APIC_COMPOUND_CONTEXT))
+        val serializedEntity = entityPayloadWithSAP.serializeProperties(
+            withSysAttrs = false,
+            withCompactTerms = true,
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
+        )
         val specificAccessPolicy = mapOf(
             JsonLdUtils.JSONLD_TYPE_TERM to "Property",
             JsonLdUtils.JSONLD_VALUE to AuthContextModel.SpecificAccessPolicy.AUTH_WRITE

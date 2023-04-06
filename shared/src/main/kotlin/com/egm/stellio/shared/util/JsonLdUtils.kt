@@ -58,10 +58,9 @@ object JsonLdUtils {
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
-    val NGSILD_SYSATTRS_TERMS = listOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
+    val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM)
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
-    val NGSILD_SYSATTRS_PROPERTIES = listOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
@@ -78,8 +77,6 @@ object JsonLdUtils {
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
     const val NGSILD_SUBSCRIPTION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Subscription"
     const val NGSILD_NOTIFICATION_TERM = "Notification"
-    const val NGSILD_NOTIFICATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Notification"
-    const val NGSILD_NOTIFICATION_ATTR_TERM = "notification"
     const val NGSILD_NOTIFICATION_ATTR_PROPERTY = "https://uri.etsi.org/ngsi-ld/notification"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
@@ -570,7 +567,7 @@ fun ExpandedAttributeInstances.addSubAttribute(
 
 fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+        throw BadRequestDataException("Expected a single entry but got none or more than one: $this")
     return this[0]
 }
 
@@ -640,10 +637,20 @@ fun CompactedJsonLdEntity.toFinalRepresentation(
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
-            val geoAttribute = jsonFragment[geoProperty] as MutableMap<String, Any>
-            val geoJsonAsString = geoAttribute[JSONLD_VALUE]
-            val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
-            geoAttribute[JSONLD_VALUE] = wktGeom
+            // when creating a temporal entity, a geoproperty can be represented as a list of instances
+            val geoAttributes =
+                if (jsonFragment[geoProperty] is MutableMap<*, *>)
+                    listOf(jsonFragment[geoProperty] as MutableMap<String, Any>)
+                else
+                    jsonFragment[geoProperty] as List<MutableMap<String, Any>>
+            geoAttributes.forEach { geoAttribute ->
+                val geoJsonAsString = geoAttribute[JSONLD_VALUE]
+                val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
+                    .fold({
+                        throw BadRequestDataException(it.message)
+                    }, { it })
+                geoAttribute[JSONLD_VALUE] = wktGeom
+            }
         }
     }
     return jsonFragment
@@ -668,7 +675,7 @@ fun Map<String, Any>.addSysAttrs(
             }
     else this
 
-fun ExpandedAttributesInstances.checkValidity(): Either<APIException, Unit> =
+fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null

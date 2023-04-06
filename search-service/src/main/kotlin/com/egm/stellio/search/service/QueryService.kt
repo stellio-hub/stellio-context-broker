@@ -6,6 +6,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
@@ -17,8 +18,7 @@ import java.net.URI
 class QueryService(
     private val entityPayloadService: EntityPayloadService,
     private val attributeInstanceService: AttributeInstanceService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val temporalEntityService: TemporalEntityService
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
     suspend fun queryEntity(
         entityId: URI,
@@ -73,16 +73,12 @@ class QueryService(
 
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
             val temporalEntityAttributesWithMatchingInstances =
-                searchInstancesForTemporalEntityAttributes(
-                    temporalEntityAttributes,
-                    temporalEntitiesQuery.temporalQuery,
-                    temporalEntitiesQuery.withTemporalValues
-                )
+                searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery).bind()
 
             val temporalEntityAttributesWithInstances =
                 fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
 
-            temporalEntityService.buildTemporalEntity(
+            TemporalEntityBuilder.buildTemporalEntity(
                 entityPayload,
                 temporalEntityAttributesWithInstances,
                 temporalEntitiesQuery,
@@ -96,17 +92,22 @@ class QueryService(
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> =
         either {
             val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
+            val count = entityPayloadService.queryEntitiesCount(
+                temporalEntitiesQuery.queryParams,
+                accessRightFilter
+            ).getOrElse { 0 }
+
+            // we can have an empty list of entities with a non-zero count (e.g., offset too high)
+            if (entitiesIds.isEmpty())
+                return@either Pair<List<CompactedJsonLdEntity>, Int>(emptyList(), count)
+
             val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
                 entitiesIds,
                 temporalEntitiesQuery.queryParams
             )
 
             val temporalEntityAttributesWithMatchingInstances =
-                searchInstancesForTemporalEntityAttributes(
-                    temporalEntityAttributes,
-                    temporalEntitiesQuery.temporalQuery,
-                    temporalEntitiesQuery.withTemporalValues
-                )
+                searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery).bind()
 
             val temporalEntityAttributesWithInstances =
                 fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -128,13 +129,8 @@ class QueryService(
                     // since we are now iterating over the map of TEAs with their instances
                     .sortedBy { it.first.entityId }
 
-            val count = entityPayloadService.queryEntitiesCount(
-                temporalEntitiesQuery.queryParams,
-                accessRightFilter
-            ).getOrElse { 0 }
-
             Pair(
-                temporalEntityService.buildTemporalEntities(
+                TemporalEntityBuilder.buildTemporalEntities(
                     attributeInstancesPerEntityAndAttribute,
                     temporalEntitiesQuery,
                     listOf(temporalEntitiesQuery.queryParams.context)
@@ -145,21 +141,22 @@ class QueryService(
 
     private suspend fun searchInstancesForTemporalEntityAttributes(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean
-    ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> =
-        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+        temporalEntitiesQuery: TemporalEntitiesQuery
+    ): Either<APIException, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>> = either {
+        // split the group according to attribute type as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
         temporalEntityAttributes
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues)
+                attributeInstanceService.search(temporalEntitiesQuery, it.value).bind()
             }
             .mapValues {
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
                 // transformed during compaction as it is not done for temporal values, so it is done now
-                if (it.key == TemporalEntityAttribute.AttributeValueType.GEOMETRY && withTemporalValues) {
+                if (it.key == TemporalEntityAttribute.AttributeValueType.GEOMETRY &&
+                    temporalEntitiesQuery.withTemporalValues
+                ) {
                     it.value.map { attributeInstanceResult ->
                         attributeInstanceResult as SimplifiedAttributeInstanceResult
                         attributeInstanceResult.copy(
@@ -176,6 +173,8 @@ class QueryService(
                     tea.id == attributeInstanceResult.temporalEntityAttribute
                 }!!
             }
+            .mapValues { it.value.sorted() }
+    }
 
     private fun fillWithTEAWithoutInstances(
         temporalEntityAttributes: List<TemporalEntityAttribute>,

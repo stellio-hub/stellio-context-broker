@@ -75,7 +75,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         ) { resultSet, _ ->
             Pair(resultSet.getString("entity_id").toUri(), resultSet.getString("payload"))
         }.forEach { (entityId, payload) ->
-            logger.debug("Migrating entity $entityId")
+            logger.debug("Migrating entity {}", entityId)
             val deserializedPayload = payload.deserializeAsMap()
             val contexts = extractContextFromInput(deserializedPayload)
                 .map {
@@ -154,7 +154,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         }
 
                     if (entityHasAttribute(entityId, attributeName, datasetId)) {
-                        logger.debug("Attribute $attributeName ($datasetId) exists, adding metadata and payload")
+                        logger.debug("Attribute {} ({}) exists, adding metadata and payload", attributeName, datasetId)
                         updateTeaPayloadAndDates(
                             entityId,
                             attributeName,
@@ -167,7 +167,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         // create attributes that do not exist
                         //   - non observed attributes created before we kept track of their history
                         //   - attributes of type GeoProperty
-                        logger.debug("Attribute $attributeName ($datasetId) does not exist, bootstrapping entry")
+                        logger.debug("Attribute {} ({}) does not exist, bootstrapping entry", attributeName, datasetId)
                         createTeaEntry(
                             entityId,
                             attributeName,

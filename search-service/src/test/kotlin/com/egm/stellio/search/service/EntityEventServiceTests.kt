@@ -5,7 +5,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
-import com.egm.stellio.search.util.EMPTY_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute

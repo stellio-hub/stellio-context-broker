@@ -39,10 +39,7 @@ class NotificationService(
                     subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
                 }
                 .filter {
-                    subscriptionService.isMatchingGeoQuery(
-                        it.id,
-                        ngsiLdEntity.getGeoProperty(it.geoQ?.geoproperty)
-                    ).bind()
+                    subscriptionService.isMatchingGeoQuery(it.id, jsonLdEntity).bind()
                 }
                 .map {
                     val filteredEntity =

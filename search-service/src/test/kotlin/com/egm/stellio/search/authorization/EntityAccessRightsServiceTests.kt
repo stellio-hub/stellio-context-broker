@@ -4,8 +4,8 @@ import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
@@ -61,7 +61,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } answers { false.right() }
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } answers { false.right() }
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { listOf(subjectUuid).right() }
@@ -157,10 +157,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having a read role on a entity both directly and via a group membership`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { listOf(groupUuid, subjectUuid).right() }
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
+        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
         entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
@@ -179,13 +180,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having the stellio-admin role to read any entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
         entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).shouldSucceed()
 
         coVerify {
-            subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
             subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called
         }
     }
@@ -260,9 +261,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -274,8 +274,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            emptyList(),
-            emptySet()
+            emptyList()
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -294,9 +293,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(2, it.size)
             it.forEach { entityAccessControl ->
@@ -306,8 +304,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            emptyList(),
-            emptySet()
+            emptyList()
         ).shouldSucceedWith {
             assertEquals(2, it)
         }
@@ -328,7 +325,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE),
+            BEEHIVE_TYPE,
             100,
             0
         ).shouldSucceedWith {
@@ -341,7 +338,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
             emptyList(),
-            setOf(BEEHIVE_TYPE)
+            BEEHIVE_TYPE
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -362,9 +359,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
-            emptySet(),
-            100,
-            0
+            limit = 100,
+            offset = 0
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -373,8 +369,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE),
-            emptySet()
+            listOf(AccessRight.R_CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -390,13 +385,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE)
         entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_ADMIN)
 
-        entityAccessRightsService.getSubjectAccessRights(Some(subjectUuid), emptyList(), setOf(BEEHIVE_TYPE), 100, 0)
-            .shouldSucceedWith {
-                assertEquals(1, it.size)
-                val entityAccessControl = it[0]
-                assertEquals(entityId01, entityAccessControl.id)
-                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
-            }
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            BEEHIVE_TYPE,
+            100,
+            0
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId01, entityAccessControl.id)
+            assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+        }
     }
 
     @Test

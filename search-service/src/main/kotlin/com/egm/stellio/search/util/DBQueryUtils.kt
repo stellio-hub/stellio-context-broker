@@ -55,9 +55,6 @@ suspend fun ReactiveDeleteOperation.TerminatingDelete.execute(): Either<APIExcep
         .map { Unit.right() }
         .awaitFirst()
 
-fun Set<String>.toSqlArray(): String =
-    "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
-
 fun URI?.toDatasetIdFilter(): String =
     if (this != null) "AND dataset_id = :dataset_id"
     else "AND dataset_id IS NULL"

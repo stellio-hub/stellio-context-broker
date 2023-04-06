@@ -39,7 +39,7 @@ contributions are done using a pull request (PR). The detailed "protocol" used i
 
 * Direct commits to master or develop branches (even single-line modifications) are not allowed. Every modification has to come as a PR
 * In case the PR is implementing/fixing a numbered issue, the issue number has to be referenced in the subject of the PR at creation time
-* Anybody is welcome to provide comments to the PR (either direct comments or using the review feature offered by Github)
+* Anybody is welcome to provide comments to the PR (either direct comments or using the review feature offered by GitHub)
 * Use *code line comments* instead of *general comments*, for traceability reasons (see comments lifecycle below)
 * Comments lifecycle
     * Comment is created, initiating a *comment thread*
@@ -152,7 +152,7 @@ merged into develop, thanks to the [Release Drafter GitHub action](https://githu
 
 ## Releasing
 
-The process of making a release simply consists in creating the release in Github and providing the new tag name.
+The process of making a release simply consists in creating the release in GitHub and providing the new tag name.
 
 ## Version numbers
 

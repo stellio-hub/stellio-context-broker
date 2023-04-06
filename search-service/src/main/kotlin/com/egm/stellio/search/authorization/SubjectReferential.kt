@@ -24,9 +24,7 @@ data class SubjectReferential(
 
         other as SubjectReferential
 
-        if (subjectId != other.subjectId) return false
-
-        return true
+        return subjectId == other.subjectId
     }
 
     override fun hashCode(): Int = subjectId.hashCode()

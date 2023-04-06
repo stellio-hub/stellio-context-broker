@@ -7,6 +7,7 @@ import arrow.core.getOrElse
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -161,33 +162,22 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
-    suspend fun hasStellioAdminRole(sub: Option<Sub>): Either<APIException, Boolean> =
-        hasStellioRole(sub, GlobalRole.STELLIO_ADMIN)
+    suspend fun hasStellioAdminRole(uuids: List<Sub>): Either<APIException, Boolean> =
+        hasOneOfGlobalRoles(uuids, ADMIN_ROLES)
 
-    suspend fun hasStellioRole(sub: Option<Sub>, globalRole: GlobalRole): Either<APIException, Boolean> =
+    suspend fun hasOneOfGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient
             .sql(
                 """
                 SELECT COUNT(subject_id) as count
                 FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
-                AND '${globalRole.key}' = ANY(global_roles)
+                WHERE subject_id IN(:uuids)
+                AND global_roles && :roles
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
-            .oneToResult { it["count"] as Long == 1L }
-
-    suspend fun getGlobalRoles(sub: Option<Sub>): List<Option<GlobalRole>> =
-        databaseClient
-            .sql(
-                """
-                SELECT unnest(global_roles) as global_roles
-                FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
-                """.trimIndent()
-            )
-            .bind("subject_id", (sub as Some).value)
-            .allToMappedList { GlobalRole.forKey(it["global_roles"] as String) }
+            .bind("uuids", uuids)
+            .bind("roles", roles.map { it.key }.toTypedArray())
+            .oneToResult { it["count"] as Long >= 1L }
 
     @Transactional
     suspend fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Either<APIException, Unit> =

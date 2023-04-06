@@ -1,36 +1,32 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 
-fun parseGeoFragmentToPointGeoProperty(
+fun gimmeSimpleEntityWithGeoProperty(
     propertyKey: String,
     longitude: Double,
     latitude: Double
-): NgsiLdGeoProperty {
-    val locationFragment =
+): JsonLdEntity {
+    val entityWithLocation =
         """
-            {
-                "$propertyKey": {
-                    "type": "GeoProperty",
-                    "value": {
-                        "type": "Point",
-                        "coordinates": [
-                            $longitude,
-                            $latitude
-                        ]
-                    }
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "$propertyKey": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [
+                        $longitude,
+                        $latitude
+                    ]
                 }
             }
+        }
         """.trimIndent()
 
-    return parseToNgsiLdAttributes(
-        JsonLdUtils.expandJsonLdFragment(
-            locationFragment,
-            DEFAULT_CONTEXTS
-        )
-    )[0] as NgsiLdGeoProperty
+    return JsonLdUtils.expandJsonLdEntity(entityWithLocation, DEFAULT_CONTEXTS)
 }
 
 fun buildDefaultQueryParams(): QueryParams =

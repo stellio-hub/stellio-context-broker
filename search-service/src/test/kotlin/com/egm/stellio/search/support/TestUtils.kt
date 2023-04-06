@@ -1,4 +1,4 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.support
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.NgsiLdAttribute

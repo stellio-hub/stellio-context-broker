@@ -51,9 +51,9 @@ class JsonLdUtilsTests {
               }
            },
             "@context": [
-                "http://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                "http://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "http://example.org/ngsi-ld/latest/parking.jsonld",
+                "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                "https://example.org/ngsi-ld/latest/parking.jsonld",
                 "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
             ]
         }
@@ -74,9 +74,9 @@ class JsonLdUtilsTests {
              ]
            },
             "@context": [
-                "http://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                "http://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "http://example.org/ngsi-ld/latest/parking.jsonld",
+                "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                "https://example.org/ngsi-ld/latest/parking.jsonld",
                 "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
             ]
         }

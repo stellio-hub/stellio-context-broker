@@ -37,3 +37,6 @@ fun <T> Either<APIException, T>.shouldFailWith(assertions: (APIException) -> Boo
     }, {
         fail("it should have returned a left exception")
     })
+
+fun assertEqualsIgnoringNoise(expected: String, actual: String) =
+    assertEquals(expected.removeNoise(), actual.removeNoise())

@@ -123,6 +123,7 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
+    @Transactional
     suspend fun replace(entities: List<Pair<NgsiLdEntity, JsonLdEntity>>, sub: Sub?): BatchOperationResult =
         processEntities(entities, false, sub, ::replaceEntity)
 
@@ -133,6 +134,7 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
+    @Transactional
     suspend fun update(
         entities: List<Pair<NgsiLdEntity, JsonLdEntity>>,
         disallowOverwrite: Boolean = false,

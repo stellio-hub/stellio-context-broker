@@ -41,7 +41,7 @@ class EntityEventService(
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
-            logger.debug("Sending create event for entity $entityId")
+            logger.debug("Sending create event for entity {}", entityId)
             getSerializedEntity(entityId)
                 .onRight {
                     publishEntityEvent(EntityCreateEvent(sub, entityId, entityTypes, it.second, contexts))
@@ -56,7 +56,7 @@ class EntityEventService(
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
-            logger.debug("Sending replace event for entity $entityId")
+            logger.debug("Sending replace event for entity {}", entityId)
             getSerializedEntity(entityId)
                 .onRight {
                     publishEntityEvent(EntityReplaceEvent(sub, entityId, entityTypes, it.second, contexts))
@@ -71,7 +71,7 @@ class EntityEventService(
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
-            logger.debug("Sending delete event for entity $entityId")
+            logger.debug("Sending delete event for entity {}", entityId)
             publishEntityEvent(EntityDeleteEvent(sub, entityId, entityTypes, contexts))
         }
 
@@ -150,7 +150,7 @@ class EntityEventService(
         contexts: List<String>
     ): Job =
         coroutineScope.launch {
-            logger.debug("Sending delete event for attribute $attributeName of entity $entityId")
+            logger.debug("Sending delete event for attribute {} of entity {}", attributeName, entityId)
             getSerializedEntity(entityId)
                 .onRight {
                     if (deleteAll)
@@ -205,5 +205,5 @@ private fun <A, B> Either<A, B>.logResults(eventsType: EventsType, entityId: URI
     this.fold({
         logger.error("Error while sending $eventsType event for entity $entityId: $it")
     }, {
-        logger.debug("Successfully sent event $eventsType event for entity $entityId")
+        logger.debug("Successfully sent event {} event for entity {}", eventsType, entityId)
     })

@@ -1,8 +1,11 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
@@ -14,7 +17,7 @@ import java.util.UUID
 data class AttributeInstance private constructor(
     val temporalEntityAttribute: UUID,
     val instanceId: URI,
-    val timeProperty: TemporalProperty,
+    val timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
     val time: ZonedDateTime,
     val value: String? = null,
     val measuredValue: Double? = null,
@@ -26,34 +29,69 @@ data class AttributeInstance private constructor(
 
         operator fun invoke(
             temporalEntityAttribute: UUID,
-            instanceId: URI? = null,
-            timeProperty: TemporalProperty,
-            time: ZonedDateTime,
-            value: String? = null,
-            measuredValue: Double? = null,
-            geoValue: WKTCoordinates? = null,
+            instanceId: URI = generateRandomInstanceId(),
+            timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
+            modifiedAt: ZonedDateTime? = null,
+            attributeMetadata: AttributeMetadata,
             payload: ExpandedAttributeInstance,
+            time: ZonedDateTime,
             sub: String? = null
-        ): AttributeInstance {
-            val parsedPayload = payload.toMutableMap()
-            val attributeInstanceId = instanceId ?: generateRandomInstanceId()
-            parsedPayload.putIfAbsent(
-                NGSILD_INSTANCE_ID_PROPERTY,
-                buildNonReifiedProperty(attributeInstanceId.toString())
-            )
+        ): AttributeInstance = AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute,
+            instanceId = instanceId,
+            timeProperty = timeProperty,
+            time = time,
+            value = attributeMetadata.value,
+            measuredValue = attributeMetadata.measuredValue,
+            geoValue = attributeMetadata.geoValue,
+            payload = payload.composePayload(instanceId, modifiedAt).toJson(),
+            sub = sub
+        )
 
-            return AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute,
-                instanceId = attributeInstanceId,
-                timeProperty = timeProperty,
-                time = time,
-                value = value,
-                measuredValue = measuredValue,
-                geoValue = geoValue,
-                payload = Json.of(serializeObject(parsedPayload)),
-                sub = sub
-            )
-        }
+        operator fun invoke(
+            temporalEntityAttribute: UUID,
+            notification: Notification,
+            value: String,
+            payload: ExpandedAttributeInstance
+        ): AttributeInstance = AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute,
+            instanceId = notification.id,
+            time = notification.notifiedAt,
+            value = value,
+            payload = payload.composePayload(notification.id).toJson()
+        )
+
+        operator fun invoke(
+            temporalEntityAttribute: UUID,
+            instanceId: URI = generateRandomInstanceId(),
+            timeAndProperty: Pair<ZonedDateTime, TemporalProperty>,
+            value: Triple<String?, Double?, WKTCoordinates?>,
+            payload: ExpandedAttributeInstance,
+            sub: String?
+        ): AttributeInstance = AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute,
+            instanceId = instanceId,
+            timeProperty = timeAndProperty.second,
+            time = timeAndProperty.first,
+            value = value.first,
+            measuredValue = value.second,
+            geoValue = value.third,
+            payload = payload.composePayload(instanceId).toJson(),
+            sub = sub
+        )
+
+        private fun ExpandedAttributeInstance.toJson(): Json = Json.of(serializeObject(this))
+
+        private fun ExpandedAttributeInstance.composePayload(
+            instanceId: URI,
+            modifiedAt: ZonedDateTime? = null
+        ): ExpandedAttributeInstance =
+            this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedProperty(instanceId.toString()))
+                .let {
+                    if (modifiedAt != null)
+                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
+                    else it
+                }
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }

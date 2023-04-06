@@ -2,7 +2,6 @@ package com.egm.stellio.search.web
 
 import arrow.core.continuations.either
 import com.egm.stellio.search.service.AttributeService
-import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.util.*
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -22,22 +21,21 @@ class AttributeHandler(
     suspend fun getAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>
-    ): ResponseEntity<*> {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+    ): ResponseEntity<*> = either {
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val detailedRepresentation = details.orElse(false)
-        return either<APIException, ResponseEntity<*>> {
-            val availableAttribute: Any = if (detailedRepresentation)
-                attributeService.getAttributeDetails(listOf(contextLink))
-            else
-                attributeService.getAttributeList(listOf(contextLink))
 
-            prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(availableAttribute))
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        val availableAttribute: Any = if (detailedRepresentation)
+            attributeService.getAttributeDetails(listOf(contextLink))
+        else
+            attributeService.getAttributeList(listOf(contextLink))
+
+        prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(availableAttribute))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Implements 6.28 - Retrieve Available Attribute Type Information
@@ -46,19 +44,17 @@ class AttributeHandler(
     suspend fun getByAttributeId(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable attrId: String
-    ): ResponseEntity<*> {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+    ): ResponseEntity<*> = either {
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val expandedAttribute = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)
 
-        return either<APIException, ResponseEntity<*>> {
-            val attributeTypeInfo =
-                attributeService.getAttributeTypeInfoByAttribute(expandedAttribute, listOf(contextLink)).bind()
+        val attributeTypeInfo =
+            attributeService.getAttributeTypeInfoByAttribute(expandedAttribute, listOf(contextLink)).bind()
 
-            prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(attributeTypeInfo))
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
-        )
-    }
+        prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(attributeTypeInfo))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 }

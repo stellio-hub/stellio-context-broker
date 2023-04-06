@@ -3,10 +3,10 @@ package com.egm.stellio.search.service
 import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateOperationResult
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.EMPTY_PAYLOAD
-import com.egm.stellio.search.util.buildSapAttribute
+import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException

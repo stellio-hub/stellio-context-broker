@@ -5,12 +5,11 @@ import arrow.core.continuations.either
 import arrow.core.left
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
-import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
@@ -18,21 +17,20 @@ object ParsingUtils {
     suspend fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         try {
             either {
-                val subscription = mapper.convertValue(
+                mapper.convertValue(
                     input.plus(JSONLD_CONTEXT to contexts),
                     Subscription::class.java
-                )
-                subscription.expand(contexts)
-                subscription
+                ).expand(contexts)
             }
         } catch (e: Exception) {
             e.toAPIException().left()
         }
 
-    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
+    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>): EntityInfo {
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        entityInfo.type = JsonLdUtils.expandJsonLdTerm(entityInfo.type, contexts!!)
-        return entityInfo
+        return entityInfo.copy(
+            type = expandJsonLdTerm(entityInfo.type, contexts)
+        )
     }
 
     fun parseEndpointInfo(input: String?): List<EndpointInfo>? {
@@ -43,12 +41,6 @@ object ParsingUtils {
             )
         }
         return null
-    }
-
-    fun parseGeoQuery(input: Map<String, Any>, contexts: List<String>): GeoQuery {
-        val geoQuery = mapper.convertValue(input, GeoQuery::class.java)
-        geoQuery?.geoproperty = geoQuery.geoproperty?.let { JsonLdUtils.expandJsonLdTerm(it, contexts) }
-        return geoQuery
     }
 
     fun endpointInfoToString(input: List<EndpointInfo>?): String =

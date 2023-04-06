@@ -22,20 +22,19 @@ class EnabledAuthorizationService(
 ) : AuthorizationService {
 
     override suspend fun userIsAdmin(sub: Option<Sub>): Either<APIException, Unit> =
-        userIsOneOfGivenRoles(ADMIN_ROLES, sub)
+        userHasOneOfGivenRoles(ADMIN_ROLES, sub)
+            .toAccessDecision("User does not have any of the required roles: $ADMIN_ROLES")
 
     override suspend fun userCanCreateEntities(sub: Option<Sub>): Either<APIException, Unit> =
-        userIsOneOfGivenRoles(CREATION_ROLES, sub)
+        userHasOneOfGivenRoles(CREATION_ROLES, sub)
+            .toAccessDecision("User does not have any of the required roles: $CREATION_ROLES")
 
-    internal suspend fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Either<APIException, Unit> {
-        val matchingRoles = subjectReferentialService.getGlobalRoles(sub)
-            .flattenOption()
-            .intersect(roles)
-
-        return if (matchingRoles.isEmpty())
-            AccessDeniedException("User does not have any of the required roles: $roles").left()
-        else Unit.right()
-    }
+    internal suspend fun userHasOneOfGivenRoles(
+        roles: Set<GlobalRole>,
+        sub: Option<Sub>
+    ): Either<APIException, Boolean> =
+        subjectReferentialService.getSubjectAndGroupsUUID(sub)
+            .flatMap { uuids -> subjectReferentialService.hasOneOfGlobalRoles(uuids, roles) }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
         this.flatMap {
@@ -102,7 +101,7 @@ class EnabledAuthorizationService(
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,
-            queryParams.types,
+            queryParams.type,
             queryParams.limit,
             queryParams.offset
         ).bind()
@@ -133,7 +132,7 @@ class EnabledAuthorizationService(
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
             accessRights,
-            queryParams.types
+            queryParams.type
         ).bind()
 
         Pair(count, entitiesAccessControlWithSubjectRights)
@@ -171,32 +170,26 @@ class EnabledAuthorizationService(
         }
     }
 
-    override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
-        if (subjectReferentialService.hasStellioAdminRole(sub).getOrElse { false })
-            return { null }
-        else {
-            return subjectReferentialService.getSubjectAndGroupsUUID(sub)
-                .map {
-                    if (it.isEmpty()) {
-                        { "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')" }
-                    } else {
-                        {
-                            """
-                            ( 
-                                (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                                OR
-                                (entity_payload.entity_id IN (
-                                    SELECT entity_id
-                                    FROM entity_access_rights
-                                    WHERE subject_id IN (${it.toListOfString()})
-                                ))
-                            )
-                            """.trimIndent()
-                        }
-                    }
-                }.getOrElse { { "1 = 0" } }
-        }
-    }
+    override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? =
+        subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
+            if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
+                { null }
+            } else {
+                {
+                    """
+                    ( 
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_payload.entity_id IN (
+                            SELECT entity_id
+                            FROM entity_access_rights
+                            WHERE subject_id IN (${uuids.toListOfString()})
+                        ))
+                    )
+                    """.trimIndent()
+                }
+            }
+        }.getOrElse { { "1 = 0" } }
 
     private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
 }

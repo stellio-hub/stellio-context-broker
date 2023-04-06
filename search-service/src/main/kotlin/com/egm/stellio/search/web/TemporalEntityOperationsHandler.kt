@@ -5,7 +5,6 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseQueryAndTemporalParams
-import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -32,43 +31,41 @@ class TemporalEntityOperationsHandler(
     suspend fun queryEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> {
-        return either<APIException, ResponseEntity<*>> {
-            val sub = getSubFromSecurityContext()
-            val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-            val mediaType = getApplicableMediaType(httpHeaders)
+    ): ResponseEntity<*> = either {
+        val sub = getSubFromSecurityContext()
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val mediaType = getApplicableMediaType(httpHeaders)
 
-            val body = requestBody.awaitFirst()
-            val params = JsonUtils.deserializeObject(body)
-            val queryParams = LinkedMultiValueMap<String, String>()
-            params.forEach {
-                if (it.value is List<*>)
-                    queryParams.add(it.key, (it.value as List<*>).joinToString(","))
-                else
-                    queryParams.add(it.key, it.value.toString())
-            }
+        val body = requestBody.awaitFirst()
+        val params = JsonUtils.deserializeObject(body)
+        val queryParams = LinkedMultiValueMap<String, String>()
+        params.forEach {
+            if (it.value is List<*>)
+                queryParams.add(it.key, (it.value as List<*>).joinToString(","))
+            else
+                queryParams.add(it.key, it.value.toString())
+        }
 
-            val temporalEntitiesQuery =
-                parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink).bind()
+        val temporalEntitiesQuery =
+            parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink, true).bind()
 
-            val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-            val (temporalEntities, total) = queryService.queryTemporalEntities(
-                temporalEntitiesQuery,
-                accessRightFilter
-            ).bind()
+        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+        val (temporalEntities, total) = queryService.queryTemporalEntities(
+            temporalEntitiesQuery,
+            accessRightFilter
+        ).bind()
 
-            buildQueryResponse(
-                serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
-                total,
-                "/ngsi-ld/v1/temporal/entities",
-                temporalEntitiesQuery.queryParams,
-                queryParams,
-                mediaType,
-                contextLink
-            )
-        }.fold(
-            { it.toErrorResponse() },
-            { it }
+        buildQueryResponse(
+            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+            total,
+            "/ngsi-ld/v1/temporal/entities",
+            temporalEntitiesQuery.queryParams,
+            queryParams,
+            mediaType,
+            contextLink
         )
-    }
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 }

@@ -25,7 +25,7 @@ suspend fun parseQueryAndTemporalParams(
         contextLink
     ).bind()
 
-    if (queryParams.types.isEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
+    if (queryParams.type.isNullOrEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
         BadRequestDataException("Either type or attrs need to be present in request parameters")
             .left().bind<TemporalEntitiesQuery>()
 
@@ -37,25 +37,34 @@ suspend fun parseQueryAndTemporalParams(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
         OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities).bind()
+    val withAggregatedValues = hasValueInOptionsParam(
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AGGREGATED_VALUES
+    )
+    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
         queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
-        withAudit = withAudit
+        withAudit = withAudit,
+        withAggregatedValues = withAggregatedValues
     )
 }
 
 fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
-    inQueryEntities: Boolean = false
+    inQueryEntities: Boolean = false,
+    withAggregatedValues: Boolean = false
 ): Either<APIException, TemporalQuery> {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
-    val timeBucketParam = params.getFirst("timeBucket")
-    val aggregateParam = params.getFirst("aggregate")
+    val aggrPeriodDurationParam =
+        if (withAggregatedValues)
+            params.getFirst("aggrPeriodDuration") ?: "PT0S"
+        else null
+    val aggrMethodsParam = params.getFirst("aggrMethods")
     val lastNParam = params.getFirst("lastN")
     val timeproperty = params.getFirst("timeproperty")?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
@@ -72,15 +81,16 @@ fun buildTemporalQuery(
     val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrElse {
         return BadRequestDataException(it).left()
     }
+    if (withAggregatedValues && aggrMethodsParam == null)
+        return BadRequestDataException("'aggrMethods' is mandatory if 'aggregatedValues' option is specified").left()
 
-    if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
-        return BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction").left()
-
-    val aggregate = aggregateParam?.let {
+    val aggregate = aggrMethodsParam?.split(",")?.map {
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
-            TemporalQuery.Aggregate.valueOf(it)
+            TemporalQuery.Aggregate.forMethod(it)!!
         else
-            throw BadRequestDataException("Value '$it' is not supported for 'aggregate' parameter")
+            return BadRequestDataException(
+                "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
+            ).left()
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
@@ -91,8 +101,8 @@ fun buildTemporalQuery(
         timerel = timerel,
         timeAt = timeAt,
         endTimeAt = endTimeAt,
-        timeBucket = timeBucketParam,
-        aggregate = aggregate,
+        aggrPeriodDuration = aggrPeriodDurationParam,
+        aggrMethods = aggregate,
         lastN = lastN,
         timeproperty = timeproperty
     ).right()
@@ -103,6 +113,7 @@ fun buildTimerelAndTime(
     timeAtParam: String?,
     inQueryEntities: Boolean
 ): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
+    // when querying a specific temporal entity, timeAt and timerel are optional
     if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {

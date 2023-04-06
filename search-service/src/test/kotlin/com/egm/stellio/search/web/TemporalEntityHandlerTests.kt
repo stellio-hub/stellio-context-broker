@@ -15,10 +15,11 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.util.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -30,7 +31,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
@@ -168,15 +171,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle an attribute with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -187,18 +184,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                eq(INCOMING_PROPERTY)
-            )
-        }
-        coVerify {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                eq(INCOMING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 1
+                },
+                any()
             )
         }
     }
@@ -207,15 +198,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle an attribute with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -226,18 +211,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                eq(INCOMING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 2) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                eq(INCOMING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 1
+                },
+                any()
             )
         }
     }
@@ -246,15 +225,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle many attributes with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -264,19 +237,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 2) {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+        coVerify {
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 2) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 2
+                },
+                any()
             )
         }
     }
@@ -285,15 +252,9 @@ class TemporalEntityHandlerTests {
     fun `it should correctly handle many attributes with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
-        val temporalEntityAttributeUuid = UUID.randomUUID()
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
-            mockkClass(TemporalEntityAttribute::class) {
-                every { id } returns temporalEntityAttributeUuid
-            }.right()
-        }
-        coEvery { attributeInstanceService.addAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -303,19 +264,13 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 4) {
-            temporalEntityAttributeService.getForEntityAndAttribute(
+        coVerify {
+            entityPayloadService.upsertAttributes(
                 eq(entityUri),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            )
-        }
-        coVerify(exactly = 4) {
-            attributeInstanceService.addAttributeInstance(
-                eq(temporalEntityAttributeUuid),
-                or(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 match {
-                    it.size == 4
-                }
+                    it.size == 2
+                },
+                any()
             )
         }
     }
@@ -513,7 +468,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=P1DT1H&options=aggregatedValues"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -522,7 +477,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -535,7 +490,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrMethods=unknown"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -544,7 +499,29 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Value 'unknown' is not supported for 'aggregate' parameter"
+                    "detail":"'unknown' is not a recognized aggregation method for 'aggrMethods' parameter"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if aggrPeriodDuration is not in the correct format`() {
+        buildDefaultMockResponsesForGetEntity()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues&aggrPeriodDuration=PXD3N"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -754,8 +731,8 @@ class TemporalEntityHandlerTests {
         }
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
             coEvery {
-                attributeInstanceService.search(any(), it.second, withTemporalValues)
-            } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1])
+                attributeInstanceService.search(any(), it.second)
+            } returns listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]).right()
         }
 
         coEvery {
@@ -811,7 +788,7 @@ class TemporalEntityHandlerTests {
                     temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE) &&
+                        temporalEntitiesQuery.queryParams.type == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },
@@ -1096,8 +1073,485 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `modify attribute instance should return a 204 if an instance has been successfully modified`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
+        coVerify {
+            attributeInstanceService.modifyAttributeInstance(
+                entityUri,
+                TEMPERATURE_PROPERTY,
+                attributeInstanceId,
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 403 is user is not authorized to update an entity `() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(any(), sub)
+        } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity $entityUri"
+                }
+                """.trimIndent()
+            )
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 404 if entity to be update has not been found`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+
+        coEvery {
+            entityPayloadService.checkEntityExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                }
+                """.trimIndent()
+            )
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+    }
+
+    @Test
+    fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_fragment.jsonld")
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any())
+        } returns ResourceNotFoundException(
+            attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())
+        ).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(instanceTemporalFragment))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "detail":"${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found"
+                }
+                """.trimIndent()
+            )
+
+        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
+    }
+
+    @Test
+    fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(entityUri)
+            authorizationService.userCanAdminEntity(eq(entityUri), eq(sub))
+            entityPayloadService.deleteEntityPayload(eq(entityUri))
+            authorizationService.removeRightsOnEntity(eq(entityUri))
+        }
+    }
+
+    @Test
+    fun `delete temporal entity should return a 404 if entity to be deleted has not been found`() {
+        coEvery {
+            entityPayloadService.checkEntityExistence(entityUri)
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"${entityNotFoundMessage(entityUri.toString())}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 400 if the provided id is not a valid URI`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/beehive")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 400 if entity id is missing`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id when trying to delete temporal entity"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 500 if entity could not be deleted`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteEntityPayload(any())
+        } throws RuntimeException("Unexpected server error")
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json(
+                """
+                    {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                        "title":"There has been an error during the operation execution",
+                        "detail":"java.lang.RuntimeException: Unexpected server error"
+                    }
+                    """
+            )
+    }
+
+    @Test
+    fun `delete temporal entity should return a 403 is user is not authorized to delete an entity`() {
+        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanAdminEntity(entityUri, sub)
+        } returns AccessDeniedException("User forbidden admin access to entity $entityUri").left()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden admin access to entity $entityUri"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 204 if the attribute has been successfully deleted`() {
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteAttribute(any(), any(), any())
+        } returns Unit.right()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(entityUri), eq(TEMPERATURE_PROPERTY))
+            authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub))
+            entityPayloadService.deleteAttribute(
+                eq(entityUri),
+                eq(TEMPERATURE_PROPERTY),
+                null
+            )
+        }
+    }
+
+    @Test
+    fun `delete attribute temporal should delete all instances if deleteAll flag is true`() {
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+        } returns Unit.right()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            entityPayloadService.deleteAttribute(
+                eq(entityUri),
+                eq(TEMPERATURE_PROPERTY),
+                null,
+                eq(true)
+            )
+        }
+    }
+
+    @Test
+    fun `delete attribute temporal should delete instance with the provided datasetId`() {
+        val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteAttribute(any(), any(), any())
+        } returns Unit.right()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?datasetId=$datasetId")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            entityPayloadService.deleteAttribute(
+                eq(entityUri),
+                eq(TEMPERATURE_PROPERTY),
+                eq(datasetId.toUri())
+            )
+        }
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 404 if the entity is not found`() {
+        coEvery {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 404 if the attribute is not found`() {
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+        } throws ResourceNotFoundException("Attribute Not Found")
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Attribute Not Found"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 400 if the request is not correct`() {
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.deleteAttribute(any(), any(), any())
+        } returns BadRequestDataException("Something is wrong with the request").left()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "The request includes input data which does not meet the requirements of the operation",
+                    "detail": "Something is wrong with the request"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 400 if the provided id is not a valid URI`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/beehive/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The supplied identifier was expected to be an URI but it is not: beehive"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 400 if entity id is missing`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities//attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 400 if attribute name is missing`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id or attribute id when trying to delete an attribute temporal"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete attribute temporal should return a 403 if user is not allowed to update entity`() {
+        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(any(), sub)
+        } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
         coEvery {
             entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
@@ -1154,7 +1608,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
 
         coEvery {
             entityPayloadService.checkEntityExistence(any())

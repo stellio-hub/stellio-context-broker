@@ -203,7 +203,7 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertTrue(ngsiLdPropertyInstance.value is Map<*, *>)
-        val valueMap = ngsiLdPropertyInstance.value as Map<String, String>
+        val valueMap = ngsiLdPropertyInstance.value as Map<String, *>
         assertEquals(2, valueMap.size)
         assertEquals(
             setOf(

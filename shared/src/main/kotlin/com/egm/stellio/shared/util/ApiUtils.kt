@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
+import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
@@ -44,70 +45,84 @@ const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
+val linkHeaderRegex: Regex =
+    """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
 /**
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
  * JSON-LD @context.
  */
-fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): String =
-    getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
+fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, String> =
+    getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+        .map { it ?: JsonLdUtils.NGSILD_CORE_CONTEXT }
 
-fun getContextFromLinkHeader(linkHeader: List<String>): String? {
-    return if (linkHeader.isNotEmpty())
-        linkHeader[0].split(";")[0].removePrefix("<").removeSuffix(">")
+fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, String?> =
+    if (linkHeader.isNotEmpty())
+        linkHeaderRegex.find(linkHeader[0].replace(" ", ""))?.groupValues?.let {
+            if (it.isEmpty() || it[1].isEmpty())
+                BadRequestDataException("Badly formed Link header: ${linkHeader[0]}").left()
+            else it[1].right()
+        } ?: BadRequestDataException("Badly formed Link header: ${linkHeader[0]}").left()
     else
-        null
-}
+        Either.Right(null)
 
 fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
-fun checkAndGetContext(httpHeaders: HttpHeaders, body: Map<String, Any>): List<String> {
-    checkContext(httpHeaders, body)
-    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
+suspend fun checkAndGetContext(
+    httpHeaders: HttpHeaders,
+    body: Map<String, Any>
+): Either<APIException, List<String>> = either {
+    checkContext(httpHeaders, body).bind()
+    if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         listOf(contextLink)
     } else {
         val contexts = extractContextFromInput(body)
         // kind of duplicate what is checked in checkContext but a bit more sure
         if (contexts.isEmpty())
-            throw BadRequestDataException(
+            BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
-            )
+            ).left()
         contexts
     }
 }
 
-fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>) =
-    body.forEach {
+suspend fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
+    body.parTraverseEither {
         checkContext(httpHeaders, it)
-    }
+    }.map { Unit.right() }
 
-fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>) {
+fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
         if (body.contains(JSONLD_CONTEXT))
-            throw BadRequestDataException(
+            return BadRequestDataException(
                 "Request payload must not contain @context term for a request having an application/json content type"
-            )
+            ).left()
     } else {
-        if (getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) != null)
-            throw BadRequestDataException(
-                "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
-            )
+        getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).map {
+            if (it != null)
+                return BadRequestDataException(
+                    "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
+                ).left()
+        }
         if (!body.contains(JSONLD_CONTEXT))
-            throw BadRequestDataException(
+            return BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
-            )
+            ).left()
     }
+    return Unit.right()
 }
 
 enum class OptionsParamValue(val value: String) {
     TEMPORAL_VALUES("temporalValues"),
-    AUDIT("audit")
+    AUDIT("audit"),
+    AGGREGATED_VALUES("aggregatedValues")
 }
 
 fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamValue): Boolean =
@@ -121,6 +136,14 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         ?.split(",")
         .orEmpty()
         .toSet()
+
+fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
+    parseAndExpandTypeSelection(type, listOf(contextLink))
+
+fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
+    type?.replace(typeSelectionRegex) {
+        JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+    }
 
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
@@ -177,7 +200,7 @@ suspend fun parseQueryParams(
     contextLink: String
 ): Either<APIException, QueryParams> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val types = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
         runCatching {
             Pattern.compile(idPattern)
@@ -204,11 +227,11 @@ suspend fun parseQueryParams(
         count
     ).bind()
 
-    val geoQuery = parseGeoQueryParameters(requestParams, contextLink).bind()
+    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
 
     QueryParams(
         ids = ids,
-        types = types,
+        type = type,
         idPattern = idPattern,
         q = q,
         limit = limit,

@@ -92,7 +92,7 @@ class TemporalQueryUtilsTests {
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
             temporalEntitiesQuery.queryParams.ids
         )
-        assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE), temporalEntitiesQuery.queryParams.types)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.queryParams.type)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.queryParams.attrs)
         assertEquals(
             TemporalQuery(

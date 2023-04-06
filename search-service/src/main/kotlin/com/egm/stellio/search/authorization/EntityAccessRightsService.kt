@@ -8,9 +8,8 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CLIENT_ID
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
@@ -24,9 +23,6 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.toUri
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -126,22 +122,22 @@ class EntityAccessRightsService(
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>,
         accessRights: List<AccessRight>
-    ): Either<APIException, Boolean> {
+    ): Either<APIException, Boolean> = either {
         if (!applicationProperties.authentication.enabled)
-            return true.right()
+            true.right()
 
-        return subjectReferentialService.hasStellioAdminRole(sub)
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
                 if (!it)
                     entityPayloadService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
                 else true.right()
-            }
-            .flatMap {
+            }.flatMap {
                 if (!it)
-                    subjectReferentialService.getSubjectAndGroupsUUID(sub)
-                        .flatMap { uuids -> hasDirectAccessRightOnEntity(uuids, entityId, accessRights) }
+                    hasDirectAccessRightOnEntity(subjectUuids, entityId, accessRights)
                 else true.right()
-            }
+            }.bind()
     }
 
     private suspend fun hasDirectAccessRightOnEntity(
@@ -167,14 +163,12 @@ class EntityAccessRightsService(
     suspend fun getSubjectAccessRights(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
-        types: Set<ExpandedTerm>,
+        type: String? = null,
         limit: Int,
         offset: Int
     ): Either<APIException, List<EntityAccessRights>> = either {
-        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
-        val subjectUuids =
-            if (isStellioAdmin) emptyList()
-            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
             .sql(
@@ -184,7 +178,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
                 OFFSET :offset;
@@ -193,7 +187,7 @@ class EntityAccessRightsService(
             .bind("limit", limit)
             .bind("offset", offset)
             .let {
-                if (subjectUuids.isNotEmpty())
+                if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
                 else it
             }
@@ -220,12 +214,10 @@ class EntityAccessRightsService(
     suspend fun getSubjectAccessRightsCount(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
-        types: Set<ExpandedTerm>
+        type: String? = null
     ): Either<APIException, Int> = either {
-        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(sub).bind()
-        val subjectUuids =
-            if (isStellioAdmin) emptyList()
-            else subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
             .sql(
@@ -235,11 +227,11 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
-                ${if (types.isNotEmpty()) " AND types && ${types.toSqlArray()}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
                 """.trimIndent()
             )
             .let {
-                if (subjectUuids.isNotEmpty())
+                if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
                 else it
             }
@@ -256,7 +248,7 @@ class EntityAccessRightsService(
         sub: Option<Sub>,
         entities: List<URI>
     ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
-        if (entities.isNullOrEmpty())
+        if (entities.isEmpty())
             return@either emptyMap()
 
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()

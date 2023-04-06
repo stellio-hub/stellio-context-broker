@@ -46,25 +46,27 @@ class EnabledAuthorizationServiceTests {
     private val entityId02 = "urn:ngsi-ld:Beehive:02".toUri()
 
     @Test
-    fun `it should return an access denied if user has no global role`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns emptyList()
+    fun `it should return false if user has no global role`() = runTest {
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userIsOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
-            .shouldFail {
-                assertInstanceOf(AccessDeniedException::class.java, it)
-            }
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+            .shouldSucceedWith { assertFalse(it) }
 
-        coVerify { subjectReferentialService.getGlobalRoles(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
-    fun `it should allow an user that has one of the required roles`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns listOf(Some(GlobalRole.STELLIO_CREATOR))
+    fun `it should return true if user has one of the required roles`() = runTest {
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userIsOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
-            .shouldSucceed()
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+            .shouldSucceedWith { assertTrue(it) }
 
-        coVerify { subjectReferentialService.getGlobalRoles(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
     }
 
     @Test
@@ -193,7 +195,10 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return a null filter is user has the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns true.right()
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
         val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
         assertNull(accessRightFilter())
@@ -201,10 +206,10 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } returns false.right()
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } returns listOf(subjectUuid, groupUuid).right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
         assertEquals(
@@ -221,11 +226,14 @@ class EnabledAuthorizationServiceTests {
             """.trimIndent(),
             accessRightFilter()
         )
+
+        coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }
     }
 
     @Test
     fun `it should return serialized groups memberships along with a count for an admin`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns listOf(Some(GlobalRole.STELLIO_ADMIN))
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
         coEvery {
             subjectReferentialService.getAllGroups(any(), any(), any())
         } returns listOf(
@@ -253,7 +261,8 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return serialized groups memberships along with a count for an user without any roles`() = runTest {
-        coEvery { subjectReferentialService.getGlobalRoles(any()) } returns emptyList()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getGroups(any(), any(), any())
         } returns listOf(
@@ -296,7 +305,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             QueryParams(
-                types = setOf(BEEHIVE_TYPE),
+                type = BEEHIVE_TYPE,
                 limit = 10,
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT
@@ -351,7 +360,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             QueryParams(
-                types = setOf(BEEHIVE_TYPE),
+                type = BEEHIVE_TYPE,
                 limit = 10,
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT

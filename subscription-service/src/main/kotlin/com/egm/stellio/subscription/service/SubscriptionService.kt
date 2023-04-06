@@ -9,7 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.*
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
@@ -111,6 +111,11 @@ class SubscriptionService(
         return either {
             validateNewSubscription(subscription).bind()
 
+            val geoQuery =
+                if (subscription.geoQ != null)
+                    parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
+                else null
+
             val insertStatement =
                 """
                 INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
@@ -142,7 +147,9 @@ class SubscriptionService(
                 .bind("contexts", subscription.contexts.toTypedArray())
                 .execute().bind()
 
-            createGeometryQuery(subscription.geoQ, subscription.id).bind()
+            geoQuery?.let {
+                createGeometryQuery(it, subscription.id).bind()
+            }
 
             subscription.entities.forEach {
                 createEntityInfo(it, subscription.id).bind()
@@ -177,34 +184,23 @@ class SubscriptionService(
                 .execute()
         }
 
-    private suspend fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Either<APIException, Unit> =
+    private suspend fun createGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
         either {
-            if (geoQuery != null) {
-                val storedCoordinates: String =
-                    when (geoQuery.coordinates) {
-                        is String -> geoQuery.coordinates
-                        is List<*> -> geoQuery.coordinates.toString()
-                        else -> geoQuery.coordinates.toString()
-                    }
-                val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
-
-                databaseClient.sql(
-                    """
-                    INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, 
-                        geoproperty, subscription_id) 
-                    VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), 
-                        :geoproperty, :subscription_id)
+            databaseClient.sql(
                 """
-                )
-                    .bind("georel", geoQuery.georel)
-                    .bind("geometry", geoQuery.geometry)
-                    .bind("geoproperty", geoQuery.geoproperty)
-                    .bind("coordinates", storedCoordinates)
-                    .bind("wkt_coordinates", wktCoordinates)
-                    .bind("subscription_id", subscriptionId)
-                    .execute()
-            } else
-                Unit.right()
+                INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, 
+                    geoproperty, subscription_id) 
+                VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), 
+                    :geoproperty, :subscription_id)
+            """
+            )
+                .bind("georel", geoQuery.georel)
+                .bind("geometry", geoQuery.geometry.type)
+                .bind("coordinates", geoQuery.coordinates)
+                .bind("wkt_coordinates", geoQuery.wktCoordinates.value)
+                .bind("geoproperty", geoQuery.geoproperty)
+                .bind("subscription_id", subscriptionId)
+                .execute()
         }
 
     suspend fun getById(id: URI): Subscription {
@@ -287,10 +283,10 @@ class SubscriptionService(
                 it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
             }.forEach {
                 when {
-                    it.key == "geoQ" -> {
-                        val geoQuery = ParsingUtils.parseGeoQuery(it.value as Map<String, Any>, contexts)
-                        updateGeometryQuery(subscriptionId, geoQuery).bind()
-                    }
+                    it.key == "geoQ" ->
+                        parseGeoQueryParameters(it.value as Map<String, String>, contexts)
+                            .bind()
+                            ?.let { updateGeometryQuery(subscriptionId, it).bind() }
 
                     it.key == "notification" -> {
                         val notification = it.value as Map<String, Any>
@@ -353,16 +349,8 @@ class SubscriptionService(
             .awaitFirst()
     }
 
-    suspend fun updateGeometryQuery(subscriptionId: URI, geoQuery: GeoQuery): Either<APIException, Unit> {
-        val storedCoordinates: String =
-            when (val coordinates = geoQuery.coordinates) {
-                is String -> coordinates
-                is List<*> -> coordinates.toString()
-                else -> coordinates.toString()
-            }
-        val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
-
-        return databaseClient.sql(
+    suspend fun updateGeometryQuery(subscriptionId: URI, geoQ: GeoQuery): Either<APIException, Unit> =
+        databaseClient.sql(
             """
             UPDATE geometry_query
             SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
@@ -370,19 +358,18 @@ class SubscriptionService(
             WHERE subscription_id = :subscription_id
             """
         )
-            .bind("georel", geoQuery.georel)
-            .bind("geometry", geoQuery.geometry)
-            .bind("coordinates", storedCoordinates)
-            .bind("wkt_coordinates", wktCoordinates)
-            .bind("geoproperty", geoQuery.geoproperty)
+            .bind("georel", geoQ.georel)
+            .bind("geometry", geoQ.geometry.type)
+            .bind("coordinates", geoQ.coordinates)
+            .bind("wkt_coordinates", geoQ.wktCoordinates.value)
+            .bind("geoproperty", geoQ.geoproperty)
             .bind("subscription_id", subscriptionId)
             .execute()
-    }
 
     suspend fun updateNotification(
         subscriptionId: URI,
         notification: Map<String, Any>,
-        contexts: List<String>?
+        contexts: List<String>
     ): Either<APIException, Unit> {
         try {
             val firstValue = notification.entries.iterator().next()
@@ -414,13 +401,13 @@ class SubscriptionService(
 
     private fun extractParamsFromNotificationAttribute(
         attribute: Map.Entry<String, Any>,
-        contexts: List<String>?
+        contexts: List<String>
     ): List<Pair<String, Any?>> {
         return when (attribute.key) {
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)
+                    JsonLdUtils.expandJsonLdTerm(it, contexts)
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }
@@ -454,7 +441,7 @@ class SubscriptionService(
     suspend fun updateEntities(
         subscriptionId: URI,
         entities: List<Map<String, Any>>,
-        contexts: List<String>?
+        contexts: List<String>
     ): Either<APIException, Unit> {
         return either {
             deleteEntityInfo(subscriptionId).bind()
@@ -570,19 +557,14 @@ class SubscriptionService(
 
     suspend fun isMatchingGeoQuery(
         subscriptionId: URI,
-        geoProperty: NgsiLdGeoProperty?
-    ): Either<APIException, Boolean> {
-        return if (geoProperty == null)
-            true.right()
-        else {
-            getMatchingGeoQuery(subscriptionId)?.let {
-                val geoQueryStatement = createGeoQueryStatement(it, geoProperty)
-                runGeoQueryStatement(geoQueryStatement)
-            } ?: true.right()
-        }
-    }
+        jsonLdEntity: JsonLdEntity
+    ): Either<APIException, Boolean> =
+        getMatchingGeoQuery(subscriptionId)?.let {
+            val geoQueryStatement = createGeoQueryStatement(it, jsonLdEntity)
+            runGeoQueryStatement(geoQueryStatement)
+        } ?: true.right()
 
-    suspend fun getMatchingGeoQuery(subscriptionId: URI): GeoQuery? {
+    suspend fun getMatchingGeoQuery(subscriptionId: URI): GeoQ? {
         val selectStatement =
             """
             SELECT *
@@ -591,7 +573,7 @@ class SubscriptionService(
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("sub_id", subscriptionId)
-            .oneToResult { rowToGeoQuery(it) }
+            .oneToResult { rowToGeoQ(it) }
             .getOrElse { null }
     }
 
@@ -639,7 +621,7 @@ class SubscriptionService(
                     type = row["entity_type"] as String
                 )
             ),
-            geoQ = rowToGeoQuery(row),
+            geoQ = rowToGeoQ(row),
             notification = NotificationParams(
                 attributes = (row["notif_attributes"] as? String)?.split(","),
                 format = toEnum(row["notif_format"]!!),
@@ -685,9 +667,9 @@ class SubscriptionService(
         )
     }
 
-    private var rowToGeoQuery: ((Map<String, Any>) -> GeoQuery?) = { row ->
+    private var rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
         if (row["georel"] != null)
-            GeoQuery(
+            GeoQ(
                 georel = row["georel"] as String,
                 geometry = row["geometry"] as String,
                 coordinates = row["coordinates"] as String,

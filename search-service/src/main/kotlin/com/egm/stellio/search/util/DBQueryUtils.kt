@@ -60,7 +60,7 @@ fun URI?.toDatasetIdFilter(): String =
     else "AND dataset_id IS NULL"
 
 fun String.wrapToAndClause(clause: String): String =
-    if(this.isNotEmpty())
+    if (this.isNotEmpty())
         this.plus(" AND (").plus(clause).plus(")")
     else
         this.plus(clause)

@@ -78,4 +78,22 @@ object JsonUtils {
 
     fun convertToMap(input: Any): Map<String, Any> =
         mapper.convertValue(input)
+
+    fun Map<String, Any>.getAllKeys(): Set<String> =
+        this.entries.fold(emptySet()) { acc, entry ->
+            val valueKeys = when (entry.value) {
+                is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
+                is List<*> -> {
+                    (entry.value as List<*>).map {
+                        // type value can be a list, not interested in it here
+                        if (it is Map<*, *>)
+                            (it as Map<String, Any>).getAllKeys()
+                        else emptySet()
+                    }.flatten().toSet()
+                }
+                // if it is not a list or an object, it is a value (and thus not a key)
+                else -> emptySet()
+            }
+            acc.plus(entry.key).plus(valueKeys)
+        }
 }

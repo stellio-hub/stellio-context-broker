@@ -1,8 +1,5 @@
 package com.egm.stellio.shared.model
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -44,8 +41,6 @@ class NgsiLdEntity private constructor(
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
             val types = parsedKeys[JSONLD_TYPE]!! as List<String>
-            if (types.any { !it.extractShortTypeFromExpanded().isNgsiLdSupportedName() })
-                throw BadRequestDataException("The provided NGSI-LD entity has a type with invalid characters")
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
@@ -78,13 +73,6 @@ class NgsiLdEntity private constructor(
 }
 
 sealed class NgsiLdAttribute(val name: String) {
-    val compactName: String = name.extractShortTypeFromExpanded()
-
-    init {
-        if (!compactName.isNgsiLdSupportedName())
-            throw BadRequestDataException("Entity has an invalid attribute name: $compactName")
-    }
-
     abstract fun getLinkedEntitiesIds(): List<URI>
     abstract fun getAttributeInstances(): List<NgsiLdAttributeInstance>
 }
@@ -391,13 +379,6 @@ fun parseAttributeInstancesToNgsiLdAttribute(
             NgsiLdGeoProperty(attributeName, attributeInstances)
         else -> throw BadRequestDataException("Unrecognized type for $attributeName")
     }
-
-fun String.isNgsiLdSupportedName(): Boolean =
-    this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
-
-fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
-    if (this.isNgsiLdSupportedName()) Unit.right()
-    else BadRequestDataException(invalidCharacterInName(this)).left()
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.members, this.contexts)

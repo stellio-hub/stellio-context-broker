@@ -161,7 +161,7 @@ class EntityAccessControlHandler(
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
-                it.first.compactName,
+                it.first.name,
                 "User is not authorized to manage rights on entity ${it.second.objectId}"
             )
         }
@@ -171,11 +171,11 @@ class EntityAccessControlHandler(
             entityAccessRightsService.setRoleOnEntity(
                 subjectId,
                 ngsiLdRelInstance.objectId,
-                AccessRight.forAttributeName(ngsiLdRel.compactName).orNull()!!
+                AccessRight.forAttributeName(ngsiLdRel.name).orNull()!!
             ).fold(
                 ifLeft = { apiException ->
                     UpdateAttributeResult(
-                        ngsiLdRel.compactName,
+                        ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
                         UpdateOperationResult.FAILED,
                         apiException.message
@@ -183,7 +183,7 @@ class EntityAccessControlHandler(
                 },
                 ifRight = {
                     UpdateAttributeResult(
-                        ngsiLdRel.compactName,
+                        ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
                         UpdateOperationResult.APPENDED,
                         null

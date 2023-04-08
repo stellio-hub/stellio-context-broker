@@ -48,7 +48,7 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsMap()
+        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdEntity = expandJsonLdEntity(body, contexts)

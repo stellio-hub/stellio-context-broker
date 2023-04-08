@@ -574,13 +574,6 @@ fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     return this[0]
 }
 
-fun String.extractShortTypeFromExpanded(): String =
-    /*
-     * TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
-     * TODO do a clean implementation using info from @context
-     */
-    this.substringAfterLast("/").substringAfterLast("#")
-
 fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> =
     this.mapValues { (_, value) -> simplifyRepresentation(value) }
 

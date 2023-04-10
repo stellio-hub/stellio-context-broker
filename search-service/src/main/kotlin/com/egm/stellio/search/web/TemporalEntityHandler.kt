@@ -43,7 +43,7 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsMap()
+        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
@@ -107,7 +107,7 @@ class TemporalEntityHandler(
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-        val body = requestBody.awaitFirst().deserializeAsMap()
+        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
         jsonLdInstances.checkTemporalAttributeInstance().bind()
@@ -215,7 +215,7 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsList().first()
+        val body = requestBody.awaitFirst().deserializeAsList().first().checkNamesAreNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()

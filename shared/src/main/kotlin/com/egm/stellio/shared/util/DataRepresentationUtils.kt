@@ -11,7 +11,7 @@ import com.egm.stellio.shared.util.JsonUtils.getAllKeys
 
 /**
  * Checks whether the given JSON-LD object contains Type Names, Property Names and Relationship Names
- * that conforms to the restrictions defined in in 4.6.2
+ * that conforms to the restrictions defined in 4.6.2
  */
 suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException, Map<String, Any>> =
     this.filter { it.key != JsonLdUtils.JSONLD_CONTEXT }
@@ -21,10 +21,13 @@ suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException
             when (val type = this[JsonLdUtils.JSONLD_TYPE_TERM]) {
                 is String -> type.checkNameIsNgsiLdSupported()
                 is List<*> -> (type as List<String>).parTraverseEither { it.checkNameIsNgsiLdSupported() }.map { Unit }
-                else -> BadRequestDataException(invalidCharacterInName(type)).left()
+                else -> Unit.right()
             }
         }
         .map { this }
+
+suspend fun List<Map<String, Any>>.checkNamesAreNgsiLdSupported(): Either<APIException, List<Map<String, Any>>> =
+    this.parTraverseEither { it.checkNamesAreNgsiLdSupported() }
 
 fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this.isNgsiLdSupportedName()) Unit.right()

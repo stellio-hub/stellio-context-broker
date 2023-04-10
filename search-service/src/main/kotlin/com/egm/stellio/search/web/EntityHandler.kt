@@ -48,7 +48,9 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdEntity = expandJsonLdEntity(body, contexts)
@@ -238,7 +240,10 @@ class EntityHandler(
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
 
-        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
@@ -298,7 +303,9 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val entityUri = entityId.toUri()
-        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
@@ -365,7 +372,9 @@ class EntityHandler(
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
-        val body = requestBody.awaitFirst().deserializeAsMap().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
 
         val rawPayload = mapOf(attrId to removeContextFromInput(body))

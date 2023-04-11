@@ -7,7 +7,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
+import com.egm.stellio.shared.util.JsonLdUtils.castAttributeValue
 import java.time.ZonedDateTime
 
 typealias CompactedJsonLdEntity = Map<String, Any>
@@ -24,9 +24,9 @@ data class JsonLdEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
-    fun getAttributes(): ExpandedAttributesInstances =
+    fun getAttributes(): ExpandedAttributes =
         members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
-            .mapValues { expandValueAsListOfMap(it.value) }
+            .mapValues { castAttributeValue(it.value) }
 
     // called at entity creation time to populate entity and attributes with createdAt information
     fun populateCreatedAt(createdAt: ZonedDateTime): JsonLdEntity =
@@ -34,7 +34,7 @@ data class JsonLdEntity(
             members = members.mapValues {
                 if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key))
                     it.value
-                else expandValueAsListOfMap(it.value).map { expandedAttributeInstance ->
+                else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
                         NGSILD_CREATED_AT_PROPERTY,
                         createdAt

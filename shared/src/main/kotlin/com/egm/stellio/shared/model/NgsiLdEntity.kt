@@ -1,5 +1,11 @@
 package com.egm.stellio.shared.model
 
+import arrow.core.Either
+import arrow.core.continuations.either
+import arrow.core.continuations.ensureNotNull
+import arrow.core.left
+import arrow.core.right
+import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -27,53 +33,40 @@ class NgsiLdEntity private constructor(
     val types: List<ExpandedTerm>,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
-    // TODO by 5.2.4, it is at most one location, one observationSpace and one operationSpace (to be enforced)
-    //      but nothing prevents to add other user-defined geo properties
     val geoProperties: List<NgsiLdGeoProperty>,
     val contexts: List<String>
 ) {
     companion object {
-        operator fun invoke(parsedKeys: Map<String, Any>, contexts: List<String>): NgsiLdEntity {
-            if (!parsedKeys.containsKey(JSONLD_ID))
-                throw BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
+        suspend fun create(
+            parsedKeys: Map<String, Any>,
+            contexts: List<String>
+        ): Either<APIException, NgsiLdEntity> = either {
+            ensure(parsedKeys.containsKey(JSONLD_ID)) {
+                BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
+            }
             val id = (parsedKeys[JSONLD_ID]!! as String).toUri()
 
-            if (!parsedKeys.containsKey(JSONLD_TYPE))
-                throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
+            ensure(parsedKeys.containsKey(JSONLD_TYPE)) {
+                BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
+            }
             val types = parsedKeys[JSONLD_TYPE]!! as List<String>
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
-            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
-            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
-            val geoProperties = getAttributesOfType<NgsiLdGeoProperty>(attributes, NGSILD_GEOPROPERTY_TYPE)
-            if (attributes.size > relationships.size + properties.size + geoProperties.size)
-                throw BadRequestDataException("Entity has unknown attributes types: $attributes")
+            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
+            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            val geoProperties = getAttributesOfType<NgsiLdGeoProperty>(attributes, NGSILD_GEOPROPERTY_TYPE).bind()
+            ensure(attributes.size == relationships.size + properties.size + geoProperties.size) {
+                BadRequestDataException("Entity has unknown attributes types: $attributes")
+            }
 
-            return NgsiLdEntity(id, types, relationships, properties, geoProperties, contexts)
+            NgsiLdEntity(id, types, relationships, properties, geoProperties, contexts)
         }
     }
 
     val attributes: List<NgsiLdAttribute> = properties.plus(relationships).plus(geoProperties)
-
-    /**
-     * Gets linked entities ids.
-     * Entities can be linked either by a relation or a property.
-     */
-    fun getLinkedEntitiesIds(): List<URI> =
-        properties.flatMap {
-            it.getLinkedEntitiesIds()
-        }.plus(
-            relationships.flatMap { it.getLinkedEntitiesIds() }
-        ).plus(
-            geoProperties.flatMap { it.getLinkedEntitiesIds() }
-        )
-
-    fun getGeoProperty(geoProperty: String?): NgsiLdGeoProperty? =
-        geoProperties.find { geoProperty == it.name }
 }
 
 sealed class NgsiLdAttribute(val name: String) {
-    abstract fun getLinkedEntitiesIds(): List<URI>
     abstract fun getAttributeInstances(): List<NgsiLdAttributeInstance>
 }
 
@@ -82,22 +75,22 @@ class NgsiLdProperty private constructor(
     val instances: List<NgsiLdPropertyInstance>
 ) : NgsiLdAttribute(name) {
     companion object {
-        operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdProperty {
-            checkInstancesAreOfSameType(name, instances, NGSILD_PROPERTY_TYPE)
+        suspend fun create(
+            name: String,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_PROPERTY_TYPE).bind()
 
-            val ngsiLdPropertyInstances = instances.map { instance ->
-                NgsiLdPropertyInstance(name, instance)
-            }
+            val ngsiLdPropertyInstances = instances.parTraverseEither { instance ->
+                NgsiLdPropertyInstance.create(name, instance)
+            }.bind()
 
-            checkAttributeDefaultInstance(name, ngsiLdPropertyInstances)
-            checkAttributeDuplicateDatasetId(name, ngsiLdPropertyInstances)
+            checkAttributeDefaultInstance(name, ngsiLdPropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdPropertyInstances).bind()
 
-            return NgsiLdProperty(name, ngsiLdPropertyInstances)
+            NgsiLdProperty(name, ngsiLdPropertyInstances)
         }
     }
-
-    override fun getLinkedEntitiesIds(): List<URI> =
-        instances.flatMap { it.getLinkedEntitiesIds() }
 
     override fun getAttributeInstances(): List<NgsiLdPropertyInstance> = instances
 }
@@ -107,22 +100,22 @@ class NgsiLdRelationship private constructor(
     val instances: List<NgsiLdRelationshipInstance>
 ) : NgsiLdAttribute(name) {
     companion object {
-        operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdRelationship {
-            checkInstancesAreOfSameType(name, instances, NGSILD_RELATIONSHIP_TYPE)
+        suspend fun create(
+            name: String,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdRelationship> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_RELATIONSHIP_TYPE).bind()
 
-            val ngsiLdRelationshipInstances = instances.map { instance ->
-                NgsiLdRelationshipInstance(name, instance)
-            }
+            val ngsiLdRelationshipInstances = instances.parTraverseEither { instance ->
+                NgsiLdRelationshipInstance.create(name, instance)
+            }.bind()
 
-            checkAttributeDefaultInstance(name, ngsiLdRelationshipInstances)
-            checkAttributeDuplicateDatasetId(name, ngsiLdRelationshipInstances)
+            checkAttributeDefaultInstance(name, ngsiLdRelationshipInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdRelationshipInstances).bind()
 
-            return NgsiLdRelationship(name, ngsiLdRelationshipInstances)
+            NgsiLdRelationship(name, ngsiLdRelationshipInstances)
         }
     }
-
-    override fun getLinkedEntitiesIds(): List<URI> =
-        instances.flatMap { it.getLinkedEntitiesIds() }
 
     override fun getAttributeInstances(): List<NgsiLdRelationshipInstance> = instances
 }
@@ -132,22 +125,22 @@ class NgsiLdGeoProperty private constructor(
     val instances: List<NgsiLdGeoPropertyInstance>
 ) : NgsiLdAttribute(name) {
     companion object {
-        operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdGeoProperty {
-            checkInstancesAreOfSameType(name, instances, NGSILD_GEOPROPERTY_TYPE)
+        suspend fun create(
+            name: String,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdGeoProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_GEOPROPERTY_TYPE).bind()
 
-            val ngsiLdGeoPropertyInstances = instances.map { instance ->
-                NgsiLdGeoPropertyInstance(instance)
-            }
+            val ngsiLdGeoPropertyInstances = instances.parTraverseEither { instance ->
+                NgsiLdGeoPropertyInstance.create(name, instance)
+            }.bind()
 
-            checkAttributeDefaultInstance(name, ngsiLdGeoPropertyInstances)
-            checkAttributeDuplicateDatasetId(name, ngsiLdGeoPropertyInstances)
+            checkAttributeDefaultInstance(name, ngsiLdGeoPropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdGeoPropertyInstances).bind()
 
-            return NgsiLdGeoProperty(name, ngsiLdGeoPropertyInstances)
+            NgsiLdGeoProperty(name, ngsiLdGeoPropertyInstances)
         }
     }
-
-    override fun getLinkedEntitiesIds(): List<URI> =
-        instances.flatMap { it.getLinkedEntitiesIds() }
 
     override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
 }
@@ -159,12 +152,7 @@ sealed class NgsiLdAttributeInstance(
     val datasetId: URI?,
     val properties: List<NgsiLdProperty>,
     val relationships: List<NgsiLdRelationship>
-) {
-    open fun getLinkedEntitiesIds(): List<URI> =
-        properties.flatMap {
-            it.getLinkedEntitiesIds()
-        }
-}
+)
 
 class NgsiLdPropertyInstance private constructor(
     val value: Any,
@@ -177,10 +165,14 @@ class NgsiLdPropertyInstance private constructor(
     relationships: List<NgsiLdRelationship>
 ) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
-        operator fun invoke(name: String, values: Map<String, List<Any>>): NgsiLdPropertyInstance {
-            // TODO for short-handed properties, the value is directly accessible from the map under the @value key ?
+        suspend fun create(
+            name: String,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdPropertyInstance> = either {
             val value = getPropertyValueFromMap(values, NGSILD_PROPERTY_VALUE)
-                ?: throw BadRequestDataException("Property $name has an instance without a value")
+            ensureNotNull(value) {
+                BadRequestDataException("Property $name has an instance without a value")
+            }
 
             val unitCode = getPropertyValueFromMapAsString(values, NGSILD_UNIT_CODE_PROPERTY)
             val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
@@ -189,12 +181,13 @@ class NgsiLdPropertyInstance private constructor(
             val datasetId = values.getDatasetId()
 
             val attributes = getNonCoreAttributes(values, NGSILD_PROPERTIES_CORE_MEMBERS)
-            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
-            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
-            if (attributes.size > relationships.size + properties.size)
-                throw BadRequestDataException("Property has unknown attributes types: $attributes")
+            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
+            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            ensure(attributes.size == relationships.size + properties.size) {
+                BadRequestDataException("Property $name has unknown attributes types: $attributes")
+            }
 
-            return NgsiLdPropertyInstance(
+            NgsiLdPropertyInstance(
                 value,
                 unitCode,
                 createdAt,
@@ -206,9 +199,6 @@ class NgsiLdPropertyInstance private constructor(
             )
         }
     }
-
-    override fun getLinkedEntitiesIds(): List<URI> =
-        relationships.flatMap { it.getLinkedEntitiesIds() }
 
     override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
@@ -223,20 +213,24 @@ class NgsiLdRelationshipInstance private constructor(
     relationships: List<NgsiLdRelationship>
 ) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
-        operator fun invoke(name: String, values: Map<String, List<Any>>): NgsiLdRelationshipInstance {
-            val objectId = extractRelationshipObject(name, values).fold({ throw it }, { it })
+        suspend fun create(
+            name: String,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdRelationshipInstance> = either {
+            val objectId = extractRelationshipObject(name, values).bind()
             val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
             val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
             val attributes = getNonCoreAttributes(values, NGSILD_RELATIONSHIPS_CORE_MEMBERS)
-            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
-            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
-            if (attributes.size > relationships.size + properties.size)
-                throw BadRequestDataException("Relationship has unknown attributes: $attributes")
+            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
+            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            ensure(attributes.size == relationships.size + properties.size) {
+                BadRequestDataException("Relationship $name has unknown attributes: $attributes")
+            }
 
-            return NgsiLdRelationshipInstance(
+            NgsiLdRelationshipInstance(
                 objectId,
                 createdAt,
                 modifiedAt,
@@ -248,9 +242,6 @@ class NgsiLdRelationshipInstance private constructor(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<URI> =
-        relationships.flatMap { it.getLinkedEntitiesIds() }.plus(objectId)
-
     override fun toString(): String = "NgsiLdRelationshipInstance(objectId=$objectId)"
 }
 
@@ -258,13 +249,16 @@ class NgsiLdGeoPropertyInstance(
     val coordinates: WKTCoordinates,
     createdAt: ZonedDateTime?,
     modifiedAt: ZonedDateTime?,
-    observedAt: ZonedDateTime? = null,
-    datasetId: URI? = null,
-    properties: List<NgsiLdProperty> = emptyList(),
-    relationships: List<NgsiLdRelationship> = emptyList()
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    properties: List<NgsiLdProperty>,
+    relationships: List<NgsiLdRelationship>
 ) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
-        operator fun invoke(values: Map<String, List<Any>>): NgsiLdGeoPropertyInstance {
+        suspend fun create(
+            name: String,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdGeoPropertyInstance> = either {
             val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
             val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
@@ -272,12 +266,13 @@ class NgsiLdGeoPropertyInstance(
 
             val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE_KW] as String
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
-            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
-            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
-            if (attributes.size > relationships.size + properties.size)
-                throw BadRequestDataException("Geoproperty has unknown attributes: $attributes")
+            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
+            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            ensure(attributes.size == relationships.size + properties.size) {
+                BadRequestDataException("Geoproperty $name has unknown attributes: $attributes")
+            }
 
-            return NgsiLdGeoPropertyInstance(
+            NgsiLdGeoPropertyInstance(
                 WKTCoordinates(wktValue),
                 createdAt,
                 modifiedAt,
@@ -289,9 +284,6 @@ class NgsiLdGeoPropertyInstance(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<URI> =
-        relationships.flatMap { it.getLinkedEntitiesIds() }
-
     override fun toString(): String = "NgsiLdGeoPropertyInstance(coordinates=$coordinates)"
 }
 
@@ -302,88 +294,93 @@ value class WKTCoordinates(val value: String)
  * Given an entity's attribute, returns whether it is of the given attribute type
  * (i.e. property, geo property or relationship)
  */
-fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
-    // TODO move some of these checks to isValidAttribute()
-    values.containsKey(JSONLD_TYPE) &&
-        values[JSONLD_TYPE] is List<*> &&
-        values.getOrElse(JSONLD_TYPE) { emptyList() }[0] == type.uri
+fun isAttributeOfType(attributeInstance: ExpandedAttributeInstance, type: AttributeType): Boolean =
+    attributeInstance.containsKey(JSONLD_TYPE) &&
+        attributeInstance[JSONLD_TYPE] is List<*> &&
+        attributeInstance.getOrElse(JSONLD_TYPE) { emptyList() }[0] == type.uri
 
-private inline fun <reified T : NgsiLdAttribute> getAttributesOfType(
+private suspend inline fun <reified T : NgsiLdAttribute> getAttributesOfType(
     attributes: Map<String, Any>,
     type: AttributeType
-): List<T> =
-    attributes.mapValues {
-        JsonLdUtils.expandValueAsListOfMap(it.value)
-    }.filter {
-        // only check the first entry, multi-attribute consistency is later checked by each attribute
-        isAttributeOfType(it.value[0], type)
-    }.map {
-        when (type) {
-            NGSILD_PROPERTY_TYPE -> NgsiLdProperty(it.key, it.value) as T
-            NGSILD_RELATIONSHIP_TYPE -> NgsiLdRelationship(it.key, it.value) as T
-            NGSILD_GEOPROPERTY_TYPE -> NgsiLdGeoProperty(it.key, it.value) as T
-            else -> throw BadRequestDataException("Unrecognized type: $type")
+): Either<APIException, List<T>> = either {
+    attributes
+        .mapValues {
+            JsonLdUtils.castAttributeValue(it.value)
+        }.filter {
+            // only check the first entry, multi-attribute consistency is later checked by each attribute
+            isAttributeOfType(it.value[0], type)
+        }.entries
+        .map {
+            when (type) {
+                NGSILD_PROPERTY_TYPE -> NgsiLdProperty.create(it.key, it.value).bind() as T
+                NGSILD_RELATIONSHIP_TYPE -> NgsiLdRelationship.create(it.key, it.value).bind() as T
+                NGSILD_GEOPROPERTY_TYPE -> NgsiLdGeoProperty.create(it.key, it.value).bind() as T
+                else -> BadRequestDataException("Unrecognized type: $type").left().bind()
+            }
         }
-    }
+}
 
 private fun getNonCoreAttributes(parsedKeys: Map<String, Any>, keysToFilter: List<String>): Map<String, Any> =
     parsedKeys.filterKeys {
         !keysToFilter.contains(it)
     }
 
-// TODO to be refactored with validation
-fun checkInstancesAreOfSameType(name: String, values: List<Map<String, List<Any>>>, type: AttributeType) {
-    if (!values.all { isAttributeOfType(it, type) })
-        throw BadRequestDataException("Attribute $name instances must have the same type")
+suspend fun checkInstancesAreOfSameType(
+    name: String,
+    values: ExpandedAttributeInstances,
+    type: AttributeType
+): Either<APIException, Unit> = either {
+    ensure(values.all { isAttributeOfType(it, type) }) {
+        BadRequestDataException("Attribute $name instances must have the same type")
+    }
 }
 
-// TODO to be refactored with validation
-fun checkAttributeDefaultInstance(name: String, instances: List<NgsiLdAttributeInstance>) {
-    if (instances.count { it.datasetId == null } > 1)
-        throw BadRequestDataException("Attribute $name can't have more than one default instance")
+suspend fun checkAttributeDefaultInstance(
+    name: String,
+    instances: List<NgsiLdAttributeInstance>
+): Either<APIException, Unit> = either {
+    ensure(instances.count { it.datasetId == null } <= 1) {
+        BadRequestDataException("Attribute $name can't have more than one default instance")
+    }
 }
 
-// TODO to be refactored with validation
-fun checkAttributeDuplicateDatasetId(name: String, instances: List<NgsiLdAttributeInstance>) {
+fun checkAttributeDuplicateDatasetId(
+    name: String,
+    instances: List<NgsiLdAttributeInstance>
+): Either<APIException, Unit> {
     val datasetIds = instances.map {
         it.datasetId
     }
-    if (datasetIds.toSet().count() != datasetIds.count())
-        throw BadRequestDataException("Attribute $name can't have more than one instance with the same datasetId")
+    return if (datasetIds.toSet().count() != datasetIds.count())
+        BadRequestDataException("Attribute $name can't have more than one instance with the same datasetId").left()
+    else Unit.right()
 }
 
-fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute> =
-    parseAttributesInstancesToNgsiLdAttributes(
-        attributes.mapValues {
-            JsonLdUtils.expandValueAsListOfMap(it.value)
-        }
-    )
-
-fun parseAttributesInstancesToNgsiLdAttributes(
-    attributesInstances: ExpandedAttributesInstances
-): List<NgsiLdAttribute> =
-    attributesInstances.map {
-        parseAttributeInstancesToNgsiLdAttribute(it.key, it.value)
+suspend fun ExpandedAttributes.toNgsiLdAttributes(): Either<APIException, List<NgsiLdAttribute>> =
+    this.entries.parTraverseEither {
+        it.value.toNgsiLdAttribute(it.key)
     }
 
-fun parseAttributeInstancesToNgsiLdAttribute(
-    attributeName: ExpandedTerm,
-    attributeInstances: ExpandedAttributeInstances
-): NgsiLdAttribute =
+suspend fun ExpandedAttribute.toNgsiLdAttribute(): Either<APIException, NgsiLdAttribute> =
+    this.second.toNgsiLdAttribute(this.first)
+
+suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
+    attributeName: ExpandedTerm
+): Either<APIException, NgsiLdAttribute> =
     when {
-        isAttributeOfType(attributeInstances[0], NGSILD_PROPERTY_TYPE) ->
-            NgsiLdProperty(attributeName, attributeInstances)
-        isAttributeOfType(attributeInstances[0], NGSILD_RELATIONSHIP_TYPE) ->
-            NgsiLdRelationship(attributeName, attributeInstances)
-        isAttributeOfType(attributeInstances[0], NGSILD_GEOPROPERTY_TYPE) ->
-            NgsiLdGeoProperty(attributeName, attributeInstances)
-        else -> throw BadRequestDataException("Unrecognized type for $attributeName")
+        isAttributeOfType(this[0], NGSILD_PROPERTY_TYPE) ->
+            NgsiLdProperty.create(attributeName, this)
+        isAttributeOfType(this[0], NGSILD_RELATIONSHIP_TYPE) ->
+            NgsiLdRelationship.create(attributeName, this)
+        isAttributeOfType(this[0], NGSILD_GEOPROPERTY_TYPE) ->
+            NgsiLdGeoProperty.create(attributeName, this)
+        else -> BadRequestDataException("Unrecognized type for $attributeName").left()
     }
 
-fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
-    NgsiLdEntity(this.members, this.contexts)
+suspend fun JsonLdEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
+    NgsiLdEntity.create(this.members, this.contexts)
 
-fun Map<String, List<Any>>.getDatasetId(): URI? =
+fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
@@ -418,6 +415,3 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
 val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
     NGSILD_GEOPROPERTY_VALUE
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-// basic alias to help identify, mainly in method calls, if the expected value is a compact or expanded one
-typealias ExpandedTerm = String

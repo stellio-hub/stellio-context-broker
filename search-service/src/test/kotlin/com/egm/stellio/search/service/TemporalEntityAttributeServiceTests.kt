@@ -6,7 +6,7 @@ import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -250,11 +250,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val createdAt = ZonedDateTime.now()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
-        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(newProperty, listOf(APIC_COMPOUND_CONTEXT))
-        val newNgsiLdProperty = parseToNgsiLdAttributes(jsonLdAttribute.toMap())
+        val expandedAttribute = JsonLdUtils.expandAttribute(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val newNgsiLdProperty = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
         temporalEntityAttributeService.replaceAttribute(
             temporalEntityAttribute,
-            newNgsiLdProperty[0],
+            newNgsiLdProperty,
             AttributeMetadata(
                 null,
                 "It's a string now",
@@ -265,7 +265,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            jsonLdAttribute,
+            expandedAttribute.second[0],
             null
         )
 
@@ -276,7 +276,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
                 it.attributeValueType == TemporalEntityAttribute.AttributeValueType.STRING &&
                 it.entityId == beehiveTestCId &&
-                it.payload.asString() == serializeObject(jsonLdAttribute) &&
+                it.payload.asString() == serializeObject(expandedAttribute) &&
                 it.createdAt.isBefore(createdAt) &&
                 it.modifiedAt == createdAt
         }

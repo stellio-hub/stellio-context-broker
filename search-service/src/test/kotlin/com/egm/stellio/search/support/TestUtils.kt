@@ -2,11 +2,12 @@ package com.egm.stellio.search.support
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
@@ -41,9 +42,8 @@ suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAcc
         }
         """.trimIndent()
 
-    return parseToNgsiLdAttributes(
-        expandAttribute(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
-    )[0]
+    return expandAttribute(AUTH_TERM_SAP, sapPropertyFragment, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
+        .toNgsiLdAttribute().shouldSucceedAndResult()
 }
 
 const val EMPTY_PAYLOAD = "{}"

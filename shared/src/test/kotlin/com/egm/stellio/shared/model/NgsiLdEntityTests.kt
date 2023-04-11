@@ -2,21 +2,20 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NgsiLdEntityTests {
-
-    private val targetRelationshipUri = "urn:ngsi-ld:Entity:target".toUri()
-    private val targetRelationshipUri2 = "urn:ngsi-ld:Entity:target2".toUri()
 
     @Test
     fun `it should parse a minimal entity`() = runTest {
@@ -43,13 +42,10 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("The provided NGSI-LD entity does not contain an id property", it.message)
         }
-        assertEquals(
-            "The provided NGSI-LD entity does not contain an id property",
-            exception.message
-        )
     }
 
     @Test
@@ -65,13 +61,10 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("The provided NGSI-LD entity does not contain a type property", it.message)
         }
-        assertEquals(
-            "The provided NGSI-LD entity does not contain a type property",
-            exception.message
-        )
     }
 
     @Test
@@ -88,7 +81,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -117,7 +110,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -157,7 +150,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
@@ -182,7 +175,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals(ZonedDateTime.parse("2022-01-19T00:00:00Z"), ngsiLdPropertyInstance.createdAt)
@@ -209,7 +202,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -237,15 +230,13 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS)
+        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#deviceState instances must have the same type",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#deviceState instances must have the same type",
-            exception.message
-        )
     }
 
     @Test
@@ -277,16 +268,14 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS)
+        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#deviceState " +
+                    "can't have more than one instance with the same datasetId",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#deviceState " +
-                "can't have more than one instance with the same datasetId",
-            exception.message
-        )
     }
 
     @Test
@@ -312,15 +301,13 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS)
+        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#deviceState can't have more than one default instance",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#deviceState can't have more than one default instance",
-            exception.message
-        )
     }
 
     @Test
@@ -338,7 +325,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes = parseToNgsiLdAttributes(expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS))
+        val ngsiLdAttributes =
+            expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdAttributes.size)
         val ngsiLdAttribute = ngsiLdAttributes[0]
@@ -362,7 +350,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
@@ -390,7 +378,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
         assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
@@ -420,7 +408,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
@@ -446,15 +434,14 @@ class NgsiLdEntityTests {
 
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawRelationship, DEFAULT_CONTEXTS)
+        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel can't have more " +
+                    "than one default instance",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel can't have more than one default instance",
-            exception.message
-        )
     }
 
     @Test
@@ -477,16 +464,14 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawRelationship, DEFAULT_CONTEXTS)
+        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel " +
+                    "can't have more than one instance with the same datasetId",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel " +
-                "can't have more than one instance with the same datasetId",
-            exception.message
-        )
     }
 
     @Test
@@ -513,15 +498,13 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
-            parseToNgsiLdAttributes(
-                expandJsonLdFragment(rawRelationship, DEFAULT_CONTEXTS)
+        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel instances must have the same type",
+                it.message
             )
         }
-        assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel instances must have the same type",
-            exception.message
-        )
     }
 
     @Test
@@ -547,9 +530,9 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location?.instances?.size)
@@ -591,9 +574,9 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)
         assertEquals(1, location?.instances?.size)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
@@ -629,88 +612,13 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.getGeoProperty("https://uri.etsi.org/ngsi-ld/location")
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location?.instances?.size)
         val locationInstance = location?.instances?.get(0)
         assertEquals("POINT (24.30623 60.07966)", locationInstance?.coordinates?.value)
-    }
-
-    @Test
-    fun `it should find relationships of entity`() = runTest {
-        val expandedEntity = expandJsonLdEntity(
-            """
-            { 
-                "id": "urn:ngsi-ld:Vehicle:A12388", 
-                "type": "Vehicle", 
-                "connectsTo": { 
-                    "type": "Relationship",
-                    "object": "$targetRelationshipUri"
-                }
-            }
-            """.trimIndent(),
-            DEFAULT_CONTEXTS
-        ).toNgsiLdEntity()
-
-        assertEquals(arrayListOf(targetRelationshipUri), expandedEntity.getLinkedEntitiesIds())
-    }
-
-    @Test
-    fun `it should find relationships of properties`() = runTest {
-        val expandedEntity = expandJsonLdEntity(
-            """
-            { 
-                 "id": "urn:ngsi-ld:Vehicle:A12388",
-                 "type": "Vehicle",
-                 "connectsTo": {
-                    "type": "Relationship",
-                    "object": "$targetRelationshipUri"
-                 },
-                 "speed": {
-                    "type": "Property", 
-                    "value": 35, 
-                    "flashedFrom": { 
-                        "type": "Relationship", 
-                        "object": "$targetRelationshipUri2" 
-                    }
-                }
-            }
-            """.trimIndent(),
-            DEFAULT_CONTEXTS
-        ).toNgsiLdEntity()
-
-        assertTrue(
-            listOf(targetRelationshipUri, targetRelationshipUri2)
-                .containsAll(expandedEntity.getLinkedEntitiesIds())
-        )
-    }
-
-    @Test
-    fun `it should find relationships of relationships`() = runTest {
-        val expandedEntity = expandJsonLdEntity(
-            """
-            { 
-                "id" : "urn:ngsi-ld:Vehicle:A12388",
-                "type": "Vehicle",
-                "connectsTo": {
-                    "type": "Relationship",
-                    "object": "$targetRelationshipUri",
-                    "createdBy": {
-                        "type": "Relationship",
-                        "object": "$targetRelationshipUri2"
-                    }
-                }
-            }
-            """.trimIndent(),
-            DEFAULT_CONTEXTS
-        ).toNgsiLdEntity()
-
-        assertTrue(
-            listOf(targetRelationshipUri, targetRelationshipUri2)
-                .containsAll(expandedEntity.getLinkedEntitiesIds())
-        )
     }
 }

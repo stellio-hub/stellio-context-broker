@@ -1,9 +1,11 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -76,12 +78,12 @@ class EntityEventListenerService(
         updatedAttributes: Set<ExpandedTerm>,
         entityPayload: String,
         contexts: List<String>
-    ): Either<APIException, Unit> {
+    ): Either<APIException, Unit> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
         val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
-        return notificationService.notifyMatchingSubscribers(
+        notificationService.notifyMatchingSubscribers(
             jsonLdEntity,
-            jsonLdEntity.toNgsiLdEntity(),
+            jsonLdEntity.toNgsiLdEntity().bind(),
             updatedAttributes
         ).onRight { results ->
             val succeeded = results.count { it.third }

@@ -91,7 +91,7 @@ class ObservationEventListenerTests {
         coVerify {
             entityPayloadService.partialUpdateAttribute(
                 expectedEntityId,
-                match { it.containsKey(TEMPERATURE_PROPERTY) },
+                match { it.first == TEMPERATURE_PROPERTY },
                 null
             )
         }

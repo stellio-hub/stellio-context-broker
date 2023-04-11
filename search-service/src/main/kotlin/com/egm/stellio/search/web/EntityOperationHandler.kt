@@ -47,8 +47,8 @@ class EntityOperationHandler(
         checkBatchRequestBody(body).bind()
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-        val (jsonLdEntities, ngsiLdEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+        val (expandedEntities, ngsiLdEntities) =
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
             authorizationService.userCanCreateEntities(sub).isLeft()
@@ -58,7 +58,7 @@ class EntityOperationHandler(
             addEntitiesToErrors(unauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
 
-        doBatchCreation(authorizedEntities, jsonLdEntities, batchOperationResult, sub)
+        doBatchCreation(authorizedEntities, expandedEntities, batchOperationResult, sub)
 
         if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
@@ -87,8 +87,8 @@ class EntityOperationHandler(
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
 
-        val (jsonLdEntities, ngsiLdEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+        val (expandedEntities, ngsiLdEntities) =
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
@@ -98,7 +98,7 @@ class EntityOperationHandler(
             addEntitiesToErrors(newUnauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
 
-        doBatchCreation(newAuthorizedEntities, jsonLdEntities, batchOperationResult, sub)
+        doBatchCreation(newAuthorizedEntities, expandedEntities, batchOperationResult, sub)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
             existingEntities.partition { authorizationService.userCanUpdateEntity(it.id, sub).isLeft() }
@@ -106,7 +106,7 @@ class EntityOperationHandler(
 
         if (existingEntitiesAuthorized.isNotEmpty()) {
             val entitiesToUpdate = existingEntitiesAuthorized.map { ngsiLdEntity ->
-                Pair(ngsiLdEntity, jsonLdEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
+                Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
             }
             val updateOperationResult = when (options) {
                 "update" -> entityOperationService.update(entitiesToUpdate, false, sub.orNull())
@@ -114,7 +114,7 @@ class EntityOperationHandler(
             }
 
             if (options == "update")
-                publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities, ngsiLdEntities)
+                publishUpdateEvents(sub.orNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
             else
                 publishReplaceEvents(sub.orNull(), updateOperationResult, ngsiLdEntities)
 
@@ -152,8 +152,8 @@ class EntityOperationHandler(
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        val (jsonLdEntities, ngsiLdEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+        val (expandedEntities, ngsiLdEntities) =
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
@@ -166,12 +166,12 @@ class EntityOperationHandler(
 
         if (existingEntitiesAuthorized.isNotEmpty()) {
             val entitiesToUpdate = existingEntitiesAuthorized.map { ngsiLdEntity ->
-                Pair(ngsiLdEntity, jsonLdEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
+                Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
             }
             val updateOperationResult =
                 entityOperationService.update(entitiesToUpdate, disallowOverwrite, sub.orNull())
 
-            publishUpdateEvents(sub.orNull(), updateOperationResult, jsonLdEntities, ngsiLdEntities)
+            publishUpdateEvents(sub.orNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -251,14 +251,18 @@ class EntityOperationHandler(
         payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?
-    ): Pair<List<JsonLdEntity>, List<NgsiLdEntity>> =
-        payload.let {
-            if (contentType == JSON_LD_MEDIA_TYPE)
-                expandJsonLdEntities(it)
-            else
-                expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT))
-        }
-            .let { Pair(it, it.map { it.toNgsiLdEntity() }) }
+    ): Either<APIException, Pair<List<JsonLdEntity>, List<NgsiLdEntity>>> = either {
+        payload
+            .let {
+                if (contentType == JSON_LD_MEDIA_TYPE)
+                    expandJsonLdEntities(it)
+                else
+                    expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT))
+            }
+            .let { jsonLdEntities ->
+                Pair(jsonLdEntities, jsonLdEntities.map { it.toNgsiLdEntity().bind() })
+            }
+    }
 
     private suspend fun doBatchCreation(
         entitiesToCreate: List<NgsiLdEntity>,

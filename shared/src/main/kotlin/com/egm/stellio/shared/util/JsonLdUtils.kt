@@ -29,7 +29,8 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 import kotlin.reflect.full.safeCast
 
-data class AttributeType(val uri: String)
+@JvmInline
+value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
@@ -163,19 +164,44 @@ object JsonLdUtils {
             term
     }
 
-    suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
-        doJsonLdExpansion(fragment, contexts)
+    suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
+        doJsonLdExpansion(fragment, contexts) as Map<String, List<Any>>
 
     suspend fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
-        expandJsonLdFragment(fragment.deserializeAsMap(), contexts) as Map<String, List<Any>>
+        expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
+
+    suspend fun expandAttribute(
+        fragment: String,
+        contexts: List<String>
+    ): ExpandedAttribute =
+        (expandJsonLdFragment(deserializeObject(fragment), contexts) as ExpandedAttributes).toList()[0]
 
     suspend fun expandAttribute(
         attributeName: String,
         attributePayload: String,
         contexts: List<String>
-    ): Map<String, List<Map<String, List<Any>>>> =
-        expandJsonLdFragment(mapOf(attributeName to deserializeAs(attributePayload)), contexts)
-            as Map<String, List<Map<String, List<Any>>>>
+    ): ExpandedAttribute =
+        (expandJsonLdFragment(mapOf(attributeName to deserializeAs(attributePayload)), contexts) as ExpandedAttributes)
+            .toList().first()
+
+    suspend fun expandAttribute(
+        attributeName: String,
+        attributePayload: Map<String, Any>,
+        contexts: List<String>
+    ): ExpandedAttribute =
+        (expandJsonLdFragment(mapOf(attributeName to attributePayload), contexts) as ExpandedAttributes).toList()[0]
+
+    suspend fun expandAttributes(
+        fragment: String,
+        contexts: List<String>
+    ): ExpandedAttributes =
+        expandAttributes(deserializeObject(fragment), contexts)
+
+    suspend fun expandAttributes(
+        fragment: Map<String, Any>,
+        contexts: List<String>
+    ): ExpandedAttributes =
+        expandJsonLdFragment(fragment, contexts) as ExpandedAttributes
 
     private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
@@ -217,7 +243,7 @@ object JsonLdUtils {
     fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
         input.minus(JSONLD_CONTEXT)
 
-    fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
+    fun castAttributeValue(value: Any): List<Map<String, List<Any>>> =
         value as List<Map<String, List<Any>>>
 
     /**
@@ -239,7 +265,7 @@ object JsonLdUtils {
      *
      * @return the actual value, e.g. "kg" if provided #propertyKey is https://uri.etsi.org/ngsi-ld/unitCode
      */
-    fun getPropertyValueFromMap(value: Map<String, List<Any>>, propertyKey: String): Any? =
+    fun getPropertyValueFromMap(value: ExpandedAttributeInstance, propertyKey: String): Any? =
         if (value[propertyKey] != null) {
             val intermediateList = value[propertyKey] as List<Map<String, Any>>
             if (intermediateList.size == 1) {
@@ -555,9 +581,15 @@ object JsonLdUtils {
         )
 }
 
-typealias ExpandedAttributesInstances = Map<ExpandedTerm, ExpandedAttributeInstances>
+// basic alias to help identify, mainly in method calls, if the expected value is a compact or expanded one
+typealias ExpandedTerm = String
+typealias ExpandedAttributes = Map<ExpandedTerm, ExpandedAttributeInstances>
+typealias ExpandedAttribute = Pair<ExpandedTerm, ExpandedAttributeInstances>
 typealias ExpandedAttributeInstances = List<ExpandedAttributeInstance>
 typealias ExpandedAttributeInstance = Map<String, List<Any>>
+
+fun ExpandedAttribute.toExpandedAttributes() =
+    mapOf(this.first to this.second)
 
 fun ExpandedAttributeInstances.addSubAttribute(
     subAttributeName: ExpandedTerm,
@@ -671,7 +703,7 @@ fun Map<String, Any>.addSysAttrs(
             }
     else this
 
-fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIException, Unit> =
+fun ExpandedAttributes.checkTemporalAttributeInstance(): Either<APIException, Unit> =
     this.values.all { expandedInstances ->
         expandedInstances.all { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY) != null
@@ -681,22 +713,22 @@ fun ExpandedAttributesInstances.checkTemporalAttributeInstance(): Either<APIExce
         else BadRequestDataException(invalidTemporalInstanceMessage()).left()
     }
 
-fun ExpandedAttributesInstances.sorted(): ExpandedAttributesInstances =
+fun ExpandedAttributes.sorted(): ExpandedAttributes =
     this.mapValues {
         it.value.sortedByDescending { expandedAttributePayloadEntry ->
             getPropertyValueFromMapAsDateTime(expandedAttributePayloadEntry, NGSILD_OBSERVED_AT_PROPERTY)
         }
     }
 
-fun ExpandedAttributesInstances.keepFirstInstances(): ExpandedAttributesInstances =
+fun ExpandedAttributes.keepFirstInstances(): ExpandedAttributes =
     this.mapValues { listOf(it.value.first()) }
 
-fun ExpandedAttributesInstances.removeFirstInstances(): ExpandedAttributesInstances =
+fun ExpandedAttributes.removeFirstInstances(): ExpandedAttributes =
     this.mapValues {
         it.value.drop(1)
     }
 
-fun ExpandedAttributesInstances.addCoreMembers(
+fun ExpandedAttributes.addCoreMembers(
     entityId: String,
     entityTypes: List<ExpandedTerm>
 ): Map<String, Any> =

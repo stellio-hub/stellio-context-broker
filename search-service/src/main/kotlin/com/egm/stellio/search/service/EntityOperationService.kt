@@ -197,7 +197,7 @@ class EntityOperationService(
                 entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
-                    jsonLdEntity.members,
+                    jsonLdEntity.getAttributes(),
                     disallowOverwrite,
                     sub
                 ).bind()
@@ -232,7 +232,7 @@ class EntityOperationService(
                 entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
-                    jsonLdEntity.members,
+                    jsonLdEntity.getAttributes(),
                     disallowOverwrite,
                     sub
                 ).bind()

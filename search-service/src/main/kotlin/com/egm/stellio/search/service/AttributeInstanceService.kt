@@ -306,7 +306,7 @@ class AttributeInstanceService(
         expandedAttributeInstances: ExpandedAttributeInstances
     ): Either<APIException, Unit> = either {
         val teaUUID = retrieveTeaUUID(entityId, attributeName, instanceId).bind()
-        val ngsiLdAttribute = parseAttributeInstancesToNgsiLdAttribute(attributeName, expandedAttributeInstances)
+        val ngsiLdAttribute = expandedAttributeInstances.toNgsiLdAttribute(attributeName).bind()
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
 

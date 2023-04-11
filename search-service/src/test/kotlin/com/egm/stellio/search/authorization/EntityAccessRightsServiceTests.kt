@@ -7,12 +7,12 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called

@@ -37,7 +37,7 @@ class EntityPayloadService(
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
         createEntity(ngsiLdEntity, jsonLdEntity, sub).bind()
     }
@@ -374,7 +374,7 @@ class EntityPayloadService(
     suspend fun appendAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        jsonLdAttributes: Map<String, Any>,
+        expandedAttributes: ExpandedAttributes,
         disallowOverwrite: Boolean,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
@@ -383,7 +383,7 @@ class EntityPayloadService(
             val updateResult = temporalEntityAttributeService.appendEntityAttributes(
                 entityUri,
                 ngsiLdAttributes,
-                jsonLdAttributes,
+                expandedAttributes,
                 disallowOverwrite,
                 createdAt,
                 sub
@@ -400,7 +400,7 @@ class EntityPayloadService(
     suspend fun updateAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        jsonLdAttributes: Map<String, Any>,
+        expandedAttributes: ExpandedAttributes,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
@@ -408,7 +408,7 @@ class EntityPayloadService(
             val updateResult = temporalEntityAttributeService.updateEntityAttributes(
                 entityUri,
                 ngsiLdAttributes,
-                jsonLdAttributes,
+                expandedAttributes,
                 createdAt,
                 sub
             ).bind()
@@ -423,14 +423,14 @@ class EntityPayloadService(
     @Transactional
     suspend fun partialUpdateAttribute(
         entityId: URI,
-        expandedPayload: Map<String, List<Map<String, List<Any>>>>,
+        expandedAttribute: ExpandedAttribute,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
             val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
             val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
                 entityId,
-                expandedPayload,
+                expandedAttribute,
                 modifiedAt,
                 sub
             ).bind()
@@ -444,15 +444,15 @@ class EntityPayloadService(
     @Transactional
     suspend fun upsertAttributes(
         entityId: URI,
-        jsonLdInstances: ExpandedAttributesInstances,
+        expandedAttributes: ExpandedAttributes,
         sub: Sub?
     ): Either<APIException, Unit> =
         either {
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-            jsonLdInstances.forEach { (attributeName, expandedAttributeInstances) ->
+            expandedAttributes.forEach { (attributeName, expandedAttributeInstances) ->
                 expandedAttributeInstances.forEach { expandedAttributeInstance ->
                     val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
-                    val ngsiLdAttribute = parseAttributesInstancesToNgsiLdAttributes(jsonLdAttribute)[0]
+                    val ngsiLdAttribute = jsonLdAttribute.toNgsiLdAttributes().bind()[0]
 
                     temporalEntityAttributeService.upsertEntityAttributes(
                         entityId,
@@ -541,7 +541,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun deleteAttribute(
         entityId: URI,
-        attributeName: String,
+        attributeName: ExpandedTerm,
         datasetId: URI?,
         deleteAll: Boolean = false
     ): Either<APIException, Unit> =

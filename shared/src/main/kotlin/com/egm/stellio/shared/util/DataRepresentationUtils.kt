@@ -8,6 +8,7 @@ import arrow.fx.coroutines.parTraverseEither
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils.getAllKeys
+import com.egm.stellio.shared.util.JsonUtils.getAllValues
 
 /**
  * Checks whether the given JSON-LD object contains Type Names, Property Names and Relationship Names
@@ -38,3 +39,31 @@ fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
  */
 private fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
+
+/**
+ * Checks whether the given JSON-LD object contains content that conforms to the restrictions defined in 4.6.3
+ */
+suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIException, Map<String, Any>> =
+    this.filter { it.key != JsonLdUtils.JSONLD_CONTEXT }
+        .getAllValues()
+        .parTraverseEither { value ->
+            value?.checkContentIsNgsiLdSupported() ?: BadRequestDataException(NULL_VALUE_IN_CONTENT).left()
+        }
+        .map { this }
+
+suspend fun List<Map<String, Any>>.checkContentIsNgsiLdSupported(): Either<APIException, List<Map<String, Any>>> =
+    this.parTraverseEither { it.checkContentIsNgsiLdSupported() }
+
+private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
+    if (this is String) {
+        if (this.isNgsiLdSupportedContent()) Unit.right()
+        else BadRequestDataException(invalidCharacterInContent(this)).left()
+    } else Unit.right()
+
+private val invalidCharactersForValues = "<>\"'=()".toCharArray()
+
+/**
+ * Returns whether the given string is a supported content as defined in 4.6.3
+ */
+private fun String.isNgsiLdSupportedContent(): Boolean =
+    this.indexOfAny(invalidCharactersForValues) == -1

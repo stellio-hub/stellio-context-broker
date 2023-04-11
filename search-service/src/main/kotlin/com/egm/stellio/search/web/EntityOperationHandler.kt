@@ -41,7 +41,9 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
@@ -78,7 +80,9 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
@@ -140,7 +144,9 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList().checkNamesAreNgsiLdSupported().bind()
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body)
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()

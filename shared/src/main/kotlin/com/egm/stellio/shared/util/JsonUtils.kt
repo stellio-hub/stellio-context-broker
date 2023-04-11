@@ -84,7 +84,7 @@ object JsonUtils {
             val valueKeys = when (entry.value) {
                 is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
                 is List<*> ->
-                    (entry.value as List<*>).map {
+                    (entry.value as List<Any>).map {
                         // type value can be a list, not interested in it here
                         if (it is Map<*, *>)
                             (it as Map<String, Any>).getAllKeys()
@@ -94,5 +94,21 @@ object JsonUtils {
                 else -> emptySet()
             }
             acc.plus(entry.key).plus(valueKeys)
+        }
+
+    fun Map<String, Any>.getAllValues(): Set<Any?> =
+        this.entries.fold(emptySet()) { acc, entry ->
+            val values = when (entry.value) {
+                is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
+                is List<*> ->
+                    (entry.value as List<Any>).map {
+                        when (it) {
+                            is Map<*, *> -> (it as Map<String, Any>).getAllValues()
+                            else -> setOf(it)
+                        }
+                    }.flatten().toSet()
+                else -> setOf(entry.value)
+            }
+            acc.plus(values)
         }
 }

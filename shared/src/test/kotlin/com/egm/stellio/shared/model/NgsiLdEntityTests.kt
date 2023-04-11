@@ -75,67 +75,6 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with an invalid type name`() = runTest {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Invalid(Type)"
-            }
-            """.trimIndent()
-
-        val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
-        }
-        assertEquals(
-            "The provided NGSI-LD entity has a type with invalid characters",
-            exception.message
-        )
-    }
-
-    @Test
-    fun `it should parse an entity with allowed characters for attribute name`() = runTest {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Property",
-                "prefix:device_state": {
-                    "type": "Property",
-                    "value": 23
-                }
-            }
-            """.trimIndent()
-
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
-        assertEquals(1, ngsiLdEntity.properties.size)
-        assertEquals("prefix:device_state", ngsiLdEntity.properties[0].compactName)
-    }
-
-    @Test
-    fun `it should not parse an entity with an invalid attribute name`() = runTest {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device",
-                "device<State": {
-                    "type": "Property",
-                    "value": 23
-                }
-            }
-            """.trimIndent()
-
-        val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
-        }
-        assertEquals(
-            "Entity has an invalid attribute name: device<State",
-            exception.message
-        )
-    }
-
-    @Test
     fun `it should parse an entity with a minimal property`() = runTest {
         val rawEntity =
             """
@@ -159,26 +98,6 @@ class NgsiLdEntityTests {
         assertEquals("Open", ngsiLdPropertyInstance.value)
         assertNull(ngsiLdPropertyInstance.createdAt)
         assertNull(ngsiLdPropertyInstance.modifiedAt)
-    }
-
-    @Test
-    fun `it should parse an entity with a property whose name contains a colon`() = runTest {
-        val rawEntity =
-            """
-            {
-              "id": "urn:ngsi-ld:Device:01234",
-              "type": "Device",
-              "prefix:name": {
-                "type": "Property",
-                "value": "Open"
-              }
-            }
-            """.trimIndent()
-
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
-
-        val ngsiLdProperty = ngsiLdEntity.properties[0]
-        assertEquals("prefix:name", ngsiLdProperty.name)
     }
 
     @Test

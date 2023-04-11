@@ -208,10 +208,10 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "updated":["rCanRead"],
+                        "updated":["https://ontology.eglobalmark.com/authorization#rCanRead"],
                         "notUpdated":[
                           {
-                            "attributeName":"rCanRead",
+                            "attributeName":"https://ontology.eglobalmark.com/authorization#rCanRead",
                             "reason":"User is not authorized to manage rights on entity urn:ngsi-ld:Entity:entityId2"
                           }
                         ]

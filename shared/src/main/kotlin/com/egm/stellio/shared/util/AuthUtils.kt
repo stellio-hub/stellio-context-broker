@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import arrow.core.*
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
@@ -24,7 +25,7 @@ object AuthContextModel {
         "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization-compound.jsonld"
     val AUTHORIZATION_API_DEFAULT_CONTEXTS = listOf(AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
 
-    private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
+    const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_COMPACT_TYPE = "User"
     const val GROUP_COMPACT_TYPE = "Group"
@@ -117,7 +118,7 @@ enum class AccessRight(val attributeName: String) {
 
     companion object {
         fun forAttributeName(attributeName: String): Option<AccessRight> =
-            values().find { it.attributeName == attributeName }.toOption()
+            values().find { it.attributeName == attributeName.removePrefix(AUTHORIZATION_ONTOLOGY) }.toOption()
 
         fun forExpandedAttributeName(attributeName: ExpandedTerm): Option<AccessRight> =
             when (attributeName) {

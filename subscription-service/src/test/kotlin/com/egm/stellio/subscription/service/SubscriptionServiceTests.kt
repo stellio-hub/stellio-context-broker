@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
@@ -60,10 +61,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
 
-    private val jsonldEntity = JsonLdUtils.expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
+    private lateinit var jsonldEntity: JsonLdEntity
 
     @BeforeAll
     fun bootstrapSubscriptions() {
+        runBlocking {
+            jsonldEntity = JsonLdUtils.expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
+        }
+
         createSubscription1()
         createSubscription2()
         createSubscription3()

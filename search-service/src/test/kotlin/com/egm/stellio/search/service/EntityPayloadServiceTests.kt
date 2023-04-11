@@ -465,7 +465,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return a 400 if the payload contains a multi-instance property`() {
+    fun `it should return a 400 if the payload contains a multi-instance property`() = runTest {
         val requestPayload =
             """
             [{
@@ -490,26 +490,27 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should ignore properties that are not part of the payload when setting a specific access policy`() {
-        val requestPayload =
-            """
-            {
-                "type": "Property",
-                "datasetId": "urn:ngsi-ld:Dataset:01",
-                "value": "AUTH_READ"
-            }
-            """.trimIndent()
+    fun `it should ignore properties that are not part of the payload when setting a specific access policy`() =
+        runTest {
+            val requestPayload =
+                """
+                {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:01",
+                    "value": "AUTH_READ"
+                }
+                """.trimIndent()
 
-        val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
-        )
+            val ngsiLdAttributes = parseToNgsiLdAttributes(
+                expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            )
 
-        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
-            .shouldSucceedWith { assertEquals(AUTH_READ, it) }
-    }
+            entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+                .shouldSucceedWith { assertEquals(AUTH_READ, it) }
+        }
 
     @Test
-    fun `it should return a 400 if the value is not one of the supported`() {
+    fun `it should return a 400 if the value is not one of the supported`() = runTest {
         val requestPayload =
             """
             {
@@ -535,7 +536,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return a 400 if the provided attribute is a relationship`() {
+    fun `it should return a 400 if the provided attribute is a relationship`() = runTest {
         val requestPayload =
             """
             {

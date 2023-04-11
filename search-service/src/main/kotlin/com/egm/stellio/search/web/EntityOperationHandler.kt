@@ -241,7 +241,7 @@ class EntityOperationHandler(
             BadRequestDataException("Batch request payload shall not be empty").left()
         else Unit.right()
 
-    private fun expandAndPrepareBatchOfEntities(
+    private suspend fun expandAndPrepareBatchOfEntities(
         payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?

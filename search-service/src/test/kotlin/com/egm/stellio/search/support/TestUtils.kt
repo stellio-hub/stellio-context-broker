@@ -32,7 +32,7 @@ fun buildAttributeInstancePayload(
         }
 )
 
-fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolicy): NgsiLdAttribute {
+suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolicy): NgsiLdAttribute {
     val sapPropertyFragment =
         """
         {

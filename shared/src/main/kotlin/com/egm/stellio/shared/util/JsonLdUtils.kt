@@ -120,26 +120,29 @@ object JsonLdUtils {
                 expandContext = mapOf(JSONLD_CONTEXT to addCoreContext(contexts))
             }
 
-    fun expandDeserializedPayload(deserializedPayload: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+    suspend fun expandDeserializedPayload(
+        deserializedPayload: Map<String, Any>,
+        contexts: List<String>
+    ): Map<String, Any> =
         doJsonLdExpansion(deserializedPayload, contexts)
 
-    fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
+    suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
         JsonLdEntity(doJsonLdExpansion(input, contexts), contexts)
 
-    fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity =
+    suspend fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)
 
-    fun expandJsonLdEntity(input: String): JsonLdEntity {
+    suspend fun expandJsonLdEntity(input: String): JsonLdEntity {
         val jsonInput = input.deserializeAsMap()
         return expandJsonLdEntity(jsonInput, extractContextFromInput(jsonInput))
     }
 
-    fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> =
+    suspend fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> =
         entities.map {
             expandJsonLdEntity(it, extractContextFromInput(it))
         }
 
-    fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> =
+    suspend fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> =
         entities.map {
             expandJsonLdEntity(it, contexts)
         }
@@ -160,13 +163,13 @@ object JsonLdUtils {
             term
     }
 
-    fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+    suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
         doJsonLdExpansion(fragment, contexts)
 
-    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
+    suspend fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts) as Map<String, List<Any>>
 
-    fun expandAttribute(
+    suspend fun expandAttribute(
         attributeName: String,
         attributePayload: String,
         contexts: List<String>
@@ -174,7 +177,7 @@ object JsonLdUtils {
         expandJsonLdFragment(mapOf(attributeName to deserializeAs(attributePayload)), contexts)
             as Map<String, List<Map<String, List<Any>>>>
 
-    private fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+    private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
         // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
         val parsedFragment = geoPropertyToWKT(fragment)

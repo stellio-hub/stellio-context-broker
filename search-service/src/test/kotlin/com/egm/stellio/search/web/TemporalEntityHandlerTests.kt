@@ -24,6 +24,8 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -43,6 +45,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @Import(WebSecurityTestConfig::class)
@@ -93,7 +96,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `create temporal entity should return a 201`() {
+    fun `create temporal entity should return a 201`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_create_temporal_entity.jsonld")
 
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()

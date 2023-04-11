@@ -14,12 +14,15 @@ import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.http.MediaType
 import java.time.ZonedDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class JsonLdUtilsTests {
 
     private val normalizedJson =
@@ -162,30 +165,31 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device",
-                "@context": [
-                    "unknownContext"
-                ]
-            }
-            """.trimIndent()
+    fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() =
+        runTest {
+            val rawEntity =
+                """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "@context": [
+                        "unknownContext"
+                    ]
+                }
+                """.trimIndent()
 
-        val exception = assertThrows<LdContextNotAvailableException> {
-            expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
+            val exception = assertThrows<LdContextNotAvailableException> {
+                expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
+            }
+            assertEquals(
+                "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
+                    "loading remote context failed: unknownContext)",
+                exception.message
+            )
         }
-        assertEquals(
-            "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
-                "loading remote context failed: unknownContext)",
-            exception.message
-        )
-    }
 
     @Test
-    fun `it should throw a BadRequestData exception if the expanded JSON-LD fragment is empty`() {
+    fun `it should throw a BadRequestData exception if the expanded JSON-LD fragment is empty`() = runTest {
         val rawEntity =
             """
             {
@@ -305,7 +309,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return a JSON entity`() {
+    fun `it should compact and return a JSON entity`() = runTest {
         val entity =
             """
             {
@@ -321,7 +325,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return a JSON-LD entity`() {
+    fun `it should compact and return a JSON-LD entity`() = runTest {
         val entity =
             """
             {
@@ -348,7 +352,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should not find an unknown attribute instance in a list of attributes`() {
+    fun `it should not find an unknown attribute instance in a list of attributes`() = runTest {
         val entityFragment =
             """
             {
@@ -363,7 +367,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should find an attribute instance from a list of attributes without multi-attributes`() {
+    fun `it should find an attribute instance from a list of attributes without multi-attributes`() = runTest {
         val entityFragment =
             """
             {
@@ -387,7 +391,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should find an attribute instance from a list of attributes with multi-attributes`() {
+    fun `it should find an attribute instance from a list of attributes with multi-attributes`() = runTest {
         val entityFragment =
             """
             {

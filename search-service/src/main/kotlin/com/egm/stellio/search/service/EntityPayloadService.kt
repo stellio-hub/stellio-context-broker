@@ -224,8 +224,7 @@ class EntityPayloadService(
 
     fun buildEntitiesQueryFilter(
         queryParams: QueryParams,
-        accessRightFilter: () -> String?,
-        prefix: String = ""
+        accessRightFilter: () -> String?
     ): String {
         val formattedIds =
             if (queryParams.ids.isNotEmpty())
@@ -252,10 +251,7 @@ class EntityPayloadService(
         val queryFilter =
             listOfNotNull(formattedIds, formattedIdPattern, formattedType, formattedAttrs, accessRightFilter())
 
-        return if (queryFilter.isEmpty())
-            queryFilter.joinToString(separator = " AND ")
-        else
-            queryFilter.joinToString(separator = " AND ", prefix = prefix)
+        return queryFilter.joinToString(separator = " AND ")
     }
 
     suspend fun hasSpecificAccessPolicies(

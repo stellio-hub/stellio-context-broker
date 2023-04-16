@@ -68,6 +68,29 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should not parse an entity without an unknown attribute type`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "deviceState": {
+                    "type": "UnknownProperty",
+                    "value": 23
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Entity has attribute(s) with an unknown type: [https://uri.fiware.org/ns/data-models#deviceState]",
+                it.message
+            )
+        }
+    }
+
+    @Test
     fun `it should parse an entity with a minimal property`() = runTest {
         val rawEntity =
             """
@@ -180,6 +203,28 @@ class NgsiLdEntityTests {
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals(ZonedDateTime.parse("2022-01-19T00:00:00Z"), ngsiLdPropertyInstance.createdAt)
         assertEquals(ZonedDateTime.parse("2022-01-29T00:00:00Z"), ngsiLdPropertyInstance.modifiedAt)
+    }
+
+    @Test
+    fun `it should not parse an entity without a property without a value`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "deviceState": {
+                    "type": "Property"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Property https://uri.fiware.org/ns/data-models#deviceState has an instance without a value",
+                it.message
+            )
+        }
     }
 
     @Test

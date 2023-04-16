@@ -3,6 +3,7 @@ package com.egm.stellio.shared.model
 import arrow.core.Either
 import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
+import arrow.core.flatten
 import arrow.core.left
 import arrow.core.right
 import arrow.fx.coroutines.parTraverseEither
@@ -56,7 +57,9 @@ class NgsiLdEntity private constructor(
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
             val geoProperties = getAttributesOfType<NgsiLdGeoProperty>(attributes, NGSILD_GEOPROPERTY_TYPE).bind()
             ensure(attributes.size == relationships.size + properties.size + geoProperties.size) {
-                BadRequestDataException("Entity has unknown attributes types: $attributes")
+                val attributesWithUnknownTypes =
+                    attributes.keys.minus(setOf(relationships, properties, geoProperties).flatten().map { it.name })
+                BadRequestDataException("Entity has attribute(s) with an unknown type: $attributesWithUnknownTypes")
             }
 
             NgsiLdEntity(id, types, relationships, properties, geoProperties, contexts)

@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.ExpandedAttributeInstance
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -137,49 +138,64 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             )
 
             val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
-            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+            val ngsiLdEntity = runBlocking {
+                jsonLdEntity.toNgsiLdEntity()
+            }
 
-            ngsiLdEntity.attributes.forEach { ngsiLdAttribute ->
-                val attributeName = ngsiLdAttribute.name
-                ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
-                    val datasetId = ngsiLdAttributeInstance.datasetId
-                    val attributePayload = getAttributeFromExpandedAttributes(
-                        jsonLdEntity.members,
-                        attributeName,
-                        datasetId
-                    )!!
+            when (ngsiLdEntity) {
+                is Either.Left -> logger.warn("Unable to transform input to NGSI-LD entity: $jsonLdEntity")
+                is Either.Right ->
+                    ngsiLdEntity.value.attributes.forEach { ngsiLdAttribute ->
+                        val attributeName = ngsiLdAttribute.name
+                        ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
+                            val datasetId = ngsiLdAttributeInstance.datasetId
+                            val attributePayload = getAttributeFromExpandedAttributes(
+                                jsonLdEntity.members,
+                                attributeName,
+                                datasetId
+                            )!!
 
-                    val attributePayloadFiltered = attributePayload
-                        .filterKeys { attributeName ->
-                            // remove createdAt and modifiedAt from attribute payload
-                            attributeName != NGSILD_CREATED_AT_PROPERTY && attributeName != NGSILD_MODIFIED_AT_PROPERTY
+                            val attributePayloadFiltered = attributePayload
+                                .filterKeys { attributeName ->
+                                    // remove createdAt and modifiedAt from attribute payload
+                                    attributeName != NGSILD_CREATED_AT_PROPERTY &&
+                                        attributeName != NGSILD_MODIFIED_AT_PROPERTY
+                                }
+
+                            if (entityHasAttribute(entityId, attributeName, datasetId)) {
+                                logger.debug(
+                                    "Attribute {} ({}) exists, adding metadata and payload",
+                                    attributeName,
+                                    datasetId
+                                )
+                                updateTeaPayloadAndDates(
+                                    entityId,
+                                    attributeName,
+                                    datasetId,
+                                    attributePayloadFiltered,
+                                    ngsiLdAttributeInstance,
+                                    entityCreationDate
+                                )
+                            } else {
+                                // create attributes that do not exist
+                                //   - non observed attributes created before we kept track of their history
+                                //   - attributes of type GeoProperty
+                                logger.debug(
+                                    "Attribute {} ({}) does not exist, bootstrapping entry",
+                                    attributeName,
+                                    datasetId
+                                )
+                                createTeaEntry(
+                                    entityId,
+                                    attributeName,
+                                    datasetId,
+                                    attributePayloadFiltered,
+                                    ngsiLdAttributeInstance,
+                                    entityCreationDate
+                                )
+                            }
                         }
-
-                    if (entityHasAttribute(entityId, attributeName, datasetId)) {
-                        logger.debug("Attribute {} ({}) exists, adding metadata and payload", attributeName, datasetId)
-                        updateTeaPayloadAndDates(
-                            entityId,
-                            attributeName,
-                            datasetId,
-                            attributePayloadFiltered,
-                            ngsiLdAttributeInstance,
-                            entityCreationDate
-                        )
-                    } else {
-                        // create attributes that do not exist
-                        //   - non observed attributes created before we kept track of their history
-                        //   - attributes of type GeoProperty
-                        logger.debug("Attribute {} ({}) does not exist, bootstrapping entry", attributeName, datasetId)
-                        createTeaEntry(
-                            entityId,
-                            attributeName,
-                            datasetId,
-                            attributePayloadFiltered,
-                            ngsiLdAttributeInstance,
-                            entityCreationDate
-                        )
                     }
-                }
             }
         }
     }

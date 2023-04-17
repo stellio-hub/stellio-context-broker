@@ -1,6 +1,7 @@
 package com.egm.stellio.search.listener
 
 import arrow.core.Either
+import arrow.core.continuations.either
 import arrow.core.left
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -8,6 +9,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.toExpandedAttributes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,7 +70,7 @@ class ObservationEventListener(
         }
 
     suspend fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent): Either<APIException, Unit> {
-        val expandedPayload = expandAttribute(
+        val expandedAttribute = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
@@ -76,7 +78,7 @@ class ObservationEventListener(
 
         return entityPayloadService.partialUpdateAttribute(
             observationEvent.entityId,
-            expandedPayload,
+            expandedAttribute,
             observationEvent.sub
         ).map {
             // there is only one result for an event, a success or a failure
@@ -90,7 +92,7 @@ class ObservationEventListener(
                 entityEventService.publishAttributeChangeEvents(
                     observationEvent.sub,
                     observationEvent.entityId,
-                    expandedPayload,
+                    expandedAttribute.toExpandedAttributes(),
                     it,
                     false,
                     observationEvent.contexts
@@ -99,18 +101,20 @@ class ObservationEventListener(
         }
     }
 
-    suspend fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent): Either<APIException, Unit> {
-        val expandedPayload = expandAttribute(
+    suspend fun handleAttributeAppendEvent(
+        observationEvent: AttributeAppendEvent
+    ): Either<APIException, Unit> = either {
+        val expandedAttribute = expandAttribute(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
         )
 
-        val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-        return entityPayloadService.appendAttributes(
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().bind()
+        entityPayloadService.appendAttributes(
             observationEvent.entityId,
-            ngsiLdAttributes,
-            expandedPayload,
+            listOf(ngsiLdAttribute),
+            expandedAttribute.toExpandedAttributes(),
             !observationEvent.overwrite,
             observationEvent.sub
         ).map {
@@ -124,7 +128,7 @@ class ObservationEventListener(
                 entityEventService.publishAttributeChangeEvents(
                     observationEvent.sub,
                     observationEvent.entityId,
-                    expandedPayload,
+                    expandedAttribute.toExpandedAttributes(),
                     it,
                     observationEvent.overwrite,
                     observationEvent.contexts

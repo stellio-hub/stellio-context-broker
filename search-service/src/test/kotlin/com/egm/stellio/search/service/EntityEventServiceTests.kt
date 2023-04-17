@@ -133,12 +133,12 @@ class EntityEventServiceTests {
         coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
-        val jsonLdAttributes =
+        val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         entityEventService.publishAttributeChangeEvents(
             "sub",
             breedingServiceUri,
-            jsonLdAttributes,
+            expandedAttribute.toExpandedAttributes(),
             UpdateResult(
                 listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.APPENDED)),
                 emptyList()
@@ -156,7 +156,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent(serializedAttributePayload(jsonLdAttributes)) &&
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
@@ -169,12 +169,12 @@ class EntityEventServiceTests {
         coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
-        val jsonLdAttributes =
+        val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            jsonLdAttributes,
+            expandedAttribute.toExpandedAttributes(),
             UpdateResult(
                 listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.REPLACED)),
                 emptyList()
@@ -192,7 +192,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent(serializedAttributePayload(jsonLdAttributes)) &&
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
@@ -385,7 +385,7 @@ class EntityEventServiceTests {
     fun `it should publish ATTRIBUTE_UPDATE event if an attribute is updated`() = runTest {
         val entityPayload = mockk<EntityPayload>(relaxed = true)
 
-        val jsonLdAttributes = expandAttribute(
+        val expandedAttribute = expandAttribute(
             fishNameTerm,
             fishNameAttributeFragment,
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -400,7 +400,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            jsonLdAttributes,
+            expandedAttribute.toExpandedAttributes(),
             UpdateResult(updatedDetails, emptyList()),
             false,
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -414,9 +414,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNameProperty &&
                         it.datasetId == fishName1DatasetUri &&
-                        it.operationPayload.matchContent(
-                            serializedAttributePayload(jsonLdAttributes, fishNameProperty)
-                        ) &&
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
@@ -493,4 +491,10 @@ class EntityEventServiceTests {
         index: Int = 0
     ): String =
         serializeObject(jsonLdAttributes[attributeName]!![index])
+
+    private fun serializedAttributePayload(
+        expandedAttribute: ExpandedAttribute,
+        index: Int = 0
+    ): String =
+        serializeObject(expandedAttribute.second[index])
 }

@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.ExpandedTerm
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI

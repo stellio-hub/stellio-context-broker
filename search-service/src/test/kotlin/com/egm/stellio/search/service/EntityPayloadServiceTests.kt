@@ -7,10 +7,7 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
@@ -77,7 +74,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from an NGSI-LD Entity if none existed yet`() = runTest {
-        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity()
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
             .shouldSucceed()
     }
@@ -121,7 +118,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from an NGSI-LD Entity with specificAccessPolicy`() = runTest {
-        val (jsonLdEntity, ngsiLdEntity) = loadSampleData("beehive_with_sap.jsonld").sampleDataToNgsiLdEntity()
+        val (jsonLdEntity, ngsiLdEntity) =
+            loadSampleData("beehive_with_sap.jsonld").sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityPayloadService.createEntityPayload(
             ngsiLdEntity,
@@ -477,11 +475,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "value": "AUTH_WRITE"
             }]
             """.trimIndent()
-        val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
-        )
 
-        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+        val ngsiLdAttribute =
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS).toNgsiLdAttribute()
+                .shouldSucceedAndResult()
+
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttribute)
             .shouldFail {
                 assertThat(it)
                     .isInstanceOf(BadRequestDataException::class.java)
@@ -501,11 +500,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 }
                 """.trimIndent()
 
-            val ngsiLdAttributes = parseToNgsiLdAttributes(
-                expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
-            )
+            val ngsiLdAttribute =
+                expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS).toNgsiLdAttribute()
+                    .shouldSucceedAndResult()
 
-            entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+            entityPayloadService.getSpecificAccessPolicy(ngsiLdAttribute)
                 .shouldSucceedWith { assertEquals(AUTH_READ, it) }
         }
 
@@ -519,15 +518,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
-        )
+        val ngsiLdAttribute =
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS).toNgsiLdAttribute()
+                .shouldSucceedAndResult()
 
         val expectedMessage =
             "Value must be one of AUTH_READ or AUTH_WRITE " +
                 "(No enum constant com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.someValue)"
 
-        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttribute)
             .shouldFail {
                 assertThat(it)
                     .isInstanceOf(BadRequestDataException::class.java)
@@ -545,11 +544,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
             """.trimIndent()
 
-        val ngsiLdAttributes = parseToNgsiLdAttributes(
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
-        )
+        val ngsiLdAttribute =
+            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS).toNgsiLdAttribute()
+                .shouldSucceedAndResult()
 
-        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttributes[0])
+        entityPayloadService.getSpecificAccessPolicy(ngsiLdAttribute)
             .shouldFail {
                 assertThat(it)
                     .isInstanceOf(BadRequestDataException::class.java)

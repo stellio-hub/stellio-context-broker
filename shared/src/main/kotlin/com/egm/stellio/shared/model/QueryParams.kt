@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.util.ExpandedTerm
 import java.net.URI
 
 data class QueryParams(

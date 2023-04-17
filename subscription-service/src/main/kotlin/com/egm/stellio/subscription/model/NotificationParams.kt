@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.ZonedDateTime

@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo

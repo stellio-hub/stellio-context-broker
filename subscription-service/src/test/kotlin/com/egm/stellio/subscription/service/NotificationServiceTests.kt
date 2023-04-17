@@ -79,7 +79,7 @@ class NotificationServiceTests {
     fun `it should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
@@ -130,7 +130,7 @@ class NotificationServiceTests {
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
@@ -174,7 +174,7 @@ class NotificationServiceTests {
             contexts = listOf(NGSILD_CORE_CONTEXT)
         )
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
@@ -207,7 +207,7 @@ class NotificationServiceTests {
                 withNotifParams = Pair(FormatType.KEY_VALUES, listOf(NGSILD_LOCATION_TERM))
             )
             val jsonLdEntity = expandJsonLdEntity(rawEntity)
-            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
             coEvery { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns listOf(subscription)
             coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
@@ -253,7 +253,7 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -304,7 +304,7 @@ class NotificationServiceTests {
             )
         val subscription2 = gimmeRawSubscription()
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -350,7 +350,7 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().shouldSucceedAndResult()
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())

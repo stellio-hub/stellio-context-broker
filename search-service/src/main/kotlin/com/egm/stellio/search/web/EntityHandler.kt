@@ -12,8 +12,9 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -54,7 +55,7 @@ class EntityHandler(
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val jsonLdEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
         authorizationService.userCanCreateEntities(sub).bind()
         entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
@@ -245,9 +246,9 @@ class EntityHandler(
             .checkContentIsNgsiLdSupported().bind()
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-        val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
+        val expandedAttributes = expandAttributes(body, contexts)
+        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
@@ -258,7 +259,7 @@ class EntityHandler(
             entityPayloadService.appendAttributes(
                 entityUri,
                 ngsiLdAttributes,
-                jsonLdAttributes,
+                expandedAttributes,
                 disallowOverwrite,
                 sub.orNull()
             ).bind()
@@ -268,7 +269,7 @@ class EntityHandler(
             entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),
                 entityUri,
-                jsonLdAttributes,
+                expandedAttributes,
                 updateResult,
                 true,
                 contexts
@@ -307,9 +308,9 @@ class EntityHandler(
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val (typeAttr, otherAttrs) = jsonLdAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-        val ngsiLdAttributes = parseToNgsiLdAttributes(otherAttrs.toMap())
+        val expandedAttributes = expandAttributes(body, contexts)
+        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
 
@@ -322,7 +323,7 @@ class EntityHandler(
             entityPayloadService.updateAttributes(
                 entityUri,
                 ngsiLdAttributes,
-                jsonLdAttributes,
+                expandedAttributes,
                 sub.orNull()
             ).bind()
         )
@@ -331,7 +332,7 @@ class EntityHandler(
             entityEventService.publishAttributeChangeEvents(
                 sub.orNull(),
                 entityUri,
-                jsonLdAttributes,
+                expandedAttributes,
                 updateResult,
                 true,
                 contexts
@@ -377,12 +378,11 @@ class EntityHandler(
             .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
 
-        val rawPayload = mapOf(attrId to removeContextFromInput(body))
-        val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
+        val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
 
         entityPayloadService.partialUpdateAttribute(
             entityUri,
-            expandedPayload as Map<String, List<Map<String, List<Any>>>>,
+            expandedAttribute,
             sub.orNull()
         )
             .bind()
@@ -393,7 +393,7 @@ class EntityHandler(
                     entityEventService.publishAttributeChangeEvents(
                         sub.orNull(),
                         entityUri,
-                        expandedPayload,
+                        expandedAttribute.toExpandedAttributes(),
                         it,
                         false,
                         contexts

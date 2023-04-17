@@ -16,7 +16,7 @@ fun aggrMethodToSqlAggregate(
     TemporalEntityAttribute.AttributeValueType.DATE -> sqlAggregateForDate(aggregate)
     TemporalEntityAttribute.AttributeValueType.TIME -> sqlAggregateForTime(aggregate)
     TemporalEntityAttribute.AttributeValueType.URI -> sqlAggregateForURI(aggregate)
-    else -> ""
+    TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "null"
 }
 
 fun sqlAggregationForJsonString(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {

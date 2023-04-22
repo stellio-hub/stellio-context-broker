@@ -8,12 +8,10 @@ fun String.toUri(): URI =
     try {
         val uri = URI(this)
         if (!uri.isAbsolute)
-            throw BadRequestDataException("The supplied identifier was expected to be an URI but it is not: $this")
+            throw BadRequestDataException(invalidUriMessage(this))
         uri
     } catch (e: URISyntaxException) {
-        throw BadRequestDataException(
-            "The supplied identifier was expected to be an URI but it is not: $this (cause was: $e)"
-        )
+        throw BadRequestDataException(invalidUriMessage("$this (cause was: $e)"))
     }
 
 fun List<String>.toListOfUri(): List<URI> =

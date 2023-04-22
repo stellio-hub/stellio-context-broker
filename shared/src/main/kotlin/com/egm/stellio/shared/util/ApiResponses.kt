@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import java.net.URI
 
+fun invalidUriMessage(identifier: String) =
+    "The supplied identifier was expected to be an URI but it is not: $identifier"
+
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
 fun entityAlreadyExistsMessage(entityId: String) = "Entity $entityId already exists"
 

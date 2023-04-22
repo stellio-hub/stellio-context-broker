@@ -95,6 +95,13 @@ data class NotAcceptableResponse(override val detail: String) :
         detail
     )
 
+data class NonexistentTenantResponse(override val detail: String) :
+    ErrorResponse(
+        ErrorType.NONEXISTENT_TENANT.type,
+        "The addressed tenant does not exist",
+        detail
+    )
+
 enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
     BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),
@@ -108,5 +115,6 @@ enum class ErrorType(val type: URI) {
     ACCESS_DENIED(URI("https://uri.etsi.org/ngsi-ld/errors/AccessDenied")),
     NOT_IMPLEMENTED(URI("https://uri.etsi.org/ngsi-ld/errors/NotImplemented")),
     UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType")),
-    NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable"))
+    NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable")),
+    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant"))
 }

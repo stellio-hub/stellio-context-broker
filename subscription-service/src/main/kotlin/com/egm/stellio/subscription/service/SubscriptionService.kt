@@ -60,9 +60,7 @@ class SubscriptionService(
 
     private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
         if (!subscription.id.isAbsolute)
-            BadRequestDataException(
-                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
-            ).left()
+            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
         else Unit.right()
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =

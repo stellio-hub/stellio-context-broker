@@ -65,6 +65,10 @@ class ExceptionHandler {
                 HttpStatus.NOT_ACCEPTABLE,
                 NotAcceptableResponse(cause.message)
             )
+            is NonexistentTenantException -> generateErrorResponse(
+                HttpStatus.NOT_FOUND,
+                NonexistentTenantResponse(cause.message)
+            )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 InternalErrorResponse("$cause")

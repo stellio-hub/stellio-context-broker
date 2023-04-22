@@ -3,12 +3,14 @@ package com.egm.stellio.search.config
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.config.Customizer
 import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.oauth2.jwt.*
 import org.springframework.security.web.server.SecurityWebFilterChain
 
 @Configuration
-class WebSecurityConfig {
+class WebSecurityConfig(
+    private val tenantAuthenticationManagerResolver: TenantAuthenticationManagerResolver
+) {
 
     @Bean
     @ConditionalOnProperty("application.authentication.enabled")
@@ -23,7 +25,7 @@ class WebSecurityConfig {
                 exchanges.pathMatchers("/**").authenticated()
             }
             .oauth2ResourceServer { oauth2ResourceServer ->
-                oauth2ResourceServer.jwt(Customizer.withDefaults())
+                oauth2ResourceServer.authenticationManagerResolver(tenantAuthenticationManagerResolver)
             }
 
         return http.build()

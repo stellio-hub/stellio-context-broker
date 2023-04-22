@@ -17,6 +17,7 @@ data class TooManyResultsException(override val message: String) : APIException(
 data class AccessDeniedException(override val message: String) : APIException(message)
 data class NotImplementedException(override val message: String) : APIException(message)
 data class LdContextNotAvailableException(override val message: String) : APIException(message)
+data class NonexistentTenantException(override val message: String) : APIException(message)
 
 fun Exception.toAPIException(): APIException =
     when (this) {

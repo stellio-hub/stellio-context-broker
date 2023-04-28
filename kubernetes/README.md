@@ -1,4 +1,6 @@
 Tested on a Minikube cluster (for the moment).
+this new version has been tested on rancher RKE, RKE2, OVH managed K8S, Kubernetes 1.20, 1.24...
+
 
 For instructions on how to install Minikube, please follow https://minikube.sigs.k8s.io/docs/start/.
 
@@ -22,6 +24,11 @@ kubectl apply -f api-gateway-deployment.yaml \
 -f postgres-deployment.yaml \
 -f search-service-deployment.yaml \
 -f subscription-service-deployment.yaml
+```
+
+* add a json-ld context server using kubectl -k => kustomize
+```shell script
+kubectl apply -k
 ```
 
 * Start ingress

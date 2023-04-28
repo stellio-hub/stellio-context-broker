@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# nameReference: # doesn't work :(
+# - kind: ConfigMap
+#   name: ld-context-configmap
+generatorOptions:
+  disableNameSuffixHash: true
+
+commonLabels:
+  io.kompose.service: ld-context
+resources:
+- ./ld-context-deployment.yaml
+
+configMapGenerator:
+- name: ld-context-configmap
+  files:
+  - ld-context/${LD_CONTEXT_FILE}
+  - ld-context/schemaorgcontext.jsonld

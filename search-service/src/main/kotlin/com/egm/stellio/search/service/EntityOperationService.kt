@@ -92,7 +92,7 @@ class EntityOperationService(
             val entityId = it
             either {
                 entityPayloadService.deleteEntityPayload(entityId)
-                    .onRight {
+                    .map {
                         authorizationService.removeRightsOnEntity(entityId)
                     }
                     .map {

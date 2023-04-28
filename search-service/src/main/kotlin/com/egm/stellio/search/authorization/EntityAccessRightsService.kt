@@ -124,7 +124,7 @@ class EntityAccessRightsService(
         accessRights: List<AccessRight>
     ): Either<APIException, Boolean> = either {
         if (!applicationProperties.authentication.enabled)
-            true.right()
+            return@either true
 
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
 

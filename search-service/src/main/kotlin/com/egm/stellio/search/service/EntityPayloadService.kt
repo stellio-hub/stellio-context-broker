@@ -570,6 +570,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .bind("specific_access_policy", specificAccessPolicy.toString())
             .execute()
+            .bind()
     }
 
     suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =

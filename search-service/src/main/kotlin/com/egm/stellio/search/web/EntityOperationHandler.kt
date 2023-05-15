@@ -147,7 +147,7 @@ class EntityOperationHandler(
         val body = requestBody.awaitFirst().deserializeAsList()
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body)
+        checkBatchRequestBody(body).bind()
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)

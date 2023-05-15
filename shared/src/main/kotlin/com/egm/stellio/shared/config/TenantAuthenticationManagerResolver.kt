@@ -1,4 +1,4 @@
-package com.egm.stellio.search.config
+package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME

@@ -7,8 +7,7 @@ import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.support.MOCK_USER_SUB
-import com.egm.stellio.search.support.sub
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
@@ -25,6 +24,8 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_RE
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.sub
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -46,6 +48,7 @@ import java.time.Duration
 @OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
+@EnableConfigurationProperties(ApplicationProperties::class)
 class EntityAccessControlHandlerTests {
 
     private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)

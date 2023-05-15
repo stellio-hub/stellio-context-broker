@@ -1,4 +1,4 @@
-package com.egm.stellio.search.config
+package com.egm.stellio.shared.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 import java.net.URI

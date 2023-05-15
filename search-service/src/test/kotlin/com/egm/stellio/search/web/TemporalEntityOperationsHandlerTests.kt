@@ -4,13 +4,15 @@ import arrow.core.Either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.support.MOCK_USER_SUB
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
@@ -22,6 +24,7 @@ import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityOperationsHandler::class)
+@EnableConfigurationProperties(ApplicationProperties::class)
 class TemporalEntityOperationsHandlerTests {
 
     private lateinit var apicHeaderLink: String

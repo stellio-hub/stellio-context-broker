@@ -5,11 +5,13 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.ninjasquad.springmockk.MockkBean
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.http.HttpHeaders
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -18,6 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
+@EnableConfigurationProperties(ApplicationProperties::class)
 @Suppress("unused")
 class AnonymousUserHandlerTests {
 

@@ -1,4 +1,4 @@
-package com.egm.stellio.search.tenant
+package com.egm.stellio.subscription.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import jakarta.annotation.PostConstruct

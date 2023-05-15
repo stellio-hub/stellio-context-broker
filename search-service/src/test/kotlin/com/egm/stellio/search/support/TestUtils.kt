@@ -1,6 +1,5 @@
 package com.egm.stellio.search.support
 
-import arrow.core.Some
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttribute
@@ -49,6 +48,3 @@ suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAcc
 
 const val EMPTY_PAYLOAD = "{}"
 val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)
-
-const val MOCK_USER_SUB = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
-val sub = Some(MOCK_USER_SUB)

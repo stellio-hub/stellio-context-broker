@@ -1,16 +1,38 @@
 package com.egm.stellio.shared.web
 
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.MockkedHandler
+import com.egm.stellio.shared.util.toUri
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TenantWebFilterTests {
-    private val webClient = WebTestClient.bindToController(MockkedHandler())
-        .webFilter<WebTestClient.ControllerSpec>(TenantWebFilter())
-        .build()
+
+    private val applicationProperties = ApplicationProperties(
+        authentication = ApplicationProperties.Authentication(true),
+        pagination = ApplicationProperties.Pagination(100, 30),
+        tenants = listOf(
+            ApplicationProperties.TenantConfiguration(DEFAULT_TENANT_NAME.toUri(), "http://localhost", "public"),
+            ApplicationProperties.TenantConfiguration("urn:ngsi-ld:tenant:01".toUri(), "http://localhost", "tenant_01")
+        )
+    )
+
+    private lateinit var webClient: WebTestClient
+
+    @BeforeAll
+    fun initializeWebFilter() {
+        val tenantWebFilter = TenantWebFilter(applicationProperties)
+        tenantWebFilter.initializeTenantsUris()
+        webClient = WebTestClient.bindToController(MockkedHandler())
+            .webFilter<WebTestClient.ControllerSpec>(tenantWebFilter)
+            .build()
+    }
 
     @Test
     fun `it should return a BadRequestData error if the tenant is not a valid URI`() {
@@ -23,6 +45,19 @@ class TenantWebFilterTests {
             .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")
             .jsonPath("$..detail")
             .isEqualTo("The supplied identifier was expected to be an URI but it is not: not-an-uri (tenant)")
+    }
+
+    @Test
+    fun `it should return a NonexistentTenant error if the tenant does not exist`() {
+        webClient.get()
+            .uri("/router/mockkedroute/ok")
+            .header(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:02")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
+            .expectBody()
+            .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")
+            .jsonPath("$..detail")
+            .isEqualTo("Tenant urn:ngsi-ld:tenant:02 does not exist")
     }
 
     @Test

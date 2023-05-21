@@ -318,7 +318,7 @@ private suspend inline fun <reified T : NgsiLdAttribute> getAttributesOfType(
                 NGSILD_PROPERTY_TYPE -> NgsiLdProperty.create(it.key, it.value).bind() as T
                 NGSILD_RELATIONSHIP_TYPE -> NgsiLdRelationship.create(it.key, it.value).bind() as T
                 NGSILD_GEOPROPERTY_TYPE -> NgsiLdGeoProperty.create(it.key, it.value).bind() as T
-                else -> BadRequestDataException("Unrecognized type: $type").left().bind()
+                else -> BadRequestDataException("Unrecognized type: $type").left().bind<T>()
             }
         }
 }

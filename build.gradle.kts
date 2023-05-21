@@ -11,8 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2022.0.0"
-extra["testcontainersVersion"] = "1.17.5"
+extra["springCloudVersion"] = "2022.0.2"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -49,7 +48,6 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
         }
     }

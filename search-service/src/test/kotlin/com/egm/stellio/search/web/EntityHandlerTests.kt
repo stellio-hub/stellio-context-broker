@@ -1156,6 +1156,182 @@ class EntityHandlerTests {
             )
     }
 
+    @Test
+    fun `replace entity should return a 201 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(breedingServiceId, sub) } returns Unit.right()
+        coEvery {
+            entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
+        } returns Unit.right()
+        every { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            authorizationService.userCanUpdateEntity(breedingServiceId, sub)
+            entityPayloadService.checkEntityExistence(breedingServiceId)
+            entityPayloadService.replaceEntity(
+                eq(breedingServiceId),
+                match<NgsiLdEntity> {
+                    it.id == breedingServiceId
+                },
+                any(),
+                any()
+            )
+        }
+        verify {
+            entityEventService.publishEntityReplaceEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(breedingServiceId),
+                eq(listOf(breedingServiceType)),
+                eq(hcmrContext)
+            )
+        }
+    }
+
+    @Test
+    fun `replace entity should return a 400 if JSON-LD payload is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `replace entity should return a 400 if entity is not NGSI-LD valid`() {
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val entityWithoutId =
+            """
+            {
+                "type": "Beehive"
+            }
+            """.trimIndent()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(entityWithoutId)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `replace entity should return a 400 if entity does not have an type`() {
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val entityWithoutType =
+            """
+            {
+                "id": "urn:ngsi-ld:Beehive:9876"
+            }
+            """.trimIndent()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .bodyValue(entityWithoutType)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `replace entity should return a 403 if user is not allowed to update entities`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(breedingServiceId, sub)
+        } returns AccessDeniedException("User forbidden to modify entity").left()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden to modify entity"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `replace entity should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+
+        coEvery {
+            entityPayloadService.checkEntityExistence(eq(breedingServiceId))
+        } returns ResourceNotFoundException(entityNotFoundMessage(breedingServiceId.toString())).left()
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        coVerify { entityPayloadService.checkEntityExistence(eq(breedingServiceId)) }
+    }
+
+    @Test
+    fun `replace entity should return a 400 if id contains in payload is different from that of the request`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0215".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(breedingServiceId, sub) } returns Unit.right()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The id contained in the body is not the same id of the entity to modify"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `replace entity should return a 400 if entity is not present`() {
+        webClient.put()
+            .uri(
+                "/ngsi-ld/v1/entities/" +
+                    ""
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id when trying to replace an entity"
+                }
+                """.trimIndent()
+            )
+    }
+
     private fun mockkDefaultBehaviorForAppendAttribute() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(breedingServiceType).right()

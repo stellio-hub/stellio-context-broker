@@ -46,6 +46,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
+    @MockkBean(relaxed = true)
+    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
+
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
@@ -184,6 +187,67 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 now,
                 EMPTY_PAYLOAD,
                 listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `it should replace an entity payload from an NGSI-LD Entity if existed yet`() = runTest {
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
+            .shouldSucceed()
+
+        entityPayloadService.replaceEntityPayload(ngsiLdEntity, now, jsonLdEntity)
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `it should replace entity`() = runTest {
+        val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            createEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+            }
+
+        val replaceEntityPayload = loadSampleData("beehive.jsonld")
+
+        entityPayloadService.replaceEntity(
+            beehiveURI,
+            replaceEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+            }
+
+        coVerify {
+            entityAttributeCleanerService.deleteEntityAttributes(
+                beehiveURI
+            )
+        }
+
+        coVerify {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                any(),
+                any(),
+                emptyList(),
+                any(),
+                eq("0123456789-1234-5678-987654321")
             )
         }
     }

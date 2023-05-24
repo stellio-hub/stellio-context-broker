@@ -103,6 +103,87 @@ class EntityPayloadService(
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
 
+    @Transactional
+    suspend fun replaceEntity(
+        entityId: URI,
+        payload: String,
+        contexts: List<String>,
+        sub: String? = null
+    ): Either<APIException, Unit> = either {
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+
+        replaceEntity(entityId, ngsiLdEntity, jsonLdEntity, sub).bind()
+    }
+
+    @Transactional
+    suspend fun replaceEntity(
+        entityId: URI,
+        ngsiLdEntity: NgsiLdEntity,
+        jsonLdEntity: JsonLdEntity,
+        sub: String? = null
+    ): Either<APIException, Unit> = either {
+        val modifiedAt = ngsiLdDateTime()
+        val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+        logger.debug("Replacing entity {}", ngsiLdEntity.id)
+
+        entityAttributeCleanerService.deleteEntityAttributes(entityId)
+        replaceEntityPayload(ngsiLdEntity, modifiedAt, jsonLdEntity).bind()
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            ngsiLdEntity,
+            jsonLdEntity,
+            attributesMetadata,
+            modifiedAt,
+            sub
+        ).bind()
+    }
+
+    @Transactional
+    suspend fun replaceEntityPayload(
+        ngsiLdEntity: NgsiLdEntity,
+        createdAt: ZonedDateTime,
+        jsonLdEntity: JsonLdEntity
+    ): Either<APIException, Unit> = either {
+        val specificAccessPolicy = ngsiLdEntity.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }
+            ?.let { getSpecificAccessPolicy(it) }
+            ?.bind()
+        replaceEntityPayload(
+            ngsiLdEntity.id,
+            ngsiLdEntity.types,
+            createdAt,
+            serializeObject(jsonLdEntity.populateCreatedAt(createdAt).members),
+            jsonLdEntity.contexts,
+            specificAccessPolicy
+        ).bind()
+    }
+
+    suspend fun replaceEntityPayload(
+        entityId: URI,
+        types: List<ExpandedTerm>,
+        modifiedAt: ZonedDateTime,
+        entityPayload: String,
+        contexts: List<String>,
+        specificAccessPolicy: SpecificAccessPolicy? = null
+    ): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET types = :types,
+            modified_at = :modified_at,
+            payload = :payload,
+            specific_access_policy = :specific_access_policy,
+            contexts = :contexts
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("types", types.toTypedArray())
+            .bind("modified_at", modifiedAt)
+            .bind("payload", Json.of(entityPayload))
+            .bind("contexts", contexts.toTypedArray())
+            .bind("specific_access_policy", specificAccessPolicy?.toString())
+            .execute()
+
     suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
         databaseClient.sql(
             """

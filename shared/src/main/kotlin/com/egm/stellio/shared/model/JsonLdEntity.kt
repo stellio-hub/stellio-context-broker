@@ -46,6 +46,7 @@ data class JsonLdEntity(
         )
 
     // called when replacing entity to populate entity and attributes with createdAt and modifiedAt information
+    // for attributes, the modification date is added as the creation date
     fun populateCreatedAtAndModifiedAt(createdAt: ZonedDateTime, modifiedAt: ZonedDateTime): JsonLdEntity =
         JsonLdEntity(
             members = members.mapValues {
@@ -54,7 +55,7 @@ data class JsonLdEntity(
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
                         NGSILD_CREATED_AT_PROPERTY,
-                        createdAt
+                        modifiedAt
                     ) as ExpandedAttributeInstance
                 }
             }

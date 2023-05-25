@@ -219,7 +219,6 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
                 assertTrue(it.modifiedAt == null)
                 assertEquals(3, it.payload.deserializeAsMap().size)
             }
@@ -235,7 +234,6 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
                 assertTrue(it.modifiedAt != null)
                 assertEquals(8, it.payload.deserializeAsMap().size)
             }

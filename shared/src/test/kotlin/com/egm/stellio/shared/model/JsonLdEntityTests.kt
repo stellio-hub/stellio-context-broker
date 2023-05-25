@@ -1,15 +1,18 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class JsonLdEntityTests {
 
     @Test
@@ -44,5 +47,46 @@ class JsonLdEntityTests {
         }, {
             fail("it should have not found any of the requested attributes")
         })
+    }
+
+    @Test
+    fun `it should get the attributes from a JSON-LD entity`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributes = expandJsonLdEntity(entity).getAttributes()
+        assertThat(expandedAttributes)
+            .hasSize(1)
+            .containsKey(NGSILD_NAME_PROPERTY)
+    }
+
+    @Test
+    fun `it should populate the createdAt information at root and attribute levels`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val jsonLdEntity = expandJsonLdEntity(entity).populateCreatedAt(ngsiLdDateTime())
+        assertThat(jsonLdEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
+        val nameAttributeInstances = jsonLdEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
+        assertThat(nameAttributeInstances).hasSize(1)
+        assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_PROPERTY)
     }
 }

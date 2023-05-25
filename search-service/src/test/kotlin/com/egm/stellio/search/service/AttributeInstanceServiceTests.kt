@@ -655,7 +655,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
             listOf(APIC_COMPOUND_CONTEXT)
-        ) as ExpandedAttributesInstances
+        ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             TemporalQuery(

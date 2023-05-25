@@ -5,14 +5,13 @@ metadata:
     app: stellio-search-service
   name: search-service
 spec:
+  type: ClusterIP
   ports:
     - name: "8083"
       port: 8083
       targetPort: 8083
   selector:
     app: stellio-search-service
-status:
-  loadBalancer: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,52 +30,58 @@ spec:
       labels:
         app: stellio-search-service
     spec:
+      nodeSelector: {}
       containers:
-        - env:
-          - name: APPLICATION_AUTHENTICATION_ENABLED
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: STELLIO_AUTHENTICATION_ENABLED
-          - name: STELLIO_SEARCH_DB_DATABASE
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: STELLIO_SEARCH_DB_DATABASE
-          - name: SPRING_FLYWAY_URL
-            value: jdbc:postgresql://postgres/$(STELLIO_SEARCH_DB_DATABASE)
-          - name: SPRING_PROFILES_ACTIVE
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: ENVIRONMENT
-          - name: SPRING_R2DBC_PASSWORD
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: STELLIO_SEARCH_DB_PASSWORD
-          - name: SPRING_R2DBC_URL
-            value: r2dbc:postgresql://postgres/$(STELLIO_SEARCH_DB_DATABASE)
-          - name: SPRING_R2DBC_USERNAME
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: STELLIO_SEARCH_DB_USER
-          - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: KAFKA_URL
-          - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-            valueFrom:
-              configMapKeyRef:
-                name: stellio-conf
-                key: KAFKA_URL
-          image: 'stellio/stellio-search-service:latest'
-          name: stellio-search-service
-          ports:
-          - containerPort: 8083
-            name: search-service
-          resources: {}
+      - env:
+        - name: APPLICATION_AUTHENTICATION_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: STELLIO_AUTHENTICATION_ENABLED
+        - name: STELLIO_SEARCH_DB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: STELLIO_SEARCH_DB_DATABASE
+        - name: SPRING_FLYWAY_URL
+          value: jdbc:postgresql://stellio-postgres.${STELLIO_TIMESCALEDB_NAMESPACE}/$(STELLIO_SEARCH_DB_DATABASE)
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: ENVIRONMENT
+        - name: SPRING_R2DBC_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: POSTGRES_PASS
+        - name: SPRING_R2DBC_URL
+          value: r2dbc:postgresql://stellio-postgres.${STELLIO_TIMESCALEDB_NAMESPACE}/$(STELLIO_SEARCH_DB_DATABASE)
+        - name: SPRING_R2DBC_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: POSTGRES_USER
+        - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: KAFKA_URL
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: KAFKA_URL
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: ENVIRONMENT
+        ports:
+        - containerPort: 8083
+          name: search-service
+        image: 'stellio/stellio-search-service:${STELLIO_DOCKER_TAG}'
+        imagePullPolicy: IfNotPresent # Always
+        name: stellio-search-service
+        resources: {}
       restartPolicy: Always
-status: {}

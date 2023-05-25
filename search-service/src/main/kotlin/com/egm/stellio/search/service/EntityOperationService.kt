@@ -92,7 +92,7 @@ class EntityOperationService(
             val entityId = it
             either {
                 entityPayloadService.deleteEntityPayload(entityId)
-                    .onRight {
+                    .map {
                         authorizationService.removeRightsOnEntity(entityId)
                     }
                     .map {
@@ -197,7 +197,7 @@ class EntityOperationService(
                 entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
-                    jsonLdEntity.members,
+                    jsonLdEntity.getAttributes(),
                     disallowOverwrite,
                     sub
                 ).bind()
@@ -232,7 +232,7 @@ class EntityOperationService(
                 entityPayloadService.appendAttributes(
                     ngsiLdEntity.id,
                     ngsiLdEntity.attributes,
-                    jsonLdEntity.members,
+                    jsonLdEntity.getAttributes(),
                     disallowOverwrite,
                     sub
                 ).bind()

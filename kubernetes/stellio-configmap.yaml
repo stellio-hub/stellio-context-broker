@@ -1,19 +1,18 @@
 apiVersion: v1
-data:
-  ENVIRONMENT: docker
-  POSTGRES_PASSWORD: postgres_password
-  STELLIO_AUTHENTICATION_ENABLED: "false"
-  STELLIO_DOCKER_TAG: latest
-  STELLIO_SEARCH_DB_DATABASE: stellio_search
-  STELLIO_SEARCH_DB_PASSWORD: stellio_search_db_password
-  STELLIO_SEARCH_DB_USER: stellio_search
-  STELLIO_SUBSCRIPTION_DB_DATABASE: stellio_subscription
-  STELLIO_SUBSCRIPTION_DB_PASSWORD: stellio_subscription_db_password
-  STELLIO_SUBSCRIPTION_DB_USER: stellio_subscription
-  KAFKA_URL: stellio-kafka:9092
-  KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
 kind: ConfigMap
 metadata:
   name: stellio-conf
-  namespace: default
-  selfLink: /api/v1/namespaces/default/configmaps/stellio-conf
+  # namespace: ${STELLIO_SERVICES_NAMESPACE}
+data:
+  POSTGRES_DBNAME: "${STELLIO_SEARCH_DB},${STELLIO_SUBSCRIPTION_DB}"
+  POSTGRES_PASS: ${STELLIO_POSTGRES_PASS}
+  POSTGRES_USER: ${STELLIO_POSTGRES_USER}
+  STELLIO_SEARCH_DB_DATABASE: ${STELLIO_SEARCH_DB}
+  STELLIO_SUBSCRIPTION_DB_DATABASE: ${STELLIO_SUBSCRIPTION_DB}
+
+  STELLIO_AUTHENTICATION_ENABLED: "false"
+  APPLICATION_ENTITY_SERVICE_URL: http://search-service.${STELLIO_SERVICES_NAMESPACE}:8083
+  
+  KAFKA_URL: stellio-kafka.${STELLIO_SERVICES_NAMESPACE}:9092
+  
+  ENVIRONMENT: docker

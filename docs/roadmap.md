@@ -1,6 +1,6 @@
-# (Incubated) Stellio Roadmap
+# Stellio Roadmap
 
-This product is an Incubated FIWARE Generic Enabler. If you would like to learn about the
+This product is an Mature FIWARE Generic Enabler. If you would like to learn about the
 overall Roadmap of FIWARE, please check section "Roadmap" on the FIWARE Catalogue.
 
 ## Introduction
@@ -15,8 +15,9 @@ guidelines only, and this section may be revised to provide newer information at
 
 The following list of features is planned to be addressed in the short term, and incorporated in one upcoming release:
 
-- [In progress] Align implementation of the aggregated temporal representation of entities with the version 1.4.1 of the NGSI-LD specification (#368)
-- Implement support for multi-tenants and scopes
+- Implement support for multi-tenancy
+- Implement support for scopes
+- Implement new Entity endpoints introduced in NGSI-LD specification v1.6.1
 - Fix the currently [identified issues](https://github.com/stellio-hub/stellio-context-broker/issues?q=is%3Aissue+is%3Aopen+label%3Afix)
 
 ## Medium term
@@ -24,8 +25,9 @@ The following list of features is planned to be addressed in the short term, and
 The following list of features are planned to be addressed in the medium term, typically within the subsequent
 release(s) generated in the next **9 months** after next planned release:
 
-- Implement full support for geospatial features (geo-queries on entities, GeoJSON rendering, ...)
-- Implement full support for NGSI-LD Query Language (only partial support currently)
+- Implement support for concise representation
+- Implement suppor for advanced notifications (`notificationTrigger`)
+- Implement distributed capabilities (via support of Context Source as defined in the NGSI-LD specification)
 
 ## Long term
 
@@ -33,6 +35,6 @@ The following list of features are proposals regarding the longer-term evolution
 of these features has not yet been scheduled for a release in the near future. Please feel free to contact us if you
 wish to get involved in the implementation or influence the roadmap.
 
-- Implement multi-attributes support for GeoProperties [#101](https://github.com/stellio-hub/stellio-context-broker/issues/101)
-- Implement distributed capabilities (via support of Context Source as defined in the NGSI-LD specification)
-- Full implementation of the NGSI-LD specification
+- Implement support for GeoJSON and concise representation
+- Implement support for `LanguageProperty`
+- Implement other missing features from the NGSI-LD specification

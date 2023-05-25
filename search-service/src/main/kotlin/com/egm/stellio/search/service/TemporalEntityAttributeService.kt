@@ -96,19 +96,13 @@ class TemporalEntityAttributeService(
         payload: String,
         contexts: List<String>,
         sub: String? = null
-    ): Either<APIException, Unit> {
+    ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val jsonLdEntity = expandJsonLdEntity(payload, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
-        return ngsiLdEntity.prepareTemporalAttributes()
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+        ngsiLdEntity.prepareTemporalAttributes()
             .map {
-                createEntityTemporalReferences(
-                    jsonLdEntity.toNgsiLdEntity(),
-                    jsonLdEntity,
-                    it,
-                    createdAt,
-                    sub
-                )
+                createEntityTemporalReferences(ngsiLdEntity, jsonLdEntity, it, createdAt, sub)
             }
     }
 
@@ -484,7 +478,7 @@ class TemporalEntityAttributeService(
     suspend fun appendEntityAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        jsonLdAttributes: Map<String, Any>,
+        expandedAttributes: ExpandedAttributes,
         disallowOverwrite: Boolean,
         createdAt: ZonedDateTime,
         sub: Sub?
@@ -498,7 +492,7 @@ class TemporalEntityAttributeService(
                         .fold({ null }, { it })
                 val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
                 val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdAttributes,
+                    expandedAttributes,
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId
                 )!!
@@ -553,7 +547,7 @@ class TemporalEntityAttributeService(
     suspend fun updateEntityAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        jsonLdAttributes: Map<String, Any>,
+        expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
@@ -567,7 +561,7 @@ class TemporalEntityAttributeService(
                 if (currentTea != null) {
                     val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
                     val attributePayload = getAttributeFromExpandedAttributes(
-                        jsonLdAttributes,
+                        expandedAttributes,
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId
                     )!!
@@ -608,26 +602,26 @@ class TemporalEntityAttributeService(
     @Transactional
     suspend fun partialUpdateEntityAttribute(
         entityId: URI,
-        expandedPayload: Map<String, List<Map<String, List<Any>>>>,
+        expandedAttribute: ExpandedAttribute,
         modifiedAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
-            val expandedAttributeName = expandedPayload.keys.first()
-            val attributeValues = expandedPayload.values.first()[0]
+            val attributeName = expandedAttribute.first
+            val attributeValues = expandedAttribute.second[0]
             logger.debug(
                 "Updating attribute {} of entity {} with values: {}",
-                expandedAttributeName,
+                attributeName,
                 entityId,
                 attributeValues
             )
 
             val datasetId = attributeValues.getDatasetId()
-            val exists = hasAttribute(entityId, expandedAttributeName, datasetId).bind()
+            val exists = hasAttribute(entityId, attributeName, datasetId).bind()
             val updateAttributeResult =
                 if (exists) {
                     // first update payload in temporal entity attribute
-                    val tea = getForEntityAndAttribute(entityId, expandedAttributeName, datasetId).bind()
+                    val tea = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
                     val jsonSourceObject = JSONObject(tea.payload.asString())
                     val jsonUpdateObject = JSONObject(attributeValues)
                     val jsonMerger = JsonMerger(
@@ -659,17 +653,17 @@ class TemporalEntityAttributeService(
                     attributeInstanceService.create(attributeInstance).bind()
 
                     UpdateAttributeResult(
-                        expandedAttributeName,
+                        attributeName,
                         datasetId,
                         UpdateOperationResult.UPDATED,
                         null
                     )
                 } else {
                     UpdateAttributeResult(
-                        expandedAttributeName,
+                        attributeName,
                         datasetId,
                         UpdateOperationResult.IGNORED,
-                        "Unknown attribute $expandedAttributeName with datasetId $datasetId in entity $entityId"
+                        "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                     )
                 }
 
@@ -680,7 +674,7 @@ class TemporalEntityAttributeService(
     suspend fun upsertEntityAttributes(
         entityUri: URI,
         ngsiLdAttribute: NgsiLdAttribute,
-        jsonLdAttribute: ExpandedAttributesInstances,
+        expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, Unit> = either {
@@ -691,7 +685,7 @@ class TemporalEntityAttributeService(
                 .fold({ null }, { it })
         val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
         val attributePayload = getAttributeFromExpandedAttributes(
-            jsonLdAttribute,
+            expandedAttributes,
             ngsiLdAttribute.name,
             ngsiLdAttributeInstance.datasetId
         )!!
@@ -715,14 +709,14 @@ class TemporalEntityAttributeService(
             attributeInstanceService.addAttributeInstance(
                 currentTea.id,
                 attributeMetadata,
-                jsonLdAttribute[currentTea.attributeName]!!.first()
+                expandedAttributes[currentTea.attributeName]!!.first()
             ).bind()
         }
     }
 
     suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,
-        attributePayload: Map<String, List<Any>>
+        attributePayload: ExpandedAttributeInstance
     ): Triple<String?, Double?, WKTCoordinates?> =
         when (tea.attributeType) {
             TemporalEntityAttribute.AttributeType.Property ->

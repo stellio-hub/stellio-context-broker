@@ -11,8 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2022.0.0"
-extra["testcontainersVersion"] = "1.17.5"
+extra["springCloudVersion"] = "2022.0.2"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -20,13 +19,13 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.0.5" apply false
+    id("org.springframework.boot") version "3.1.0" apply false
     id("io.spring.dependency-management") version "1.1.0" apply false
-    id("org.graalvm.buildtools.native") version "0.9.20"
-    kotlin("jvm") version "1.8.20" apply false
-    kotlin("plugin.spring") version "1.8.20" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "11.3.1"
-    id("com.google.cloud.tools.jib") version "3.3.1" apply false
+    id("org.graalvm.buildtools.native") version "0.9.22"
+    kotlin("jvm") version "1.8.21" apply false
+    kotlin("plugin.spring") version "1.8.21" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "11.3.2"
+    id("com.google.cloud.tools.jib") version "3.3.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
     id("org.sonarqube") version "4.0.0.2929"
     jacoco
@@ -49,7 +48,6 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}")
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
         }
     }

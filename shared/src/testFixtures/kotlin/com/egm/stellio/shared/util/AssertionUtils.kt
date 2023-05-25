@@ -14,7 +14,7 @@ fun <T> Either<APIException, T>.shouldSucceedWith(assertions: (T) -> Unit) =
         assertions(it)
     })
 
-fun Either<APIException, Unit>.shouldSucceed() =
+fun Either<APIException, Any>.shouldSucceed() =
     fold({
         fail("it should have not returned an error $it")
     }, {})

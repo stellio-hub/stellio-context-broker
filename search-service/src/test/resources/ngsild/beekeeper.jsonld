@@ -1,10 +1,6 @@
 {
    "id":"urn:ngsi-ld:Beekeeper:04",
    "type":"Beekeeper",
-   "name":{
-      "type":"Property",
-      "value":"Scalpa"
-   },
    "@context":[
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
    ]

@@ -12,7 +12,9 @@ import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -138,8 +140,8 @@ class EntityAccessControlHandler(
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+        val expandedAttributes = expandAttributes(body, contexts)
+        val ngsiLdAttributes = expandedAttributes.toNgsiLdAttributes().bind()
 
         // ensure payload contains only relationships and that they are of a known type
         val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
@@ -155,13 +157,11 @@ class EntityAccessControlHandler(
             .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
             .flatten()
             .partition {
-                // we don't have any sub-relationships here, so let's just take the first
-                val targetEntityId = it.second.getLinkedEntitiesIds().first()
-                authorizationService.userCanAdminEntity(targetEntityId, sub).isRight()
+                authorizationService.userCanAdminEntity(it.second.objectId, sub).isRight()
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
-                it.first.compactName,
+                it.first.name,
                 "User is not authorized to manage rights on entity ${it.second.objectId}"
             )
         }
@@ -171,11 +171,11 @@ class EntityAccessControlHandler(
             entityAccessRightsService.setRoleOnEntity(
                 subjectId,
                 ngsiLdRelInstance.objectId,
-                AccessRight.forAttributeName(ngsiLdRel.compactName).orNull()!!
+                AccessRight.forAttributeName(ngsiLdRel.name).orNull()!!
             ).fold(
                 ifLeft = { apiException ->
                     UpdateAttributeResult(
-                        ngsiLdRel.compactName,
+                        ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
                         UpdateOperationResult.FAILED,
                         apiException.message
@@ -183,7 +183,7 @@ class EntityAccessControlHandler(
                 },
                 ifRight = {
                     UpdateAttributeResult(
-                        ngsiLdRel.compactName,
+                        ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
                         UpdateOperationResult.APPENDED,
                         null
@@ -239,15 +239,14 @@ class EntityAccessControlHandler(
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
-        val rawPayload = mapOf(AUTH_TERM_SAP to JsonLdUtils.removeContextFromInput(body))
-        val expandedPayload = expandJsonLdFragment(rawPayload, contexts)
-        val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-        if (ngsiLdAttributes[0].name != AUTH_PROP_SAP)
-            BadRequestDataException(
-                "${ngsiLdAttributes[0].name} is not authorized property name"
-            ).left().bind<ResponseEntity<*>>()
+        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, removeContextFromInput(body), contexts)
+        if (expandedAttribute.first != AUTH_PROP_SAP)
+            BadRequestDataException("${expandedAttribute.first} is not authorized property name")
+                .left().bind<ResponseEntity<*>>()
 
-        entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttributes[0]).bind()
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().bind()
+
+        entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttribute).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

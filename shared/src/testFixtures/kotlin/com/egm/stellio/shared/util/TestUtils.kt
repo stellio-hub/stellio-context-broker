@@ -1,8 +1,9 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.model.*
 import org.springframework.core.io.ClassPathResource
 import java.net.URI
 
@@ -11,9 +12,12 @@ fun loadSampleData(filename: String = "beehive.jsonld"): String {
     return String(sampleData.inputStream.readAllBytes())
 }
 
-fun String.sampleDataToNgsiLdEntity(): Pair<JsonLdEntity, NgsiLdEntity> {
+suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<JsonLdEntity, NgsiLdEntity>> {
     val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(this)
-    return Pair(jsonLdEntity, jsonLdEntity.toNgsiLdEntity())
+    return when (val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()) {
+        is Either.Left -> BadRequestDataException("Invalid NGSI-LD input for sample data: $this").left()
+        is Either.Right -> Pair(jsonLdEntity, ngsiLdEntity.value).right()
+    }
 }
 
 fun String.removeNoise(): String =

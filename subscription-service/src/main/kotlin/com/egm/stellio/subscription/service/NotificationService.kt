@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import arrow.core.Either
 import arrow.core.continuations.either
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

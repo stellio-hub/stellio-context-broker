@@ -8,8 +8,9 @@ import com.egm.stellio.search.util.parseQueryAndTemporalParams
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -44,6 +45,8 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
@@ -64,7 +67,7 @@ class TemporalEntityHandler(
                     .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
                 contexts
             )
-            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()
+            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
             entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
             entityPayloadService.upsertAttributes(
@@ -108,8 +111,10 @@ class TemporalEntityHandler(
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val jsonLdInstances = expandJsonLdFragment(body, contexts) as ExpandedAttributesInstances
+        val jsonLdInstances = expandAttributes(body, contexts)
         jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
@@ -216,6 +221,8 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsList().first()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
@@ -224,16 +231,14 @@ class TemporalEntityHandler(
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-        val attributeInstance = mapOf(attrId to JsonLdUtils.removeContextFromInput(body))
-        val expandedAttributesInstances =
-            expandJsonLdFragment(attributeInstance, contexts) as ExpandedAttributesInstances
-        expandedAttributesInstances.checkTemporalAttributeInstance().bind()
+        val expandedAttribute = expandAttribute(attrId, JsonLdUtils.removeContextFromInput(body), contexts)
+        expandedAttribute.toExpandedAttributes().checkTemporalAttributeInstance().bind()
 
         attributeInstanceService.modifyAttributeInstance(
             entityUri,
-            expandedAttributesInstances.entries.first().key,
+            expandedAttribute.first,
             instanceUri,
-            expandedAttributesInstances.entries.first().value
+            expandedAttribute.second
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

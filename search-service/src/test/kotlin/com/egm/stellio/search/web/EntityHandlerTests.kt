@@ -1306,19 +1306,16 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"The id contained in the body is not the same id of the entity to modify"
+                    "detail":"The id contained in the body is not the same as that contained in the parameters"
                 }
                 """.trimIndent()
             )
     }
 
     @Test
-    fun `replace entity should return a 400 if entity is not present`() {
+    fun `replace entity should return a 400 if entity id is not present in the path`() {
         webClient.put()
-            .uri(
-                "/ngsi-ld/v1/entities/" +
-                    ""
-            )
+            .uri("/ngsi-ld/v1/entities/")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

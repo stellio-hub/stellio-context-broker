@@ -7,6 +7,7 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
+import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
@@ -192,7 +193,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should replace an entity payload from an NGSI-LD Entity if existed yet`() = runTest {
+    fun `it should replace an entity payload from an NGSI-LD Entity if it existed`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
             .shouldSucceed()
@@ -202,7 +203,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should replace entity`() = runTest {
+    fun `it should replace an entity`() = runTest {
         val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         coEvery {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
@@ -219,6 +220,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+                assertTrue(it.modifiedAt == null)
+                assertEquals(3, it.payload.deserializeAsMap().size)
             }
 
         val replaceEntityPayload = loadSampleData("beehive.jsonld")
@@ -233,6 +236,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+                assertTrue(it.modifiedAt != null)
+                assertEquals(8, it.payload.deserializeAsMap().size)
             }
 
         coVerify {

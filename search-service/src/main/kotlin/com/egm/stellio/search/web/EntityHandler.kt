@@ -218,7 +218,7 @@ class EntityHandler(
 
         if (ngsiLdEntity.id != entityUri)
             BadRequestDataException(
-                "The id contained in the body is not the same id of the entity to modify"
+                "The id contained in the body is not the same as that contained in the parameters"
             ).left().bind<ResponseEntity<*>>()
 
         entityPayloadService.replaceEntity(

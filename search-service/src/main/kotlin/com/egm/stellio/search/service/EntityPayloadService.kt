@@ -127,7 +127,8 @@ class EntityPayloadService(
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeCleanerService.deleteEntityAttributes(entityId)
+        // wait for attributes to be deleted before creating new ones
+        entityAttributeCleanerService.deleteEntityAttributes(entityId).join()
         replaceEntityPayload(ngsiLdEntity, modifiedAt, jsonLdEntity).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
@@ -141,17 +142,18 @@ class EntityPayloadService(
     @Transactional
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        createdAt: ZonedDateTime,
+        modifiedAt: ZonedDateTime,
         jsonLdEntity: JsonLdEntity
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }
             ?.let { getSpecificAccessPolicy(it) }
             ?.bind()
+        val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
         replaceEntityPayload(
             ngsiLdEntity.id,
             ngsiLdEntity.types,
-            createdAt,
-            serializeObject(jsonLdEntity.populateCreatedAt(createdAt).members),
+            modifiedAt,
+            serializeObject(jsonLdEntity.populateCreatedAtAndModifiedAt(createdAt, modifiedAt).members),
             jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()
@@ -183,6 +185,16 @@ class EntityPayloadService(
             .bind("contexts", contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
+
+    suspend fun retrieveCreatedAt(entityId: URI): Either<APIException, ZonedDateTime> =
+        databaseClient.sql(
+            """
+            SELECT created_at from entity_payload
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .oneToResult { toZonedDateTime(it["created_at"]) }
 
     suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
         databaseClient.sql(

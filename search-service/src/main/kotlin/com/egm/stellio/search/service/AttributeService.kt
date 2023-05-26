@@ -15,7 +15,6 @@ import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.attributeNotFoundMessage
@@ -31,7 +30,6 @@ class AttributeService(
             """
             SELECT DISTINCT(attribute_name)
             FROM temporal_entity_attribute
-            WHERE attribute_name != '$NGSILD_NOTIFICATION_ATTR_PROPERTY'
             ORDER BY attribute_name
             """.trimIndent()
         ).allToMappedList { rowToAttributeNames(it) }
@@ -45,7 +43,6 @@ class AttributeService(
             SELECT types, attribute_name
             FROM entity_payload
             JOIN temporal_entity_attribute ON entity_payload.entity_id = temporal_entity_attribute.entity_id
-            WHERE attribute_name != '$NGSILD_NOTIFICATION_ATTR_PROPERTY'
             ORDER BY attribute_name
             """.trimIndent()
         ).allToMappedList { rowToAttributeDetails(it) }.flatten().groupBy({ it.second }, { it.first }).toList()

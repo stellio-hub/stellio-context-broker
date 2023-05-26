@@ -1,0 +1,5 @@
+{
+   "id":"urn:ngsi-ld:Beehive:1234",
+   "type":"BeeHive",
+   "outgoing": []
+}

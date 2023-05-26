@@ -6,9 +6,6 @@ import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_ATTR_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,8 +24,8 @@ class TemporalEntityBuilderTests {
     @Test
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
+            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
+            attributeName = OUTGOING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -37,11 +34,11 @@ class TemporalEntityBuilderTests {
             temporalEntityAttribute to emptyList<AttributeInstanceResult>()
         )
         val entityPayload = EntityPayload(
-            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
+            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
+            types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(NGSILD_CORE_CONTEXT)
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             entityPayload,
@@ -53,11 +50,11 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = false
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
         assertTrue(
             serializeObject(temporalEntity).matchContent(
-                loadSampleData("expectations/subscription_empty_notification.jsonld")
+                loadSampleData("expectations/beehive_empty_outgoing.jsonld")
             )
         )
     }
@@ -118,8 +115,8 @@ class TemporalEntityBuilderTests {
     @Test
     fun `it should return a temporal entity with values aggregated`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            attributeName = NGSILD_NOTIFICATION_ATTR_PROPERTY,
+            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
+            attributeName = OUTGOING_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -170,11 +167,11 @@ class TemporalEntityBuilderTests {
             listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG)
         )
         val entityPayload = EntityPayload(
-            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
-            types = listOf(NGSILD_SUBSCRIPTION_PROPERTY),
+            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
+            types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(NGSILD_CORE_CONTEXT)
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -187,11 +184,11 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = true
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         assertJsonPayloadsAreEqual(
-            loadSampleData("expectations/subscription_with_notifications_aggregated.jsonld"),
+            loadSampleData("expectations/beehive_with_outgoings_aggregated.jsonld"),
             serializeObject(temporalEntity)
         )
     }

@@ -76,9 +76,7 @@ object JsonLdUtils {
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
 
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
-    const val NGSILD_SUBSCRIPTION_PROPERTY = "https://uri.etsi.org/ngsi-ld/Subscription"
     const val NGSILD_NOTIFICATION_TERM = "Notification"
-    const val NGSILD_NOTIFICATION_ATTR_PROPERTY = "https://uri.etsi.org/ngsi-ld/notification"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"

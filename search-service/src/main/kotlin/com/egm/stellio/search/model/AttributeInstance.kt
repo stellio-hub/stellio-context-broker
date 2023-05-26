@@ -1,6 +1,5 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
@@ -46,19 +45,6 @@ data class AttributeInstance private constructor(
             geoValue = attributeMetadata.geoValue,
             payload = payload.composePayload(instanceId, modifiedAt).toJson(),
             sub = sub
-        )
-
-        operator fun invoke(
-            temporalEntityAttribute: UUID,
-            notification: Notification,
-            value: String,
-            payload: ExpandedAttributeInstance
-        ): AttributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttribute,
-            instanceId = notification.id,
-            time = notification.notifiedAt,
-            value = value,
-            payload = payload.composePayload(notification.id).toJson()
         )
 
         operator fun invoke(

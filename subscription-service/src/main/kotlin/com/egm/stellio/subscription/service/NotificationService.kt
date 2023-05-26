@@ -21,8 +21,7 @@ import org.springframework.web.reactive.function.client.awaitExchange
 
 @Service
 class NotificationService(
-    private val subscriptionService: SubscriptionService,
-    private val subscriptionEventService: SubscriptionEventService
+    private val subscriptionService: SubscriptionService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -90,7 +89,6 @@ class NotificationService(
             Triple(subscription, notification, false)
         }
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
-        subscriptionEventService.publishNotificationCreateEvent(null, result.second)
         return result
     }
 

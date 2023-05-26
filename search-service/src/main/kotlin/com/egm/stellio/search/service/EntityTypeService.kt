@@ -10,7 +10,6 @@ import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.typeNotFoundMessage
@@ -29,7 +28,6 @@ class EntityTypeService(
             ORDER BY type
             """.trimIndent()
         ).allToMappedList { rowToType(it) }
-            .filter { it != NGSILD_SUBSCRIPTION_PROPERTY }
 
         return EntityTypeList(typeList = compactTerms(entityTypes, contexts))
     }
@@ -44,9 +42,7 @@ class EntityTypeService(
             """.trimIndent()
         ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()
 
-        return result.filter {
-            it.first != NGSILD_SUBSCRIPTION_PROPERTY
-        }.map {
+        return result.map {
             EntityType(
                 id = toUri(it.first),
                 typeName = compactTerm(it.first, contexts),

@@ -8,14 +8,12 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
-import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import kotlinx.coroutines.reactive.awaitFirst
@@ -33,8 +31,7 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
     private val applicationProperties: ApplicationProperties,
-    private val subscriptionService: SubscriptionService,
-    private val subscriptionEventService: SubscriptionEventService
+    private val subscriptionService: SubscriptionService
 ) {
 
     /**
@@ -53,11 +50,6 @@ class SubscriptionHandler(
         checkSubscriptionNotExists(subscription).bind()
 
         subscriptionService.create(subscription, sub).bind()
-        subscriptionEventService.publishSubscriptionCreateEvent(
-            sub.orNull(),
-            subscription.id,
-            contexts
-        )
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
@@ -167,12 +159,6 @@ class SubscriptionHandler(
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         subscriptionService.update(subscriptionIdUri, body, contexts).bind()
 
-        subscriptionEventService.publishSubscriptionUpdateEvent(
-            sub.orNull(),
-            subscriptionIdUri,
-            removeContextFromInput(body).serialize(),
-            contexts
-        )
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
         { it.toErrorResponse() },
@@ -196,11 +182,6 @@ class SubscriptionHandler(
         val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
         subscriptionService.delete(subscriptionUri).bind()
 
-        subscriptionEventService.publishSubscriptionDeleteEvent(
-            sub.orNull(),
-            subscriptionUri,
-            contexts
-        )
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
         { it.toErrorResponse() },

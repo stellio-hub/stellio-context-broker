@@ -10,13 +10,11 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
-import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -45,9 +43,6 @@ class SubscriptionHandlerTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
-
-    @MockkBean
-    private lateinit var subscriptionEventService: SubscriptionEventService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -181,7 +176,6 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery { subscriptionService.create(any(), any()) } returns Unit.right()
-        coEvery { subscriptionEventService.publishSubscriptionCreateEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -189,14 +183,6 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1"))
-
-        coVerify {
-            subscriptionEventService.publishSubscriptionCreateEvent(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                match { it == "urn:ngsi-ld:Subscription:1".toUri() },
-                eq(listOf(APIC_COMPOUND_CONTEXT))
-            )
-        }
     }
 
     @Test
@@ -216,8 +202,6 @@ class SubscriptionHandlerTests {
                     "\"title\":\"The referred element already exists\"," +
                     "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
             )
-
-        verify { subscriptionEventService wasNot called }
     }
 
     @Test
@@ -500,14 +484,12 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val expectedOperationPayload = ClassPathResource("/ngsild/events/sent/subscription_update_event_payload.json")
         val subscriptionId = subscriptionId
         val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
         coEvery { subscriptionService.update(any(), any(), any()) } returns Unit.right()
-        coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -518,17 +500,7 @@ class SubscriptionHandlerTests {
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
-        coVerify {
-            subscriptionEventService.publishSubscriptionUpdateEvent(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                match { it == subscriptionId },
-                match {
-                    it.removeNoise() ==
-                        expectedOperationPayload.inputStream.readBytes().toString(Charsets.UTF_8).removeNoise()
-                },
-                any()
-            )
-        }
+
         confirmVerified(subscriptionService)
     }
 
@@ -560,7 +532,6 @@ class SubscriptionHandlerTests {
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
-        verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)
     }
@@ -650,7 +621,6 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
         coEvery { subscriptionService.getContextsForSubscription(any()) } returns listOf(APIC_COMPOUND_CONTEXT).right()
         coEvery { subscriptionService.delete(any()) } returns Unit.right()
-        every { subscriptionEventService.publishSubscriptionDeleteEvent(any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -662,13 +632,6 @@ class SubscriptionHandlerTests {
         coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
         coVerify { subscriptionService.getContextsForSubscription(subscription.id) }
         coVerify { subscriptionService.delete(eq(subscription.id)) }
-        verify {
-            subscriptionEventService.publishSubscriptionDeleteEvent(
-                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                match { it == subscription.id },
-                eq(listOf(APIC_COMPOUND_CONTEXT))
-            )
-        }
 
         confirmVerified(subscriptionService)
     }
@@ -692,7 +655,6 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)
     }

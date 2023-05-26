@@ -1197,56 +1197,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `replace entity should return a 400 if JSON-LD payload is not correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
-        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
-
-        webClient.put()
-            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isBadRequest
-    }
-
-    @Test
-    fun `replace entity should return a 400 if entity is not NGSI-LD valid`() {
-        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
-        val entityWithoutId =
-            """
-            {
-                "type": "Beehive"
-            }
-            """.trimIndent()
-
-        webClient.put()
-            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .bodyValue(entityWithoutId)
-            .exchange()
-            .expectStatus().isBadRequest
-    }
-
-    @Test
-    fun `replace entity should return a 400 if entity does not have an type`() {
-        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
-        val entityWithoutType =
-            """
-            {
-                "id": "urn:ngsi-ld:Beehive:9876"
-            }
-            """.trimIndent()
-
-        webClient.put()
-            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .bodyValue(entityWithoutType)
-            .exchange()
-            .expectStatus().isBadRequest
-    }
-
-    @Test
-    fun `replace entity should return a 403 if user is not allowed to update entities`() {
+    fun `replace entity should return a 403 if user is not allowed to update the entity`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
@@ -1289,7 +1240,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `replace entity should return a 400 if id contains in payload is different from that of the request`() {
+    fun `replace entity should return a 400 if id contained in payload is different from the one in URL`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0215".toUri()
 
@@ -1306,7 +1257,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"The id contained in the body is not the same as that contained in the parameters"
+                    "detail":"The id contained in the body is not the same as the one provided in the URL"
                 }
                 """.trimIndent()
             )

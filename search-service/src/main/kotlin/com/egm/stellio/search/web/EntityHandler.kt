@@ -83,6 +83,56 @@ class EntityHandler(
     )
 
     /**
+     * Implements 6.5.3.3 - Replace Entity
+     */
+    @PutMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun replace(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> = either {
+        val entityUri = entityId.toUri()
+        val sub = getSubFromSecurityContext()
+
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val jsonLdEntity = expandJsonLdEntity(body, contexts)
+        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+        if (ngsiLdEntity.id != entityUri)
+            BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
+                .left().bind<ResponseEntity<*>>()
+
+        entityPayloadService.replaceEntity(
+            entityUri,
+            ngsiLdEntity,
+            jsonLdEntity,
+            sub.orNull()
+        ).bind()
+
+        entityEventService.publishEntityReplaceEvent(
+            sub.orNull(),
+            ngsiLdEntity.id,
+            ngsiLdEntity.types,
+            contexts
+        )
+
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @PutMapping("/", "")
+    suspend fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to replace an entity")
+
+    /**
      * Implements 6.4.3.2 - Query Entities
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -193,57 +243,6 @@ class EntityHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    /**
-     * Implements 6.5.3.3 - Replace Entity
-     */
-    @PutMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun replace(
-        @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
-        @RequestBody requestBody: Mono<String>
-    ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
-        val sub = getSubFromSecurityContext()
-
-        val body = requestBody.awaitFirst().deserializeAsMap()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val jsonLdEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
-
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-
-        if (ngsiLdEntity.id != entityUri)
-            BadRequestDataException(
-                "The id contained in the body is not the same as that contained in the parameters"
-            ).left().bind<ResponseEntity<*>>()
-
-        entityPayloadService.replaceEntity(
-            entityUri,
-            ngsiLdEntity,
-            jsonLdEntity,
-            sub.orNull()
-        ).bind()
-
-        entityEventService.publishEntityReplaceEvent(
-            sub.orNull(),
-            ngsiLdEntity.id,
-            ngsiLdEntity.types,
-            contexts
-        )
-
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-    }.fold(
-        { it.toErrorResponse() },
-        { it }
-    )
-
-    @PutMapping("/", "")
-    suspend fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
-        missingPathErrorResponse("Missing entity id when trying to replace an entity")
 
     /**
      * Implements 6.5.3.2 - Delete Entity

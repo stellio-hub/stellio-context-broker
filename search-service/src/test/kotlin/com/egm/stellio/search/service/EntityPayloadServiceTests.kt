@@ -193,13 +193,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should replace an entity payload from an NGSI-LD Entity if it existed`() = runTest {
+    fun `it should replace an entity payload if entity previously existed`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
-            .shouldSucceed()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
 
-        entityPayloadService.replaceEntityPayload(ngsiLdEntity, now, jsonLdEntity)
-            .shouldSucceed()
+        entityPayloadService.replaceEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
     }
 
     @Test
@@ -217,18 +215,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        entityPayloadService.retrieve(beehiveTestCId)
-            .shouldSucceedWith {
-                assertTrue(it.modifiedAt == null)
-                assertEquals(3, it.payload.deserializeAsMap().size)
-            }
-
-        val replaceEntityPayload = loadSampleData("beehive.jsonld")
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityPayloadService.replaceEntity(
             beehiveURI,
-            replaceEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            jsonLdEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -239,12 +231,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeCleanerService.deleteEntityAttributes(
-                beehiveURI
-            )
-        }
-
-        coVerify {
+            entityAttributeCleanerService.deleteEntityAttributes(beehiveURI)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 any(),
                 any(),

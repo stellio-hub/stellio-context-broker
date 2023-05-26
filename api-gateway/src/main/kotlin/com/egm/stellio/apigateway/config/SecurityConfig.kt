@@ -12,5 +12,5 @@ class SecurityConfig {
 
     @Bean
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
-        http.csrf().disable().build()
+        http.csrf { csrf -> csrf.disable() }.build()
 }

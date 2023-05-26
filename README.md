@@ -168,6 +168,32 @@ docker load --input search-service/build/jib-image.tar
 docker run stellio/stellio-search-service:latest
 ```
 
+## Releasing a new version
+
+* Merge develop into master 
+
+```
+git checkout master
+git merge develop
+```
+
+* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file)
+* Commit the modification using the following template message
+
+```
+git commit -am "chore: upgrade version to x.y.z"
+```
+
+* Push the modifications
+
+```
+git push origin master
+```
+
+The CI will then create and publish Docker images tagged with the published version number in https://hub.docker.com/u/stellio.
+
+* On GitHub, check and publish the release notes in https://github.com/stellio-hub/stellio-context-broker/releases
+
 ## Usage
 
 To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).

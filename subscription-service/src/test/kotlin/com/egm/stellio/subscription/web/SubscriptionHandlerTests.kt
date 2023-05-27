@@ -619,7 +619,6 @@ class SubscriptionHandlerTests {
         val subscription = gimmeRawSubscription()
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
-        coEvery { subscriptionService.getContextsForSubscription(any()) } returns listOf(APIC_COMPOUND_CONTEXT).right()
         coEvery { subscriptionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -630,7 +629,6 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(subscription.id) }
         coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
-        coVerify { subscriptionService.getContextsForSubscription(subscription.id) }
         coVerify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)

@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
@@ -179,7 +178,6 @@ class SubscriptionHandler(
 
         val sub = getSubFromSecurityContext()
         checkIsAllowed(subscriptionUri, sub).bind()
-        val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
         subscriptionService.delete(subscriptionUri).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

@@ -188,7 +188,7 @@ class TemporalEntityBuilderTests {
         )
 
         assertJsonPayloadsAreEqual(
-            loadSampleData("expectations/beehive_with_outgoings_aggregated.jsonld"),
+            loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
             serializeObject(temporalEntity)
         )
     }

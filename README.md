@@ -192,14 +192,12 @@ To start using Stellio, you can follow the [API quick start](https://github.com/
 
 ## Minimal hardware requirements needed to run Stellio
 
-The Stellio Context Broker is an open-source project, and the recommended system requirements may vary depending on factors such as the scale of deployment, usage patterns, and specific use cases. That said, here are the general guidelines for the minimum computer requirements:
+The recommended system requirements may vary depending on factors such as the scale of deployment, usage patterns, and specific use cases. That said, here are the general guidelines for the minimum computer requirements:
 
 * Processor: Dual-core processor or higher
-* RAM: 4 GB or higher (1.8 GB is needed to just run it)
-* Storage: At least 4 GB of free disk space (3.8 GB is needed to just run it)
-* Operating System: Linux (recommended), Windows, or macOS
-* Java Development Kit (JDK): Version 17 or later
-* Docker: Required for running the software in containers
+* RAM: 4GB or higher (1.8GB is needed to just run it)
+* Storage: At least 4GB of free disk space (3.8GB is needed to just run it)
+* Operating System: Linux (recommended), macOS (also recommended), or Windows
 
 Please note that these requirements may vary based on factors such as the size of your dataset, the number of concurrent users, and the overall complexity of your use case.
 

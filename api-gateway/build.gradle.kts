@@ -8,7 +8,7 @@ plugins {
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.0")
 }
 
 springBoot {

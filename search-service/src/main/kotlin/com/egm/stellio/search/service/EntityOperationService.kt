@@ -147,7 +147,7 @@ class EntityOperationService(
         disallowOverwrite: Boolean = false,
         sub: Sub?,
         processor:
-            suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
     ): BatchOperationResult =
         entities.map {
             processEntity(it, disallowOverwrite, sub, processor)
@@ -166,7 +166,7 @@ class EntityOperationService(
         disallowOverwrite: Boolean = false,
         sub: Sub?,
         processor:
-            suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
     ): Either<BatchEntityError, BatchEntitySuccess> =
         kotlin.runCatching {
             processor(entity, disallowOverwrite, sub)

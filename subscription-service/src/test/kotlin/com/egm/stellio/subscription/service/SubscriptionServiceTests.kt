@@ -313,10 +313,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.notification.attributes == listOf(INCOMING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD,
-                    null
-                ) &&
+                        URI("http://localhost:8089/notification"),
+                        Endpoint.AcceptType.JSONLD,
+                        null
+                    ) &&
                     it.entities.size == 1
             }
     }
@@ -333,10 +333,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                         it.notification.attributes == listOf(INCOMING_PROPERTY) &&
                         it.notification.format == FormatType.NORMALIZED &&
                         it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
-                    ) &&
+                            URI("http://localhost:8089/notification"),
+                            Endpoint.AcceptType.JSONLD,
+                            listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                        ) &&
                         it.entities.size == 2 &&
                         it.geoQ != null &&
                         it.geoQ!!.georel == "within" &&
@@ -358,10 +358,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.notification.attributes == listOf(INCOMING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD,
-                    listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
-                ) &&
+                        URI("http://localhost:8089/notification"),
+                        Endpoint.AcceptType.JSONLD,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                    ) &&
                     it.entities.size == 2 &&
                     it.isActive
             }
@@ -378,10 +378,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.notification.attributes == listOf(INCOMING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD,
-                    null
-                ) &&
+                        URI("http://localhost:8089/notification"),
+                        Endpoint.AcceptType.JSONLD,
+                        null
+                    ) &&
                     it.entities.size == 1 &&
                     !it.isActive
             }
@@ -491,9 +491,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             .element(0).matches {
                 it.subscriptionName == "Subscription 1" &&
                     it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD
-                ) &&
+                        URI("http://localhost:8089/notification"),
+                        Endpoint.AcceptType.JSONLD
+                    ) &&
                     it.entities.isEmpty()
             }
     }
@@ -696,8 +696,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.notification.endpoint.accept.name == "JSONLD" &&
                     it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
                     it.notification.endpoint.info == listOf(
-                    EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                ) &&
+                        EndpointInfo("Authorization-token", "Authorization-token-newValue")
+                    ) &&
                     it.notification.endpoint.info!!.size == 1
             }
     }

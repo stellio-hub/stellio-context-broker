@@ -1,9 +1,9 @@
+
 import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 buildscript {
     dependencies {
@@ -24,10 +24,9 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.9.22"
     kotlin("jvm") version "1.8.21" apply false
     kotlin("plugin.spring") version "1.8.21" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "11.3.2"
     id("com.google.cloud.tools.jib") version "3.3.2" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.22.0" apply false
-    id("org.sonarqube") version "4.1.0.3113"
+    id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
+    id("org.sonarqube") version "4.0.0.2929"
     jacoco
 }
 
@@ -40,7 +39,6 @@ subprojects {
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
-    apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
@@ -98,14 +96,6 @@ subprojects {
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
-        }
-    }
-
-    ktlint {
-        disabledRules.set(setOf("multiline-if-else", "no-wildcard-imports"))
-        reporters {
-            reporter(ReporterType.CHECKSTYLE)
-            reporter(ReporterType.PLAIN)
         }
     }
 

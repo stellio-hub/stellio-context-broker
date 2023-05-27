@@ -116,7 +116,7 @@ To build all the services, you can just launch:
 ./gradlew build
 ```
 
-It will compile the source code, check the code formatting (thanks to [ktLint](https://ktlint.github.io/)) and run the test
+It will compile the source code, check the code quality (thanks to [detekt](https://detekt.dev/)) and run the test
 suite for all the services.
 
 For each service, a self executable jar is produced in the `build/libs` directory of the service.
@@ -129,17 +129,9 @@ If you want to build only one of the services, you can launch:
 
 ### Code quality
 
-Code formatting and standard code quality checks are performed by [ktLint](https://ktlint.github.io/) and 
-[Detekt](https://detekt.github.io/detekt/index.html).
+Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
 
-ktLint and Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
-
-If you use IntelliJ:
-* You can generate the corresponding ktLint settings with the following command:
-
-```shell script
-./gradlew ktlintApplyToIdea
-```
+Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
 
 * You may consider using a plugin like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) 
 that applies changed code refactoring and optimized imports on a save.

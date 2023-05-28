@@ -18,7 +18,7 @@ class TenantWebFilterTests {
         authentication = ApplicationProperties.Authentication(true),
         pagination = ApplicationProperties.Pagination(100, 30),
         tenants = listOf(
-            ApplicationProperties.TenantConfiguration(DEFAULT_TENANT_NAME.toUri(), "http://localhost", "public"),
+            ApplicationProperties.TenantConfiguration(DEFAULT_TENANT_URI, "http://localhost", "public"),
             ApplicationProperties.TenantConfiguration("urn:ngsi-ld:tenant:01".toUri(), "http://localhost", "tenant_01")
         )
     )

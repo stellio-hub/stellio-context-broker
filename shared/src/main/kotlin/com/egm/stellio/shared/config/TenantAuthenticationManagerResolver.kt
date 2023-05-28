@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
-import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
+import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import jakarta.annotation.PostConstruct
 import org.springframework.security.authentication.ReactiveAuthenticationManager
@@ -29,7 +29,7 @@ class TenantAuthenticationManagerResolver(
     }
 
     override fun resolve(exchange: ServerWebExchange): Mono<ReactiveAuthenticationManager> {
-        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_NAME
+        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI
 
         return authenticationManagers[tenantUri]?.let {
             Mono.just(it)

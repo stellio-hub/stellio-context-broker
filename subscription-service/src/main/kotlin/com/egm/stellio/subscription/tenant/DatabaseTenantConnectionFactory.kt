@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
-import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
+import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.r2dbc.connection.lookup.AbstractRoutingConnectionFactory
 import reactor.core.publisher.Mono
@@ -15,10 +15,10 @@ class DatabaseTenantConnectionFactory(
         // when working out of a web context (e.g., in tests), nothing is set from the tenant header
         // so set here also the default tenant name
         Mono.deferContextual { contextView ->
-            val tenantUri = contextView.getOrDefault(NGSILD_TENANT_HEADER, DEFAULT_TENANT_NAME)!!
-            if (!applicationProperties.tenants.map { it.uri.toString() }.contains(tenantUri))
+            val tenantUri = contextView.getOrDefault(NGSILD_TENANT_HEADER, DEFAULT_TENANT_URI)!!
+            if (!applicationProperties.tenants.map { it.uri }.contains(tenantUri))
                 Mono.error(NonexistentTenantException("Tenant $tenantUri does not exist"))
             else
-                Mono.just(tenantUri)
+                Mono.just(tenantUri.toString())
         }
 }

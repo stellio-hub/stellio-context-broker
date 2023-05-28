@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.NonexistentTenantResponse
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.isURI
+import com.egm.stellio.shared.util.toUri
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
@@ -17,9 +18,10 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.net.URI
 
 const val NGSILD_TENANT_HEADER = "NGSILD-Tenant"
-const val DEFAULT_TENANT_NAME = "urn:ngsi-ld:tenant:default"
+val DEFAULT_TENANT_URI = "urn:ngsi-ld:tenant:default".toUri()
 
 @Component
 @Order(0)
@@ -27,13 +29,13 @@ class TenantWebFilter(
     private val applicationProperties: ApplicationProperties
 ) : WebFilter {
 
-    private lateinit var tenantsUris: List<String>
+    private lateinit var tenantsUris: List<URI>
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostConstruct
     fun initializeTenantsUris() {
-        tenantsUris = applicationProperties.tenants.map { it.uri.toString() }
+        tenantsUris = applicationProperties.tenants.map { it.uri }
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
@@ -50,7 +52,7 @@ class TenantWebFilter(
                     return exchange.response.writeWith(
                         Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
                     )
-                } else if (!tenantsUris.contains(it)) {
+                } else if (!tenantsUris.contains(it.toUri())) {
                     logger.error("Unknown tenant requested: $it")
                     exchange.response.setStatusCode(HttpStatus.NOT_FOUND)
                     val errorResponse = serializeObject(NonexistentTenantResponse("Tenant $it does not exist"))
@@ -58,7 +60,7 @@ class TenantWebFilter(
                         Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
                     )
                 }
-            } ?: DEFAULT_TENANT_NAME
+            }?.toUri() ?: DEFAULT_TENANT_URI
 
         return chain
             .filter(exchange)

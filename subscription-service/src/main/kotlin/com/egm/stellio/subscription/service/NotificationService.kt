@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.toKeyValues
+import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
@@ -21,8 +22,7 @@ import org.springframework.web.reactive.function.client.awaitExchange
 
 @Service
 class NotificationService(
-    private val subscriptionService: SubscriptionService,
-    private val subscriptionEventService: SubscriptionEventService
+    private val subscriptionService: SubscriptionService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -90,7 +90,6 @@ class NotificationService(
             Triple(subscription, notification, false)
         }
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
-        subscriptionEventService.publishNotificationCreateEvent(null, result.second)
         return result
     }
 

@@ -4,13 +4,13 @@ import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NotImplementedException
-import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.Subscription

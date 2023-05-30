@@ -1,6 +1,6 @@
 delete from attribute_instance
 where temporal_entity_attribute =
-    ( select id from temporal_attribute_instance
+    ( select id from temporal_entity_attribute
     where entity_id in
         ( select entity_id from entity_payload
         where types && array['https://uri.etsi.org/ngsi-ld/Subscription'] or types && array['https://uri.etsi.org/ngsi-ld/notification']
@@ -9,7 +9,7 @@ where temporal_entity_attribute =
 
 delete from attribute_instance_audit
 where temporal_entity_attribute =
-    ( select id from temporal_attribute_instance
+    ( select id from temporal_entity_attribute
     where entity_id in
         ( select entity_id from entity_payload
         where types && array['https://uri.etsi.org/ngsi-ld/Subscription'] or types && array['https://uri.etsi.org/ngsi-ld/notification']

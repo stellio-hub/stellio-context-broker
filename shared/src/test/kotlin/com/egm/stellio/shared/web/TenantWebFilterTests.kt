@@ -61,7 +61,7 @@ class TenantWebFilterTests {
     }
 
     @Test
-    fun `it should add the NGSILD-Tenant header in responses`() {
+    fun `it should find a non-default tenant and add the NGSILD-Tenant header in the response`() {
         webClient.get()
             .uri("/router/mockkedroute/ok")
             .header(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
@@ -69,5 +69,14 @@ class TenantWebFilterTests {
             .expectStatus().isEqualTo(HttpStatus.OK)
             .expectHeader().exists(NGSILD_TENANT_HEADER)
             .expectHeader().valueEquals(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
+    }
+
+    @Test
+    fun `it should fallback to the default tenant if none was provided in the request`() {
+        webClient.get()
+            .uri("/router/mockkedroute/ok")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.OK)
+            .expectHeader().doesNotExist(NGSILD_TENANT_HEADER)
     }
 }

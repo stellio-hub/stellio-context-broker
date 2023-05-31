@@ -53,7 +53,7 @@ class EntityEventService(
                 publishEntityEvent(
                     EntityCreateEvent(sub, tenantUri, entityId, entityTypes, it.second, contexts)
                 )
-            }.logResults(EventsType.ENTITY_CREATE, entityId, tenantUri)
+            }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantUri)
         }
     }
 
@@ -71,7 +71,7 @@ class EntityEventService(
                 publishEntityEvent(
                     EntityReplaceEvent(sub, tenantUri, entityId, entityTypes, it.second, contexts)
                 )
-            }.logResults(EventsType.ENTITY_REPLACE, tenantUri, entityId)
+            }.logEntityEvent(EventsType.ENTITY_REPLACE, tenantUri, entityId)
         }
     }
 
@@ -259,7 +259,7 @@ class EntityEventService(
             }
         }
 
-    private fun <A, B> Either<A, B>.logResults(eventsType: EventsType, entityId: URI, tenantUri: URI) =
+    private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantUri: URI) =
         this.fold({
             logger.error("Error while sending $eventsType event for entity $entityId: $it")
         }, {

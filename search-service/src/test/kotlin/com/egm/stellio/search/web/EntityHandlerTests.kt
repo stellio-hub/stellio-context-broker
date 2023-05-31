@@ -25,8 +25,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
-import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.sub
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.Job
@@ -113,7 +111,7 @@ class EntityHandlerTests {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -134,7 +132,7 @@ class EntityHandlerTests {
             )
             authorizationService.createAdminRight(eq(breedingServiceId), sub)
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1167,7 +1165,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        every { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1187,7 +1185,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1287,7 +1285,7 @@ class EntityHandlerTests {
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
     }
@@ -1334,7 +1332,7 @@ class EntityHandlerTests {
                 sub.orNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1395,7 +1393,7 @@ class EntityHandlerTests {
                 sub.orNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1447,7 +1445,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1499,7 +1497,7 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
 
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1626,7 +1624,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } returns Job()
 
@@ -1643,7 +1641,7 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1768,7 +1766,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1786,7 +1784,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1818,7 +1816,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1848,7 +1846,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1965,7 +1963,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1980,7 +1978,7 @@ class EntityHandlerTests {
             entityPayloadService.deleteEntityPayload(eq(beehiveId))
             authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2069,7 +2067,7 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
         } returns Job()
     }
@@ -2098,7 +2096,7 @@ class EntityHandlerTests {
                 null
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2133,7 +2131,7 @@ class EntityHandlerTests {
                 eq(true)
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2171,7 +2169,7 @@ class EntityHandlerTests {
                 eq(datasetId.toUri())
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),

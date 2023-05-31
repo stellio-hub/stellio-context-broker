@@ -12,8 +12,8 @@ class DatabaseTenantConnectionFactory(
 ) : AbstractRoutingConnectionFactory() {
 
     override fun determineCurrentLookupKey(): Mono<Any> =
-        // when working out of a web context (e.g., in tests), nothing is set from the tenant header
-        // so set here also the default tenant name
+        // when working out of a web or Kafka context (e.g., in tests),
+        // nothing is set from the tenant header, so set here also the default tenant name
         Mono.deferContextual { contextView ->
             val tenantUri = contextView.getOrDefault(NGSILD_TENANT_HEADER, DEFAULT_TENANT_URI)!!
             if (!applicationProperties.tenants.map { it.uri }.contains(tenantUri))

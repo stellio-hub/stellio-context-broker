@@ -1,4 +1,5 @@
 {
+  "tenantUri": "urn:ngsi-ld:tenant:default",
   "entityId" : "urn:ngsi-ld:BeeHive:01",
   "entityTypes" : [ "https://ontology.eglobalmark.com/apic#BeeHive" ],
   "contexts" : [ "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld" ],

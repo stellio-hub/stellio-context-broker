@@ -1,8 +1,11 @@
 package com.egm.stellio.subscription.job
 
+import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.ApplicationProperties.TenantConfiguration
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Notification
@@ -42,6 +45,9 @@ class TimeIntervalNotificationJobTest {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @MockkBean
+    private lateinit var applicationProperties: ApplicationProperties
 
     @Test
     fun `it should compose the query string used to get matching entities`() {
@@ -112,6 +118,7 @@ class TimeIntervalNotificationJobTest {
         val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
+                DEFAULT_TENANT_URI,
                 query,
                 buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
             )
@@ -136,6 +143,7 @@ class TimeIntervalNotificationJobTest {
 
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
+                DEFAULT_TENANT_URI,
                 "?type=BeeHive",
                 buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
             )
@@ -184,6 +192,7 @@ class TimeIntervalNotificationJobTest {
 
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntitiesToNotify(
+                DEFAULT_TENANT_URI,
                 subscription,
                 buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
             )
@@ -227,6 +236,9 @@ class TimeIntervalNotificationJobTest {
         val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
             "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
+        every {
+            applicationProperties.tenants
+        } returns listOf(TenantConfiguration(DEFAULT_TENANT_URI, "", "public"))
         coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
         coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_CORE_CONTEXT
         coEvery {
@@ -246,13 +258,13 @@ class TimeIntervalNotificationJobTest {
 
         timeIntervalNotificationJob.sendTimeIntervalNotification()
 
-        verify(
-            getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
-        )
-
-        coVerify(exactly = 1) {
+        coVerify(exactly = 1, timeout = 1000L) {
             notificationService.callSubscriber(subscription, entity.deserializeAsMap())
         }
         confirmVerified(notificationService)
+
+        verify(
+            getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
+        )
     }
 }

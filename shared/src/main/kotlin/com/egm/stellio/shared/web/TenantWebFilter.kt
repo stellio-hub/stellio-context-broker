@@ -39,9 +39,8 @@ class TenantWebFilter(
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        val tenant = exchange.request.headers[NGSILD_TENANT_HEADER]?.first()
+        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first()
             .also {
-                logger.debug("Request is targeting tenant $it")
                 if (it != null)
                     exchange.response.headers.add(NGSILD_TENANT_HEADER, it)
             }?.also {
@@ -64,6 +63,6 @@ class TenantWebFilter(
 
         return chain
             .filter(exchange)
-            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenant) }
+            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenantUri) }
     }
 }

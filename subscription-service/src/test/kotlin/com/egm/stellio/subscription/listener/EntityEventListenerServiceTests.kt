@@ -1,10 +1,11 @@
-package com.egm.stellio.subscription.service
+package com.egm.stellio.subscription.listener
 
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.service.NotificationService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,7 +42,7 @@ class EntityEventListenerServiceTests {
 
         entityEventListenerService.dispatchEntityEvent(replaceEvent)
 
-        coVerify { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
+        coVerify(timeout = 1000L) { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
         confirmVerified(notificationService)
     }
 
@@ -61,7 +62,9 @@ class EntityEventListenerServiceTests {
 
         entityEventListenerService.dispatchEntityEvent(updateEvent)
 
-        coVerify { notificationService.notifyMatchingSubscribers(any(), any(), setOf(NGSILD_NAME_PROPERTY)) }
+        coVerify(timeout = 1000L) {
+            notificationService.notifyMatchingSubscribers(any(), any(), setOf(NGSILD_NAME_PROPERTY))
+        }
         confirmVerified(notificationService)
     }
 }

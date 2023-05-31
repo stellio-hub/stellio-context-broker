@@ -13,8 +13,6 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.sub
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -271,7 +269,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
                 capture(capturedEntitiesIds),
@@ -292,7 +290,7 @@ class EntityOperationHandlerTests {
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.id })
 
         coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
-        verify(timeout = 1000, exactly = 3) {
+        coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
         capturedEntitiesIds.forEach { assertTrue(it in allEntitiesUris) }
@@ -320,7 +318,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
                 capture(capturedEntitiesIds),
@@ -352,7 +350,9 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        coVerify(timeout = 1000, exactly = 2) {
+            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
+        }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
     }
@@ -435,11 +435,11 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -452,7 +452,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
         coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
-        verify {
+        coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq(sub.value),
                 match { it in createdEntitiesIds },
@@ -460,7 +460,7 @@ class EntityOperationHandlerTests {
                 eq(hcmrContext)
             )
         }
-        verify(timeout = 1000, exactly = 2) {
+        coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishAttributeChangeEvents(
                 eq(sub.value),
                 match { it in updatedEntitiesIds },
@@ -545,7 +545,7 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createAdminRights(listOf(deviceUri), sub) }
-        verify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
     }
 
     @Test
@@ -562,7 +562,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -573,7 +573,7 @@ class EntityOperationHandlerTests {
         coVerify { entityOperationService.create(any(), any(), any()) wasNot Called }
         coVerify { entityOperationService.replace(any(), sub.orNull()) }
         coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
-        verify(timeout = 1000, exactly = 2) {
+        coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
                 eq(sub.value),
                 match { it in entitiesIds },
@@ -657,7 +657,7 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { entityOperationService.replace(any(), sub.orNull()) }
-        verify {
+        coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq(sub.value),
                 eq(temperatureSensorUri),
@@ -723,7 +723,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
@@ -731,7 +731,7 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 3) {
+        coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
                 eq(sub.value),
                 match { it in allEntitiesUris },

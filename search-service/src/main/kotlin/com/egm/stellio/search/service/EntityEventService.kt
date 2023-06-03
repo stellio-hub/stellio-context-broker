@@ -252,14 +252,20 @@ class EntityEventService(
 
     private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantUri: URI) =
         this.fold({
-            logger.error("Error while sending $eventsType event for entity $entityId: $it")
+            logger.error("Error sending {} event for entity {} in tenant {}: {}", eventsType, entityId, tenantUri, it)
         }, {
             logger.debug("Sent {} event for entity {} in tenant {}", eventsType, entityId, tenantUri)
         })
 
     private fun <A, B> Either<A, B>.logAttributeEvent(eventCategory: String, entityId: URI, tenantUri: URI) =
         this.fold({
-            logger.error("Error while sending $eventCategory event for entity $entityId: $it")
+            logger.error(
+                "Error sending {} event for entity {} in tenant {}: {}",
+                eventCategory,
+                entityId,
+                tenantUri,
+                it
+            )
         }, {
             logger.debug("Sent {} event for entity {} in tenant {}", eventCategory, entityId, tenantUri)
         })

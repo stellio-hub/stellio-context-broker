@@ -9,17 +9,14 @@ import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
-import reactor.core.publisher.Mono
 import java.net.URI
 
 @Component
@@ -231,12 +228,6 @@ class EntityEventService(
             }.logAttributeEvent("Attribute Delete", tenantUri, entityId)
         }
     }
-
-    private suspend fun getTenantFromContext(): URI =
-        Mono.deferContextual { contextView ->
-            val tenantUri = contextView.getOrDefault(NGSILD_TENANT_HEADER, DEFAULT_TENANT_URI)!!
-            Mono.just(tenantUri)
-        }.awaitSingle()
 
     internal suspend fun getSerializedEntity(
         entityId: URI

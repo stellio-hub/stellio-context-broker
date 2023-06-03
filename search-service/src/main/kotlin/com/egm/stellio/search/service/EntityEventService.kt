@@ -177,7 +177,7 @@ class EntityEventService(
             else ->
                 logger.warn(
                     "Received an unexpected result (${updatedDetails.updateOperationResult} " +
-                        "for entity $entityId and attribte ${updatedDetails.attributeName}"
+                        "for entity $entityId and attribute ${updatedDetails.attributeName}"
                 )
         }
     }

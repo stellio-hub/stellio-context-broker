@@ -41,7 +41,7 @@ class EntityEventListenerService(
             val entityEvent = deserializeAs<EntityEvent>(content)
             val tenantUri = entityEvent.tenantUri
             logger.debug(
-                "Handling event {} for resource {} in tenant {}",
+                "Handling {} event for entity {} in tenant {}",
                 entityEvent.operationType,
                 entityEvent.entityId,
                 entityEvent.tenantUri

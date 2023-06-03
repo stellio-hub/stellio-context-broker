@@ -44,7 +44,7 @@ class ObservationEventListener(
             val observationEvent = deserializeAs<EntityEvent>(content)
             val tenantUri = observationEvent.tenantUri
             logger.debug(
-                "Handling event {} for resource {} in tenant {}",
+                "Handling event {} for entity {} in tenant {}",
                 observationEvent.operationType,
                 observationEvent.entityId,
                 observationEvent.tenantUri

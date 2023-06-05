@@ -60,7 +60,7 @@ private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
         else BadRequestDataException(invalidCharacterInContent(this)).left()
     } else Unit.right()
 
-private val invalidCharactersForValues = "<>\"'=()".toCharArray()
+private val invalidCharactersForValues = "<>\"".toCharArray()
 
 /**
  * Returns whether the given string is a supported content as defined in 4.6.3

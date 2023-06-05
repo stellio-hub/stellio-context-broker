@@ -7,6 +7,7 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
+import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
@@ -45,6 +46,9 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+
+    @MockkBean(relaxed = true)
+    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -184,6 +188,56 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 now,
                 EMPTY_PAYLOAD,
                 listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `it should replace an entity payload if entity previously existed`() = runTest {
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+
+        entityPayloadService.replaceEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+    }
+
+    @Test
+    fun `it should replace an entity`() = runTest {
+        val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            createEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+
+        entityPayloadService.replaceEntity(
+            beehiveURI,
+            ngsiLdEntity,
+            jsonLdEntity,
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertTrue(it.modifiedAt != null)
+                assertEquals(8, it.payload.deserializeAsMap().size)
+            }
+
+        coVerify {
+            entityAttributeCleanerService.deleteEntityAttributes(beehiveURI)
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                any(),
+                any(),
+                emptyList(),
+                any(),
+                eq("0123456789-1234-5678-987654321")
             )
         }
     }

@@ -75,7 +75,7 @@ class EntityPayloadService(
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             createdAt,
-            serializeObject(jsonLdEntity.populateCreatedAt(createdAt).members),
+            serializeObject(jsonLdEntity.populateCreationTimeDate(createdAt).members),
             jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()
@@ -102,6 +102,86 @@ class EntityPayloadService(
             .bind("contexts", contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
+
+    @Transactional
+    suspend fun replaceEntity(
+        entityId: URI,
+        ngsiLdEntity: NgsiLdEntity,
+        jsonLdEntity: JsonLdEntity,
+        sub: String? = null
+    ): Either<APIException, Unit> = either {
+        val replacedAt = ngsiLdDateTime()
+        val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+        logger.debug("Replacing entity {}", ngsiLdEntity.id)
+
+        // wait for attributes to be deleted before creating new ones
+        entityAttributeCleanerService.deleteEntityAttributes(entityId).join()
+        replaceEntityPayload(ngsiLdEntity, replacedAt, jsonLdEntity).bind()
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            ngsiLdEntity,
+            jsonLdEntity,
+            attributesMetadata,
+            replacedAt,
+            sub
+        ).bind()
+    }
+
+    @Transactional
+    suspend fun replaceEntityPayload(
+        ngsiLdEntity: NgsiLdEntity,
+        replacedAt: ZonedDateTime,
+        jsonLdEntity: JsonLdEntity
+    ): Either<APIException, Unit> = either {
+        val specificAccessPolicy = ngsiLdEntity.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }
+            ?.let { getSpecificAccessPolicy(it) }
+            ?.bind()
+        val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
+        replaceEntityPayload(
+            ngsiLdEntity.id,
+            ngsiLdEntity.types,
+            replacedAt,
+            serializeObject(jsonLdEntity.populateReplacementTimeDates(createdAt, replacedAt).members),
+            jsonLdEntity.contexts,
+            specificAccessPolicy
+        ).bind()
+    }
+
+    suspend fun replaceEntityPayload(
+        entityId: URI,
+        types: List<ExpandedTerm>,
+        replacedAt: ZonedDateTime,
+        entityPayload: String,
+        contexts: List<String>,
+        specificAccessPolicy: SpecificAccessPolicy? = null
+    ): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET types = :types,
+            modified_at = :modified_at,
+            payload = :payload,
+            specific_access_policy = :specific_access_policy,
+            contexts = :contexts
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("types", types.toTypedArray())
+            .bind("modified_at", replacedAt)
+            .bind("payload", Json.of(entityPayload))
+            .bind("contexts", contexts.toTypedArray())
+            .bind("specific_access_policy", specificAccessPolicy?.toString())
+            .execute()
+
+    suspend fun retrieveCreatedAt(entityId: URI): Either<APIException, ZonedDateTime> =
+        databaseClient.sql(
+            """
+            SELECT created_at from entity_payload
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .oneToResult { toZonedDateTime(it["created_at"]) }
 
     suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
         databaseClient.sql(

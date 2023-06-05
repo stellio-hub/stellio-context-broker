@@ -20,7 +20,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -37,9 +36,6 @@ class NotificationServiceTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
-
-    @MockkBean
-    private lateinit var subscriptionEventService: SubscriptionEventService
 
     @Autowired
     private lateinit var notificationService: NotificationService
@@ -85,7 +81,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -99,13 +94,6 @@ class NotificationServiceTests {
                 assertEquals(1, it[0].second.data.size)
                 assertTrue(it[0].third)
             }
-
-        verify(timeout = 1000, exactly = 1) {
-            subscriptionEventService.publishNotificationCreateEvent(
-                null,
-                match { it.subscriptionId == subscription.id }
-            )
-        }
 
         coVerify {
             subscriptionService.getMatchingSubscriptions(
@@ -136,7 +124,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -180,7 +167,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -213,7 +199,6 @@ class NotificationServiceTests {
             coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
             coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
             coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-            coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
             stubFor(
                 post(urlMatching("/notification"))
@@ -227,13 +212,6 @@ class NotificationServiceTests {
                     assertEquals(1, it[0].second.data.size)
                     assertTrue(it[0].third)
                 }
-
-            verify(timeout = 1000, exactly = 1) {
-                subscriptionEventService.publishNotificationCreateEvent(
-                    null,
-                    match { it.subscriptionId == subscription.id }
-                )
-            }
 
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
@@ -261,7 +239,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -312,7 +289,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingQQuery(any(), any(), any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(any(), any()) } returns true.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -359,7 +335,6 @@ class NotificationServiceTests {
         coEvery { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } returns true.right()
         coEvery { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } returns false.right()
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -403,7 +378,6 @@ class NotificationServiceTests {
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -425,7 +399,6 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
-        coEvery { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } returns Job()
 
         stubFor(
             post(urlMatching("/notification"))

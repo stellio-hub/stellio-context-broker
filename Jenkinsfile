@@ -98,7 +98,6 @@ pipeline {
             archiveArtifacts artifacts: '**/build/reports/**', allowEmptyArchive: true
 
             junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/test/*.xml'
-            recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/reports/ktlint/ktlint*.xml')
             recordIssues enabledForFailure: true, tool: detekt(pattern: '**/build/reports/detekt/detekt.xml')
         }
         success {

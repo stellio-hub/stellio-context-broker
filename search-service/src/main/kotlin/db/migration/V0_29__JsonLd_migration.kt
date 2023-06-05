@@ -1,5 +1,3 @@
-// ktlint-disable filename
-
 package db.migration
 
 import arrow.core.Either

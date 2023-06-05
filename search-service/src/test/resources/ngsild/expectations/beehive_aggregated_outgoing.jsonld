@@ -1,7 +1,7 @@
 {
-  "id": "urn:ngsi-ld:Subscription:1234",
-  "type": "Subscription",
-  "notification": {
+  "id": "urn:ngsi-ld:Beehive:1234",
+  "type": "BeeHive",
+  "outgoing": {
     "type": "Property",
     "sum": [
       [

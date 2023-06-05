@@ -116,7 +116,7 @@ To build all the services, you can just launch:
 ./gradlew build
 ```
 
-It will compile the source code, check the code formatting (thanks to [ktLint](https://ktlint.github.io/)) and run the test
+It will compile the source code, check the code quality (thanks to [detekt](https://detekt.dev/)) and run the test
 suite for all the services.
 
 For each service, a self executable jar is produced in the `build/libs` directory of the service.
@@ -129,17 +129,9 @@ If you want to build only one of the services, you can launch:
 
 ### Code quality
 
-Code formatting and standard code quality checks are performed by [ktLint](https://ktlint.github.io/) and 
-[Detekt](https://detekt.github.io/detekt/index.html).
+Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
 
-ktLint and Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
-
-If you use IntelliJ:
-* You can generate the corresponding ktLint settings with the following command:
-
-```shell script
-./gradlew ktlintApplyToIdea
-```
+Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
 
 * You may consider using a plugin like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) 
 that applies changed code refactoring and optimized imports on a save.
@@ -168,9 +160,46 @@ docker load --input search-service/build/jib-image.tar
 docker run stellio/stellio-search-service:latest
 ```
 
+## Releasing a new version
+
+* Merge develop into master 
+
+```
+git checkout master
+git merge develop
+```
+
+* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file)
+* Commit the modification using the following template message
+
+```
+git commit -am "chore: upgrade version to x.y.z"
+```
+
+* Push the modifications
+
+```
+git push origin master
+```
+
+The CI will then create and publish Docker images tagged with the published version number in https://hub.docker.com/u/stellio.
+
+* On GitHub, check and publish the release notes in https://github.com/stellio-hub/stellio-context-broker/releases
+
 ## Usage
 
 To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).
+
+## Minimal hardware requirements needed to run Stellio
+
+The recommended system requirements may vary depending on factors such as the scale of deployment, usage patterns, and specific use cases. That said, here are the general guidelines for the minimum computer requirements:
+
+* Processor: Dual-core processor or higher
+* RAM: 4GB or higher (1.8GB is needed to just run it)
+* Storage: At least 4GB of free disk space (3.8GB is needed to just run it)
+* Operating System: Linux (recommended), macOS (also recommended), or Windows
+
+Please note that these requirements may vary based on factors such as the size of your dataset, the number of concurrent users, and the overall complexity of your use case.
 
 ## Further resources
 

@@ -2,9 +2,9 @@ package com.egm.stellio.subscription.job
 
 import arrow.core.flatten
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService

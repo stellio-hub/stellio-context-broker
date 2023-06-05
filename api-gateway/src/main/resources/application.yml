@@ -43,6 +43,15 @@ management:
     health:
       enabled: true
 
+logbook:
+  include:
+    - /ngsi-ld/v1/**
+  exclude:
+    - /actuator/**
+  format.style: http
+  strategy: body-only-if-status-at-least
+  minimum-status: 200
+
 # Default values for sending log data to a Gelf compatible endpoint
 # Log data is sent only if the 'gelflogs' Spring profile is active
 # application.graylog.host: localhost

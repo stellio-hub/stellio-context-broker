@@ -30,8 +30,8 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
-    <logger name="reactor.netty" level="INFO" />
     <logger name="org.springframework.cloud.gateway" level="INFO" />
+    <logger name="org.zalando.logbook" level="TRACE" />
 
     <root level="INFO">
         <appender-ref ref="console" />

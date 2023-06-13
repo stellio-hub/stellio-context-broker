@@ -82,13 +82,13 @@ class SubscriptionService(
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ZonedDateTime.now()))
+        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ngsiLdDateTime()))
             BadRequestDataException("'expiresAt' must be in the future").left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
         runCatching { ZonedDateTime.parse(expiresAt) }.fold({
-            if (it.isBefore(ZonedDateTime.now()))
+            if (it.isBefore(ngsiLdDateTime()))
                 BadRequestDataException("'expiresAt' must be in the future").left()
             else it.right()
         }, {

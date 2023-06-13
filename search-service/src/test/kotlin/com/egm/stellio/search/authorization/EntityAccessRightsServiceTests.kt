@@ -33,7 +33,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.time.ZonedDateTime
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -486,7 +485,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityPayloadService.createEntityPayload(
             entityId = entityId,
             types = types.toList(),
-            createdAt = ZonedDateTime.now(),
+            createdAt = ngsiLdDateTime(),
             contexts = listOf(APIC_COMPOUND_CONTEXT),
             entityPayload = EMPTY_PAYLOAD,
             specificAccessPolicy = specificAccessPolicy

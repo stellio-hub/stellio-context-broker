@@ -149,7 +149,7 @@ class NgsiLdGeoProperty private constructor(
 }
 
 sealed class NgsiLdAttributeInstance(
-    val createdAt: ZonedDateTime? = ZonedDateTime.now(),
+    val createdAt: ZonedDateTime? = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime?,
     val observedAt: ZonedDateTime?,
     val datasetId: URI?,

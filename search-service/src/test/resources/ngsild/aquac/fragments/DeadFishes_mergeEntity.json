@@ -1,0 +1,11 @@
+{
+  "fishNumber":{
+    "type":"Property",
+    "value":600,
+    "observedAt": "2022-12-24T14:01:22.066Z"
+  },
+  "fishSize":{
+    "type":"Property",
+    "value": "20"
+  }
+}

@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
@@ -243,6 +244,57 @@ class TemporalEntityAttributeService(
                     time = attributeMetadata.observedAt,
                     attributeMetadata = attributeMetadata,
                     payload = attributePayload
+                )
+                attributeInstanceService.create(attributeObservedAtInstance).bind()
+            }
+        }
+
+    @Transactional
+    suspend fun mergeAttribute(
+        tea: TemporalEntityAttribute,
+        attributeName: ExpandedTerm,
+        attributeMetadata: AttributeMetadata,
+        createdAt: ZonedDateTime,
+        observedAt: ZonedDateTime?,
+        attributePayload: ExpandedAttributeInstance,
+        sub: Sub?
+    ): Either<APIException, Unit> =
+        either {
+            logger.debug(
+                "Replacing attribute {} ({}) in entity {}",
+                attributeName,
+                attributeMetadata.datasetId,
+                tea.entityId
+            )
+            val (newAttributePayload, newAttributeMetadata) = addObservedAtIfNeeded(
+                tea,
+                attributePayload,
+                attributeMetadata,
+                observedAt
+            )
+            val (jsonTargetObject, updatedAttributeInstance) = mergeJsonObject(tea, newAttributePayload)
+            val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
+            update(tea.id, newAttributeMetadata, createdAt, jsonTargetObject.toString()).bind()
+
+            val attributeInstance = AttributeInstance(
+                temporalEntityAttribute = tea.id,
+                timeAndProperty = Pair(createdAt, AttributeInstance.TemporalProperty.MODIFIED_AT),
+                value = value,
+                payload = updatedAttributeInstance,
+                sub = sub
+            )
+            attributeInstanceService.create(attributeInstance).bind()
+
+            if (newAttributeMetadata.observedAt != null) {
+                val attributeObservedAtInstance = AttributeInstance(
+                    temporalEntityAttribute = tea.id,
+                    timeAndProperty = Pair(
+                        newAttributeMetadata.observedAt,
+                        AttributeInstance.TemporalProperty.OBSERVED_AT
+                    ),
+                    value = value,
+                    payload = updatedAttributeInstance,
+                    sub = sub
                 )
                 attributeInstanceService.create(attributeObservedAtInstance).bind()
             }
@@ -622,14 +674,7 @@ class TemporalEntityAttributeService(
                 if (exists) {
                     // first update payload in temporal entity attribute
                     val tea = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
-                    val jsonSourceObject = JSONObject(tea.payload.asString())
-                    val jsonUpdateObject = JSONObject(attributeValues)
-                    val jsonMerger = JsonMerger(
-                        arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
-                        objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
-                    )
-                    val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-                    val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
+                    val (jsonTargetObject, updatedAttributeInstance) = mergeJsonObject(tea, attributeValues)
                     updateStatus(tea.id, modifiedAt, jsonTargetObject.toString()).bind()
 
                     // then update attribute instance
@@ -714,6 +759,68 @@ class TemporalEntityAttributeService(
         }
     }
 
+    @Transactional
+    suspend fun mergeEntityAttributes(
+        entityUri: URI,
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        expandedAttributes: ExpandedAttributes,
+        createdAt: ZonedDateTime,
+        observedAt: ZonedDateTime?,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> =
+        either {
+            val attributeInstances = ngsiLdAttributes.flatOnInstances()
+            attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+                logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
+                val currentTea =
+                    getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                        .fold({ null }, { it })
+                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+                val attributePayload = getAttributeFromExpandedAttributes(
+                    expandedAttributes,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId
+                )!!
+
+                if (currentTea == null) {
+                    addAttribute(
+                        entityUri,
+                        ngsiLdAttribute.name,
+                        attributeMetadata,
+                        createdAt,
+                        attributePayload,
+                        sub
+                    ).bind()
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.APPENDED,
+                        null
+                    ).right()
+                } else {
+                    mergeAttribute(
+                        currentTea,
+                        ngsiLdAttribute.name,
+                        attributeMetadata,
+                        createdAt,
+                        observedAt,
+                        attributePayload,
+                        sub
+                    ).bind()
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.UPDATED,
+                        null
+                    ).right()
+                }
+            }.fold({
+                it
+            }, {
+                updateResultFromDetailedResult(it)
+            })
+        }
+
     suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,
         attributePayload: ExpandedAttributeInstance
@@ -738,4 +845,37 @@ class TemporalEntityAttributeService(
                     WKTCoordinates(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!! as String)
                 )
         }
+
+    suspend fun mergeJsonObject(
+        tea: TemporalEntityAttribute,
+        expandedAttributeInstance: ExpandedAttributeInstance
+    ): Pair<JSONObject, ExpandedAttributeInstance> {
+        val jsonSourceObject = JSONObject(tea.payload.asString())
+        val jsonUpdateObject = JSONObject(expandedAttributeInstance)
+        val jsonMerger = JsonMerger(
+            arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
+            objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
+        )
+        val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
+        val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
+        return Pair(jsonTargetObject, updatedAttributeInstance)
+    }
+
+    suspend fun addObservedAtIfNeeded(
+        tea: TemporalEntityAttribute,
+        attributePayload: ExpandedAttributeInstance,
+        attributeMetadata: AttributeMetadata,
+        observedAt: ZonedDateTime?
+    ): Pair<ExpandedAttributeInstance, AttributeMetadata> {
+        return if (
+            observedAt != null &&
+            tea.payload.toString().contains(NGSILD_OBSERVED_AT_PROPERTY) &&
+            !attributePayload.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
+        ) {
+            Pair(
+                attributePayload.plus(NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedDateTime(observedAt)),
+                attributeMetadata.copy(observedAt = observedAt)
+            )
+        } else Pair(attributePayload, attributeMetadata)
+    }
 }

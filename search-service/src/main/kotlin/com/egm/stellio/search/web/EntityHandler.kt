@@ -1,6 +1,7 @@
 package com.egm.stellio.search.web
 
 import arrow.core.continuations.either
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
@@ -81,6 +82,72 @@ class EntityHandler(
         { it.toErrorResponse() },
         { it }
     )
+
+    /**
+     * Implements 6.5.3.4 - Merge Entity
+     */
+    @PatchMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun merge(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam options: MultiValueMap<String, String>,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> = either {
+        val entityUri = entityId.toUri()
+        val sub = getSubFromSecurityContext()
+
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+
+        val observedAt = options.getFirst(QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE)
+            ?.parseTimeParameter("'observedAt' parameter is not a valid date")
+            ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
+
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val expandedAttributes = expandAttributes(body, contexts)
+        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
+
+        val updateResult = entityPayloadService.updateTypes(
+            entityUri,
+            typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+        ).bind().mergeWith(
+            entityPayloadService.mergeEntity(
+                entityUri,
+                ngsiLdAttributes,
+                expandedAttributes,
+                observedAt,
+                sub.orNull()
+            ).bind()
+        )
+
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishAttributeChangeEvents(
+                sub.orNull(),
+                entityUri,
+                expandedAttributes,
+                updateResult,
+                true,
+                contexts
+            )
+        }
+
+        if (updateResult.notUpdated.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @PatchMapping("/", "")
+    suspend fun handleMissingEntityIdOnMerge(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to merge an entity")
 
     /**
      * Implements 6.5.3.3 - Replace Entity

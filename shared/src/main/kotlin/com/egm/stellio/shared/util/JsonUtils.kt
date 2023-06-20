@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
@@ -16,6 +17,7 @@ val mapper: ObjectMapper =
         .setSerializationInclusion(JsonInclude.Include.NON_NULL)
         .findAndRegisterModules()
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
 object JsonUtils {
 

@@ -34,7 +34,7 @@ value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
     const val EGM_BASE_CONTEXT_URL =
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     const val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
@@ -90,7 +90,7 @@ object JsonLdUtils {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =
-        ClassPathResource("/contexts/ngsi-ld-core-context-v1.3.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+        ClassPathResource("/contexts/ngsi-ld-core-context-v1.7.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
 
     init {

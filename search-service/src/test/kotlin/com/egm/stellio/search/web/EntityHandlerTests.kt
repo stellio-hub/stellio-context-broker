@@ -95,7 +95,7 @@ class EntityHandlerTests {
             "master/shared-jsonld-contexts/egm.jsonld",
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/aquac/jsonld-contexts/aquac.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
     )
 
     @Test

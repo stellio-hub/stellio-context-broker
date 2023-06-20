@@ -20,7 +20,7 @@ class ExceptionHandlerTests {
                "id":"urn:ngsi-ld:Apiary:XYZ01",,
                "type":"Apiary",
                "@context":[
-                  "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+                  "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
                ]
             }
             """.trimIndent()

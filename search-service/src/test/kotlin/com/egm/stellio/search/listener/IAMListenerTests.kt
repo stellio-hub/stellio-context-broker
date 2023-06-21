@@ -96,6 +96,29 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should handle a create event with the default tenant for a client`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEventWithDefaultTenant.json")
+
+        coEvery { subjectReferentialService.create(any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(subjectCreateEvent)
+
+        coVerify(timeout = 1000L) {
+            subjectReferentialService.create(
+                match {
+                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
+                        it.subjectType == SubjectType.CLIENT &&
+                        it.subjectInfo.asString() ==
+                        """
+                        {"type":"Property","value":{"clientId":"stellio-client"}}
+                        """.trimIndent() &&
+                        it.globalRoles == null
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should handle a create event for a group`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/GroupCreateEvent.json")
 

@@ -48,7 +48,7 @@ open class EntityEvent(
 @JsonTypeName("ENTITY_CREATE")
 data class EntityCreateEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
@@ -60,7 +60,7 @@ data class EntityCreateEvent(
 @JsonTypeName("ENTITY_REPLACE")
 data class EntityReplaceEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
@@ -72,7 +72,7 @@ data class EntityReplaceEvent(
 @JsonTypeName("ENTITY_UPDATE")
 data class EntityUpdateEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val operationPayload: String,
@@ -83,7 +83,7 @@ data class EntityUpdateEvent(
 @JsonTypeName("ENTITY_DELETE")
 data class EntityDeleteEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     override val contexts: List<String>
@@ -92,7 +92,7 @@ data class EntityDeleteEvent(
 @JsonTypeName("ATTRIBUTE_APPEND")
 data class AttributeAppendEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
@@ -109,7 +109,7 @@ data class AttributeAppendEvent(
 @JsonTypeName("ATTRIBUTE_REPLACE")
 data class AttributeReplaceEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
@@ -125,7 +125,7 @@ data class AttributeReplaceEvent(
 @JsonTypeName("ATTRIBUTE_UPDATE")
 data class AttributeUpdateEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
@@ -141,7 +141,7 @@ data class AttributeUpdateEvent(
 @JsonTypeName("ATTRIBUTE_DELETE")
 data class AttributeDeleteEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
@@ -155,7 +155,7 @@ data class AttributeDeleteEvent(
 @JsonTypeName("ATTRIBUTE_DELETE_ALL_INSTANCES")
 data class AttributeDeleteAllInstancesEvent(
     override val sub: String?,
-    override val tenantUri: URI,
+    override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,

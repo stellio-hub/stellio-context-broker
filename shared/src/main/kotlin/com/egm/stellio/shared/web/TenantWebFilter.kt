@@ -39,10 +39,10 @@ class TenantWebFilter(
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first()
-            ?.also {
+        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI.toString()
+            .also {
                 exchange.response.headers.add(NGSILD_TENANT_HEADER, it)
-            }?.also {
+            }.also {
                 if (!it.isURI()) {
                     logger.error("Requested tenant is not a valid URI: $it")
                     exchange.response.setStatusCode(HttpStatus.BAD_REQUEST)
@@ -58,7 +58,7 @@ class TenantWebFilter(
                         Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
                     )
                 }
-            }?.toUri() ?: DEFAULT_TENANT_URI
+            }.toUri()
 
         return chain
             .filter(exchange)

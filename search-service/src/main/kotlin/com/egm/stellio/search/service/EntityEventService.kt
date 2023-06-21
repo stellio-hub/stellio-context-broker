@@ -68,7 +68,7 @@ class EntityEventService(
                 publishEntityEvent(
                     EntityReplaceEvent(sub, tenantUri, entityId, entityTypes, it.second, contexts)
                 )
-            }.logEntityEvent(EventsType.ENTITY_REPLACE, tenantUri, entityId)
+            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantUri)
         }
     }
 
@@ -113,7 +113,7 @@ class EntityEventService(
                         contexts
                     )
                 }
-            }.logAttributeEvent("Attribute Change", tenantUri, entityId)
+            }.logAttributeEvent("Attribute Change", entityId, tenantUri)
         }
     }
 
@@ -225,7 +225,7 @@ class EntityEventService(
                             contexts
                         )
                     )
-            }.logAttributeEvent("Attribute Delete", tenantUri, entityId)
+            }.logAttributeEvent("Attribute Delete", entityId, tenantUri)
         }
     }
 

@@ -29,7 +29,7 @@ class TenantAuthenticationManagerResolver(
     }
 
     override fun resolve(exchange: ServerWebExchange): Mono<ReactiveAuthenticationManager> {
-        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI
+        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI.toString()
 
         return authenticationManagers[tenantUri]?.let {
             Mono.just(it)

@@ -1,5 +1,6 @@
 {
    "operationType":"ATTRIBUTE_APPEND",
+   "tenantUri": "urn:ngsi-ld:tenant:default",
    "entityId":"urn:ngsi-ld:BeeHive:TESTC",
    "entityTypes": ["https://ontology.eglobalmark.com/apic#BeeHive"],
    "attributeName":"https://ontology.eglobalmark.com/apic#humidity",

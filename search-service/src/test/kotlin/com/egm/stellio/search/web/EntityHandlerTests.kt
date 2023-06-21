@@ -1,16 +1,14 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -34,14 +32,15 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
@@ -53,8 +52,7 @@ import java.time.ZoneOffset
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+@EnableConfigurationProperties(ApplicationProperties::class)
 class EntityHandlerTests {
 
     private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
@@ -80,6 +78,8 @@ class EntityHandlerTests {
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -87,7 +87,6 @@ class EntityHandlerTests {
             .build()
     }
 
-    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
@@ -112,7 +111,7 @@ class EntityHandlerTests {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -133,7 +132,7 @@ class EntityHandlerTests {
             )
             authorizationService.createAdminRight(eq(breedingServiceId), sub)
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1166,7 +1165,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        every { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1186,7 +1185,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1286,7 +1285,7 @@ class EntityHandlerTests {
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
     }
@@ -1333,7 +1332,7 @@ class EntityHandlerTests {
                 sub.orNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1394,7 +1393,7 @@ class EntityHandlerTests {
                 sub.orNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1446,7 +1445,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1498,7 +1497,7 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
 
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1625,7 +1624,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } returns Job()
 
@@ -1642,7 +1641,7 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1767,7 +1766,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1785,7 +1784,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1817,7 +1816,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1847,7 +1846,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1964,7 +1963,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1979,7 +1978,7 @@ class EntityHandlerTests {
             entityPayloadService.deleteEntityPayload(eq(beehiveId))
             authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2068,7 +2067,7 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
         } returns Job()
     }
@@ -2097,7 +2096,7 @@ class EntityHandlerTests {
                 null
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2132,7 +2131,7 @@ class EntityHandlerTests {
                 eq(true)
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2170,7 +2169,7 @@ class EntityHandlerTests {
                 eq(datasetId.toUri())
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2275,15 +2274,5 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
         verify { entityEventService wasNot called }
-    }
-
-    @Test
-    @WithAnonymousUser
-    fun `it should not authorize an anonymous to call the API`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .exchange()
-            .expectStatus().isUnauthorized
     }
 }

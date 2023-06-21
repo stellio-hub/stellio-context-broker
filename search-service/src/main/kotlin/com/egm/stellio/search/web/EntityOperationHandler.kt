@@ -288,7 +288,7 @@ class EntityOperationHandler(
         }
     }
 
-    private fun publishReplaceEvents(
+    private suspend fun publishReplaceEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         ngsiLdEntities: List<NgsiLdEntity>
@@ -302,7 +302,7 @@ class EntityOperationHandler(
             )
         }
 
-    private fun publishUpdateEvents(
+    private suspend fun publishUpdateEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         jsonLdEntities: List<JsonLdEntity>,

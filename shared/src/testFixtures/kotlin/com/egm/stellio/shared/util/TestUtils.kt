@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
+import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
@@ -28,3 +29,6 @@ fun String.matchContent(other: String?): Boolean =
 
 fun List<URI>.toListOfString(): List<String> =
     this.map { it.toString() }
+
+const val MOCK_USER_SUB = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
+val sub = Some(MOCK_USER_SUB)

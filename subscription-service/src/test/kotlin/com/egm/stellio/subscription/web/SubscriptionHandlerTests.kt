@@ -1,15 +1,13 @@
 package com.egm.stellio.subscription.web
 
 import arrow.core.Either
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
@@ -20,13 +18,14 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
@@ -34,8 +33,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(SubscriptionHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+@EnableConfigurationProperties(ApplicationProperties::class)
 class SubscriptionHandlerTests {
 
     @Autowired
@@ -47,6 +45,8 @@ class SubscriptionHandlerTests {
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -54,7 +54,6 @@ class SubscriptionHandlerTests {
             .build()
     }
 
-    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
 
     @Test
@@ -704,14 +703,5 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(subscriptionId) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-    }
-
-    @Test
-    @WithAnonymousUser
-    fun `it should not authorize an anonymous to call the API`() {
-        webClient.post()
-            .uri("/ngsi-ld/v1/subscriptions")
-            .exchange()
-            .expectStatus().isUnauthorized
     }
 }

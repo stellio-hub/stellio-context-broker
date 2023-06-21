@@ -7,7 +7,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
-import com.egm.stellio.subscription.config.ApplicationProperties
+import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Subscription
@@ -40,7 +40,7 @@ import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
-    private val applicationProperties: ApplicationProperties,
+    private val subscriptionProperties: SubscriptionProperties,
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
@@ -60,9 +60,7 @@ class SubscriptionService(
 
     private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
         if (!subscription.id.isAbsolute)
-            BadRequestDataException(
-                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
-            ).left()
+            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
         else Unit.right()
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -243,7 +241,7 @@ class SubscriptionService(
 
     fun getContextsLink(subscription: Subscription): String =
         if (subscription.contexts.size > 1) {
-            val linkToRetrieveContexts = applicationProperties.stellioUrl +
+            val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
                 "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
             buildContextLinkHeader(linkToRetrieveContexts)
         } else

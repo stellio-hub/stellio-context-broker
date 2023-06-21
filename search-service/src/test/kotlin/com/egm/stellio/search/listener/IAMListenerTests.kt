@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.listener
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.SubjectReferentialService
@@ -34,7 +34,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(subjectCreateEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
                     it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
@@ -57,7 +57,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(subjectCreateEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
                     it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
@@ -103,7 +103,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(subjectCreateEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
                     it.subjectId == "ab67edf3-238c-4f50-83f4-617c620c62eb" &&
@@ -126,7 +126,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(subjectCreateEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
                     it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
@@ -145,7 +145,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.delete(
                 match {
                     it == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"
@@ -162,7 +162,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb"
@@ -180,7 +180,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb"
@@ -198,7 +198,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb"
@@ -216,7 +216,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.resetGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb"
@@ -233,7 +233,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.addGroupMembershipToUser(
                 match {
                     it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5"
@@ -253,7 +253,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.removeGroupMembershipToUser(
                 match {
                     it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5"
@@ -273,7 +273,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.addServiceAccountIdToClient(
                 match {
                     it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5"
@@ -293,7 +293,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.updateSubjectInfo(
                 eq("ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
@@ -311,7 +311,7 @@ class IAMListenerTests {
 
         iamListener.dispatchIamMessage(roleAppendEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             subjectReferentialService.updateSubjectInfo(
                 eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"),
                 match {

@@ -3,9 +3,9 @@ package com.egm.stellio.search.web
 import arrow.core.*
 import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.*
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS

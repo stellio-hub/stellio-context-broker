@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.web
 
 import arrow.core.*
 import arrow.core.continuations.either
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -10,7 +11,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionService

@@ -1,5 +1,6 @@
 {
   "operationType": "ENTITY_DELETE",
+  "tenantUri": "urn:ngsi-ld:tenant:default",
   "entityId":  "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
   "entityTypes": ["User"],
   "contexts": [

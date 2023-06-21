@@ -3,9 +3,9 @@ package com.egm.stellio.search.authorization
 import arrow.core.*
 import arrow.core.continuations.either
 import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.*
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ResourceNotFoundException

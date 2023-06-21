@@ -39,29 +39,29 @@ class TenantWebFilter(
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI.toString()
-            .also {
-                exchange.response.headers.add(NGSILD_TENANT_HEADER, it)
-            }.also {
-                if (!it.isURI()) {
-                    logger.error("Requested tenant is not a valid URI: $it")
-                    exchange.response.setStatusCode(HttpStatus.BAD_REQUEST)
-                    val errorResponse = serializeObject(BadRequestDataResponse(invalidUriMessage("$it (tenant)")))
-                    return exchange.response.writeWith(
-                        Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
-                    )
-                } else if (!tenantsUris.contains(it.toUri())) {
-                    logger.error("Unknown tenant requested: $it")
-                    exchange.response.setStatusCode(HttpStatus.NOT_FOUND)
-                    val errorResponse = serializeObject(NonexistentTenantResponse("Tenant $it does not exist"))
-                    return exchange.response.writeWith(
-                        Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
-                    )
-                }
-            }.toUri()
+        val tenantUriFromHeader = exchange.request.headers[NGSILD_TENANT_HEADER]?.first()
+        if (tenantUriFromHeader != null)
+            exchange.response.headers.add(NGSILD_TENANT_HEADER, tenantUriFromHeader)
+
+        val tenantUri = tenantUriFromHeader ?: DEFAULT_TENANT_URI.toString()
+        if (!tenantUri.isURI()) {
+            logger.error("Requested tenant is not a valid URI: $tenantUri")
+            exchange.response.setStatusCode(HttpStatus.BAD_REQUEST)
+            val errorResponse = serializeObject(BadRequestDataResponse(invalidUriMessage("$tenantUri (tenant)")))
+            return exchange.response.writeWith(
+                Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
+            )
+        } else if (!tenantsUris.contains(tenantUri.toUri())) {
+            logger.error("Unknown tenant requested: $tenantUri")
+            exchange.response.setStatusCode(HttpStatus.NOT_FOUND)
+            val errorResponse = serializeObject(NonexistentTenantResponse("Tenant $tenantUri does not exist"))
+            return exchange.response.writeWith(
+                Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
+            )
+        }
 
         return chain
             .filter(exchange)
-            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenantUri) }
+            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenantUri.toUri()) }
     }
 }

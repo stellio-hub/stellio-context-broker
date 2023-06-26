@@ -22,8 +22,8 @@ plugins {
     id("org.springframework.boot") version "3.1.0" apply false
     id("io.spring.dependency-management") version "1.1.0" apply false
     id("org.graalvm.buildtools.native") version "0.9.23"
-    kotlin("jvm") version "1.8.21" apply false
-    kotlin("plugin.spring") version "1.8.21" apply false
+    kotlin("jvm") version "1.8.22" apply false
+    kotlin("plugin.spring") version "1.8.22" apply false
     id("com.google.cloud.tools.jib") version "3.3.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
     id("org.sonarqube") version "4.2.1.3168"
@@ -96,6 +96,15 @@ subprojects {
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
+        }
+    }
+
+    // see https://github.com/detekt/detekt/issues/6198
+    configurations.matching { it.name == "detekt" }.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion("1.8.21")
+            }
         }
     }
 

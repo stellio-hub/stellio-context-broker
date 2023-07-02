@@ -40,7 +40,7 @@ jobs:
           push: false
           load: true
           build-args: |
-            JAR_FILE=./search-service/build/libs/search-service-latest-dev.jar
+            JAR_FILE=search-service-latest-dev.jar
       - name: Security Scan for search-service image
         uses: anchore/scan-action@v3
         with:

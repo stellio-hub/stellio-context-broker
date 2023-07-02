@@ -39,8 +39,6 @@ jobs:
         with:
           name: jars
           path: build
-      - run: pwd
-      - run: ls build
       - name: Build local container
         uses: docker/build-push-action@v4
         with:
@@ -55,16 +53,9 @@ jobs:
         uses: anchore/scan-action@v3
         with:
           image: "localbuild/search-service:latest-scan"
-          acs-report-enable: true
           severity-cutoff: critical
-      - name: Upload security scan report
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: security-scan-report
-          path: ${{ steps.scan-base.outputs.sarif }}
       - name: Upload Anchore scan SARIF report
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: ${{ steps.scan-base.outputs.sarif }}
+          sarif_file: ${{ steps.scan.outputs.sarif }}

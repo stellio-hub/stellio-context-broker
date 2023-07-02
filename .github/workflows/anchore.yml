@@ -39,6 +39,8 @@ jobs:
         with:
           name: jars
           path: build
+      - run: pwd
+      - run: ls build
       - name: Build local container
         uses: docker/build-push-action@v4
         with:
@@ -47,7 +49,7 @@ jobs:
           push: false
           load: true
           build-args: |
-            JAR_FILE=build/search-service-latest-dev.jar
+            JAR_FILE=./build/search-service-latest-dev.jar
       - name: Security Scan for search-service image
         uses: anchore/scan-action@v3
         with:

@@ -37,6 +37,8 @@ jobs:
           tags: localbuild/search-service:latest-scan
           push: false
           load: true
+          build-args: |
+            JAR_FILE=build/libs/search-service-latest-dev.jar
       - name: Security Scan for search-service image
         uses: anchore/scan-action@v3
         with:

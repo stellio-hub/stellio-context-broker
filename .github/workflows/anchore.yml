@@ -50,6 +50,7 @@ jobs:
           build-args: |
             JAR_FILE=./build/search-service-latest-dev.jar
       - name: Security Scan for search-service image
+        id: scan
         uses: anchore/scan-action@v3
         with:
           image: "localbuild/search-service:latest-scan"

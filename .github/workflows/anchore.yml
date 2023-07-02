@@ -44,6 +44,7 @@ jobs:
       - name: Build local container
         uses: docker/build-push-action@v4
         with:
+          context: .
           file: ./search-service/Dockerfile
           tags: localbuild/search-service:latest-scan
           push: false

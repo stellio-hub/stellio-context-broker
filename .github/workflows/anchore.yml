@@ -16,28 +16,21 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
-      - name: Assemble
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew assemble
+          arguments: assemble
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build local container
         uses: docker/build-push-action@v4
         with:
-          context: ./search-service
-          file: Dockerfile
+          file: ./search-service/Dockerfile
           tags: localbuild/search-service:latest-scan
           push: false
           load: true
+          build-args: |
+            JAR_FILE=./search-service/build/libs/search-service-latest-dev.jar
       - name: Security Scan for search-service image
         uses: anchore/scan-action@v3
         with:

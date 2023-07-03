@@ -1,0 +1,10 @@
+ignore:
+  # see https://github.com/anchore/grype/issues/431
+  # see https://github.com/anchore/grype/issues/1009
+  - vulnerability: CVE-2015-2156
+  - vulnerability: CVE-2019-16869
+  - vulnerability: CVE-2019-20444
+  - vulnerability: CVE-2019-20445
+  - vulnerability: CVE-2021-37136
+  - vulnerability: CVE-2021-37137
+  - vulnerability: CVE-2022-41881

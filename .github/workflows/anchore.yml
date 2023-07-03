@@ -41,7 +41,6 @@ jobs:
         with:
           name: jars
           path: build
-      - run: ls build/api-gateway/build/libs
       - name: Build API Gateway local container
         uses: docker/build-push-action@v4
         with:

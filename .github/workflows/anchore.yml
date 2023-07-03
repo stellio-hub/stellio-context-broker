@@ -41,7 +41,7 @@ jobs:
         with:
           name: jars
           path: build
-      - run: ls build/api-gateway
+      - run: ls build/api-gateway/build/libs
       - name: Build API Gateway local container
         uses: docker/build-push-action@v4
         with:
@@ -51,7 +51,7 @@ jobs:
           push: false
           load: true
           build-args: |
-            JAR_FILE=./build/api-gateway-latest-dev.jar
+            JAR_FILE=./build/api-gateway/build/libs/api-gateway-latest-dev.jar
       - name: Build Search Service local container
         uses: docker/build-push-action@v4
         with:
@@ -61,7 +61,7 @@ jobs:
           push: false
           load: true
           build-args: |
-            JAR_FILE=./build/search-service-latest-dev.jar
+            JAR_FILE=./build/search-service/build/libs/search-service-latest-dev.jar
       - name: Build Subscription Service local container
         uses: docker/build-push-action@v4
         with:
@@ -71,7 +71,7 @@ jobs:
           push: false
           load: true
           build-args: |
-            JAR_FILE=./build/subscription-service-latest-dev.jar
+            JAR_FILE=./build/subscription-service/build/libs/subscription-service-latest-dev.jar
       - name: Security Scan for API Gateway image
         id: scan-api-gateway
         uses: anchore/scan-action@v3

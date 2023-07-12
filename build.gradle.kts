@@ -20,7 +20,7 @@ plugins {
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.1.1" apply false
-    id("io.spring.dependency-management") version "1.1.0" apply false
+    id("io.spring.dependency-management") version "1.1.1" apply false
     id("org.graalvm.buildtools.native") version "0.9.23"
     kotlin("jvm") version "1.8.22" apply false
     kotlin("plugin.spring") version "1.8.22" apply false

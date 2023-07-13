@@ -29,7 +29,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
-import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -240,14 +239,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should replace a temporal entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 
-        val temporalEntityAttribute = mockkClass(TemporalEntityAttribute::class) {
-            every { id } returns UUID.randomUUID()
-            every { entityId } returns beehiveTestCId
-        }
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .shouldSucceed()
+
+        val temporalEntityAttribute = temporalEntityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY
+        ).shouldSucceedAndResult()
 
         val createdAt = ngsiLdDateTime()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
@@ -268,18 +268,18 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             createdAt,
             expandedAttribute.second[0],
             null
-        )
+        ).shouldSucceed()
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedWith {
-            it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
-                it.attributeValueType == TemporalEntityAttribute.AttributeValueType.STRING &&
-                it.entityId == beehiveTestCId &&
-                it.payload.asString() == serializeObject(expandedAttribute) &&
-                it.createdAt.isBefore(createdAt) &&
-                it.modifiedAt == createdAt
+            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
+            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertEquals(beehiveTestCId, it.entityId)
+            assertJsonPayloadsAreEqual(serializeObject(expandedAttribute.second[0]), it.payload.asString())
+            assertTrue(it.createdAt.isBefore(createdAt))
+            assertEquals(createdAt, it.modifiedAt)
         }
     }
 
@@ -317,18 +317,35 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             observedAt,
             expandedAttribute.second[0],
             null
+        ).shouldSucceed()
+
+        val expectedMergedPayload = JsonLdUtils.expandAttribute(
+            """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": "It's a string now",
+                        "observedAt": "2022-12-24T14:01:22.066Z",
+                        "observedBy": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                        }
+                    }
+                }
+            """.trimIndent(),
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedWith {
-            it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
-                it.attributeValueType == TemporalEntityAttribute.AttributeValueType.STRING &&
-                it.entityId == beehiveTestCId &&
-                it.payload.asString() == serializeObject(expandedAttribute) &&
-                it.createdAt.isBefore(createdAt) &&
-                it.modifiedAt == createdAt
+            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
+            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertEquals(beehiveTestCId, it.entityId)
+            assertJsonPayloadsAreEqual(serializeObject(expectedMergedPayload.second[0]), it.payload.asString())
+            assertTrue(it.createdAt.isBefore(createdAt))
+            assertEquals(createdAt, it.modifiedAt)
         }
     }
 
@@ -353,11 +370,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             null,
             null
         ).shouldSucceedWith {
-            it.updated.size == 6 &&
-                it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size == 2 &&
-                it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
-                    .map { it.attributeName }
-                    .containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY))
+            assertEquals(6, it.updated.size)
+            assertEquals(4, it.updated.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
+            assertEquals(2, it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
+            val appendedAttributes = it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+                .map { it.attributeName }
+            assertTrue(appendedAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
 
         val newTeas = temporalEntityAttributeService.getForEntity(
@@ -381,8 +399,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 match { it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT }
             )
         }
-        // 0 when we create entity attributes and 4 when we merge entity attributes
-        coVerify(exactly = 4) {
+        // 0 when we create entity attributes and 3 when we merge entity attributes
+        coVerify(exactly = 3) {
             attributeInstanceService.create(
                 match { it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT }
             )
@@ -417,11 +435,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             observedAt,
             null
         ).shouldSucceedWith {
-            it.updated.size == 6 &&
-                it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size == 2 &&
-                it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
-                    .map { it.attributeName }
-                    .containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY))
+            assertEquals(6, it.updated.size)
+            assertEquals(2, it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
+            val appendedAttributes = it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+                .map { it.attributeName }
+            assertTrue(appendedAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
 
         val newTeas = temporalEntityAttributeService.getForEntity(

@@ -111,22 +111,22 @@ class EntityPayloadService(
         observedAt: ZonedDateTime?,
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
-        val createdAt = ngsiLdDateTime()
+        val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
         val updateResult = temporalEntityAttributeService.mergeEntityAttributes(
             entityId,
             ngsiLdAttributes,
             expandedAttributes,
-            createdAt,
+            mergedAt,
             observedAt,
             sub
         ).bind()
 
-        // update modifiedAt in entity if at least one attribute has been added
+        // update modifiedAt in entity if at least one attribute has been merged
         if (updateResult.hasSuccessfulUpdate()) {
             val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
-            updateState(entityId, createdAt, teas).bind()
+            updateState(entityId, mergedAt, teas).bind()
         }
         updateResult
     }

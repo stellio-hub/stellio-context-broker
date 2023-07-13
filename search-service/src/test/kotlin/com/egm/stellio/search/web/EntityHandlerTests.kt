@@ -1957,7 +1957,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `merge entity should return a 400 if entityId is missing `() {
+    fun `merge entity should return a 400 if entityId is missing`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
 
         webClient.patch()

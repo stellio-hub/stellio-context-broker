@@ -77,10 +77,25 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
     ).right()
 }
 
+fun guessAttributeValueType(
+    attributeType: TemporalEntityAttribute.AttributeType,
+    value: Any
+): AttributeValueType =
+    when (attributeType) {
+        TemporalEntityAttribute.AttributeType.Property -> guessPropertyValueType(value).first
+        TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
+        TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
+    }
+
 fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
 ): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
-    when (val value = ngsiLdPropertyInstance.value) {
+    guessPropertyValueType(ngsiLdPropertyInstance.value)
+
+fun guessPropertyValueType(
+    value: Any
+): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
+    when (value) {
         is Double -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Int -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Map<*, *> -> Pair(AttributeValueType.OBJECT, Triple(serializeObject(value), null, null))

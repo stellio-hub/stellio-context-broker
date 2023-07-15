@@ -276,7 +276,7 @@ class TemporalEntityAttributeService(
         updateOnUpdate(tea.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject.toString()).bind()
 
         val attributeInstance =
-            createContextualAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
+            prepareAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
         attributeInstanceService.create(attributeInstance).bind()
     }
 
@@ -519,12 +519,15 @@ class TemporalEntityAttributeService(
             val attributeInstances = ngsiLdAttributes.flatOnInstances()
             attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
                 logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-                val (currentTea, attributeMetadata, attributePayload) = prepareAttributeInstanceData(
-                    entityUri,
-                    ngsiLdAttribute,
-                    ngsiLdAttributeInstance,
-                    expandedAttributes
-                ).bind()
+                val currentTea =
+                    getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                        .fold({ null }, { it })
+                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+                val attributePayload = getAttributeFromExpandedAttributes(
+                    expandedAttributes,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId
+                )!!
                 if (currentTea == null) {
                     addAttribute(
                         entityUri,
@@ -656,7 +659,7 @@ class TemporalEntityAttributeService(
                 updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject.toString()).bind()
 
                 // then update attribute instance
-                val attributeInstance = createContextualAttributeInstance(
+                val attributeInstance = prepareAttributeInstance(
                     tea,
                     updatedAttributeInstance,
                     value,
@@ -683,6 +686,31 @@ class TemporalEntityAttributeService(
         updateResultFromDetailedResult(listOf(updateAttributeResult))
     }
 
+    private fun prepareAttributeInstance(
+        tea: TemporalEntityAttribute,
+        expandedAttributeInstance: ExpandedAttributeInstance,
+        value: Triple<String?, Double?, WKTCoordinates?>,
+        modifiedAt: ZonedDateTime,
+        sub: Sub?
+    ): AttributeInstance {
+        val timeAndProperty =
+            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
+                Pair(
+                    getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!,
+                    AttributeInstance.TemporalProperty.OBSERVED_AT
+                )
+            else
+                Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
+
+        return AttributeInstance(
+            temporalEntityAttribute = tea.id,
+            timeAndProperty = timeAndProperty,
+            value = value,
+            payload = expandedAttributeInstance,
+            sub = sub
+        )
+    }
+
     @Transactional
     suspend fun upsertEntityAttributes(
         entityUri: URI,
@@ -693,12 +721,15 @@ class TemporalEntityAttributeService(
     ): Either<APIException, Unit> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-        val (currentTea, attributeMetadata, attributePayload) = prepareAttributeInstanceData(
-            entityUri,
-            ngsiLdAttribute,
-            ngsiLdAttributeInstance,
-            expandedAttributes
-        ).bind()
+        val currentTea =
+            getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                .fold({ null }, { it })
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val attributePayload = getAttributeFromExpandedAttributes(
+            expandedAttributes,
+            ngsiLdAttribute.name,
+            ngsiLdAttributeInstance.datasetId
+        )!!
 
         if (currentTea == null) {
             logger.debug(
@@ -736,12 +767,15 @@ class TemporalEntityAttributeService(
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-            val (currentTea, attributeMetadata, attributePayload) = prepareAttributeInstanceData(
-                entityUri,
-                ngsiLdAttribute,
-                ngsiLdAttributeInstance,
-                expandedAttributes
-            ).bind()
+            val currentTea =
+                getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                    .fold({ null }, { it })
+            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributePayload = getAttributeFromExpandedAttributes(
+                expandedAttributes,
+                ngsiLdAttribute.name,
+                ngsiLdAttributeInstance.datasetId
+            )!!
 
             if (currentTea == null) {
                 addAttribute(
@@ -806,57 +840,6 @@ class TemporalEntityAttributeService(
                     WKTCoordinates(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!! as String)
                 )
         }
-
-    /**
-     * Extract info later needed to decide and realize appropriate attribute action
-     * (add, replace, merge,...)
-     */
-    private suspend fun prepareAttributeInstanceData(
-        entityUri: URI,
-        ngsiLdAttribute: NgsiLdAttribute,
-        ngsiLdAttributeInstance: NgsiLdAttributeInstance,
-        expandedAttributes: ExpandedAttributes
-    ): Either<APIException, Triple<TemporalEntityAttribute?, AttributeMetadata, ExpandedAttributeInstance>> = either {
-        val currentTea =
-            getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
-                .fold({ null }, { it })
-        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-        val attributePayload = getAttributeFromExpandedAttributes(
-            expandedAttributes,
-            ngsiLdAttribute.name,
-            ngsiLdAttributeInstance.datasetId
-        )!!
-        Triple(currentTea, attributeMetadata, attributePayload)
-    }
-
-    /**
-     * Create an audit or observed attribute instance based on attribute payload
-     * (presence of an observedAt sub-attribute).
-     */
-    private fun createContextualAttributeInstance(
-        tea: TemporalEntityAttribute,
-        expandedAttributeInstance: ExpandedAttributeInstance,
-        value: Triple<String?, Double?, WKTCoordinates?>,
-        modifiedAt: ZonedDateTime,
-        sub: Sub?
-    ): AttributeInstance {
-        val timeAndProperty =
-            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
-                Pair(
-                    getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!,
-                    AttributeInstance.TemporalProperty.OBSERVED_AT
-                )
-            else
-                Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
-
-        return AttributeInstance(
-            temporalEntityAttribute = tea.id,
-            timeAndProperty = timeAndProperty,
-            value = value,
-            payload = expandedAttributeInstance,
-            sub = sub
-        )
-    }
 
     suspend fun mergeAttributePayload(
         tea: TemporalEntityAttribute,

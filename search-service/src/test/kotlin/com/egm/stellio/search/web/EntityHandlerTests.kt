@@ -45,10 +45,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.*
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
@@ -1742,6 +1739,243 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+    }
+
+    @Test
+    fun `merge entity should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.REPLACED
+                ),
+                UpdatedDetails(
+                    fishSizeAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            notUpdated = emptyList()
+        )
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.updateTypes(any(), any())
+        } returns UpdateResult(emptyList(), emptyList()).right()
+        coEvery {
+            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+        } returns updateResult.right()
+        coEvery {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(eq(entityId))
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
+            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
+            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any(), any())
+        }
+        coVerify {
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                eq(updateResult),
+                true,
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+            )
+        }
+    }
+
+    @Test
+    fun `merge entity should return a 204 if JSON-LD payload is correct and use observedAt parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.REPLACED
+                ),
+                UpdatedDetails(
+                    fishSizeAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            notUpdated = emptyList()
+        )
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.updateTypes(any(), any())
+        } returns UpdateResult(emptyList(), emptyList()).right()
+        coEvery {
+            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+        } returns updateResult.right()
+        coEvery {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId?observedAt=2019-12-04T12:00:00.00Z")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(eq(entityId))
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
+            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
+            entityPayloadService.mergeEntity(
+                eq(entityId),
+                any(),
+                any(),
+                eq(ZonedDateTime.parse("2019-12-04T12:00:00.00Z")),
+                any()
+            )
+        }
+        coVerify {
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                eq(updateResult),
+                true,
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+            )
+        }
+    }
+
+    @Test
+    fun `merge entity should return a 400 if optional parameter observedAt is not a datetime`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.REPLACED
+                ),
+                UpdatedDetails(
+                    fishSizeAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            notUpdated = emptyList()
+        )
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId?observedAt=notDateTime")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'observedAt' parameter is not a valid date"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        coEvery {
+            entityPayloadService.checkEntityExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title":"The referred resource has not been found",
+                  "detail":"${entityNotFoundMessage(entityId.toString())}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 403 if user is not allowed to update it`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(any(), any())
+        } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 400 if entityId is missing`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id when trying to merge an entity"
+                }
+                """.trimIndent()
+            )
     }
 
     @Test

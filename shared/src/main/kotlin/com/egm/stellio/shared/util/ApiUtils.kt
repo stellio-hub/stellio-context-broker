@@ -42,6 +42,7 @@ const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
+const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")

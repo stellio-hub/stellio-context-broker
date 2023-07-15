@@ -1,0 +1,36 @@
+{
+  "name": {
+    "type": "Property",
+    "value": "LondonBeehive12"
+  },
+  "dateOfFirstBee": {
+    "type": "Property",
+    "value": {
+      "@type": "DateTime",
+      "@value": "2019-12-04T12:00:00.00Z"
+    }
+  },
+  "temperature": {
+    "type": "Property",
+    "value": 25,
+    "observedAt": "2021-01-24T14:01:22.066Z"
+  },
+  "incoming": {
+    "type": "Property",
+    "value": 1575,
+    "observedAt": "2022-01-24T14:01:22.066Z",
+    "observedBy": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+    }
+  },
+  "outgoing": {
+    "type": "Property",
+    "value": 1580,
+    "observedAt": "2021-01-24T14:01:22.066Z"
+  },
+  "connectsTo": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:Beekeeper:Pascal"
+  }
+}

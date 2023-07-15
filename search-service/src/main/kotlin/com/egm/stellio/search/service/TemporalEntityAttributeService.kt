@@ -276,7 +276,7 @@ class TemporalEntityAttributeService(
         updateOnUpdate(tea.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject.toString()).bind()
 
         val attributeInstance =
-            prepareAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
+            createContextualAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
         attributeInstanceService.create(attributeInstance).bind()
     }
 
@@ -659,7 +659,7 @@ class TemporalEntityAttributeService(
                 updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject.toString()).bind()
 
                 // then update attribute instance
-                val attributeInstance = prepareAttributeInstance(
+                val attributeInstance = createContextualAttributeInstance(
                     tea,
                     updatedAttributeInstance,
                     value,
@@ -684,31 +684,6 @@ class TemporalEntityAttributeService(
             }
 
         updateResultFromDetailedResult(listOf(updateAttributeResult))
-    }
-
-    private fun prepareAttributeInstance(
-        tea: TemporalEntityAttribute,
-        expandedAttributeInstance: ExpandedAttributeInstance,
-        value: Triple<String?, Double?, WKTCoordinates?>,
-        modifiedAt: ZonedDateTime,
-        sub: Sub?
-    ): AttributeInstance {
-        val timeAndProperty =
-            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
-                Pair(
-                    getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!,
-                    AttributeInstance.TemporalProperty.OBSERVED_AT
-                )
-            else
-                Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
-
-        return AttributeInstance(
-            temporalEntityAttribute = tea.id,
-            timeAndProperty = timeAndProperty,
-            value = value,
-            payload = expandedAttributeInstance,
-            sub = sub
-        )
     }
 
     @Transactional
@@ -854,6 +829,31 @@ class TemporalEntityAttributeService(
         val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
         val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
         return Pair(jsonTargetObject, updatedAttributeInstance)
+    }
+
+    private fun createContextualAttributeInstance(
+        tea: TemporalEntityAttribute,
+        expandedAttributeInstance: ExpandedAttributeInstance,
+        value: Triple<String?, Double?, WKTCoordinates?>,
+        modifiedAt: ZonedDateTime,
+        sub: Sub?
+    ): AttributeInstance {
+        val timeAndProperty =
+            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
+                Pair(
+                    getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!,
+                    AttributeInstance.TemporalProperty.OBSERVED_AT
+                )
+            else
+                Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
+
+        return AttributeInstance(
+            temporalEntityAttribute = tea.id,
+            timeAndProperty = timeAndProperty,
+            value = value,
+            payload = expandedAttributeInstance,
+            sub = sub
+        )
     }
 
     /**

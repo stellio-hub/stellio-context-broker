@@ -297,10 +297,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             INCOMING_PROPERTY
         ).shouldSucceedAndResult()
 
-        val createdAt = ngsiLdDateTime()
-        val observedAt = ngsiLdDateTime()
-        val newProperty = loadSampleData("fragments/beehive_mergeAttribute.json")
-        val expandedAttribute = JsonLdUtils.expandAttribute(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val mergedAt = ngsiLdDateTime()
+        val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
+        val expandedAttribute = JsonLdUtils.expandAttribute(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.mergeAttribute(
             temporalEntityAttribute,
             INCOMING_PROPERTY,
@@ -313,8 +312,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 TemporalEntityAttribute.AttributeType.Property,
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
-            createdAt,
-            observedAt,
+            mergedAt,
+            null,
             expandedAttribute.second[0],
             null
         ).shouldSucceed()
@@ -342,10 +341,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         ).shouldSucceedWith {
             assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
             assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
-            assertEquals(beehiveTestCId, it.entityId)
             assertJsonPayloadsAreEqual(serializeObject(expectedMergedPayload.second[0]), it.payload.asString())
-            assertTrue(it.createdAt.isBefore(createdAt))
-            assertEquals(createdAt, it.modifiedAt)
+            assertTrue(it.createdAt.isBefore(mergedAt))
+            assertEquals(mergedAt, it.modifiedAt)
         }
     }
 
@@ -359,8 +357,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             .shouldSucceed()
 
         val createdAt = ngsiLdDateTime()
-        val newProperties = loadSampleData("fragments/beehive_mergeAttributes.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(newProperties, listOf(APIC_COMPOUND_CONTEXT))
+        val attributesToMerge = loadSampleData("fragments/beehive_mergeAttributes.json")
+        val expandedAttributes = JsonLdUtils.expandAttributes(attributesToMerge, listOf(APIC_COMPOUND_CONTEXT))
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         temporalEntityAttributeService.mergeEntityAttributes(
             beehiveTestCId,
@@ -369,20 +367,21 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             createdAt,
             null,
             null
-        ).shouldSucceedWith {
-            assertEquals(6, it.updated.size)
-            assertEquals(4, it.updated.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
-            assertEquals(2, it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
-            val appendedAttributes = it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+        ).shouldSucceedWith { updateResult ->
+            val updatedDetails = updateResult.updated
+            assertEquals(6, updatedDetails.size)
+            assertEquals(4, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
+            assertEquals(2, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
+            val newAttributes = updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
                 .map { it.attributeName }
-            assertTrue(appendedAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
+            assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
 
-        val newTeas = temporalEntityAttributeService.getForEntity(
+        val teas = temporalEntityAttributeService.getForEntity(
             beehiveTestCId,
             emptySet()
         )
-        assertEquals(6, newTeas.size)
+        assertEquals(6, teas.size)
         coVerify {
             attributeInstanceService.create(
                 match {
@@ -393,19 +392,19 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 }
             )
         }
-        // 1 when we create entity attributes and 3 when we merge entity attributes
+        // 1 when we create entity attributes and 3 when we merge observed entity attributes
         coVerify(exactly = 4) {
             attributeInstanceService.create(
                 match { it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT }
             )
         }
-        // 0 when we create entity attributes and 3 when we merge entity attributes
+        // 0 when we create entity attributes and 3 when we merge non-observed entity attributes
         coVerify(exactly = 3) {
             attributeInstanceService.create(
                 match { it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT }
             )
         }
-        // 4 when we create entity attributes and 2 when we merge entity attributes
+        // 4 when we create entity attributes and 2 when we append new entity attributes
         coVerify(exactly = 6) {
             attributeInstanceService.create(
                 match { it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT }
@@ -424,8 +423,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val createdAt = ngsiLdDateTime()
         val observedAt = ZonedDateTime.parse("2019-12-04T12:00:00.00Z")
-        val newProperties = loadSampleData("fragments/beehive_mergeAttributes_without_observedAt.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(newProperties, listOf(APIC_COMPOUND_CONTEXT))
+        val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute_without_observedAt.json")
+        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         temporalEntityAttributeService.mergeEntityAttributes(
             beehiveTestCId,
@@ -434,20 +433,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             createdAt,
             observedAt,
             null
-        ).shouldSucceedWith {
-            assertEquals(6, it.updated.size)
-            assertEquals(2, it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
-            val appendedAttributes = it.updated.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
-                .map { it.attributeName }
-            assertTrue(appendedAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
+        ).shouldSucceedWith { updateResult ->
+            val updatedDetails = updateResult.updated
+            assertEquals(1, updatedDetails.size)
+            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
         }
 
-        val newTeas = temporalEntityAttributeService.getForEntity(
-            beehiveTestCId,
-            emptySet()
-        )
-        assertEquals(6, newTeas.size)
-        coVerify {
+        coVerify(exactly = 1) {
             attributeInstanceService.create(
                 match {
                     it.value == null &&

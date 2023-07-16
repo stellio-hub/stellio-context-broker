@@ -733,7 +733,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
-        attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+        attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
             val currentTea =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
@@ -753,13 +753,14 @@ class TemporalEntityAttributeService(
                     createdAt,
                     attributePayload,
                     sub
-                ).bind()
-                UpdateAttributeResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.APPENDED,
-                    null
-                ).right()
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.APPENDED,
+                        null
+                    )
+                }.bind()
             } else {
                 mergeAttribute(
                     currentTea,
@@ -769,20 +770,17 @@ class TemporalEntityAttributeService(
                     observedAt,
                     attributePayload,
                     sub
-                ).bind()
-                UpdateAttributeResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.UPDATED,
-                    null
-                ).right()
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.UPDATED,
+                        null
+                    )
+                }.bind()
             }
-        }.fold({
-            it
-        }, {
-            updateResultFromDetailedResult(it)
-        })
-    }
+        }
+    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,

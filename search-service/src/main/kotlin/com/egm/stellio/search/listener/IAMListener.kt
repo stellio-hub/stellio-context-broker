@@ -1,9 +1,9 @@
 package com.egm.stellio.search.listener
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.flattenOption
 import arrow.core.left
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.authorization.toSubjectInfo
@@ -88,7 +88,7 @@ class IAMListener(
     private fun extractRoles(operationPayload: Map<String, Any>): List<GlobalRole>? =
         if (operationPayload.containsKey(AUTH_TERM_ROLES)) {
             when (val rolesValue = (operationPayload[AUTH_TERM_ROLES] as Map<String, Any>)[JSONLD_VALUE]) {
-                is String -> GlobalRole.forKey(rolesValue).map { listOf(it) }.orNull()
+                is String -> GlobalRole.forKey(rolesValue).map { listOf(it) }.getOrNull()
                 is List<*> -> rolesValue.map { GlobalRole.forKey(it as String) }.flattenOption()
                 else -> null
             }

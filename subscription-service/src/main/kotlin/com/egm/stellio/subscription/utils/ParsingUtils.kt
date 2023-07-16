@@ -1,8 +1,8 @@
 package com.egm.stellio.subscription.utils
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -14,7 +14,7 @@ import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
 
-    suspend fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
+    fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         try {
             either {
                 mapper.convertValue(

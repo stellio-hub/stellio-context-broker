@@ -1,7 +1,7 @@
 package com.egm.stellio.search.util
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery

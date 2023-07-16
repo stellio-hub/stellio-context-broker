@@ -1,10 +1,10 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
@@ -71,7 +71,7 @@ fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, Str
 fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
-suspend fun checkAndGetContext(
+fun checkAndGetContext(
     httpHeaders: HttpHeaders,
     body: Map<String, Any>
 ): Either<APIException, List<String>> = either {
@@ -93,8 +93,10 @@ suspend fun checkAndGetContext(
 }
 
 suspend fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
-    body.parTraverseEither {
-        checkContext(httpHeaders, it)
+    either {
+        body.parMap {
+            checkContext(httpHeaders, it).bind()
+        }
     }.map { Unit.right() }
 
 fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {

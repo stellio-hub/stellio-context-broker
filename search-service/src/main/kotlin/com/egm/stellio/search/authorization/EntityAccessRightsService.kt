@@ -1,7 +1,7 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.*
@@ -271,7 +271,7 @@ class EntityAccessRightsService(
             .groupBy { toUri(it["entity_id"]) }
             .mapValues {
                 it.value
-                    .groupBy { AccessRight.forAttributeName(it["access_right"] as String).orNull()!! }
+                    .groupBy { AccessRight.forAttributeName(it["access_right"] as String).getOrNull()!! }
                     .mapValues { (_, records) ->
                         records.map { record ->
                             val uuid = record["service_account_id"] ?: record["subject_id"]
@@ -313,7 +313,7 @@ class EntityAccessRightsService(
     private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessRights {
         val accessRight =
             if (isStellioAdmin) R_CAN_ADMIN
-            else (row["access_right"] as String).let { AccessRight.forAttributeName(it) }.orNull()!!
+            else (row["access_right"] as String).let { AccessRight.forAttributeName(it) }.getOrNull()!!
 
         return EntityAccessRights(
             id = toUri(row["entity_id"]),

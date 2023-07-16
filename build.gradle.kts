@@ -22,8 +22,8 @@ plugins {
     id("org.springframework.boot") version "3.1.1" apply false
     id("io.spring.dependency-management") version "1.1.1" apply false
     id("org.graalvm.buildtools.native") version "0.9.23"
-    kotlin("jvm") version "1.8.22" apply false
-    kotlin("plugin.spring") version "1.8.22" apply false
+    kotlin("jvm") version "1.9.0" apply false
+    kotlin("plugin.spring") version "1.9.0" apply false
     id("com.google.cloud.tools.jib") version "3.3.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
     id("org.sonarqube") version "4.2.1.3168"
@@ -66,7 +66,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.5")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 

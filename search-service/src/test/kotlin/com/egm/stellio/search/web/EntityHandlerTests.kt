@@ -1326,7 +1326,7 @@ class EntityHandlerTests {
                 any(),
                 any(),
                 eq(false),
-                sub.orNull()
+                sub.getOrNull()
             )
         }
         coVerify {
@@ -1387,7 +1387,7 @@ class EntityHandlerTests {
                 any(),
                 any(),
                 eq(false),
-                sub.orNull()
+                sub.getOrNull()
             )
         }
         coVerify {
@@ -1636,7 +1636,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1699,7 +1699,7 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         coVerify {
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
     }
 

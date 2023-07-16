@@ -1,8 +1,8 @@
 package com.egm.stellio.search.util
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -29,7 +29,7 @@ fun valueToStringOrNull(value: Any): String? =
         else -> null
     }
 
-suspend fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
+fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
     val ngsiLdEntity = this
     return either {
         ngsiLdEntity.attributes

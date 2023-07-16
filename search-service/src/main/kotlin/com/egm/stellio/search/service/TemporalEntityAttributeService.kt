@@ -1,11 +1,11 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.flatMap
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
@@ -514,66 +514,63 @@ class TemporalEntityAttributeService(
         disallowOverwrite: Boolean,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val attributeInstances = ngsiLdAttributes.flatOnInstances()
-            attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-                val currentTea =
-                    getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
-                        .fold({ null }, { it })
-                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-                val attributePayload = getAttributeFromExpandedAttributes(
-                    expandedAttributes,
+    ): Either<APIException, UpdateResult> = either {
+        val attributeInstances = ngsiLdAttributes.flatOnInstances()
+        attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+            logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
+            val currentTea =
+                getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                    .fold({ null }, { it })
+            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributePayload = getAttributeFromExpandedAttributes(
+                expandedAttributes,
+                ngsiLdAttribute.name,
+                ngsiLdAttributeInstance.datasetId
+            )!!
+            if (currentTea == null) {
+                addAttribute(
+                    entityUri,
                     ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId
-                )!!
-                if (currentTea == null) {
-                    addAttribute(
-                        entityUri,
-                        ngsiLdAttribute.name,
-                        attributeMetadata,
-                        createdAt,
-                        attributePayload,
-                        sub
-                    ).bind()
+                    attributeMetadata,
+                    createdAt,
+                    attributePayload,
+                    sub
+                ).map {
                     UpdateAttributeResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
                         UpdateOperationResult.APPENDED,
                         null
-                    ).right()
-                } else if (disallowOverwrite) {
-                    val message = "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
-                    logger.info(message)
-                    UpdateAttributeResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.IGNORED,
-                        message
-                    ).right()
-                } else {
-                    replaceAttribute(
-                        currentTea,
-                        ngsiLdAttribute,
-                        attributeMetadata,
-                        createdAt,
-                        attributePayload,
-                        sub
-                    ).bind()
+                    )
+                }.bind()
+            } else if (disallowOverwrite) {
+                val message = "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
+                logger.info(message)
+                UpdateAttributeResult(
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
+                    UpdateOperationResult.IGNORED,
+                    message
+                ).right().bind()
+            } else {
+                replaceAttribute(
+                    currentTea,
+                    ngsiLdAttribute,
+                    attributeMetadata,
+                    createdAt,
+                    attributePayload,
+                    sub
+                ).map {
                     UpdateAttributeResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
                         UpdateOperationResult.REPLACED,
                         null
-                    ).right()
-                }
-            }.fold({
-                it
-            }, {
-                updateResultFromDetailedResult(it)
-            })
+                    )
+                }.bind()
+            }
         }
+    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     @Transactional
     suspend fun updateEntityAttributes(
@@ -582,54 +579,50 @@ class TemporalEntityAttributeService(
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val attributeInstances = ngsiLdAttributes.flatOnInstances()
-            attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
-                logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-                val currentTea =
-                    getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
-                        .fold({ null }, { it })
-                if (currentTea != null) {
-                    val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-                    val attributePayload = getAttributeFromExpandedAttributes(
-                        expandedAttributes,
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId
-                    )!!
-                    replaceAttribute(
-                        currentTea,
-                        ngsiLdAttribute,
-                        attributeMetadata,
-                        createdAt,
-                        attributePayload,
-                        sub
-                    ).bind()
+    ): Either<APIException, UpdateResult> = either {
+        val attributeInstances = ngsiLdAttributes.flatOnInstances()
+        attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+            logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
+            val currentTea =
+                getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
+                    .fold({ null }, { it })
+            if (currentTea != null) {
+                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+                val attributePayload = getAttributeFromExpandedAttributes(
+                    expandedAttributes,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId
+                )!!
+                replaceAttribute(
+                    currentTea,
+                    ngsiLdAttribute,
+                    attributeMetadata,
+                    createdAt,
+                    attributePayload,
+                    sub
+                ).map {
                     UpdateAttributeResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
                         UpdateOperationResult.REPLACED,
                         null
-                    ).right()
-                } else {
-                    val message = if (ngsiLdAttributeInstance.datasetId != null)
-                        "Attribute (datasetId: ${ngsiLdAttributeInstance.datasetId}) does not exist"
-                    else
-                        "Attribute (default instance) does not exist"
-                    logger.info(message)
-                    UpdateAttributeResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.IGNORED,
-                        message
-                    ).right()
-                }
-            }.fold({
-                it
-            }, {
-                updateResultFromDetailedResult(it)
-            })
+                    )
+                }.bind()
+            } else {
+                val message = if (ngsiLdAttributeInstance.datasetId != null)
+                    "Attribute (datasetId: ${ngsiLdAttributeInstance.datasetId}) does not exist"
+                else
+                    "Attribute (default instance) does not exist"
+                logger.info(message)
+                UpdateAttributeResult(
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
+                    UpdateOperationResult.IGNORED,
+                    message
+                ).right().bind()
+            }
         }
+    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     @Transactional
     suspend fun partialUpdateEntityAttribute(
@@ -740,7 +733,7 @@ class TemporalEntityAttributeService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
-        attributeInstances.parTraverseEither { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
+        attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
             val currentTea =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
@@ -760,13 +753,14 @@ class TemporalEntityAttributeService(
                     createdAt,
                     attributePayload,
                     sub
-                ).bind()
-                UpdateAttributeResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.APPENDED,
-                    null
-                ).right()
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.APPENDED,
+                        null
+                    )
+                }.bind()
             } else {
                 mergeAttribute(
                     currentTea,
@@ -776,20 +770,17 @@ class TemporalEntityAttributeService(
                     observedAt,
                     attributePayload,
                     sub
-                ).bind()
-                UpdateAttributeResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.UPDATED,
-                    null
-                ).right()
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.UPDATED,
+                        null
+                    )
+                }.bind()
             }
-        }.fold({
-            it
-        }, {
-            updateResultFromDetailedResult(it)
-        })
-    }
+        }
+    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,

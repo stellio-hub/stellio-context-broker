@@ -1,6 +1,6 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseQueryAndTemporalParams

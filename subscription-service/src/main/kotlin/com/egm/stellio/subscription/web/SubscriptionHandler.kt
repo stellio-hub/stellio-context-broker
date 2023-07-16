@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.web
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException

@@ -493,7 +493,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify { entityOperationService.replace(any(), any()) wasNot Called }
-        coVerify { entityOperationService.update(any(), false, sub.orNull()) }
+        coVerify { entityOperationService.update(any(), false, sub.getOrNull()) }
     }
 
     @Test
@@ -571,7 +571,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
 
         coVerify { entityOperationService.create(any(), any(), any()) wasNot Called }
-        coVerify { entityOperationService.replace(any(), sub.orNull()) }
+        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
         coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
         coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
@@ -656,7 +656,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { entityOperationService.replace(any(), sub.orNull()) }
+        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
         coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq(sub.value),

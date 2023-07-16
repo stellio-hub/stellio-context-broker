@@ -1,8 +1,8 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.hasSuccessfulUpdate
@@ -64,12 +64,12 @@ class EntityHandler(
         entityPayloadService.createEntity(
             ngsiLdEntity,
             jsonLdEntity,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
         authorizationService.createAdminRight(ngsiLdEntity.id, sub).bind()
 
         entityEventService.publishEntityCreateEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             contexts
@@ -179,11 +179,11 @@ class EntityHandler(
             entityUri,
             ngsiLdEntity,
             jsonLdEntity,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
 
         entityEventService.publishEntityReplaceEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             contexts
@@ -329,7 +329,7 @@ class EntityHandler(
         entityPayloadService.deleteEntityPayload(entityUri).bind()
         authorizationService.removeRightsOnEntity(entityUri).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId.toUri(), entity.types, entity.contexts)
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -378,13 +378,13 @@ class EntityHandler(
                 ngsiLdAttributes,
                 expandedAttributes,
                 disallowOverwrite,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
         )
 
         if (updateResult.hasSuccessfulUpdate()) {
             entityEventService.publishAttributeChangeEvents(
-                sub.orNull(),
+                sub.getOrNull(),
                 entityUri,
                 expandedAttributes,
                 updateResult,
@@ -441,13 +441,13 @@ class EntityHandler(
                 entityUri,
                 ngsiLdAttributes,
                 expandedAttributes,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
         )
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
-                sub.orNull(),
+                sub.getOrNull(),
                 entityUri,
                 expandedAttributes,
                 updateResult,
@@ -500,7 +500,7 @@ class EntityHandler(
         entityPayloadService.partialUpdateAttribute(
             entityUri,
             expandedAttribute,
-            sub.orNull()
+            sub.getOrNull()
         )
             .bind()
             .let {
@@ -508,7 +508,7 @@ class EntityHandler(
                     ResourceNotFoundException("Unknown attribute in entity $entityId").left()
                 else {
                     entityEventService.publishAttributeChangeEvents(
-                        sub.orNull(),
+                        sub.getOrNull(),
                         entityUri,
                         expandedAttribute.toExpandedAttributes(),
                         it,
@@ -562,7 +562,7 @@ class EntityHandler(
         ).bind()
 
         entityEventService.publishAttributeDeleteEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             entityUri,
             expandedAttrId,
             datasetId,

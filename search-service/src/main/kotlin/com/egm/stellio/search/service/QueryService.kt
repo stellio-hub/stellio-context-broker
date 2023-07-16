@@ -1,9 +1,9 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.TemporalEntityBuilder

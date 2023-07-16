@@ -1,14 +1,17 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.*
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.*
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -392,8 +395,8 @@ class AttributeInstanceService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
@@ -415,14 +418,16 @@ class AttributeInstanceService(
                     else it
                 }
                 .execute()
+                .bind()
         }.map { }
+    }
 
     @Transactional
     suspend fun deleteAllInstancesOfAttribute(
         entityId: URI,
         attributeName: ExpandedTerm
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
@@ -439,13 +444,15 @@ class AttributeInstanceService(
                 .bind("entity_id", entityId)
                 .bind("attribute_name", attributeName)
                 .execute()
+                .bind()
         }.map { }
+    }
 
     @Transactional
     suspend fun deleteInstancesOfEntity(
         entityId: URI
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
@@ -460,5 +467,7 @@ class AttributeInstanceService(
                 .sql(deleteQuery)
                 .bind("entity_id", entityId)
                 .execute()
+                .bind()
         }.map { }
+    }
 }

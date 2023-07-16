@@ -1,6 +1,6 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseQueryAndTemporalParams
@@ -69,11 +69,11 @@ class TemporalEntityHandler(
             )
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
-            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
+            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.getOrNull()).bind()
             entityPayloadService.upsertAttributes(
                 entityUri,
                 sortedJsonLdInstances.removeFirstInstances(),
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
             authorizationService.createAdminRight(entityUri, sub).bind()
 
@@ -85,7 +85,7 @@ class TemporalEntityHandler(
             entityPayloadService.upsertAttributes(
                 entityUri,
                 sortedJsonLdInstances,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build()
@@ -121,7 +121,7 @@ class TemporalEntityHandler(
         entityPayloadService.upsertAttributes(
             entityUri,
             sortedJsonLdInstances,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

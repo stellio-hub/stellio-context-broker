@@ -1,12 +1,13 @@
 package com.egm.stellio.shared.model
 
 import arrow.core.Either
-import arrow.core.continuations.either
-import arrow.core.continuations.ensureNotNull
 import arrow.core.flatten
 import arrow.core.left
+import arrow.core.raise.either
+import arrow.core.raise.ensure
+import arrow.core.raise.ensureNotNull
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -84,9 +85,9 @@ class NgsiLdProperty private constructor(
         ): Either<APIException, NgsiLdProperty> = either {
             checkInstancesAreOfSameType(name, instances, NGSILD_PROPERTY_TYPE).bind()
 
-            val ngsiLdPropertyInstances = instances.parTraverseEither { instance ->
-                NgsiLdPropertyInstance.create(name, instance)
-            }.bind()
+            val ngsiLdPropertyInstances = instances.parMap { instance ->
+                NgsiLdPropertyInstance.create(name, instance).bind()
+            }
 
             checkAttributeDefaultInstance(name, ngsiLdPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdPropertyInstances).bind()
@@ -109,9 +110,9 @@ class NgsiLdRelationship private constructor(
         ): Either<APIException, NgsiLdRelationship> = either {
             checkInstancesAreOfSameType(name, instances, NGSILD_RELATIONSHIP_TYPE).bind()
 
-            val ngsiLdRelationshipInstances = instances.parTraverseEither { instance ->
-                NgsiLdRelationshipInstance.create(name, instance)
-            }.bind()
+            val ngsiLdRelationshipInstances = instances.parMap { instance ->
+                NgsiLdRelationshipInstance.create(name, instance).bind()
+            }
 
             checkAttributeDefaultInstance(name, ngsiLdRelationshipInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdRelationshipInstances).bind()
@@ -134,9 +135,9 @@ class NgsiLdGeoProperty private constructor(
         ): Either<APIException, NgsiLdGeoProperty> = either {
             checkInstancesAreOfSameType(name, instances, NGSILD_GEOPROPERTY_TYPE).bind()
 
-            val ngsiLdGeoPropertyInstances = instances.parTraverseEither { instance ->
-                NgsiLdGeoPropertyInstance.create(name, instance)
-            }.bind()
+            val ngsiLdGeoPropertyInstances = instances.parMap { instance ->
+                NgsiLdGeoPropertyInstance.create(name, instance).bind()
+            }
 
             checkAttributeDefaultInstance(name, ngsiLdGeoPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdGeoPropertyInstances).bind()
@@ -359,10 +360,11 @@ fun checkAttributeDuplicateDatasetId(
     else Unit.right()
 }
 
-suspend fun ExpandedAttributes.toNgsiLdAttributes(): Either<APIException, List<NgsiLdAttribute>> =
-    this.entries.parTraverseEither {
-        it.value.toNgsiLdAttribute(it.key)
+suspend fun ExpandedAttributes.toNgsiLdAttributes(): Either<APIException, List<NgsiLdAttribute>> = either {
+    entries.parMap {
+        it.value.toNgsiLdAttribute(it.key).bind()
     }
+}
 
 suspend fun ExpandedAttribute.toNgsiLdAttribute(): Either<APIException, NgsiLdAttribute> =
     this.second.toNgsiLdAttribute(this.first)

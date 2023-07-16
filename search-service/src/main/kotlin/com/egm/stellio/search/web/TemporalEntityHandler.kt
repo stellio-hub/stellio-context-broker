@@ -131,7 +131,7 @@ class TemporalEntityHandler(
     )
 
     @PostMapping("/attrs")
-    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
@@ -254,7 +254,7 @@ class TemporalEntityHandler(
         "/{entityId}/attrs",
         "/attrs"
     )
-    suspend fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
+    fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
         missingPathErrorResponse(
             "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
         )
@@ -281,7 +281,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/", "")
-    suspend fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to delete temporal entity")
 
     /**
@@ -325,7 +325,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
-    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute temporal")
 
     /**
@@ -358,7 +358,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}/{instanceId}")
-    suspend fun handleMissingEntityIdOrAttrOnDeleteAttrInstance(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttrOnDeleteAttrInstance(): ResponseEntity<*> =
         missingPathErrorResponse(
             "Missing entity, attribute or instance id when trying to delete an attribute instance"
         )

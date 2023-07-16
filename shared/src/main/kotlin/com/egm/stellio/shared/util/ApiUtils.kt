@@ -87,7 +87,7 @@ fun checkAndGetContext(
         if (contexts.isEmpty())
             BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
-            ).left()
+            ).left().bind()
         contexts
     }
 }

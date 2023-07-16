@@ -121,13 +121,13 @@ class EntityHandler(
                 ngsiLdAttributes,
                 expandedAttributes,
                 observedAt,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
         )
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
-                sub.orNull(),
+                sub.getOrNull(),
                 entityUri,
                 expandedAttributes,
                 updateResult,
@@ -146,7 +146,7 @@ class EntityHandler(
     )
 
     @PatchMapping("/", "")
-    suspend fun handleMissingEntityIdOnMerge(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnMerge(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to merge an entity")
 
     /**
@@ -196,7 +196,7 @@ class EntityHandler(
     )
 
     @PutMapping("/", "")
-    suspend fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to replace an entity")
 
     /**
@@ -338,7 +338,7 @@ class EntityHandler(
     )
 
     @DeleteMapping("/", "")
-    suspend fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to delete an entity")
 
     /**
@@ -403,7 +403,7 @@ class EntityHandler(
     )
 
     @PostMapping("/attrs")
-    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
@@ -466,7 +466,7 @@ class EntityHandler(
     )
 
     @PatchMapping("/attrs")
-    suspend fun handleMissingAttributeOnAttributeUpdate(): ResponseEntity<*> =
+    fun handleMissingAttributeOnAttributeUpdate(): ResponseEntity<*> =
         missingPathErrorResponse("Missing attribute id when trying to update an attribute")
 
     /**
@@ -525,7 +525,7 @@ class EntityHandler(
     )
 
     @PatchMapping("/attrs/{attrId}")
-    suspend fun handleMissingAttributeOnPartialAttributeUpdate(): ResponseEntity<*> =
+    fun handleMissingAttributeOnPartialAttributeUpdate(): ResponseEntity<*> =
         missingPathErrorResponse("Missing attribute id when trying to partially update an attribute")
 
     /**
@@ -576,6 +576,6 @@ class EntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
-    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
 }

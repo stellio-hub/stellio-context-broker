@@ -125,8 +125,8 @@ class TemporalEntityAttributeService(
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
         ngsiLdEntity.prepareTemporalAttributes()
             .map {
-                createEntityTemporalReferences(ngsiLdEntity, jsonLdEntity, it, createdAt, sub)
-            }
+                createEntityTemporalReferences(ngsiLdEntity, jsonLdEntity, it, createdAt, sub).bind()
+            }.bind()
     }
 
     @Transactional
@@ -853,7 +853,7 @@ class TemporalEntityAttributeService(
      * common timestamp, unless the Entity Fragment itself contains an explicit updated value for the
      * "observedAt" sub-Attribute.
      */
-    internal suspend fun processObservedAtInMergeOperation(
+    internal fun processObservedAtInMergeOperation(
         tea: TemporalEntityAttribute,
         attributePayload: ExpandedAttributeInstance,
         attributeMetadata: AttributeMetadata,

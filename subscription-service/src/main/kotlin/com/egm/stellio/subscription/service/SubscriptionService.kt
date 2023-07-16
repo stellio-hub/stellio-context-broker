@@ -179,7 +179,7 @@ class SubscriptionService(
                 .bind("id_pattern", entityInfo.idPattern)
                 .bind("type", entityInfo.type)
                 .bind("subscription_id", subscriptionId)
-                .execute()
+                .execute().bind()
         }
 
     private suspend fun createGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
@@ -198,7 +198,7 @@ class SubscriptionService(
                 .bind("wkt_coordinates", geoQuery.wktCoordinates.value)
                 .bind("geoproperty", geoQuery.geoproperty)
                 .bind("subscription_id", subscriptionId)
-                .execute()
+                .execute().bind()
         }
 
     suspend fun getById(id: URI): Subscription {
@@ -600,7 +600,7 @@ class SubscriptionService(
         ).awaitFirst()
     }
 
-    private var rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
+    private val rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
@@ -639,7 +639,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
+    private val rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
@@ -665,7 +665,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
+    private val rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
         if (row["georel"] != null)
             GeoQ(
                 georel = row["georel"] as String,

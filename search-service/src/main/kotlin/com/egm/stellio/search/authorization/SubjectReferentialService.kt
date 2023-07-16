@@ -74,7 +74,7 @@ class SubjectReferentialService(
             )
             .bind("subject_id", (sub as Some).value)
             .oneToResult(AccessDeniedException("No subject information found for ${sub.value}")) {
-                val subs = (toOptionalList<Sub>(it["groups_memberships"]) ?: emptyList())
+                val subs = toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
                     .plus(it["subject_id"] as Sub)
                 if (it["service_account_id"] != null)
                     subs.plus(it["service_account_id"] as Sub)

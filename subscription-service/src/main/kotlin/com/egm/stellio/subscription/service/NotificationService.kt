@@ -50,7 +50,7 @@ class NotificationService(
                 }
                 .map {
                     val filteredEntity =
-                        filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet() ?: emptySet())
+                        filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
                     val compactedEntity = compact(
                         JsonLdEntity(filteredEntity, it.contexts),
                         it.contexts,

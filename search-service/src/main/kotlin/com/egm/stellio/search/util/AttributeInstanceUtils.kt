@@ -8,6 +8,7 @@ import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.net.URI
@@ -79,10 +80,11 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
 
 fun guessAttributeValueType(
     attributeType: TemporalEntityAttribute.AttributeType,
-    value: Any
+    expandedAttributeInstance: ExpandedAttributeInstance
 ): AttributeValueType =
     when (attributeType) {
-        TemporalEntityAttribute.AttributeType.Property -> guessPropertyValueType(value).first
+        TemporalEntityAttribute.AttributeType.Property ->
+            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()).first
         TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
         TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
     }

@@ -648,7 +648,7 @@ class TemporalEntityAttributeService(
                 val tea = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
                 val (jsonTargetObject, updatedAttributeInstance) = mergeAttributePayload(tea, attributeValues)
                 val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
-                val attributeValueType = guessAttributeValueType(tea.attributeType, value)
+                val attributeValueType = guessAttributeValueType(tea.attributeType, attributeValues.getValue())
                 updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject.toString()).bind()
 
                 // then update attribute instance

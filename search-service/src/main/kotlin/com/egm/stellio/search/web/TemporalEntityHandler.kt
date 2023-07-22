@@ -271,7 +271,7 @@ class TemporalEntityHandler(
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanAdminEntity(entityUri, sub).bind()
-        entityPayloadService.deleteEntityPayload(entityUri).bind()
+        entityPayloadService.deleteEntity(entityUri).bind()
         authorizationService.removeRightsOnEntity(entityUri).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

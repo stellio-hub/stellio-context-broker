@@ -46,9 +46,6 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    @MockkBean(relaxed = true)
-    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
-
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
@@ -266,6 +263,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
         } returns Unit.right()
+        coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } just Runs
 
         val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
 
@@ -291,7 +289,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeCleanerService.deleteEntityAttributes(beehiveURI)
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(beehiveURI)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 any(),
                 any(),
@@ -533,6 +531,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should delete an entity payload`() = runTest {
+        coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } just Runs
+
         entityPayloadService.createEntityPayload(
             entity01Uri,
             listOf(BEEHIVE_TYPE),
@@ -541,7 +541,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val deleteResult = entityPayloadService.deleteEntityPayload(entity01Uri)
+        val deleteResult = entityPayloadService.deleteEntity(entity01Uri)
         assertTrue(deleteResult.isRight())
 
         // if correctly deleted, we should be able to create a new one

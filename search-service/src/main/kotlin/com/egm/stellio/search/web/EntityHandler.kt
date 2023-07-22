@@ -326,7 +326,7 @@ class EntityHandler(
         val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
         authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-        entityPayloadService.deleteEntityPayload(entityUri).bind()
+        entityPayloadService.deleteEntity(entityUri).bind()
         authorizationService.removeRightsOnEntity(entityUri).bind()
 
         entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId.toUri(), entity.types, entity.contexts)

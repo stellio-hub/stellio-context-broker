@@ -17,6 +17,8 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
 import java.time.Duration
 import java.time.ZonedDateTime
@@ -449,25 +451,20 @@ class AttributeInstanceService(
     }
 
     @Transactional
-    suspend fun deleteInstancesOfEntity(
-        entityId: URI
-    ): Either<APIException, Unit> = either {
-        attributesInstancesTables.parMap { attributeInstanceTable ->
+    fun deleteInstancesOfEntity(
+        uuids: List<UUID>
+    ): Mono<List<Long>> =
+        attributesInstancesTables.toFlux().flatMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
-                WHERE temporal_entity_attribute IN ( 
-                    SELECT id 
-                    FROM temporal_entity_attribute 
-                    WHERE entity_id = :entity_id 
-                )
+                WHERE temporal_entity_attribute IN (:uuids)
                 """.trimIndent()
 
             databaseClient
                 .sql(deleteQuery)
-                .bind("entity_id", entityId)
-                .execute()
-                .bind()
-        }.map { }
-    }
+                .bind("uuids", uuids)
+                .fetch()
+                .rowsUpdated()
+        }.collectList()
 }

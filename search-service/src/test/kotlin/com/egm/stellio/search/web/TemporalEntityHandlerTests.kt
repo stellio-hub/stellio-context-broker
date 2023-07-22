@@ -1196,7 +1196,7 @@ class TemporalEntityHandlerTests {
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
         coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         webClient.delete()
@@ -1208,7 +1208,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(entityUri)
             authorizationService.userCanAdminEntity(eq(entityUri), eq(sub))
-            entityPayloadService.deleteEntityPayload(eq(entityUri))
+            entityPayloadService.deleteEntity(eq(entityUri))
             authorizationService.removeRightsOnEntity(eq(entityUri))
         }
     }
@@ -1273,7 +1273,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntityPayload(any())
+            entityPayloadService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()

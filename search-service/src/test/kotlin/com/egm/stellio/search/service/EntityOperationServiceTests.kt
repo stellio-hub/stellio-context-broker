@@ -37,7 +37,7 @@ class EntityOperationServiceTests {
     private lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean(relaxed = true)
-    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
     private lateinit var authorizationService: AuthorizationService
@@ -259,8 +259,8 @@ class EntityOperationServiceTests {
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
-        coVerify { entityAttributeCleanerService.deleteEntityAttributes(firstEntityURI) }
-        coVerify { entityAttributeCleanerService.deleteEntityAttributes(secondEntityURI) }
+        coVerify { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(firstEntityURI) }
+        coVerify { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(secondEntityURI) }
 
         coVerify(exactly = 2) { entityPayloadService.updateTypes(any(), any(), false) }
         coVerify {
@@ -332,7 +332,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
@@ -344,8 +344,8 @@ class EntityOperationServiceTests {
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
         coVerify {
-            entityPayloadService.deleteEntityPayload(firstEntityURI)
-            entityPayloadService.deleteEntityPayload(secondEntityURI)
+            entityPayloadService.deleteEntity(firstEntityURI)
+            entityPayloadService.deleteEntity(secondEntityURI)
             authorizationService.removeRightsOnEntity(firstEntityURI)
             authorizationService.removeRightsOnEntity(secondEntityURI)
         }
@@ -354,9 +354,9 @@ class EntityOperationServiceTests {
     @Test
     fun `it should return the list of deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
-            coEvery { entityPayloadService.deleteEntityPayload(firstEntityURI) } returns Unit.right()
+            coEvery { entityPayloadService.deleteEntity(firstEntityURI) } returns Unit.right()
             coEvery {
-                entityPayloadService.deleteEntityPayload(secondEntityURI)
+                entityPayloadService.deleteEntity(secondEntityURI)
             } returns InternalErrorException("Something went wrong during deletion").left()
             coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
@@ -382,7 +382,7 @@ class EntityOperationServiceTests {
         val deleteEntityErrorMessage = "Something went wrong with deletion request"
 
         coEvery {
-            entityPayloadService.deleteEntityPayload(any())
+            entityPayloadService.deleteEntity(any())
         } returns InternalErrorException(deleteEntityErrorMessage).left()
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
@@ -402,7 +402,7 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
 
-        coVerify { entityPayloadService.deleteEntityPayload(firstEntityURI) }
-        coVerify { entityPayloadService.deleteEntityPayload(secondEntityURI) }
+        coVerify { entityPayloadService.deleteEntity(firstEntityURI) }
+        coVerify { entityPayloadService.deleteEntity(secondEntityURI) }
     }
 }

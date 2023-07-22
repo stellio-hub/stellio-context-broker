@@ -2195,7 +2195,7 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
@@ -2209,7 +2209,7 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
             authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
-            entityPayloadService.deleteEntityPayload(eq(beehiveId))
+            entityPayloadService.deleteEntity(eq(beehiveId))
             authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
         coVerify {
@@ -2253,7 +2253,7 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntityPayload(any())
+            entityPayloadService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()

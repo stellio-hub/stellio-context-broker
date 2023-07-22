@@ -25,8 +25,7 @@ import java.time.ZonedDateTime
 @Service
 class EntityPayloadService(
     private val databaseClient: DatabaseClient,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val entityAttributeCleanerService: EntityAttributeCleanerService
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -142,8 +141,8 @@ class EntityPayloadService(
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        // wait for attributes to be deleted before creating new ones
-        entityAttributeCleanerService.deleteEntityAttributes(entityId).join()
+        temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
+
         replaceEntityPayload(ngsiLdEntity, replacedAt, jsonLdEntity).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
@@ -630,7 +629,7 @@ class EntityPayloadService(
             .execute()
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Unit> =
+    suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM entity_payload WHERE entity_id = :entity_id
@@ -639,7 +638,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .execute()
             .onRight {
-                entityAttributeCleanerService.deleteEntityAttributes(entityId)
+                temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
             }
 
     @Transactional

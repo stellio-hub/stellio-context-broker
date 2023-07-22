@@ -23,7 +23,7 @@ import java.net.URI
 @Component
 class EntityOperationService(
     private val entityPayloadService: EntityPayloadService,
-    private val entityAttributeCleanerService: EntityAttributeCleanerService,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val authorizationService: AuthorizationService
 ) {
 
@@ -91,7 +91,7 @@ class EntityOperationService(
         val deletionResults = entitiesIds.map {
             val entityId = it
             either {
-                entityPayloadService.deleteEntityPayload(entityId)
+                entityPayloadService.deleteEntity(entityId)
                     .map {
                         authorizationService.removeRightsOnEntity(entityId)
                     }
@@ -187,8 +187,7 @@ class EntityOperationService(
     ): Either<BatchEntityError, BatchEntitySuccess> =
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
-            // wait for the previous attributes to be deleted before creating the new ones
-            entityAttributeCleanerService.deleteEntityAttributes(ngsiLdEntity.id).join()
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id)
             val updateResult = entityPayloadService.updateTypes(
                 ngsiLdEntity.id,
                 ngsiLdEntity.types,

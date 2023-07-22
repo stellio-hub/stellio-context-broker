@@ -21,6 +21,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -280,15 +283,28 @@ class TemporalEntityAttributeService(
         attributeInstanceService.create(attributeInstance).bind()
     }
 
-    suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> =
-        databaseClient.sql(
+    @Transactional
+    suspend fun deleteTemporalAttributesOfEntity(entityId: URI) {
+        val uuids = databaseClient.sql(
             """
             DELETE FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
+            RETURNING id
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .execute()
+            .allToMappedList {
+                toUuid(it["id"])
+            }
+
+        if (uuids.isNotEmpty())
+            CoroutineScope(Dispatchers.IO).launch {
+                attributeInstanceService.deleteInstancesOfEntity(uuids)
+                    .subscribe {
+                        logger.debug("Deleted instances of attributes for entity {}", entityId)
+                    }
+            }
+    }
 
     @Transactional
     suspend fun deleteTemporalAttribute(

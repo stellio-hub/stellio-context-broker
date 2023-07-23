@@ -224,7 +224,7 @@ class AttributeInstanceService(
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
                 TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"
-                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "ST_AsText(geo_value) as value"
+                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
                 else -> "value"
             }
             val subColumn = when (temporalQuery.timeproperty) {

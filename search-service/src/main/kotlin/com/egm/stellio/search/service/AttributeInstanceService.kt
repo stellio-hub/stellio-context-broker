@@ -42,11 +42,11 @@ class AttributeInstanceService(
                     (time, measured_value, value, geo_value, temporal_entity_attribute, 
                         instance_id, payload)
                 VALUES 
-                    (:time, :measured_value, :value, ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
+                    (:time, :measured_value, :value, public.ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
-                              instance_id = :instance_id, geo_value = ST_GeomFromText(:geo_value)
+                              instance_id = :instance_id, geo_value = public.ST_GeomFromText(:geo_value)
                 """.trimIndent()
             else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -66,7 +66,7 @@ class AttributeInstanceService(
                     (time, time_property, measured_value, value, geo_value, 
                         temporal_entity_attribute, instance_id, payload, sub)
                 VALUES
-                    (:time, :time_property, :measured_value, :value, ST_GeomFromText(:geo_value), 
+                    (:time, :time_property, :measured_value, :value, public.ST_GeomFromText(:geo_value), 
                         :temporal_entity_attribute, :instance_id, :payload, :sub)
                 """.trimIndent()
             else

@@ -127,9 +127,9 @@ class GeoQueryUtilsTests {
 
         assertEqualsIgnoringNoise(
             """
-            ST_disjoint(
-                ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))'), 
-                ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}',
+            public.ST_disjoint(
+                public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))'), 
+                public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}',
                     '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))
             )
             """,
@@ -151,7 +151,7 @@ class GeoQueryUtilsTests {
 
         assertEqualsIgnoringNoise(
             """
-            ST_Distance(
+            public.ST_Distance(
                 'SRID=4326;POINT(60.124.6)'::geography,
                 ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
                 false
@@ -175,7 +175,7 @@ class GeoQueryUtilsTests {
 
         assertEqualsIgnoringNoise(
             """
-            ST_Distance(
+            public.ST_Distance(
                 'SRID=4326;POINT(60.124.6)'::geography,
                 ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
                 false

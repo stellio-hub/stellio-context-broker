@@ -188,7 +188,7 @@ class SubscriptionService(
                 """
                 INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, 
                     geoproperty, subscription_id) 
-                VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), 
+                VALUES (:georel, :geometry, :coordinates, public.ST_GeomFromText(:wkt_coordinates), 
                     :geoproperty, :subscription_id)
             """
             )
@@ -352,7 +352,7 @@ class SubscriptionService(
             """
             UPDATE geometry_query
             SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
-                pgis_geometry = ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
+                pgis_geometry = public.ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
             WHERE subscription_id = :subscription_id
             """
         )

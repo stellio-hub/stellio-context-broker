@@ -21,9 +21,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -298,12 +295,10 @@ class TemporalEntityAttributeService(
             }
 
         if (uuids.isNotEmpty())
-            CoroutineScope(Dispatchers.IO).launch {
-                attributeInstanceService.deleteInstancesOfEntity(uuids)
-                    .subscribe {
-                        logger.debug("Deleted instances of attributes for entity {}", entityId)
-                    }
-            }
+            attributeInstanceService.deleteInstancesOfEntity(uuids)
+                .subscribe {
+                    logger.debug("Deleted instances of attributes for entity {}", entityId)
+                }
     }
 
     @Transactional

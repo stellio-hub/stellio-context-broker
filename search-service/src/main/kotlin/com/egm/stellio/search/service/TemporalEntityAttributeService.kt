@@ -296,9 +296,6 @@ class TemporalEntityAttributeService(
 
         if (uuids.isNotEmpty())
             attributeInstanceService.deleteInstancesOfEntity(uuids)
-                .subscribe {
-                    logger.debug("Deleted instances of attributes for entity {}", entityId)
-                }
     }
 
     @Transactional

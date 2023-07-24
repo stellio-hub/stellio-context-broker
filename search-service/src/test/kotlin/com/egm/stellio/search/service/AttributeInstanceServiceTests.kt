@@ -30,7 +30,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -757,12 +756,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 )
         }
 
-        StepVerifier.create(
-            attributeInstanceService.deleteInstancesOfEntity(listOf(incomingTemporalEntityAttribute.id))
-        ).expectNextMatches {
-            it.size == 2 &&
-                it[0] + it[1] == 10L
-        }.expectComplete().verify()
+        attributeInstanceService.deleteInstancesOfEntity(listOf(incomingTemporalEntityAttribute.id)).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             TemporalQuery(

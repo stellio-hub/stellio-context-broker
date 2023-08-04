@@ -71,34 +71,31 @@ class EntityPayloadService(
             ?.let { getSpecificAccessPolicy(it) }
             ?.bind()
         createEntityPayload(
-            ngsiLdEntity.id,
-            ngsiLdEntity.types,
+            ngsiLdEntity,
             createdAt,
             serializeObject(jsonLdEntity.populateCreationTimeDate(createdAt).members),
-            jsonLdEntity.contexts,
             specificAccessPolicy
         ).bind()
     }
 
     suspend fun createEntityPayload(
-        entityId: URI,
-        types: List<ExpandedTerm>,
+        ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime,
         entityPayload: String,
-        contexts: List<String>,
         specificAccessPolicy: SpecificAccessPolicy? = null
     ): Either<APIException, Unit> =
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, created_at, payload, contexts, specific_access_policy)
-            VALUES (:entity_id, :types, :created_at, :payload, :contexts, :specific_access_policy)
+            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, contexts, specific_access_policy)
+            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :contexts, :specific_access_policy)
             """.trimIndent()
         )
-            .bind("entity_id", entityId)
-            .bind("types", types.toTypedArray())
+            .bind("entity_id", ngsiLdEntity.id)
+            .bind("types", ngsiLdEntity.types.toTypedArray())
+            .bind("scopes", ngsiLdEntity.scopes.toTypedArray())
             .bind("created_at", createdAt)
             .bind("payload", Json.of(entityPayload))
-            .bind("contexts", contexts.toTypedArray())
+            .bind("contexts", ngsiLdEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
 

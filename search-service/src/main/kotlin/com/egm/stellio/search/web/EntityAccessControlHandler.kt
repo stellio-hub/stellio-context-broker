@@ -130,6 +130,51 @@ class EntityAccessControlHandler(
         { it }
     )
 
+    @GetMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getUsers(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        val sub = getSubFromSecurityContext()
+
+        authorizationService.userIsAdmin(sub).bind()
+
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val queryParams = parseQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        ).bind()
+
+        val countAndUserEntities =
+            authorizationService.getUsers(queryParams.offset, queryParams.limit).bind()
+
+        if (countAndUserEntities.first == -1) {
+            return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
+
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndUserEntities.second,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+
+        buildQueryResponse(
+            compactedEntities,
+            countAndUserEntities.first,
+            "/ngsi-ld/v1/entityAccessControl/users",
+            queryParams,
+            params,
+            mediaType,
+            contextLink
+        )
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(
         @RequestHeader httpHeaders: HttpHeaders,

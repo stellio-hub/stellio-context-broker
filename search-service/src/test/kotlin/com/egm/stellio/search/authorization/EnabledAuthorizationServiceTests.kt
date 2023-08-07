@@ -7,10 +7,13 @@ import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -285,6 +288,36 @@ class EnabledAuthorizationServiceTests {
             subjectReferentialService.getGroups(eq(Some(subjectUuid)), eq(0), eq(2))
             subjectReferentialService.getCountGroups(eq(Some(subjectUuid)))
         }
+    }
+
+    @Test
+    fun `it should return serialized users along with a count for an admin`() = runTest {
+        coEvery {
+            subjectReferentialService.getUsers(any(), any())
+        } returns listOf(
+            User(
+                id = UUID.randomUUID().toString(),
+                username = "Username 1",
+                givenName = "Given Name 1",
+                familyName = "Family Name 1"
+            ),
+            User(
+                id = UUID.randomUUID().toString(),
+                username = "Username 2"
+            )
+        )
+        coEvery { subjectReferentialService.getUsersCount() } returns Either.Right(2)
+
+        enabledAuthorizationService.getUsers(0, 2)
+            .shouldSucceedWith {
+                assertEquals(2, it.first)
+                it.second.forEach { jsonLdEntity ->
+                    assertEquals(1, jsonLdEntity.types.size)
+                    assertEquals(USER_TYPE, jsonLdEntity.types[0])
+                    assertTrue(jsonLdEntity.id.startsWith(USER_ENTITY_PREFIX))
+                    assertTrue(jsonLdEntity.members.containsKey(AUTH_PROP_USERNAME))
+                }
+            }
     }
 
     @Test

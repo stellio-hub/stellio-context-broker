@@ -224,7 +224,7 @@ class EntityHandler(
             queryParams.attrs.isEmpty()
         )
             BadRequestDataException(
-                "one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
+                "one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
             ).left().bind<ResponseEntity<*>>()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)

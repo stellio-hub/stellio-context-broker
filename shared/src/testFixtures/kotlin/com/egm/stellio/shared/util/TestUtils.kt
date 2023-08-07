@@ -5,6 +5,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import org.springframework.core.io.ClassPathResource
 import java.net.URI
 
@@ -12,6 +13,19 @@ fun loadSampleData(filename: String = "beehive.jsonld"): String {
     val sampleData = ClassPathResource("/ngsild/$filename")
     return String(sampleData.inputStream.readAllBytes())
 }
+
+fun loadMinimalEntity(
+    entityId: URI,
+    entityTypes: Set<String>,
+    contexts: Set<String> = setOf(NGSILD_CORE_CONTEXT)
+): String =
+    """
+        {
+            "id": "$entityId",
+            "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
+            "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
+        }
+    """.trimIndent()
 
 suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<JsonLdEntity, NgsiLdEntity>> {
     val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(this)

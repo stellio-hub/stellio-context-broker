@@ -10,7 +10,10 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.search.util.deserializeAsMap
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
@@ -21,10 +24,14 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.just
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatList
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -63,13 +70,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from string if none existed yet`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
-        ).shouldSucceed()
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                ).shouldSucceed()
+            }
     }
 
     @Test
@@ -81,22 +90,26 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from string with specificAccessPolicy`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            AUTH_READ
-        )
-        entityPayloadService.createEntityPayload(
-            entity02Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            SpecificAccessPolicy.AUTH_WRITE
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    AUTH_READ
+                )
+            }
+        loadMinimalEntity(entity02Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    SpecificAccessPolicy.AUTH_WRITE
+                )
+            }
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,
             listOf(AUTH_READ)
@@ -169,21 +182,19 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should not create an entity payload if one already existed`() = runTest {
+        val (_, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
+            ngsiLdEntity,
             now,
             EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
         )
 
         assertThrows<DataIntegrityViolationException> {
             entityPayloadService.createEntityPayload(
-                entity01Uri,
-                listOf(BEEHIVE_TYPE),
+                ngsiLdEntity,
                 now,
                 EMPTY_PAYLOAD,
-                listOf(NGSILD_CORE_CONTEXT)
             )
         }
     }
@@ -302,13 +313,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should retrieve an entity payload`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
-        ).shouldSucceed()
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                ).shouldSucceed()
+            }
 
         entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
@@ -324,14 +337,16 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            AUTH_READ
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    AUTH_READ
+                )
+            }
 
         entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
@@ -343,31 +358,31 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve a list of entity payloads`() = runTest {
         val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            expandedPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        expandedPayload.sampleDataToNgsiLdEntity().map {
+            entityPayloadService.createEntityPayload(
+                it.second,
+                now,
+                expandedPayload
+            )
+        }
 
-        val entityPayloads = entityPayloadService.retrieve(listOf(entity01Uri))
+        val entityPayloads = entityPayloadService.retrieve(listOf(beehiveTestCId))
         assertEquals(1, entityPayloads.size)
-        assertEquals(entity01Uri, entityPayloads[0].entityId)
+        assertEquals(beehiveTestCId, entityPayloads[0].entityId)
         assertJsonPayloadsAreEqual(expandedPayload, entityPayloads[0].payload.asString())
     }
 
     @Test
     fun `it should check the existence or non-existence of an entity`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         entityPayloadService.checkEntityExistence(entity01Uri).shouldSucceed()
         entityPayloadService.checkEntityExistence(entity02Uri)
@@ -379,14 +394,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should filter existing entities from a list of ids`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         val existingEntities = entityPayloadService.filterExistingEntitiesAsIds(listOf(entity01Uri, entity02Uri))
         assertEquals(1, existingEntities.size)
@@ -401,18 +417,19 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should get the types of an entity`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE, APIARY_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE, APIARY_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         entityPayloadService.getTypes(entity01Uri)
             .shouldSucceedWith {
-                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it)
+                assertThatList(it).containsAll(listOf(BEEHIVE_TYPE, APIARY_TYPE))
             }
     }
 
@@ -425,16 +442,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should add a type to an entity`() = runTest {
         val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            expandedPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        expandedPayload.sampleDataToNgsiLdEntity().map {
+            entityPayloadService.createEntityPayload(
+                it.second,
+                now,
+                expandedPayload
+            )
+        }
 
-        entityPayloadService.updateTypes(entity01Uri, listOf(BEEHIVE_TYPE, APIARY_TYPE), false)
+        entityPayloadService.updateTypes(beehiveTestCId, listOf(BEEHIVE_TYPE, APIARY_TYPE), false)
             .shouldSucceedWith {
                 assertTrue(it.isSuccessful())
                 assertEquals(1, it.updated.size)
@@ -443,7 +459,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 assertEquals(UpdateOperationResult.APPENDED, updatedDetails.updateOperationResult)
             }
 
-        entityPayloadService.retrieve(entity01Uri)
+        entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
                 assertEquals(
@@ -455,14 +471,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should not add a type if existing types are not in the list of types to add`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(APIC_COMPOUND_CONTEXT),
-            null
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         entityPayloadService.updateTypes(entity01Uri, listOf(APIARY_TYPE), false)
             .shouldSucceedWith {
@@ -479,13 +496,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should upsert an entity payload if one already existed`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         entityPayloadService.upsertEntityPayload(entity01Uri, EMPTY_PAYLOAD)
             .shouldSucceed()
@@ -493,22 +512,26 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should update a specific access policy for a temporal entity`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            AUTH_READ
-        )
-        entityPayloadService.createEntityPayload(
-            entity02Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            AUTH_READ
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    AUTH_READ
+                )
+            }
+        loadMinimalEntity(entity02Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    AUTH_READ
+                )
+            }
 
         entityPayloadService.updateSpecificAccessPolicy(
             entity01Uri,
@@ -533,37 +556,43 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should delete an entity payload`() = runTest {
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } just Runs
 
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
 
         val deleteResult = entityPayloadService.deleteEntity(entity01Uri)
         assertTrue(deleteResult.isRight())
 
         // if correctly deleted, we should be able to create a new one
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT)
-        ).shouldSucceed()
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                ).shouldSucceed()
+            }
     }
 
     @Test
     fun `it should remove a specific access policy from a entity payload`() = runTest {
-        entityPayloadService.createEntityPayload(
-            entity01Uri,
-            listOf(BEEHIVE_TYPE),
-            now,
-            EMPTY_PAYLOAD,
-            listOf(NGSILD_CORE_CONTEXT),
-            AUTH_READ
-        )
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD,
+                    AUTH_READ
+                )
+            }
 
         entityPayloadService.hasSpecificAccessPolicies(
             entity01Uri,

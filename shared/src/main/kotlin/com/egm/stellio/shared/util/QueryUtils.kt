@@ -215,3 +215,26 @@ private fun transformQQueryToSqlJsonPath(
             '{ "value": $value }')
         """.trimIndent()
 }
+
+fun buildScopeQQuery(scopeQQuery: String): String =
+    scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
+        when {
+            matchResult.value.endsWith('#') ->
+                """
+                exists (select * from unnest(scopes) as scope 
+                where scope similar to '${matchResult.value.replace('#', '%')}')
+                """.trimIndent()
+            matchResult.value.contains('+') ->
+                """
+                exists (select * from unnest(scopes) as scope 
+                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
+                """.trimIndent()
+            else ->
+                """
+                exists (select * from unnest(scopes) as scope where scope = '${matchResult.value}')
+                """.trimIndent()
+        }
+    }
+        .replace(";", " AND ")
+        .replace("|", " OR ")
+        .replace(",", " OR ")

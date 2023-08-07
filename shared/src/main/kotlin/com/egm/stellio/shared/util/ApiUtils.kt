@@ -37,7 +37,8 @@ const val QUERY_PARAM_ID: String = "id"
 const val QUERY_PARAM_TYPE: String = "type"
 const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
 const val QUERY_PARAM_ATTRS: String = "attrs"
-const val QUERY_PARAM_FILTER: String = "q"
+const val QUERY_PARAM_Q: String = "q"
+const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
@@ -47,6 +48,7 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
+val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
@@ -216,7 +218,8 @@ suspend fun parseQueryParams(
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = requestParams.getFirst(QUERY_PARAM_FILTER)?.decode()
+    val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
+    val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val count = requestParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
     val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -237,6 +240,7 @@ suspend fun parseQueryParams(
         type = type,
         idPattern = idPattern,
         q = q,
+        scopeQ = scopeQ,
         limit = limit,
         offset = offset,
         count = count,

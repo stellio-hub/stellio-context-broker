@@ -321,6 +321,10 @@ class EntityPayloadService(
                 it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
             else it
         }.let {
+            if (queryParams.scopeQ != null)
+                it.wrapToAndClause(buildScopeQQuery(queryParams.scopeQ!!))
+            else it
+        }.let {
             if (queryParams.geoQuery != null)
                 it.wrapToAndClause(buildGeoQuery(queryParams.geoQuery!!))
             else it

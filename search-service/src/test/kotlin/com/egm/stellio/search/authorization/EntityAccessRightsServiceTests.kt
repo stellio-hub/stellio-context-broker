@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
@@ -23,7 +22,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -482,14 +482,14 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         types: Set<ExpandedTerm>,
         specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
     ) {
-        entityPayloadService.createEntityPayload(
-            entityId = entityId,
-            types = types.toList(),
-            createdAt = ngsiLdDateTime(),
-            contexts = listOf(APIC_COMPOUND_CONTEXT),
-            entityPayload = EMPTY_PAYLOAD,
-            specificAccessPolicy = specificAccessPolicy
-        )
+        loadMinimalEntity(entityId, types).sampleDataToNgsiLdEntity().map {
+            entityPayloadService.createEntityPayload(
+                ngsiLdEntity = it.second,
+                createdAt = ngsiLdDateTime(),
+                entityPayload = EMPTY_PAYLOAD,
+                specificAccessPolicy = specificAccessPolicy
+            )
+        }
     }
 
     private suspend fun createSubjectReferential(

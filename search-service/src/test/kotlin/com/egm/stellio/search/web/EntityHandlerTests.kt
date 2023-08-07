@@ -922,9 +922,9 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 QueryParams(
                     type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                    includeSysAttrs = true,
-                    offset = 0,
                     limit = 30,
+                    offset = 0,
+                    includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()
@@ -1058,8 +1058,8 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 QueryParams(
                     ids = setOf(beehiveId),
-                    offset = 0,
                     limit = 30,
+                    offset = 0,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()
@@ -1147,7 +1147,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
+                    "detail":"one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
                 }
                 """.trimIndent()
             )

@@ -8,6 +8,7 @@ data class QueryParams(
     val type: String? = null,
     val idPattern: String? = null,
     val q: String? = null,
+    val scopeQ: String? = null,
     val limit: Int,
     val offset: Int,
     val count: Boolean = false,

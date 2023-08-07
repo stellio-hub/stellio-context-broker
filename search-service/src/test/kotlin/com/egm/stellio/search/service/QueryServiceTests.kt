@@ -10,7 +10,8 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -107,9 +108,9 @@ class QueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
                 queryParams = QueryParams(
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 0,
                     offset = 50,
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
@@ -211,9 +212,9 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(
@@ -230,9 +231,9 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(
                 listOf(entityUri),
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 )
             )
@@ -247,9 +248,9 @@ class QueryServiceTests {
             )
             entityPayloadService.queryEntitiesCount(
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 any()
@@ -281,8 +282,8 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    offset = 2,
                     limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(

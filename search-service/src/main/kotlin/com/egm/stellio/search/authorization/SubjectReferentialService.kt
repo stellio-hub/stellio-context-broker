@@ -162,6 +162,42 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
+    suspend fun getUsers(offset: Int, limit: Int): List<User> =
+        databaseClient
+            .sql(
+                """
+                SELECT subject_id AS user_id, (subject_info->'value'->>'username') AS username,
+                    (subject_info->'value'->>'givenName') AS givenName,
+                    (subject_info->'value'->>'familyName') AS familyName
+                FROM subject_referential
+                WHERE subject_type = '${SubjectType.USER.name}'
+                ORDER BY username
+                LIMIT :limit
+                OFFSET :offset
+                """.trimIndent()
+            )
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .allToMappedList {
+                User(
+                    id = it["user_id"] as String,
+                    username = it["username"] as String,
+                    givenName = it["givenName"] as? String,
+                    familyName = it["familyName"] as? String
+                )
+            }
+
+    suspend fun getUsersCount(): Either<APIException, Int> =
+        databaseClient
+            .sql(
+                """
+                SELECT count(*) as count
+                FROM subject_referential
+                WHERE subject_type = '${SubjectType.USER.name}'
+                """.trimIndent()
+            )
+            .oneToResult { toInt(it["count"]) }
+
     suspend fun hasStellioAdminRole(uuids: List<Sub>): Either<APIException, Boolean> =
         hasOneOfGlobalRoles(uuids, ADMIN_ROLES)
 

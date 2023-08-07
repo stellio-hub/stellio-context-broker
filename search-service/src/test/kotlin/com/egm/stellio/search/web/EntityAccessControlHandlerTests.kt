@@ -5,14 +5,18 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
-import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_KIND
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
@@ -22,12 +26,14 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Called
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
@@ -688,7 +694,7 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildExpandedProperty("egm")
+                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm")
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
                 )
@@ -728,8 +734,8 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildExpandedProperty("egm"),
-                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to JsonLdUtils.buildExpandedProperty("true")
+                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm"),
+                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedProperty("true")
                     ),
                     listOf(AUTHORIZATION_CONTEXT)
                 )
@@ -770,6 +776,93 @@ class EntityAccessControlHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `get users should return an access denied error if user is not a stellio admin`() {
+        coEvery {
+            authorizationService.userIsAdmin(any())
+        } returns AccessDeniedException("Access denied").left()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/users")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
+    @Test
+    fun `get users should return 200 and the number of results if requested limit is 0`() {
+        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.getUsers(any(), any())
+        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/users?&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get users should return 204 if authentication is not enabled`() {
+        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.getUsers(any(), any())
+        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/users")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `get users should return users if user is a stellio admin`() {
+        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.getUsers(any(), any())
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:user:1",
+                        "@type" to listOf(USER_TYPE),
+                        AUTH_PROP_USERNAME to buildExpandedProperty("username"),
+                        AUTH_PROP_GIVEN_NAME to buildExpandedProperty("givenName"),
+                        AUTH_PROP_FAMILY_NAME to buildExpandedProperty("familyName")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        ).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/users?count=true")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectBody().json(
+                """
+                [
+                    {
+                        "id": "urn:ngsi-ld:user:1",
+                        "type": "$USER_COMPACT_TYPE",
+                        "$AUTH_TERM_USERNAME" : {"type":"Property", "value": "username"},
+                        "$AUTH_TERM_GIVEN_NAME" : {"type":"Property", "value": "givenName"},
+                        "$AUTH_TERM_FAMILY_NAME" : {"type":"Property", "value": "familyName"},
+                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                    }
+                ]
+                """.trimMargin()
+            )
+            .jsonPath("[0].createdAt").doesNotExist()
+            .jsonPath("[0].modifiedAt").doesNotExist()
     }
 
     private suspend fun createJsonLdEntity(

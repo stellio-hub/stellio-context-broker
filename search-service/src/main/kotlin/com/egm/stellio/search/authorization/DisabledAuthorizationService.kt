@@ -50,4 +50,9 @@ class DisabledAuthorizationService : AuthorizationService {
         limit: Int,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
+
+    override suspend fun getUsers(
+        offset: Int,
+        limit: Int,
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
 }

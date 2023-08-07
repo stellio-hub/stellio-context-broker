@@ -27,6 +27,7 @@ object AuthContextModel {
     const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_COMPACT_TYPE = "User"
+    const val USER_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + USER_COMPACT_TYPE
     const val GROUP_COMPACT_TYPE = "Group"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + GROUP_COMPACT_TYPE
     const val CLIENT_COMPACT_TYPE = "Client"
@@ -44,8 +45,11 @@ object AuthContextModel {
     const val AUTH_TERM_ROLES = "roles"
     const val AUTH_TERM_KIND = "kind"
     const val AUTH_TERM_USERNAME = "username"
+    const val AUTH_PROP_USERNAME = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
     const val AUTH_TERM_GIVEN_NAME = "givenName"
+    const val AUTH_PROP_GIVEN_NAME = AUTHORIZATION_ONTOLOGY + AUTH_TERM_GIVEN_NAME
     const val AUTH_TERM_FAMILY_NAME = "familyName"
+    const val AUTH_PROP_FAMILY_NAME = AUTHORIZATION_ONTOLOGY + AUTH_TERM_FAMILY_NAME
     const val AUTH_TERM_SAP = "specificAccessPolicy"
     const val AUTH_PROP_SAP = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SAP
     const val AUTH_TERM_RIGHT = "right"

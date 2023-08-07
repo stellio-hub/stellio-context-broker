@@ -172,6 +172,23 @@ class EnabledAuthorizationService(
         }
     }
 
+    override suspend fun getUsers(
+        offset: Int,
+        limit: Int
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val users = subjectReferentialService.getUsers(offset, limit)
+        val usersCount = subjectReferentialService.getUsersCount().bind()
+
+        val jsonLdEntities = users.map {
+            JsonLdEntity(
+                it.serializeProperties(),
+                listOf(AUTHORIZATION_CONTEXT)
+            )
+        }
+
+        Pair(usersCount, jsonLdEntities)
+    }
+
     override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? =
         subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
             if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {

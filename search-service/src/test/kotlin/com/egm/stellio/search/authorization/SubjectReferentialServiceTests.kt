@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -242,6 +243,62 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.getCountAllGroups()
             .shouldSucceedWith { assertEquals(3, it) }
+    }
+
+    @Test
+    fun `it should get all users`() = runTest {
+        val allUsersUuids = List(3) {
+            val userUuid = UUID.randomUUID().toString()
+            subjectReferentialService.create(
+                SubjectReferential(
+                    subjectId = userUuid,
+                    subjectType = SubjectType.USER,
+                    subjectInfo = getSubjectInfoForUser(userUuid)
+                )
+            )
+            userUuid
+        }
+
+        val users = subjectReferentialService.getUsers(0, 10)
+
+        assertEquals(3, users.size)
+        users.forEach {
+            assertTrue(it.id in allUsersUuids)
+            assertNotNull(it.username)
+            assertNull(it.givenName)
+            assertNull(it.familyName)
+        }
+
+        subjectReferentialService.getUsersCount()
+            .shouldSucceedWith { assertEquals(3, it) }
+    }
+
+    @Test
+    fun `it should get an user with all available information`() = runTest {
+        val userUuid = UUID.randomUUID().toString()
+        subjectReferentialService.create(
+            SubjectReferential(
+                subjectId = userUuid,
+                subjectType = SubjectType.USER,
+                subjectInfo = Json.of(
+                    """
+                    { 
+                      "type": "Property",
+                      "value": { "username": "username", "givenName": "givenName", "familyName": "familyName" }
+                    }
+                    """.trimIndent()
+                )
+            )
+        )
+
+        val users = subjectReferentialService.getUsers(0, 10)
+
+        assertEquals(1, users.size)
+        val user = users[0]
+        assertEquals(userUuid, user.id)
+        assertEquals("username", user.username)
+        assertEquals("givenName", user.givenName)
+        assertEquals("familyName", user.familyName)
     }
 
     @Test

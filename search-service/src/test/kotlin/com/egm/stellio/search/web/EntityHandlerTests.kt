@@ -1867,21 +1867,6 @@ class EntityHandlerTests {
     fun `merge entity should return a 400 if optional parameter observedAt is not a datetime`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.REPLACED
-                ),
-                UpdatedDetails(
-                    fishSizeAttribute,
-                    null,
-                    UpdateOperationResult.APPENDED
-                )
-            ),
-            notUpdated = emptyList()
-        )
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()

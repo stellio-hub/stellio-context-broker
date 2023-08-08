@@ -284,7 +284,12 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
                     """
                     { 
                       "type": "Property",
-                      "value": { "username": "username", "givenName": "givenName", "familyName": "familyName" }
+                      "value": { 
+                        "username": "username", 
+                        "givenName": "givenName", 
+                        "familyName": "familyName",
+                        "profile": "stellio user"
+                      }
                     }
                     """.trimIndent()
                 )
@@ -299,6 +304,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         assertEquals("username", user.username)
         assertEquals("givenName", user.givenName)
         assertEquals("familyName", user.familyName)
+        assertEquals(4, user.subjectInfo.size)
+        assertTrue(user.subjectInfo.containsKey("profile"))
     }
 
     @Test

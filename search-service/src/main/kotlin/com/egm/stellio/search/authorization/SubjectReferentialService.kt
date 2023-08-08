@@ -7,10 +7,8 @@ import arrow.core.getOrElse
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.util.ADMIN_ROLES
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
@@ -168,7 +166,8 @@ class SubjectReferentialService(
                 """
                 SELECT subject_id AS user_id, (subject_info->'value'->>'username') AS username,
                     (subject_info->'value'->>'givenName') AS givenName,
-                    (subject_info->'value'->>'familyName') AS familyName
+                    (subject_info->'value'->>'familyName') AS familyName,
+                    subject_info
                 FROM subject_referential
                 WHERE subject_type = '${SubjectType.USER.name}'
                 ORDER BY username
@@ -183,7 +182,9 @@ class SubjectReferentialService(
                     id = it["user_id"] as String,
                     username = it["username"] as String,
                     givenName = it["givenName"] as? String,
-                    familyName = it["familyName"] as? String
+                    familyName = it["familyName"] as? String,
+                    subjectInfo = toJsonString(it["subject_info"])
+                        .deserializeAsMap()[JsonLdUtils.JSONLD_VALUE] as Map<String, String>
                 )
             }
 

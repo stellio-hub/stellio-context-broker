@@ -6,16 +6,14 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
+import com.egm.stellio.search.authorization.User
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_GIVEN_NAME
@@ -821,7 +819,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get users should return users if user is a stellio admin`() {
+    fun `get users should return users if user is a stellio admin`() = runTest {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any())
@@ -829,13 +827,14 @@ class EntityAccessControlHandlerTests {
             1,
             listOf(
                 JsonLdEntity(
-                    mapOf(
-                        "@id" to "urn:ngsi-ld:user:1",
-                        "@type" to listOf(USER_TYPE),
-                        AUTH_PROP_USERNAME to buildExpandedProperty("username"),
-                        AUTH_PROP_GIVEN_NAME to buildExpandedProperty("givenName"),
-                        AUTH_PROP_FAMILY_NAME to buildExpandedProperty("familyName")
-                    ),
+                    User(
+                        "1",
+                        USER_TYPE,
+                        "username",
+                        "givenName",
+                        "familyName",
+                        mapOf("profile" to "stellio-user")
+                    ).serializeProperties(),
                     listOf(NGSILD_CORE_CONTEXT)
                 )
             )
@@ -851,11 +850,12 @@ class EntityAccessControlHandlerTests {
                 """
                 [
                     {
-                        "id": "urn:ngsi-ld:user:1",
+                        "id": "urn:ngsi-ld:User:1",
                         "type": "$USER_COMPACT_TYPE",
-                        "$AUTH_TERM_USERNAME" : {"type":"Property", "value": "username"},
-                        "$AUTH_TERM_GIVEN_NAME" : {"type":"Property", "value": "givenName"},
-                        "$AUTH_TERM_FAMILY_NAME" : {"type":"Property", "value": "familyName"},
+                        "$AUTH_TERM_USERNAME" : { "type":"Property", "value": "username" },
+                        "$AUTH_TERM_GIVEN_NAME" : { "type":"Property", "value": "givenName" },
+                        "$AUTH_TERM_FAMILY_NAME" : { "type":"Property", "value": "familyName" },
+                        "$AUTH_TERM_SUBJECT_INFO": { "type":"Property","value":{ "profile": "stellio-user" } },
                         "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
                     }
                 ]

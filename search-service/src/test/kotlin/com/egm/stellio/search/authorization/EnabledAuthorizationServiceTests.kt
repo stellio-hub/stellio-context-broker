@@ -299,11 +299,13 @@ class EnabledAuthorizationServiceTests {
                 id = UUID.randomUUID().toString(),
                 username = "Username 1",
                 givenName = "Given Name 1",
-                familyName = "Family Name 1"
+                familyName = "Family Name 1",
+                subjectInfo = mapOf("profile" to "stellio user")
             ),
             User(
                 id = UUID.randomUUID().toString(),
-                username = "Username 2"
+                username = "Username 2",
+                subjectInfo = mapOf("profile" to "stellio user")
             )
         )
         coEvery { subjectReferentialService.getUsersCount() } returns Either.Right(2)

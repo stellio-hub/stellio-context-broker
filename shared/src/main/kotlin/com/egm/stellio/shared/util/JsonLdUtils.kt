@@ -519,6 +519,46 @@ object JsonLdUtils {
         )
 
     /**
+     * Build an expanded JSON value for a property.
+     *
+     * For instance:
+     *
+     * "[
+     *   {
+     *     "@type": [
+     *       "https://uri.etsi.org/ngsi-ld/Property"
+     *     ],
+     *     "https://uri.etsi.org/ngsi-ld/hasValue": [
+     *       {
+     *         "https://ontology.eglobalmark.com/authorization#kind": [
+     *              {
+     *                  "@value": "kind"
+     *               }
+     *         ],
+     *         "https://ontology.eglobalmark.com/authorization#username": [
+     *              {
+     *                  "@value": "username"
+     *              }
+     *         ]
+     *       }
+     *     ]
+     *   }
+     * ]
+     */
+    suspend fun buildExpandedPropertyMapValue(
+        value: Map<String, String>,
+        contexts: List<String>
+    ): ExpandedAttributeInstances =
+        listOf(
+            mapOf(
+                JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+                NGSILD_PROPERTY_VALUE to listOf(
+                    expandJsonLdFragment(value, contexts).mapValues { it.value }
+                )
+            )
+        )
+
+    /**
      * Build the expanded payload of a property.
      *
      * "https://uri.etsi.org/ngsi-ld/default-context/aRelationship": [

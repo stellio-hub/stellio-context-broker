@@ -21,7 +21,7 @@ plugins {
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.1.2" apply false
     id("io.spring.dependency-management") version "1.1.2" apply false
-    id("org.graalvm.buildtools.native") version "0.9.23"
+    id("org.graalvm.buildtools.native") version "0.9.24"
     kotlin("jvm") version "1.9.0" apply false
     kotlin("plugin.spring") version "1.9.0" apply false
     id("com.google.cloud.tools.jib") version "3.3.2" apply false

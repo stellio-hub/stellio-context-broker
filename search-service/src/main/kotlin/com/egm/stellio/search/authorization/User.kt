@@ -5,6 +5,10 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_GIVEN_NAME
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_KIND
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -36,7 +40,7 @@ data class User(
         }
 
         subjectInfo.filterKeys {
-            !setOf(AUTH_PROP_USERNAME, AUTH_PROP_GIVEN_NAME, AUTH_PROP_FAMILY_NAME).contains(it)
+            !setOf(AUTH_TERM_USERNAME, AUTH_TERM_GIVEN_NAME, AUTH_TERM_FAMILY_NAME, AUTH_TERM_KIND).contains(it)
         }.run {
             if (this.isNotEmpty())
                 resultEntity[AUTH_PROP_SUBJECT_INFO] =

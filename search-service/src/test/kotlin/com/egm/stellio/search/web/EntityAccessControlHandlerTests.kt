@@ -833,7 +833,7 @@ class EntityAccessControlHandlerTests {
                         "username",
                         "givenName",
                         "familyName",
-                        mapOf("profile" to "stellio-user")
+                        mapOf("profile" to "stellio-user", "username" to "username")
                     ).serializeProperties(),
                     listOf(NGSILD_CORE_CONTEXT)
                 )

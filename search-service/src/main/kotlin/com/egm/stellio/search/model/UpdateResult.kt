@@ -22,6 +22,8 @@ data class UpdateResult(
         )
 }
 
+val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
+
 data class NotUpdatedDetails(
     val attributeName: String,
     val reason: String

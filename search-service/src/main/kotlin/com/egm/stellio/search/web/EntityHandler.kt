@@ -109,21 +109,13 @@ class EntityHandler(
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttributes = expandAttributes(body, contexts)
-        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
-        val updateResult = entityPayloadService.updateTypes(
+        val updateResult = entityPayloadService.mergeEntity(
             entityUri,
-            typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
-        ).bind().mergeWith(
-            entityPayloadService.mergeEntity(
-                entityUri,
-                ngsiLdAttributes,
-                expandedAttributes,
-                observedAt,
-                sub.getOrNull()
-            ).bind()
-        )
+            expandedAttributes,
+            observedAt,
+            sub.getOrNull()
+        ).bind()
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
@@ -364,23 +356,15 @@ class EntityHandler(
 
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttributes = expandAttributes(body, contexts)
-        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-        val updateResult = entityPayloadService.updateTypes(
+        val updateResult = entityPayloadService.appendAttributes(
             entityUri,
-            typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
-        ).bind().mergeWith(
-            entityPayloadService.appendAttributes(
-                entityUri,
-                ngsiLdAttributes,
-                expandedAttributes,
-                disallowOverwrite,
-                sub.getOrNull()
-            ).bind()
-        )
+            expandedAttributes,
+            disallowOverwrite,
+            sub.getOrNull()
+        ).bind()
 
         if (updateResult.hasSuccessfulUpdate()) {
             entityEventService.publishAttributeChangeEvents(
@@ -426,24 +410,15 @@ class EntityHandler(
             .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttributes = expandAttributes(body, contexts)
-        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
-        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
-
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 
-        val updateResult = entityPayloadService.updateTypes(
+        val updateResult = entityPayloadService.updateAttributes(
             entityUri,
-            typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
-        ).bind().mergeWith(
-            entityPayloadService.updateAttributes(
-                entityUri,
-                ngsiLdAttributes,
-                expandedAttributes,
-                sub.getOrNull()
-            ).bind()
-        )
+            expandedAttributes,
+            sub.getOrNull()
+        ).bind()
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(

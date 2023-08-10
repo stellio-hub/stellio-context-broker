@@ -55,12 +55,7 @@ class NgsiLdEntity private constructor(
             }
             val types = parsedKeys[JSONLD_TYPE]!! as List<String>
 
-            val rawScopes = getPropertyValueFromMap(parsedKeys as Map<String, List<Any>>, NGSILD_SCOPE_PROPERTY)
-            val scopes = when (rawScopes) {
-                is String -> listOf(rawScopes)
-                is List<*> -> rawScopes as List<String>
-                else -> emptyList()
-            }
+            val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
@@ -396,6 +391,13 @@ suspend fun JsonLdEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
 
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+
+fun ExpandedAttributeInstance.getScopes(): List<String> =
+    when (val rawScopes = getPropertyValueFromMap(this, NGSILD_SCOPE_PROPERTY)) {
+        is String -> listOf(rawScopes)
+        is List<*> -> rawScopes as List<String>
+        else -> emptyList()
+    }
 
 fun ExpandedAttributeInstance.getPropertyValue(): Any =
     (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE_KW]!!

@@ -20,6 +20,7 @@ import java.time.ZonedDateTime
 data class EntityPayload(
     val entityId: URI,
     val types: List<ExpandedTerm>,
+    val scopes: List<String> = emptyList(),
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
     // creation time contexts

@@ -21,7 +21,9 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
@@ -222,11 +224,10 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        val (jsonLdEntity, _) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityPayloadService.mergeEntity(
             beehiveTestCId,
-            ngsiLdEntity.attributes,
             jsonLdEntity.getAttributes(),
             now,
             "0123456789-1234-5678-987654321"
@@ -258,6 +259,89 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 emptySet()
             )
         }
+    }
+
+    @Test
+    fun `it should merge an entity with new types`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+        } returns UpdateResult(
+            listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        ).right()
+        coEvery {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } returns emptyList()
+
+        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            createEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        val expandedAttributes = expandAttributes(
+            loadSampleData("fragments/beehive_merge_entity_multiple_types.jsonld"),
+            listOf(APIC_COMPOUND_CONTEXT)
+        )
+
+        entityPayloadService.mergeEntity(
+            beehiveTestCId,
+            expandedAttributes,
+            now,
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertTrue(it.types.containsAll(setOf(BEEHIVE_TYPE, NGSILD_DEFAULT_VOCAB + "Distribution")))
+            }
+    }
+
+    @Test
+    fun `it should merge an entity with new types and scopes`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+        } returns UpdateResult(
+            listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        ).right()
+        coEvery {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } returns emptyList()
+
+        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            createEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        val expandedAttributes = expandAttributes(
+            loadSampleData("fragments/beehive_merge_entity_multiple_types_and_scopes.jsonld"),
+            listOf(APIC_COMPOUND_CONTEXT)
+        )
+
+        entityPayloadService.mergeEntity(
+            beehiveTestCId,
+            expandedAttributes,
+            now,
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertTrue(it.types.containsAll(setOf(BEEHIVE_TYPE, NGSILD_DEFAULT_VOCAB + "Distribution")))
+                assertTrue(it.scopes.containsAll(setOf("/Nantes/BottiereChenaie", "/Agri/Beekeeping")))
+            }
     }
 
     @Test
@@ -450,7 +534,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             )
         }
 
-        entityPayloadService.updateTypes(beehiveTestCId, listOf(BEEHIVE_TYPE, APIARY_TYPE), false)
+        entityPayloadService.updateTypes(beehiveTestCId, listOf(BEEHIVE_TYPE, APIARY_TYPE), ngsiLdDateTime(), false)
             .shouldSucceedWith {
                 assertTrue(it.isSuccessful())
                 assertEquals(1, it.updated.size)
@@ -481,7 +565,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 )
             }
 
-        entityPayloadService.updateTypes(entity01Uri, listOf(APIARY_TYPE), false)
+        entityPayloadService.updateTypes(entity01Uri, listOf(APIARY_TYPE), ngsiLdDateTime(), false)
             .shouldSucceedWith {
                 assertFalse(it.isSuccessful())
                 assertEquals(1, it.notUpdated.size)

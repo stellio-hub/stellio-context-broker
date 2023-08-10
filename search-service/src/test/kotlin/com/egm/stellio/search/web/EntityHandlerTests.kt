@@ -1305,10 +1305,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1324,7 +1321,6 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                any(),
                 any(),
                 eq(false),
                 sub.getOrNull()
@@ -1359,10 +1355,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1385,7 +1378,6 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(eq(entityId))
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                any(),
                 any(),
                 eq(false),
                 sub.getOrNull()
@@ -1411,15 +1403,11 @@ class EntityHandlerTests {
             listOf(UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.APPENDED)),
             emptyList()
         )
-        val appendResult = UpdateResult(emptyList(), emptyList())
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendTypeResult.right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
-        } returns appendResult.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1431,13 +1419,8 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.updateTypes(
-                eq(entityId),
-                listOf(breedingServiceType, deadFishesType)
-            )
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                emptyList(),
                 any(),
                 eq(false),
                 any()
@@ -1470,11 +1453,8 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns appendTypeResult.right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
-        } returns appendResult.right()
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
+        } returns appendTypeResult.mergeWith(appendResult).right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1550,6 +1530,12 @@ class EntityHandlerTests {
             """.trimIndent()
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
+        } returns BadRequestDataException(
+            "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
+        ).left()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1765,10 +1751,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1785,8 +1768,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
-            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1823,10 +1805,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1843,10 +1822,8 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             entityPayloadService.mergeEntity(
                 eq(entityId),
-                any(),
                 any(),
                 eq(ZonedDateTime.parse("2019-12-04T12:00:00.00Z")),
                 any()
@@ -1981,10 +1958,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -2001,8 +1975,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
-            entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -2026,10 +1999,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
@@ -2058,14 +2028,11 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = emptyList(),
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
         ).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
@@ -2079,8 +2046,7 @@ class EntityHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
 
         coVerify {
-            entityPayloadService.updateTypes(eq(entityId), eq(listOf(breedingServiceType)))
-            entityPayloadService.updateAttributes(eq(entityId), emptyList(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), any(), any())
         }
     }
 

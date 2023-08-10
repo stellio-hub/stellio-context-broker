@@ -6,11 +6,15 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.OperationType.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -102,23 +106,27 @@ class EntityPayloadService(
     @Transactional
     suspend fun mergeEntity(
         entityId: URI,
-        ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
         observedAt: ZonedDateTime?,
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
-        val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
-        val updateResult = temporalEntityAttributeService.mergeEntityAttributes(
+        val (coreAttrs, otherAttrs) =
+            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
+        val mergedAt = ngsiLdDateTime()
+
+        val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
+        val attrsUpdateResult = temporalEntityAttributeService.mergeEntityAttributes(
             entityId,
-            ngsiLdAttributes,
+            otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
             mergedAt,
             observedAt,
             sub
         ).bind()
 
+        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been merged
         if (updateResult.hasSuccessfulUpdate()) {
             val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
@@ -231,6 +239,7 @@ class EntityPayloadService(
         EntityPayload(
             entityId = toUri(row["entity_id"]),
             types = toList(row["types"]),
+            scopes = toList(row["scopes"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"]),
@@ -417,9 +426,32 @@ class EntityPayloadService(
     }
 
     @Transactional
+    suspend fun updateCoreAttributes(
+        entityId: URI,
+        coreAttrs: List<Pair<ExpandedTerm, ExpandedAttributeInstances>>,
+        modifiedAt: ZonedDateTime,
+        operationType: OperationType
+    ): Either<APIException, UpdateResult> = either {
+        coreAttrs.map { (expandedTerm, expandedAttributeInstances) ->
+            when (expandedTerm) {
+                JSONLD_TYPE ->
+                    updateTypes(entityId, expandedAttributeInstances as List<ExpandedTerm>, modifiedAt).bind()
+                NGSILD_SCOPE_PROPERTY ->
+                    prepareScopesUpdate(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
+                else -> {
+                    logger.warn("Ignoring unhandled core property: {}", expandedTerm)
+                    EMPTY_UPDATE_RESULT.right().bind()
+                }
+            }
+        }.ifEmpty { listOf(EMPTY_UPDATE_RESULT) }
+            .reduce { acc, cur -> acc.mergeWith(cur) }
+    }
+
+    @Transactional
     suspend fun updateTypes(
         entityId: URI,
         newTypes: List<ExpandedTerm>,
+        modifiedAt: ZonedDateTime,
         allowEmptyListOfTypes: Boolean = true
     ): Either<APIException, UpdateResult> =
         either {
@@ -459,7 +491,7 @@ class EntityPayloadService(
             )
                 .bind("entity_id", entityId)
                 .bind("types", newTypes.toTypedArray())
-                .bind("modified_at", ZonedDateTime.now(ZoneOffset.UTC))
+                .bind("modified_at", modifiedAt)
                 .bind("payload", Json.of(serializeObject(updatedPayload)))
                 .execute()
                 .map {
@@ -475,23 +507,120 @@ class EntityPayloadService(
         }
 
     @Transactional
+    suspend fun prepareScopesUpdate(
+        entityUri: URI,
+        expandedAttributeInstances: ExpandedAttributeInstances,
+        modifiedAt: ZonedDateTime,
+        operationType: OperationType
+    ): Either<APIException, UpdateResult> = either {
+        val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()
+        val entityPayload = retrieve(entityUri).bind()
+
+        val (updatedScopes, updatedPayload) = when (operationType) {
+            UPDATE_ATTRIBUTES -> {
+                if (entityPayload.scopes.isNotEmpty()) {
+                    val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
+                        .mapValues {
+                            if (it.key == NGSILD_SCOPE_PROPERTY)
+                                expandedAttributeInstances
+                            else it
+                        }
+                    Pair(scopes, updatedPayload)
+                } else return@either UpdateResult(
+                    updated = emptyList(),
+                    notUpdated = listOf(
+                        NotUpdatedDetails(
+                            NGSILD_SCOPE_PROPERTY,
+                            "Attribute does not exist and operation does not allow creating it"
+                        )
+                    )
+                )
+            }
+            APPEND_ATTRIBUTES, MERGE_ENTITY -> {
+                val newScopes = entityPayload.scopes.toSet().plus(scopes).toList()
+                val newPayload = newScopes.map { mapOf(JSONLD_VALUE_KW to it) }
+                val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
+                    .mapValues {
+                        if (it.key == NGSILD_SCOPE_PROPERTY)
+                            newPayload
+                        else it
+                    }
+                Pair(newScopes, updatedPayload)
+            }
+            APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
+            MERGE_ENTITY_OVERWRITE_ALLOWED,
+            PARTIAL_ATTRIBUTE_UPDATE,
+            REPLACE_ATTRIBUTE -> {
+                val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
+                    .mapValues {
+                        if (it.key == NGSILD_SCOPE_PROPERTY)
+                            expandedAttributeInstances
+                        else it
+                    }
+                Pair(scopes, updatedPayload)
+            }
+            else -> Pair(emptyList(), Json.of("{}"))
+        }
+
+        updateScopes(entityUri, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
+    }
+
+    @Transactional
+    internal suspend fun updateScopes(
+        entityUri: URI,
+        scopes: List<String>,
+        modifiedAt: ZonedDateTime,
+        payload: String
+    ): Either<APIException, UpdateResult> = either {
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET scopes = :scopes,
+                modified_at = :modified_at,
+                payload = :payload
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityUri)
+            .bind("scopes", scopes.toTypedArray())
+            .bind("modified_at", modifiedAt)
+            .bind("payload", Json.of(payload))
+            .execute()
+            .map {
+                updateResultFromDetailedResult(
+                    listOf(
+                        UpdateAttributeResult(
+                            attributeName = NGSILD_SCOPE_PROPERTY,
+                            updateOperationResult = UpdateOperationResult.APPENDED
+                        )
+                    )
+                )
+            }.bind()
+    }
+
+    @Transactional
     suspend fun appendAttributes(
         entityUri: URI,
-        ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
         disallowOverwrite: Boolean,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
+            val (coreAttrs, otherAttrs) =
+                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-            val updateResult = temporalEntityAttributeService.appendEntityAttributes(
+
+            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, APPEND_ATTRIBUTES).bind()
+            val attrsUpdateResult = temporalEntityAttributeService.appendEntityAttributes(
                 entityUri,
-                ngsiLdAttributes,
+                otherAttrs.toMap().toNgsiLdAttributes().bind(),
                 expandedAttributes,
                 disallowOverwrite,
                 createdAt,
                 sub
             ).bind()
+
+            val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
             // update modifiedAt in entity if at least one attribute has been added
             if (updateResult.hasSuccessfulUpdate()) {
                 val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
@@ -503,19 +632,24 @@ class EntityPayloadService(
     @Transactional
     suspend fun updateAttributes(
         entityUri: URI,
-        ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
         sub: Sub?
     ): Either<APIException, UpdateResult> =
         either {
+            val (coreAttrs, otherAttrs) =
+                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-            val updateResult = temporalEntityAttributeService.updateEntityAttributes(
+
+            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
+            val attrsUpdateResult = temporalEntityAttributeService.updateEntityAttributes(
                 entityUri,
-                ngsiLdAttributes,
+                otherAttrs.toMap().toNgsiLdAttributes().bind(),
                 expandedAttributes,
                 createdAt,
                 sub
             ).bind()
+
+            val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
             // update modifiedAt in entity if at least one attribute has been added
             if (updateResult.hasSuccessfulUpdate()) {
                 val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())

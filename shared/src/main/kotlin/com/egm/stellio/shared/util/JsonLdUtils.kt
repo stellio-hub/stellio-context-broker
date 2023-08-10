@@ -39,6 +39,8 @@ object JsonLdUtils {
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     const val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
 
+    const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
+
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
     val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
@@ -57,6 +59,9 @@ object JsonLdUtils {
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
 
+    val JSONLD_EXPANDED_ENTITY_CORE_FIELDS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
+
+    // TODO remove the "mandatory" since all these properties are not mandatory
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS =
         setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT, NGSILD_SCOPE_TERM)

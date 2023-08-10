@@ -25,6 +25,9 @@ data class JsonLdEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
+    fun getMembersAsExpandedAttributes(): ExpandedAttributes =
+        members.mapValues { castAttributeValue(it.value) }
+
     fun getAttributes(): ExpandedAttributes =
         members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }

@@ -1,19 +1,14 @@
 package com.egm.stellio.search.service
 
 import arrow.core.right
-import com.egm.stellio.search.model.EntityPayload
-import com.egm.stellio.search.model.UpdateOperationResult
-import com.egm.stellio.search.model.UpdateResult
-import com.egm.stellio.search.model.UpdatedDetails
+import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.OperationType.*
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.search.util.deserializeAsMap
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.toNgsiLdAttribute
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
@@ -22,6 +17,7 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_RE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
@@ -38,11 +34,15 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
+import java.util.stream.Stream
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -575,6 +575,71 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     "A type cannot be removed from an entity: [$BEEHIVE_TYPE] have been removed",
                     notUpdatedDetails.reason
                 )
+            }
+    }
+
+    @Suppress("unused")
+    private fun generateScopes(): Stream<Arguments> =
+        Stream.of(
+            Arguments.of(
+                "beehive_with_scope.jsonld",
+                listOf("/B", "/C"),
+                APPEND_ATTRIBUTES,
+                listOf("/A", "/B", "/C")
+            ),
+            Arguments.of(
+                "beehive_with_scope.jsonld",
+                listOf("/B", "/C"),
+                REPLACE_ATTRIBUTE,
+                listOf("/B", "/C")
+            ),
+            Arguments.of(
+                "beehive_with_scope.jsonld",
+                listOf("/B", "/C"),
+                UPDATE_ATTRIBUTES,
+                listOf("/B", "/C")
+            ),
+            Arguments.of(
+                "beehive_minimal.jsonld",
+                listOf("/B", "/C"),
+                UPDATE_ATTRIBUTES,
+                emptyList<String>()
+            )
+        )
+
+    @ParameterizedTest
+    @MethodSource("generateScopes")
+    fun `it shoud update scopes as requested by the type of the operation`(
+        initialEntity: String,
+        inputScopes: List<String>,
+        operationType: OperationType,
+        expectedScopes: List<String>
+    ) = runTest {
+        loadSampleData(initialEntity)
+            .sampleDataToNgsiLdEntity()
+            .map { entityPayloadService.createEntityPayload(it.second, now, it.first) }
+
+        val expandedAttributes = expandAttributes(
+            """
+            { 
+                "scope": [${inputScopes.joinToString(",") { "\"$it\"" } }]
+            }
+            """.trimIndent(),
+            listOf(APIC_COMPOUND_CONTEXT)
+        )
+
+        entityPayloadService.updateScopes(
+            beehiveTestCId,
+            expandedAttributes[NGSILD_SCOPE_PROPERTY]!!,
+            ngsiLdDateTime(),
+            operationType
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(expectedScopes, it.scopes)
+                val scopesInEntity = (it.payload.deserializeAsMap() as ExpandedAttributeInstance).getScopes()
+                assertEquals(expectedScopes, scopesInEntity)
             }
     }
 

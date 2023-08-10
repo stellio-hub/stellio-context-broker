@@ -111,6 +111,36 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
+    @ParameterizedTest
+    @CsvSource(
+        "/Madrid/Gardens/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/+/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/CompanyA/#, 1, urn:ngsi-ld:BeeHive:01",
+        "/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC, 1, urn:ngsi-ld:BeeHive:01",
+        "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
+    )
+    fun `it should retrieve entities according to scope query`(
+        scopeQ: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                QueryParams(
+                    type = BEEHIVE_TYPE,
+                    scopeQ = scopeQ,
+                    limit = 30,
+                    offset = 0,
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
     @Test
     fun `it should retrieve entities according to ids and types and attrs`() = runTest {
         val entitiesIds =

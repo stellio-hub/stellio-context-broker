@@ -1,6 +1,7 @@
 {
   "id": "urn:ngsi-ld:BeeHive:01",
   "type": "BeeHive",
+  "scope": ["/Madrid/Gardens/ParqueNorte", "/CompanyA/OrganizationB/UnitC"],
   "name": {
     "type": "Property",
     "value": "name"

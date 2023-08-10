@@ -437,7 +437,7 @@ class EntityPayloadService(
                 JSONLD_TYPE ->
                     updateTypes(entityId, expandedAttributeInstances as List<ExpandedTerm>, modifiedAt).bind()
                 NGSILD_SCOPE_PROPERTY ->
-                    prepareScopesUpdate(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
+                    updateScopes(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
                 else -> {
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
                     EMPTY_UPDATE_RESULT.right().bind()
@@ -507,7 +507,7 @@ class EntityPayloadService(
         }
 
     @Transactional
-    suspend fun prepareScopesUpdate(
+    suspend fun updateScopes(
         entityUri: URI,
         expandedAttributeInstances: ExpandedAttributeInstances,
         modifiedAt: ZonedDateTime,
@@ -562,11 +562,11 @@ class EntityPayloadService(
             else -> Pair(emptyList(), Json.of("{}"))
         }
 
-        updateScopes(entityUri, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
+        performScopesUpdate(entityUri, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
     }
 
     @Transactional
-    internal suspend fun updateScopes(
+    internal suspend fun performScopesUpdate(
         entityUri: URI,
         scopes: List<String>,
         modifiedAt: ZonedDateTime,

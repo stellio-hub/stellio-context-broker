@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -180,7 +181,7 @@ class EnabledAuthorizationService(
         val jsonLdEntities = users.map {
             JsonLdEntity(
                 it.serializeProperties(),
-                listOf(AUTHORIZATION_CONTEXT)
+                AUTHORIZATION_API_DEFAULT_CONTEXTS
             )
         }
 

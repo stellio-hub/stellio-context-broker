@@ -1,6 +1,6 @@
 package com.egm.stellio.search.authorization
 
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
@@ -44,7 +44,7 @@ data class User(
         }.run {
             if (this.isNotEmpty())
                 resultEntity[AUTH_PROP_SUBJECT_INFO] =
-                    buildExpandedPropertyMapValue(this, AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS)
+                    buildExpandedPropertyMapValue(this, AUTHORIZATION_API_DEFAULT_CONTEXTS)
         }
 
         return resultEntity

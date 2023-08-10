@@ -7,11 +7,11 @@ import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.authorization.toSubjectInfo
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_SUBJECT_INFO_MEMBERS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonUtils
@@ -69,7 +69,9 @@ class IAMListener(
 
     private suspend fun createSubjectReferential(entityCreateEvent: EntityCreateEvent): Either<APIException, Unit> {
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
-        val subjectInfo = operationPayload.filter { AUTH_SUBJECT_INFO_MEMBERS.contains(it.key) }.toSubjectInfo()
+        val subjectInfo = operationPayload
+            .filter { !JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
+            .toSubjectInfo()
         val roles = extractRoles(operationPayload)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),

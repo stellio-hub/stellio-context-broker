@@ -1,6 +1,5 @@
 package com.egm.stellio.search.authorization
 
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
@@ -24,7 +23,7 @@ data class User(
     val familyName: String? = null,
     val subjectInfo: Map<String, String>
 ) {
-    suspend fun serializeProperties(): Map<String, Any> {
+    suspend fun serializeProperties(contextLink: String): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = USER_ENTITY_PREFIX + id
         resultEntity[JSONLD_TYPE] = listOf(type)
@@ -44,7 +43,7 @@ data class User(
         }.run {
             if (this.isNotEmpty())
                 resultEntity[AUTH_PROP_SUBJECT_INFO] =
-                    buildExpandedPropertyMapValue(this, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+                    buildExpandedPropertyMapValue(this, listOf(contextLink))
         }
 
         return resultEntity

@@ -8,8 +8,6 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -95,7 +93,7 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        context: String,
+        contextLink: String,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
         val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).orNull() }
@@ -127,8 +125,8 @@ class EnabledAuthorizationService(
                     )
                 } else entityAccessControl
             }
-            .map { it.serializeProperties() }
-            .map { JsonLdEntity(it, listOf(context)) }
+            .map { it.serializeProperties(contextLink) }
+            .map { JsonLdEntity(it, listOf(contextLink)) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
@@ -142,46 +140,46 @@ class EnabledAuthorizationService(
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
+        contextLink: String,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> {
-        return either {
-            val groups =
-                when (userIsAdmin(sub)) {
-                    is Either.Left -> {
-                        val groups = subjectReferentialService.getGroups(sub, offset, limit)
-                        val groupsCount = subjectReferentialService.getCountGroups(sub).bind()
-                        Pair(groupsCount, groups)
-                    }
-
-                    is Either.Right -> {
-                        val groups = subjectReferentialService.getAllGroups(sub, offset, limit)
-                        val groupsCount = subjectReferentialService.getCountAllGroups().bind()
-                        Pair(groupsCount, groups)
-                    }
+    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val groups =
+            when (userIsAdmin(sub)) {
+                is Either.Left -> {
+                    val groups = subjectReferentialService.getGroups(sub, offset, limit)
+                    val groupsCount = subjectReferentialService.getCountGroups(sub).bind()
+                    Pair(groupsCount, groups)
                 }
 
-            val jsonLdEntities = groups.second.map {
-                JsonLdEntity(
-                    it.serializeProperties(),
-                    listOf(AUTHORIZATION_CONTEXT)
-                )
+                is Either.Right -> {
+                    val groups = subjectReferentialService.getAllGroups(sub, offset, limit)
+                    val groupsCount = subjectReferentialService.getCountAllGroups().bind()
+                    Pair(groupsCount, groups)
+                }
             }
 
-            Pair(groups.first, jsonLdEntities)
+        val jsonLdEntities = groups.second.map {
+            JsonLdEntity(
+                it.serializeProperties(),
+                listOf(contextLink)
+            )
         }
+
+        Pair(groups.first, jsonLdEntities)
     }
 
     override suspend fun getUsers(
         offset: Int,
-        limit: Int
+        limit: Int,
+        contextLink: String
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
         val users = subjectReferentialService.getUsers(offset, limit)
         val usersCount = subjectReferentialService.getUsersCount().bind()
 
         val jsonLdEntities = users.map {
             JsonLdEntity(
-                it.serializeProperties(),
-                AUTHORIZATION_API_DEFAULT_CONTEXTS
+                it.serializeProperties(contextLink),
+                listOf(contextLink)
             )
         }
 

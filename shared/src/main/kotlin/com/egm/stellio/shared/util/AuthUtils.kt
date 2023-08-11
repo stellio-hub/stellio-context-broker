@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
@@ -10,6 +12,7 @@ import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.reactive.awaitFirst
+import org.springframework.http.HttpHeaders
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import reactor.core.publisher.Mono
@@ -131,12 +134,11 @@ enum class AccessRight(val attributeName: String) {
     }
 }
 
-fun List<String>.addAuthzContextIfNeeded(): List<String> =
-    if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)
-        this.plus(AuthContextModel.AUTHORIZATION_CONTEXT)
-    else this
+fun getAuthzContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, String> =
+    getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+        .map { it ?: AUTHORIZATION_COMPOUND_CONTEXT }
 
-fun String.addAuthzContextIfNeeded(): String =
-    if (this == NGSILD_CORE_CONTEXT)
-        AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
+fun List<String>.replaceDefaultContextToAuthzContext() =
+    if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)
+        listOf(AUTHORIZATION_COMPOUND_CONTEXT)
     else this

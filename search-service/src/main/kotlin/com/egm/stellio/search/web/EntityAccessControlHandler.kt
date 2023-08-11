@@ -42,7 +42,7 @@ class EntityAccessControlHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
         val queryParams = parseQueryParams(
@@ -94,7 +94,7 @@ class EntityAccessControlHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val queryParams = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
@@ -103,7 +103,7 @@ class EntityAccessControlHandler(
         ).bind()
 
         val countAndGroupEntities =
-            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, sub).bind()
+            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, contextLink, sub).bind()
 
         if (countAndGroupEntities.first == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -139,7 +139,7 @@ class EntityAccessControlHandler(
 
         authorizationService.userIsAdmin(sub).bind()
 
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind().addAuthzContextIfNeeded()
+        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val queryParams = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
@@ -148,7 +148,7 @@ class EntityAccessControlHandler(
         ).bind()
 
         val countAndUserEntities =
-            authorizationService.getUsers(queryParams.offset, queryParams.limit).bind()
+            authorizationService.getUsers(queryParams.offset, queryParams.limit, contextLink).bind()
 
         if (countAndUserEntities.first == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -184,7 +184,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
+        val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
         val expandedAttributes = expandAttributes(body, contexts)
         val ngsiLdAttributes = expandedAttributes.toNgsiLdAttributes().bind()
 
@@ -283,7 +283,7 @@ class EntityAccessControlHandler(
         authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body).bind().addAuthzContextIfNeeded()
+        val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
         val expandedAttribute = expandAttribute(AUTH_TERM_SAP, removeContextFromInput(body), contexts)
         if (expandedAttribute.first != AUTH_PROP_SAP)
             BadRequestDataException("${expandedAttribute.first} is not authorized property name")

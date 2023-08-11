@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization
 
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
@@ -34,16 +33,16 @@ data class EntityAccessRights(
     ) {
         val datasetId: URI = (DATASET_ID_PREFIX + uri.extractSub()).toUri()
 
-        suspend fun serializeProperties(): ExpandedAttributeInstances =
+        suspend fun serializeProperties(contextLink: String): ExpandedAttributeInstances =
             buildExpandedRelationship(uri)
                 .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId.toString()))
                 .addSubAttribute(
                     AUTH_PROP_SUBJECT_INFO,
-                    buildExpandedPropertyMapValue(subjectInfo, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+                    buildExpandedPropertyMapValue(subjectInfo, listOf(contextLink))
                 )
     }
 
-    suspend fun serializeProperties(): Map<String, Any> {
+    suspend fun serializeProperties(contextLink: String): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
 
         resultEntity[JSONLD_ID] = id.toString()
@@ -56,17 +55,17 @@ data class EntityAccessRights(
 
         rCanAdminUsers?.run {
             resultEntity[AUTH_REL_CAN_ADMIN] = this.map {
-                it.serializeProperties()
+                it.serializeProperties(contextLink)
             }.flatten()
         }
         rCanWriteUsers?.run {
             resultEntity[AUTH_REL_CAN_WRITE] = this.map {
-                it.serializeProperties()
+                it.serializeProperties(contextLink)
             }.flatten()
         }
         rCanReadUsers?.run {
             resultEntity[AUTH_REL_CAN_READ] = this.map {
-                it.serializeProperties()
+                it.serializeProperties(contextLink)
             }.flatten()
         }
         return resultEntity

@@ -12,6 +12,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
@@ -616,7 +617,7 @@ class EntityAccessControlHandlerTests {
                     "id": "urn:ngsi-ld:Beehive:TESTC",
                     "type": "$BEEHIVE_TYPE",
                     "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
-                    "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                    "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
                 },
                 {
                     "id": "urn:ngsi-ld:Beehive:TESTD",
@@ -632,7 +633,7 @@ class EntityAccessControlHandlerTests {
                             "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
                          }
                     },
-                    "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                    "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
                 }]
                 """.trimMargin()
             )
@@ -670,7 +671,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any(), any())
         } returns Pair(3, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
@@ -684,7 +685,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -712,7 +713,7 @@ class EntityAccessControlHandlerTests {
                         "id": "urn:ngsi-ld:group:1",
                         "type": "$GROUP_COMPACT_TYPE",
                         "name" : {"type":"Property", "value": "egm"},
-                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                        "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
                     }
                 ]
                 """.trimMargin()
@@ -724,7 +725,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of with authorization context`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -766,7 +767,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any(), any())
         } returns Pair(-1, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
@@ -793,7 +794,7 @@ class EntityAccessControlHandlerTests {
     fun `get users should return 200 and the number of results if requested limit is 0`() {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
-            authorizationService.getUsers(any(), any())
+            authorizationService.getUsers(any(), any(), any())
         } returns Pair(3, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
@@ -808,7 +809,7 @@ class EntityAccessControlHandlerTests {
     fun `get users should return 204 if authentication is not enabled`() {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
-            authorizationService.getUsers(any(), any())
+            authorizationService.getUsers(any(), any(), any())
         } returns Pair(-1, emptyList<JsonLdEntity>()).right()
 
         webClient.get()
@@ -822,7 +823,7 @@ class EntityAccessControlHandlerTests {
     fun `get users should return users if user is a stellio admin`() = runTest {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
-            authorizationService.getUsers(any(), any())
+            authorizationService.getUsers(any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -834,7 +835,7 @@ class EntityAccessControlHandlerTests {
                         "givenName",
                         "familyName",
                         mapOf("profile" to "stellio-user", "username" to "username")
-                    ).serializeProperties(),
+                    ).serializeProperties(AUTHORIZATION_COMPOUND_CONTEXT),
                     listOf(NGSILD_CORE_CONTEXT)
                 )
             )
@@ -856,7 +857,7 @@ class EntityAccessControlHandlerTests {
                         "$AUTH_TERM_GIVEN_NAME" : { "type":"Property", "value": "givenName" },
                         "$AUTH_TERM_FAMILY_NAME" : { "type":"Property", "value": "familyName" },
                         "$AUTH_TERM_SUBJECT_INFO": { "type":"Property","value":{ "profile": "stellio-user" } },
-                        "@context": ["${AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT}"]
+                        "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
                     }
                 ]
                 """.trimMargin()
@@ -869,7 +870,7 @@ class EntityAccessControlHandlerTests {
         entityAccessRights: EntityAccessRights,
         context: String = NGSILD_CORE_CONTEXT
     ): JsonLdEntity {
-        val earSerialized = entityAccessRights.serializeProperties()
+        val earSerialized = entityAccessRights.serializeProperties(AUTHORIZATION_COMPOUND_CONTEXT)
         return JsonLdEntity(earSerialized, listOf(context))
     }
 

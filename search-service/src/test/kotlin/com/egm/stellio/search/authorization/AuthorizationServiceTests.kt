@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.None
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -44,6 +45,7 @@ class AuthorizationServiceTests {
         authorizationService.getGroupsMemberships(
             0,
             0,
+            AUTHORIZATION_COMPOUND_CONTEXT,
             None
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
@@ -55,7 +57,8 @@ class AuthorizationServiceTests {
     fun `get users should return a count of -1 if authentication is not enabled`() = runTest {
         authorizationService.getUsers(
             0,
-            0
+            0,
+            AUTHORIZATION_COMPOUND_CONTEXT
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)

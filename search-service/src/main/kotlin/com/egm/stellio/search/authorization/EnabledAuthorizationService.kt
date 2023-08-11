@@ -127,7 +127,7 @@ class EnabledAuthorizationService(
                     )
                 } else entityAccessControl
             }
-            .map { it.serializeProperties() }
+            .map { it.serializeProperties(contextLink) }
             .map { JsonLdEntity(it, listOf(contextLink)) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(

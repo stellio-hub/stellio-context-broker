@@ -870,7 +870,7 @@ class EntityAccessControlHandlerTests {
         entityAccessRights: EntityAccessRights,
         context: String = NGSILD_CORE_CONTEXT
     ): JsonLdEntity {
-        val earSerialized = entityAccessRights.serializeProperties()
+        val earSerialized = entityAccessRights.serializeProperties(AUTHORIZATION_COMPOUND_CONTEXT)
         return JsonLdEntity(earSerialized, listOf(context))
     }
 

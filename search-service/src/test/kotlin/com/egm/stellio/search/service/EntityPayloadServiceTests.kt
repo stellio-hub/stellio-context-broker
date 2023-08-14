@@ -340,7 +340,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertTrue(it.types.containsAll(setOf(BEEHIVE_TYPE, NGSILD_DEFAULT_VOCAB + "Distribution")))
-                assertTrue(it.scopes.containsAll(setOf("/Nantes/BottiereChenaie", "/Agri/Beekeeping")))
+                assertTrue(it.scopes?.containsAll(setOf("/Nantes/BottiereChenaie", "/Agri/Beekeeping")) ?: false)
             }
     }
 
@@ -603,7 +603,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "beehive_minimal.jsonld",
                 listOf("/B", "/C"),
                 UPDATE_ATTRIBUTES,
-                emptyList<String>()
+                null
             )
         )
 
@@ -613,7 +613,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         initialEntity: String,
         inputScopes: List<String>,
         operationType: OperationType,
-        expectedScopes: List<String>
+        expectedScopes: List<String>?
     ) = runTest {
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
@@ -727,6 +727,31 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     now,
                     EMPTY_PAYLOAD
                 ).shouldSucceed()
+            }
+    }
+
+    @Test
+    fun `it should remove the scopes from an entity`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } returns emptyList()
+
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityPayloadService.createEntityPayload(
+                    it.second,
+                    now,
+                    EMPTY_PAYLOAD
+                )
+            }
+
+        entityPayloadService.deleteAttribute(beehiveTestCId, NGSILD_SCOPE_PROPERTY, null)
+            .shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertNull(it.scopes)
             }
     }
 

@@ -96,7 +96,7 @@ class EntityPayloadService(
         )
             .bind("entity_id", ngsiLdEntity.id)
             .bind("types", ngsiLdEntity.types.toTypedArray())
-            .bind("scopes", ngsiLdEntity.scopes.toTypedArray())
+            .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
             .bind("payload", Json.of(entityPayload))
             .bind("contexts", ngsiLdEntity.contexts.toTypedArray())
@@ -239,7 +239,7 @@ class EntityPayloadService(
         EntityPayload(
             entityId = toUri(row["entity_id"]),
             types = toList(row["types"]),
-            scopes = toList(row["scopes"]),
+            scopes = toOptionalList(row["scopes"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             contexts = toList(row["contexts"]),
@@ -513,12 +513,12 @@ class EntityPayloadService(
         modifiedAt: ZonedDateTime,
         operationType: OperationType
     ): Either<APIException, UpdateResult> = either {
-        val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()
+        val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
         val entityPayload = retrieve(entityUri).bind()
 
         val (updatedScopes, updatedPayload) = when (operationType) {
             UPDATE_ATTRIBUTES -> {
-                if (entityPayload.scopes.isNotEmpty()) {
+                if (entityPayload.scopes != null) {
                     val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                         .mapValues {
                             if (it.key == NGSILD_SCOPE_PROPERTY)
@@ -537,7 +537,7 @@ class EntityPayloadService(
                 )
             }
             APPEND_ATTRIBUTES, MERGE_ENTITY -> {
-                val newScopes = entityPayload.scopes.toSet().plus(scopes).toList()
+                val newScopes = (entityPayload.scopes ?: emptyList()).toSet().plus(scopes).toList()
                 val newPayload = newScopes.map { mapOf(JSONLD_VALUE_KW to it) }
                 val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                     .mapValues {
@@ -559,10 +559,15 @@ class EntityPayloadService(
                     }
                 Pair(scopes, updatedPayload)
             }
-            else -> Pair(emptyList(), Json.of("{}"))
+            else -> Pair(null, Json.of("{}"))
         }
 
-        performScopesUpdate(entityUri, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
+        updatedScopes?.let {
+            performScopesUpdate(entityUri, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
+        } ?: UpdateResult(
+            emptyList(),
+            listOf(NotUpdatedDetails(NGSILD_SCOPE_PROPERTY, "Unrecognized operation type: $operationType"))
+        )
     }
 
     @Transactional
@@ -597,6 +602,18 @@ class EntityPayloadService(
                 )
             }.bind()
     }
+
+    @Transactional
+    internal suspend fun deleteScopes(entityUri: URI): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET scopes = null
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityUri)
+            .execute()
 
     @Transactional
     suspend fun appendAttributes(
@@ -782,20 +799,29 @@ class EntityPayloadService(
         attributeName: ExpandedTerm,
         datasetId: URI?,
         deleteAll: Boolean = false
-    ): Either<APIException, Unit> =
-        either {
-            temporalEntityAttributeService.deleteTemporalAttribute(
-                entityId,
-                attributeName,
-                datasetId,
-                deleteAll
-            ).bind()
-            updateState(
-                entityId,
-                ZonedDateTime.now(ZoneOffset.UTC),
-                temporalEntityAttributeService.getForEntity(entityId, emptySet())
-            ).bind()
+    ): Either<APIException, Unit> = either {
+        when (attributeName) {
+            NGSILD_SCOPE_PROPERTY -> deleteScopes(entityId).bind()
+            else -> {
+                temporalEntityAttributeService.checkEntityAndAttributeExistence(
+                    entityId,
+                    attributeName,
+                    datasetId
+                ).bind()
+                temporalEntityAttributeService.deleteTemporalAttribute(
+                    entityId,
+                    attributeName,
+                    datasetId,
+                    deleteAll
+                ).bind()
+            }
         }
+        updateState(
+            entityId,
+            ngsiLdDateTime(),
+            temporalEntityAttributeService.getForEntity(entityId, emptySet())
+        ).bind()
+    }
 
     suspend fun updateSpecificAccessPolicy(
         entityId: URI,

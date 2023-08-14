@@ -8,7 +8,6 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -60,9 +59,6 @@ class EntityHandlerTests {
 
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
-
-    @MockkBean
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
     private lateinit var queryService: QueryService
@@ -2250,7 +2246,6 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
-        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
@@ -2274,7 +2269,6 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(beehiveId), eq(TEMPERATURE_PROPERTY))
             authorizationService.userCanUpdateEntity(eq(beehiveId), eq(sub))
             entityPayloadService.deleteAttribute(
                 eq(beehiveId),
@@ -2334,9 +2328,6 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
-        } returns Unit.right()
-        coEvery {
             entityPayloadService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
@@ -2369,8 +2360,9 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 404 if the entity is not found`() {
+        mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2438,7 +2430,6 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 403 if user is not allowed to update entity`() {
-        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)

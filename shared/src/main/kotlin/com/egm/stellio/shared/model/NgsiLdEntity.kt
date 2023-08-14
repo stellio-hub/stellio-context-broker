@@ -34,7 +34,7 @@ import java.time.ZonedDateTime
 class NgsiLdEntity private constructor(
     val id: URI,
     val types: List<ExpandedTerm>,
-    val scopes: List<String>,
+    val scopes: List<String>?,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
     val geoProperties: List<NgsiLdGeoProperty>,
@@ -392,11 +392,11 @@ suspend fun JsonLdEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
-fun ExpandedAttributeInstance.getScopes(): List<String> =
+fun ExpandedAttributeInstance.getScopes(): List<String>? =
     when (val rawScopes = getPropertyValueFromMap(this, NGSILD_SCOPE_PROPERTY)) {
         is String -> listOf(rawScopes)
         is List<*> -> rawScopes as List<String>
-        else -> emptyList()
+        else -> null
     }
 
 fun ExpandedAttributeInstance.getPropertyValue(): Any =

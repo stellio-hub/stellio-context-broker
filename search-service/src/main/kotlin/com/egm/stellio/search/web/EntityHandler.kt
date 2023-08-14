@@ -9,7 +9,6 @@ import com.egm.stellio.search.model.hasSuccessfulUpdate
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -35,7 +34,6 @@ import java.util.Optional
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityPayloadService: EntityPayloadService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
@@ -520,12 +518,6 @@ class EntityHandler(
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
-
-        temporalEntityAttributeService.checkEntityAndAttributeExistence(
-            entityUri,
-            expandedAttrId,
-            datasetId
-        ).bind()
 
         authorizationService.userCanUpdateEntity(entityUri, sub).bind()
 

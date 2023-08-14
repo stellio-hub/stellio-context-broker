@@ -1,13 +1,15 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ExpandedTerm
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.convertToMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -31,6 +33,7 @@ data class Subscription(
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQ? = null,
+    val scopeQ: String? = null,
     val notification: NotificationParams,
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = JsonBooleanFilter::class)
     val isActive: Boolean = true,

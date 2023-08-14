@@ -7,13 +7,9 @@ import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
-import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
-import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
-import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.ParsingUtils
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
@@ -92,6 +88,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
         ).copy(
             subscriptionName = "Subscription 1",
+            scopeQ = "/A/+/C,/B",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE),
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
@@ -649,6 +646,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
+            "scopeQ" to "/A/#,/B",
             "geoQ" to mapOf(
                 "georel" to "equals",
                 "geometry" to "Point",
@@ -665,6 +663,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 it.subscriptionName == "My Subscription Updated" &&
                     it.description == "My beautiful subscription has been updated" &&
                     it.q == "foodQuantity>=150" &&
+                    it.scopeQ == "/A/#,/B" &&
                     it.geoQ!!.georel == "equals" &&
                     it.geoQ!!.geometry == "Point" &&
                     it.geoQ!!.coordinates == "[100.0, 0.0]" &&

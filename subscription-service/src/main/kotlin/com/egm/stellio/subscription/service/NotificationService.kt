@@ -37,28 +37,30 @@ class NotificationService(
         jsonLdEntity: JsonLdEntity,
         ngsiLdEntity: NgsiLdEntity,
         updatedAttributes: Set<ExpandedTerm>
-    ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> =
-        either {
-            val id = ngsiLdEntity.id
-            val types = ngsiLdEntity.types
-            subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
-                .filter {
-                    subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
-                }
-                .filter {
-                    subscriptionService.isMatchingGeoQuery(it.id, jsonLdEntity).bind()
-                }
-                .map {
-                    val filteredEntity =
-                        filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
-                    val compactedEntity = compact(
-                        JsonLdEntity(filteredEntity, it.contexts),
-                        it.contexts,
-                        MediaType.valueOf(it.notification.endpoint.accept.accept)
-                    )
-                    callSubscriber(it, compactedEntity)
-                }
-        }
+    ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
+        val id = ngsiLdEntity.id
+        val types = ngsiLdEntity.types
+        subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
+            .filter {
+                subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
+            }
+            .filter {
+                subscriptionService.isMatchingScopeQQuery(it.scopeQ?.decode(), jsonLdEntity).bind()
+            }
+            .filter {
+                subscriptionService.isMatchingGeoQuery(it.id, jsonLdEntity).bind()
+            }
+            .map {
+                val filteredEntity =
+                    filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
+                val compactedEntity = compact(
+                    JsonLdEntity(filteredEntity, it.contexts),
+                    it.contexts,
+                    MediaType.valueOf(it.notification.endpoint.accept.accept)
+                )
+                callSubscriber(it, compactedEntity)
+            }
+    }
 
     suspend fun callSubscriber(
         subscription: Subscription,

@@ -879,6 +879,20 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should return true if entity matches scope query`() = runTest {
+        val scopeQuery = "/Nantes/#"
+        subscriptionService.isMatchingScopeQQuery(scopeQuery, jsonldEntity)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `it should return false if entity does not match scope query`() = runTest {
+        val scopeQuery = "/Valbonne/#"
+        subscriptionService.isMatchingScopeQQuery(scopeQuery, jsonldEntity)
+            .shouldSucceedWith { assertFalse(it) }
+    }
+
+    @Test
     fun `it shoud return true if a subscription has no geoquery`() = runTest {
         subscriptionService.isMatchingGeoQuery(subscription1Id, jsonldEntity)
             .shouldSucceedWith { assertTrue(it) }

@@ -20,6 +20,7 @@ import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.egm.stellio.subscription.utils.QueryUtils.createQueryStatement
+import com.egm.stellio.subscription.utils.QueryUtils.createScopeQueryStatement
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
@@ -548,6 +549,17 @@ class SubscriptionService(
         else
             databaseClient
                 .sql(createQueryStatement(query, jsonLdEntity, contexts))
+                .oneToResult { toBoolean(it["match"]) }
+
+    suspend fun isMatchingScopeQQuery(
+        scopeQ: String?,
+        jsonLdEntity: JsonLdEntity
+    ): Either<APIException, Boolean> =
+        if (scopeQ == null)
+            true.right()
+        else
+            databaseClient
+                .sql(createScopeQueryStatement(scopeQ, jsonLdEntity))
                 .oneToResult { toBoolean(it["match"]) }
 
     suspend fun isMatchingGeoQuery(

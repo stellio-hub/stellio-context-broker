@@ -1,6 +1,7 @@
 {
   "id":"urn:ngsi-ld:Beehive:01",
   "type":"Beehive",
+  "scope": ["/Nantes/BottiereChenaie", "/Agri/Beekeeping"],
   "executes":{
     "type":"Relationship",
     "object":"urn:ngsi-ld:Feeder:018z5",

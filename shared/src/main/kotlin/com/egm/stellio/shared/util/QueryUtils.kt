@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -216,25 +217,37 @@ private fun transformQQueryToSqlJsonPath(
         """.trimIndent()
 }
 
-fun buildScopeQQuery(scopeQQuery: String): String =
+fun buildScopeQQuery(scopeQQuery: String, target: JsonLdEntity? = null): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
         when {
             matchResult.value.endsWith('#') ->
                 """
-                exists (select * from unnest(scopes) as scope 
+                exists (select * from unnest(#{TARGET}#) as scope 
                 where scope similar to '${matchResult.value.replace('#', '%')}')
                 """.trimIndent()
             matchResult.value.contains('+') ->
                 """
-                exists (select * from unnest(scopes) as scope 
+                exists (select * from unnest(#{TARGET}#) as scope 
                 where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
                 """.trimIndent()
             else ->
                 """
-                exists (select * from unnest(scopes) as scope where scope = '${matchResult.value}')
+                exists (select * from unnest(#{TARGET}#) as scope where scope = '${matchResult.value}')
                 """.trimIndent()
         }
     }
         .replace(";", " AND ")
         .replace("|", " OR ")
         .replace(",", " OR ")
+        .let {
+            if (target == null)
+                it.replace("#{TARGET}#", "scopes")
+            else {
+                val scopesArray = (target.members as Map<String, List<Any>>).getScopes()?.let { scopes ->
+                    """
+                    ARRAY[${scopes.joinToString(",") { "'$it'" } }]
+                    """.trimIndent()
+                }
+                it.replace("#{TARGET}#", "$scopesArray")
+            }
+        }

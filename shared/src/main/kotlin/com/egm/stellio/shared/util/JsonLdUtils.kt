@@ -568,7 +568,7 @@ object JsonLdUtils {
         )
 
     /**
-     * Build the expanded payload of a property.
+     * Build the expanded payload of a relationship.
      *
      * "https://uri.etsi.org/ngsi-ld/default-context/aRelationship": [
      *   {

@@ -627,7 +627,10 @@ class EntityPayloadService(
                 expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
 
-            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, APPEND_ATTRIBUTES).bind()
+            val operationType =
+                if (disallowOverwrite) APPEND_ATTRIBUTES
+                else APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
+            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, operationType).bind()
             val attrsUpdateResult = temporalEntityAttributeService.appendEntityAttributes(
                 entityUri,
                 otherAttrs.toMap().toNgsiLdAttributes().bind(),

@@ -14,7 +14,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.SubjectType
@@ -89,7 +89,7 @@ class IAMListener(
 
     private fun extractRoles(operationPayload: Map<String, Any>): List<GlobalRole>? =
         if (operationPayload.containsKey(AUTH_TERM_ROLES)) {
-            when (val rolesValue = (operationPayload[AUTH_TERM_ROLES] as Map<String, Any>)[JSONLD_VALUE]) {
+            when (val rolesValue = (operationPayload[AUTH_TERM_ROLES] as Map<String, Any>)[JSONLD_VALUE_TERM]) {
                 is String -> GlobalRole.forKey(rolesValue).map { listOf(it) }.getOrNull()
                 is List<*> -> rolesValue.map { GlobalRole.forKey(it as String) }.flattenOption()
                 else -> null
@@ -113,7 +113,7 @@ class IAMListener(
         val subjectUuid = attributeAppendEvent.entityId.extractSub()
         mono {
             if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
-                val newRoles = (operationPayload[JSONLD_VALUE] as List<*>).map {
+                val newRoles = (operationPayload[JSONLD_VALUE_TERM] as List<*>).map {
                     GlobalRole.forKey(it as String)
                 }.flattenOption()
                 if (newRoles.isNotEmpty())
@@ -121,7 +121,7 @@ class IAMListener(
                 else
                     subjectReferentialService.resetGlobalRoles(subjectUuid)
             } else if (attributeAppendEvent.attributeName == AUTH_TERM_SID) {
-                val serviceAccountId = operationPayload[JSONLD_VALUE] as String
+                val serviceAccountId = operationPayload[JSONLD_VALUE_TERM] as String
                 subjectReferentialService.addServiceAccountIdToClient(
                     subjectUuid,
                     serviceAccountId.extractSub()
@@ -146,7 +146,7 @@ class IAMListener(
     ): Either<APIException, Unit> = either {
         val operationPayload = attributeReplaceEvent.operationPayload.deserializeAsMap()
         val subjectUuid = attributeReplaceEvent.entityId.extractSub()
-        val newSubjectInfo = Pair(attributeReplaceEvent.attributeName, operationPayload[JSONLD_VALUE] as String)
+        val newSubjectInfo = Pair(attributeReplaceEvent.attributeName, operationPayload[JSONLD_VALUE_TERM] as String)
 
         mono {
             subjectReferentialService.updateSubjectInfo(

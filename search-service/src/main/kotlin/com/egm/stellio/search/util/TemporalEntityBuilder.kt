@@ -8,7 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toNgsiLdFormat
@@ -103,7 +103,7 @@ object TemporalEntityBuilder {
 
     private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =
         if (instancePayload[JSONLD_TYPE_TERM] == "GeoProperty")
-            instancePayload.plus(JSONLD_VALUE to wktToGeoJson(instancePayload[JSONLD_VALUE]!! as String))
+            instancePayload.plus(JSONLD_VALUE_TERM to wktToGeoJson(instancePayload[JSONLD_VALUE_TERM]!! as String))
         else instancePayload
 
     private fun injectSub(

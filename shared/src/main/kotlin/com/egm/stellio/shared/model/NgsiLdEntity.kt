@@ -11,7 +11,7 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
@@ -272,7 +272,7 @@ class NgsiLdGeoPropertyInstance(
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
-            val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE_KW] as String
+            val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE] as String
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
@@ -400,7 +400,7 @@ fun ExpandedAttributeInstance.getScopes(): List<String>? =
     }
 
 fun ExpandedAttributeInstance.getPropertyValue(): Any =
-    (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE_KW]!!
+    (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE]!!
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
     this.flatMap { ngsiLdAttribute ->

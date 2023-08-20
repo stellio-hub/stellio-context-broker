@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 
@@ -112,7 +112,7 @@ private fun prepareGeorelQuery(georel: String): Triple<String, String?, String?>
 fun buildGeoQuery(geoQuery: GeoQuery, target: JsonLdEntity? = null): String {
     val targetWKTCoordinates =
         """
-        (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE_KW')
+        (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
         """.trimIndent()
     val georelQuery = prepareGeorelQuery(geoQuery.georel)
 

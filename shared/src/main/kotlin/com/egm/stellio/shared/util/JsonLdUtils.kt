@@ -7,7 +7,7 @@ import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -52,8 +52,8 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE_TERM = "type"
     const val JSONLD_TYPE = "@type"
-    const val JSONLD_VALUE = "value"
-    const val JSONLD_VALUE_KW = "@value"
+    const val JSONLD_VALUE_TERM = "value"
+    const val JSONLD_VALUE = "@value"
     const val JSONLD_OBJECT = "object"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
@@ -280,17 +280,17 @@ object JsonLdUtils {
                 val finalValueType = firstListEntry[JSONLD_TYPE]
                 when {
                     finalValueType != null -> {
-                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
+                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE])
                         when (finalValueType) {
                             NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
                             NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
                             NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                            else -> firstListEntry[JSONLD_VALUE_KW]
+                            else -> firstListEntry[JSONLD_VALUE]
                         }
                     }
 
-                    firstListEntry[JSONLD_VALUE_KW] != null ->
-                        firstListEntry[JSONLD_VALUE_KW]
+                    firstListEntry[JSONLD_VALUE] != null ->
+                        firstListEntry[JSONLD_VALUE]
 
                     firstListEntry[JSONLD_ID] != null -> {
                         // Used to get the value of datasetId property,
@@ -306,7 +306,7 @@ object JsonLdUtils {
                 }
             } else {
                 intermediateList.map {
-                    it[JSONLD_VALUE_KW]
+                    it[JSONLD_VALUE]
                 }
             }
         } else
@@ -356,7 +356,7 @@ object JsonLdUtils {
                 is Map<*, *> -> {
                     val geoValues = it.value as MutableMap<String, Any>
                     if (geoValues.isNotEmpty()) {
-                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
                         geoValues
                     } else geoValues
                 }
@@ -364,7 +364,7 @@ object JsonLdUtils {
                 is List<*> ->
                     (it.value as List<Map<String, Any>>).map { geoInstance ->
                         val geoValues = geoInstance.toMutableMap()
-                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
                         geoValues
                     }
                 else -> it.value
@@ -523,7 +523,7 @@ object JsonLdUtils {
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
-                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to value))
+                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE to value))
             )
         )
 
@@ -607,7 +607,7 @@ object JsonLdUtils {
         listOf(
             mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to value.toNgsiLdFormat()
+                JSONLD_VALUE to value.toNgsiLdFormat()
             )
         )
 
@@ -719,12 +719,12 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
                 else
                     jsonFragment[geoProperty] as List<MutableMap<String, Any>>
             geoAttributes.forEach { geoAttribute ->
-                val geoJsonAsString = geoAttribute[JSONLD_VALUE]
+                val geoJsonAsString = geoAttribute[JSONLD_VALUE_TERM]
                 val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
                     .fold({
                         throw BadRequestDataException(it.message)
                     }, { it })
-                geoAttribute[JSONLD_VALUE] = wktGeom
+                geoAttribute[JSONLD_VALUE_TERM] = wktGeom
             }
         }
     }

@@ -13,7 +13,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -380,7 +380,7 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
                     JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
                     NGSILD_PROPERTY_VALUE to mapOf(
-                        JSONLD_VALUE_KW to "some value"
+                        JSONLD_VALUE to "some value"
                     )
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(

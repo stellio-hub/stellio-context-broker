@@ -13,7 +13,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_FIELDS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
@@ -538,7 +538,7 @@ class EntityPayloadService(
             }
             APPEND_ATTRIBUTES, MERGE_ENTITY -> {
                 val newScopes = (entityPayload.scopes ?: emptyList()).toSet().plus(scopes).toList()
-                val newPayload = newScopes.map { mapOf(JSONLD_VALUE_KW to it) }
+                val newPayload = newScopes.map { mapOf(JSONLD_VALUE to it) }
                 val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                     .mapValues {
                         if (it.key == NGSILD_SCOPE_PROPERTY)

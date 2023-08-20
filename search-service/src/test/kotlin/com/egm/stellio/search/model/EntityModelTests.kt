@@ -58,7 +58,7 @@ class EntityModelTests {
         )
         val specificAccessPolicy = mapOf(
             JsonLdUtils.JSONLD_TYPE_TERM to "Property",
-            JsonLdUtils.JSONLD_VALUE to AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
+            JsonLdUtils.JSONLD_VALUE_TERM to AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
         )
         assertTrue(serializedEntity.contains(AuthContextModel.AUTH_TERM_SAP))
         assertEquals(specificAccessPolicy, serializedEntity[AuthContextModel.AUTH_TERM_SAP])

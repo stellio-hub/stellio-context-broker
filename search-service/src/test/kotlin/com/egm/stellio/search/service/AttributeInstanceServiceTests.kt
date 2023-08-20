@@ -5,7 +5,7 @@ import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
@@ -541,13 +541,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val attributeValues = mapOf(
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
+                    JSONLD_VALUE to attributeMetadata.observedAt,
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to attributeMetadata.measuredValue
+                    JSONLD_VALUE to attributeMetadata.measuredValue
                 )
             )
         )
@@ -600,13 +600,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val attributeValues = mapOf(
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
+                    JSONLD_VALUE to attributeMetadata.observedAt,
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE_KW to false
+                    JSONLD_VALUE to false
                 )
             )
         )

@@ -8,7 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
@@ -53,7 +53,7 @@ data class EntityPayload(
             specificAccessPolicy?.run {
                 resultEntity[AuthContextModel.AUTH_TERM_SAP] = mapOf(
                     JSONLD_TYPE_TERM to "Property",
-                    JSONLD_VALUE to this
+                    JSONLD_VALUE_TERM to this
                 )
             }
         } else {
@@ -61,7 +61,7 @@ data class EntityPayload(
             resultEntity[JSONLD_TYPE] = types
             scopes?.run {
                 resultEntity[NGSILD_SCOPE_PROPERTY] = this.map {
-                    mapOf(JSONLD_VALUE_KW to it)
+                    mapOf(JSONLD_VALUE to it)
                 }
             }
             specificAccessPolicy?.run {

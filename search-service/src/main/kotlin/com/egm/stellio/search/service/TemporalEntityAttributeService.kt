@@ -281,7 +281,7 @@ class TemporalEntityAttributeService(
     }
 
     @Transactional
-    suspend fun deleteTemporalAttributesOfEntity(entityId: URI) {
+    suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> {
         val uuids = databaseClient.sql(
             """
             DELETE FROM temporal_entity_attribute
@@ -294,8 +294,9 @@ class TemporalEntityAttributeService(
                 toUuid(it["id"])
             }
 
-        if (uuids.isNotEmpty())
+        return if (uuids.isNotEmpty())
             attributeInstanceService.deleteInstancesOfEntity(uuids)
+        else Unit.right()
     }
 
     @Transactional

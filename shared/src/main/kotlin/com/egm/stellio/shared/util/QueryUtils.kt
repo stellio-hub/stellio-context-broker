@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -243,7 +242,7 @@ fun buildScopeQQuery(scopeQQuery: String, target: JsonLdEntity? = null): String 
             if (target == null)
                 it.replace("#{TARGET}#", "scopes")
             else {
-                val scopesArray = (target.members as Map<String, List<Any>>).getScopes()?.let { scopes ->
+                val scopesArray = target.getScopes()?.let { scopes ->
                     """
                     ARRAY[${scopes.joinToString(",") { "'$it'" } }]
                     """.trimIndent()

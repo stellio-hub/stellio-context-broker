@@ -55,7 +55,7 @@ class QueryServiceTests {
             .shouldSucceedWith {
                 assertEquals(entityUri.toString(), it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
-                assertEquals(6, it.members.size)
+                assertEquals(7, it.members.size)
             }
     }
 
@@ -80,7 +80,7 @@ class QueryServiceTests {
                 assertEquals(1, it.second)
                 assertEquals(entityUri.toString(), it.first[0].id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
-                assertEquals(6, it.first[0].members.size)
+                assertEquals(7, it.first[0].members.size)
             }
     }
 

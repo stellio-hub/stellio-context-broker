@@ -32,6 +32,9 @@ data class JsonLdEntity(
         members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
+    fun getScopes(): List<String>? =
+        (members as Map<String, List<Any>>).getScopes()
+
     /**
      * Called at entity creation time to populate entity and attributes with createdAt information
      */

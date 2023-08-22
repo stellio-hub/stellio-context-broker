@@ -27,6 +27,24 @@ fun loadMinimalEntity(
         }
     """.trimIndent()
 
+fun loadMinimalEntityWithSap(
+    entityId: URI,
+    entityTypes: Set<String>,
+    specificAccessPolicy: AuthContextModel.SpecificAccessPolicy,
+    contexts: Set<String> = setOf(NGSILD_CORE_CONTEXT)
+): String =
+    """
+        {
+            "id": "$entityId",
+            "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
+            "specificAccessPolicy": {
+                "type": "Property",
+                "value": "${specificAccessPolicy.name}"
+            },
+            "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
+        }
+    """.trimIndent()
+
 suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<JsonLdEntity, NgsiLdEntity>> {
     val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(this)
     return when (val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()) {

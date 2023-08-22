@@ -142,6 +142,10 @@ class ScopeService(
             val updateResult =
                 performUpdate(entityId, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
             addHistoryEntry(entityId, it, AttributeInstance.TemporalProperty.MODIFIED_AT, modifiedAt, sub).bind()
+            // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
+            // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
+            // sub-Property
+            addHistoryEntry(entityId, it, AttributeInstance.TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
             updateResult
         } ?: UpdateResult(
             emptyList(),

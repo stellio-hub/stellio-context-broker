@@ -1,6 +1,7 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
@@ -20,7 +21,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 @Suppress("unused")
 class AnonymousUserHandlerTests {
 

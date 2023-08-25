@@ -5,6 +5,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -50,7 +51,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class TemporalEntityHandlerTests {
 
     private lateinit var apicHeaderLink: String

@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
@@ -39,7 +40,7 @@ import java.net.URI
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityOperationHandlerTests {
 
     @Autowired

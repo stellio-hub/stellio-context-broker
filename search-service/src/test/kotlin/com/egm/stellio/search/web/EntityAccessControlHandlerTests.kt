@@ -6,6 +6,7 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.User
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -53,7 +54,7 @@ import java.time.Duration
 @OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityAccessControlHandlerTests {
 
     private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)

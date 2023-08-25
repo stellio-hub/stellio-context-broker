@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -49,7 +50,7 @@ import java.time.*
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityHandlerTests {
 
     private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)

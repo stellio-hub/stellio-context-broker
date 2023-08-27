@@ -29,7 +29,5 @@
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>TooManyFunctions:EntityPayloadService.kt$EntityPayloadService</ID>
     <ID>TooManyFunctions:TemporalEntityAttributeService.kt$TemporalEntityAttributeService</ID>
-    <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
-    <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>
   </CurrentIssues>
 </SmellBaseline>

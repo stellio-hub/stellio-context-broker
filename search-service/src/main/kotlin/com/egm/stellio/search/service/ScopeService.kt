@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -35,7 +36,7 @@ class ScopeService(
             addHistoryEntry(
                 ngsiLdEntity.id,
                 ngsiLdEntity.scopes!!,
-                AttributeInstance.TemporalProperty.CREATED_AT,
+                TemporalProperty.CREATED_AT,
                 createdAt,
                 sub
             )
@@ -45,7 +46,7 @@ class ScopeService(
     suspend fun addHistoryEntry(
         entityId: URI,
         scopes: List<String>,
-        temportalProperty: AttributeInstance.TemporalProperty,
+        temportalProperty: TemporalProperty,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> =
@@ -63,9 +64,7 @@ class ScopeService(
             .execute()
 
     @Transactional
-    suspend fun retrieveScopes(
-        entityId: URI
-    ): Either<APIException, Pair<List<String>?, Json>> =
+    suspend fun retrieve(entityId: URI): Either<APIException, Pair<List<String>?, Json>> =
         databaseClient.sql(
             """
             SELECT scopes, payload
@@ -81,6 +80,59 @@ class ScopeService(
                 )
             }
 
+    data class ScopeHistoryEntry(
+        val entityId: URI,
+        val scopes: List<String>,
+        val timeProperty: TemporalProperty,
+        val time: ZonedDateTime
+    )
+
+    suspend fun retrieveHistory(
+        entitiesIds: List<URI>,
+        temporalEntitiesQuery: TemporalEntitiesQuery
+    ): List<ScopeHistoryEntry> =
+        if (temporalEntitiesQuery.withAggregatedValues)
+            emptyList()
+        else {
+            val sqlQueryBuilder = StringBuilder()
+
+            sqlQueryBuilder.append(
+                """
+                SELECT entity_id, scopes, time
+                FROM scope_history
+                WHERE entity_id IN (:entities_ids)
+                AND time_property = :time_property                    
+                """.trimIndent()
+            )
+
+            val temporalQuery = temporalEntitiesQuery.temporalQuery
+            when (temporalQuery.timerel) {
+                TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
+                TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
+                TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
+                    " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
+                )
+                null -> Unit
+            }
+
+            if (temporalQuery.lastN != null)
+                // in order to get last instances, need to order by time desc
+                // final ascending ordering of instances is done in query service
+                sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
+
+            databaseClient.sql(sqlQueryBuilder.toString())
+                .bind("entities_ids", entitiesIds)
+                .bind("time_property", temporalEntitiesQuery.temporalQuery.timeproperty.toString())
+                .allToMappedList {
+                    ScopeHistoryEntry(
+                        toUri(it["entity_id"]),
+                        toList(it["scopes"]),
+                        temporalEntitiesQuery.temporalQuery.timeproperty,
+                        toZonedDateTime(it["time"])
+                    )
+                }
+        }
+
     @Transactional
     suspend fun update(
         entityId: URI,
@@ -90,7 +142,7 @@ class ScopeService(
         sub: Sub? = null
     ): Either<APIException, UpdateResult> = either {
         val scopes = mapOf(JsonLdUtils.NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
-        val (currentScopes, currentPayload) = retrieveScopes(entityId).bind()
+        val (currentScopes, currentPayload) = retrieve(entityId).bind()
 
         val (updatedScopes, updatedPayload) = when (operationType) {
             OperationType.UPDATE_ATTRIBUTES -> {
@@ -141,11 +193,11 @@ class ScopeService(
         updatedScopes?.let {
             val updateResult =
                 performUpdate(entityId, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
-            addHistoryEntry(entityId, it, AttributeInstance.TemporalProperty.MODIFIED_AT, modifiedAt, sub).bind()
+            addHistoryEntry(entityId, it, TemporalProperty.MODIFIED_AT, modifiedAt, sub).bind()
             // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
             // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
             // sub-Property
-            addHistoryEntry(entityId, it, AttributeInstance.TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
+            addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
             updateResult
         } ?: UpdateResult(
             emptyList(),
@@ -187,17 +239,17 @@ class ScopeService(
     }
 
     @Transactional
-    suspend fun replaceScopeHistoryEntry(
+    suspend fun replaceHistoryEntry(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        deleteScopeHistory(ngsiLdEntity.id).bind()
+        deleteHistory(ngsiLdEntity.id).bind()
         createHistory(ngsiLdEntity, createdAt, sub).bind()
     }
 
     @Transactional
-    suspend fun deleteScopes(entityId: URI): Either<APIException, Unit> = either {
+    suspend fun delete(entityId: URI): Either<APIException, Unit> = either {
         databaseClient.sql(
             """
             UPDATE entity_payload
@@ -209,10 +261,10 @@ class ScopeService(
             .execute()
             .bind()
 
-        deleteScopeHistory(entityId).bind()
+        deleteHistory(entityId).bind()
     }
 
-    suspend fun deleteScopeHistory(entityId: URI): Either<APIException, Unit> =
+    suspend fun deleteHistory(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM scope_history

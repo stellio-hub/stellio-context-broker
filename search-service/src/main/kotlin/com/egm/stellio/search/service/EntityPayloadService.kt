@@ -180,7 +180,7 @@ class EntityPayloadService(
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
-                scopeService.replaceScopeHistoryEntry(ngsiLdEntity, createdAt, sub)
+                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt, sub)
             }
     }
 
@@ -665,7 +665,7 @@ class EntityPayloadService(
             .bind()
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId).bind()
-        scopeService.deleteScopeHistory(entityId).bind()
+        scopeService.deleteHistory(entityId).bind()
     }
 
     @Transactional
@@ -676,7 +676,7 @@ class EntityPayloadService(
         deleteAll: Boolean = false
     ): Either<APIException, Unit> = either {
         when (attributeName) {
-            NGSILD_SCOPE_PROPERTY -> scopeService.deleteScopes(entityId).bind()
+            NGSILD_SCOPE_PROPERTY -> scopeService.delete(entityId).bind()
             else -> {
                 temporalEntityAttributeService.checkEntityAndAttributeExistence(
                     entityId,

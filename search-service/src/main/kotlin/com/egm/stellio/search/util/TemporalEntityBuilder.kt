@@ -1,18 +1,16 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.service.ScopeService
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
-import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.toNgsiLdFormat
-import com.egm.stellio.shared.util.wktToGeoJson
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
@@ -20,39 +18,74 @@ typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, 
 object TemporalEntityBuilder {
 
     fun buildTemporalEntities(
-        queryResult: List<Pair<EntityPayload, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>,
+        queryResult: List<EntityTemporalResult>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): List<CompactedJsonLdEntity> {
-        return queryResult.map {
-            buildTemporalEntity(it.first, it.second, temporalEntitiesQuery, contexts)
+    ): List<CompactedJsonLdEntity> =
+        queryResult.map {
+            buildTemporalEntity(it, temporalEntitiesQuery, contexts)
         }
-    }
 
     fun buildTemporalEntity(
-        entityPayload: EntityPayload,
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
+        entityTemporalResult: EntityTemporalResult,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
-            attributeAndResultsMap,
+            entityTemporalResult.teaInstancesResult,
             temporalEntitiesQuery,
             contexts
         )
-        return entityPayload.serializeProperties(
+
+        val scopeAttribute = buildScopeAttribute(
+            entityTemporalResult.entityPayload,
+            entityTemporalResult.scopeHistory,
+            temporalEntitiesQuery
+        )
+
+        return entityTemporalResult.entityPayload.serializeProperties(
             withSysAttrs = temporalEntitiesQuery.queryParams.includeSysAttrs,
             withCompactTerms = true,
             contexts
         ).plus(temporalAttributes)
+            .plus(scopeAttribute)
     }
+
+    private fun buildScopeAttribute(
+        entityPayload: EntityPayload,
+        scopeHistory: List<ScopeService.ScopeHistoryEntry>,
+        temporalEntitiesQuery: TemporalEntitiesQuery
+    ): Map<String, Any> =
+        if (entityPayload.scopes == null || temporalEntitiesQuery.withAggregatedValues)
+            emptyMap()
+        else if (temporalEntitiesQuery.withTemporalValues)
+            mapOf(
+                NGSILD_SCOPE_TERM to mapOf(
+                    JSONLD_TYPE_TERM to "Property",
+                    "values" to scopeHistory.map {
+                        listOf(it.scopes, it.time)
+                    }
+                )
+            )
+        else
+            mapOf(
+                NGSILD_SCOPE_TERM to listOf(
+                    scopeHistory.map {
+                        mapOf(
+                            JSONLD_TYPE_TERM to "Property",
+                            "values" to it.scopes,
+                            it.timeProperty.propertyName to it.time
+                        )
+                    }
+                )
+            )
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): Map<String, Any> {
-        return if (temporalEntitiesQuery.withTemporalValues) {
+    ): Map<String, Any> =
+        if (temporalEntitiesQuery.withTemporalValues) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
@@ -89,7 +122,6 @@ object TemporalEntityBuilder {
                     }
                 }
         }
-    }
 
     // FIXME in the history of attributes, we have a mix of
     //   - compacted fragments (before v2)
@@ -128,7 +160,7 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                "type" to it.key.attributeType.toString()
+                JSONLD_TYPE_TERM to it.key.attributeType.toString()
             )
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
             val valuesKey =

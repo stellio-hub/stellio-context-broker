@@ -38,6 +38,9 @@ class QueryServiceTests {
     private lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean
+    private lateinit var scopeService: ScopeService
+
+    @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @MockkBean
@@ -145,6 +148,7 @@ class QueryServiceTests {
 
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns teas
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
@@ -179,6 +183,7 @@ class QueryServiceTests {
                 },
                 any<List<TemporalEntityAttribute>>()
             )
+            scopeService.retrieveHistory(listOf(entityUri), any())
         }
     }
 
@@ -197,6 +202,7 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
@@ -255,6 +261,7 @@ class QueryServiceTests {
                 ),
                 any()
             )
+            scopeService.retrieveHistory(listOf(entityUri), any())
         }
     }
 
@@ -272,6 +279,7 @@ class QueryServiceTests {
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns emptyList<AttributeInstanceResult>().right()

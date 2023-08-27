@@ -3,6 +3,7 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.service.ScopeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -15,7 +16,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.Stream
 
-@Suppress("unused")
+@Suppress("unused", "UtilityClassWithPublicConstructor")
 class ParameterizedTests {
 
     companion object {
@@ -25,6 +26,7 @@ class ParameterizedTests {
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -65,6 +67,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -108,6 +111,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_relationship_multi_instances_without_datasetId.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -183,6 +187,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -224,6 +229,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_values.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -265,6 +271,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_values_with_audit.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -307,6 +314,7 @@ class ParameterizedTests {
                     )
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -335,6 +343,7 @@ class ParameterizedTests {
                     )
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -382,6 +391,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -409,6 +419,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -437,6 +448,7 @@ class ParameterizedTests {
                     )
                 ),
                 Arguments.arguments(
+                    emptyList<ScopeService.ScopeHistoryEntry>(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),

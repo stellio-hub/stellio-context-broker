@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.ExpandedAttributeInstances
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
 import io.r2dbc.postgresql.codec.Json
@@ -133,6 +134,13 @@ class ScopeService(
                 }
         }
 
+    private fun Json.replaceScopeValue(newScopeValue: Any): Map<String, Any> =
+        this.deserializeExpandedPayload()
+            .mapValues {
+                if (it.key == NGSILD_SCOPE_PROPERTY) newScopeValue
+                else it.value
+            }
+
     @Transactional
     suspend fun update(
         entityId: URI,
@@ -141,24 +149,19 @@ class ScopeService(
         operationType: OperationType,
         sub: Sub? = null
     ): Either<APIException, UpdateResult> = either {
-        val scopes = mapOf(JsonLdUtils.NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
+        val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
         val (currentScopes, currentPayload) = retrieve(entityId).bind()
 
         val (updatedScopes, updatedPayload) = when (operationType) {
             OperationType.UPDATE_ATTRIBUTES -> {
                 if (currentScopes != null) {
-                    val updatedPayload = currentPayload.deserializeExpandedPayload()
-                        .mapValues {
-                            if (it.key == JsonLdUtils.NGSILD_SCOPE_PROPERTY)
-                                expandedAttributeInstances
-                            else it
-                        }
+                    val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
                     Pair(scopes, updatedPayload)
                 } else return@either UpdateResult(
                     updated = emptyList(),
                     notUpdated = listOf(
                         NotUpdatedDetails(
-                            JsonLdUtils.NGSILD_SCOPE_PROPERTY,
+                            NGSILD_SCOPE_PROPERTY,
                             "Attribute does not exist and operation does not allow creating it"
                         )
                     )
@@ -167,24 +170,14 @@ class ScopeService(
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
                 val newScopes = (currentScopes ?: emptyList()).toSet().plus(scopes).toList()
                 val newPayload = newScopes.map { mapOf(JsonLdUtils.JSONLD_VALUE to it) }
-                val updatedPayload = currentPayload.deserializeExpandedPayload()
-                    .mapValues {
-                        if (it.key == JsonLdUtils.NGSILD_SCOPE_PROPERTY)
-                            newPayload
-                        else it
-                    }
+                val updatedPayload = currentPayload.replaceScopeValue(newPayload)
                 Pair(newScopes, updatedPayload)
             }
             OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
             OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED,
             OperationType.PARTIAL_ATTRIBUTE_UPDATE,
             OperationType.REPLACE_ATTRIBUTE -> {
-                val updatedPayload = currentPayload.deserializeExpandedPayload()
-                    .mapValues {
-                        if (it.key == JsonLdUtils.NGSILD_SCOPE_PROPERTY)
-                            expandedAttributeInstances
-                        else it
-                    }
+                val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
                 Pair(scopes, updatedPayload)
             }
             else -> Pair(null, Json.of("{}"))
@@ -193,15 +186,19 @@ class ScopeService(
         updatedScopes?.let {
             val updateResult =
                 performUpdate(entityId, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
-            addHistoryEntry(entityId, it, TemporalProperty.MODIFIED_AT, modifiedAt, sub).bind()
-            // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
-            // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
-            // sub-Property
-            addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
+            val temporalPropertyToAdd =
+                if (currentScopes == null) TemporalProperty.CREATED_AT
+                else TemporalProperty.MODIFIED_AT
+            addHistoryEntry(entityId, it, temporalPropertyToAdd, modifiedAt, sub).bind()
+            if (temporalPropertyToAdd == TemporalProperty.MODIFIED_AT)
+                // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
+                // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
+                // sub-Property
+                addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
             updateResult
         } ?: UpdateResult(
             emptyList(),
-            listOf(NotUpdatedDetails(JsonLdUtils.NGSILD_SCOPE_PROPERTY, "Unrecognized operation type: $operationType"))
+            listOf(NotUpdatedDetails(NGSILD_SCOPE_PROPERTY, "Unrecognized operation type: $operationType"))
         )
     }
 
@@ -230,7 +227,7 @@ class ScopeService(
                 updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
-                            attributeName = JsonLdUtils.NGSILD_SCOPE_PROPERTY,
+                            attributeName = NGSILD_SCOPE_PROPERTY,
                             updateOperationResult = UpdateOperationResult.APPENDED
                         )
                     )

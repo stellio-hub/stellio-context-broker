@@ -12,7 +12,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils
@@ -72,7 +72,7 @@ class IAMListener(
     ): Either<APIException, Unit> = either {
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
         val subjectInfo = operationPayload
-            .filter { !JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
+            .filter { !JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .toSubjectInfo()
         val roles = extractRoles(operationPayload)
         val subjectReferential = SubjectReferential(

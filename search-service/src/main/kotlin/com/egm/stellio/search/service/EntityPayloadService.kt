@@ -11,7 +11,7 @@ import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_FIELDS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -102,7 +102,7 @@ class EntityPayloadService(
         logger.debug("Merging entity {}", entityId)
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
+            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
 
         val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
@@ -494,7 +494,7 @@ class EntityPayloadService(
     ): Either<APIException, UpdateResult> =
         either {
             val (coreAttrs, otherAttrs) =
-                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
+                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
 
             val operationType =
@@ -527,7 +527,7 @@ class EntityPayloadService(
     ): Either<APIException, UpdateResult> =
         either {
             val (coreAttrs, otherAttrs) =
-                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_CORE_FIELDS.contains(it.first) }
+                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
 
             val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()

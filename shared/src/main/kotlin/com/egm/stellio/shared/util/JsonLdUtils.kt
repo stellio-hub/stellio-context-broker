@@ -59,11 +59,11 @@ object JsonLdUtils {
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
 
-    val JSONLD_EXPANDED_ENTITY_CORE_FIELDS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
+    val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
-    // TODO remove the "mandatory" since all these properties are not mandatory
-    val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
-    val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS =
+    // List of members that are part of a core entity base definition (i.e., without attributes)
+    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
+    val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
         setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT, NGSILD_SCOPE_TERM)
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
@@ -469,9 +469,9 @@ object JsonLdUtils {
             inputToMap(input)
         } else {
             val mandatoryFields = if (isExpandedForm)
-                JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
+                JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
             else
-                JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+                JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
             val includedKeys = mandatoryFields.plus(includedAttributes)
             inputToMap(input).filterKeys { includedKeys.contains(it) }
         }

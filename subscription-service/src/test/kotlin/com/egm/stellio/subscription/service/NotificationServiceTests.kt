@@ -3,7 +3,7 @@ package com.egm.stellio.subscription.service
 import arrow.core.right
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
@@ -147,7 +147,7 @@ class NotificationServiceTests {
                 assertEquals(5, it[0].second.data[0].size)
                 assertTrue(
                     it[0].second.data[0].all { entry ->
-                        JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+                        JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
                             .plus(NGSILD_NAME_TERM)
                             .plus(NGSILD_LOCATION_TERM)
                             .contains(entry.key)

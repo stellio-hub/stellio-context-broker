@@ -278,7 +278,7 @@ class SubscriptionService(
             BadRequestDataException("type attribute must be present and equal to 'Subscription'").left().bind<Unit>()
 
         subscriptionInputWithModifiedAt.filterKeys {
-            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
         }.forEach {
             when {
                 it.key == "geoQ" ->

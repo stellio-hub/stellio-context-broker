@@ -1,16 +1,15 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -34,27 +33,24 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.*
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityHandlerTests {
 
     private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
@@ -80,6 +76,8 @@ class EntityHandlerTests {
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -87,7 +85,6 @@ class EntityHandlerTests {
             .build()
     }
 
-    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
@@ -112,7 +109,7 @@ class EntityHandlerTests {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -133,7 +130,7 @@ class EntityHandlerTests {
             )
             authorizationService.createAdminRight(eq(breedingServiceId), sub)
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1166,7 +1163,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        every { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1186,7 +1183,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
@@ -1286,7 +1283,7 @@ class EntityHandlerTests {
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
     }
@@ -1330,10 +1327,10 @@ class EntityHandlerTests {
                 any(),
                 any(),
                 eq(false),
-                sub.orNull()
+                sub.getOrNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1391,10 +1388,10 @@ class EntityHandlerTests {
                 any(),
                 any(),
                 eq(false),
-                sub.orNull()
+                sub.getOrNull()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1446,7 +1443,7 @@ class EntityHandlerTests {
                 any()
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1498,7 +1495,7 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
 
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1625,7 +1622,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } returns Job()
 
@@ -1640,9 +1637,9 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1703,7 +1700,7 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         coVerify {
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.orNull())
+            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
     }
 
@@ -1746,6 +1743,228 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `merge entity should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.REPLACED
+                ),
+                UpdatedDetails(
+                    fishSizeAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            notUpdated = emptyList()
+        )
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.updateTypes(any(), any())
+        } returns UpdateResult(emptyList(), emptyList()).right()
+        coEvery {
+            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+        } returns updateResult.right()
+        coEvery {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(eq(entityId))
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
+            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
+            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any(), any())
+        }
+        coVerify {
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                eq(updateResult),
+                true,
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+            )
+        }
+    }
+
+    @Test
+    fun `merge entity should return a 204 if JSON-LD payload is correct and use observedAt parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.REPLACED
+                ),
+                UpdatedDetails(
+                    fishSizeAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            notUpdated = emptyList()
+        )
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.updateTypes(any(), any())
+        } returns UpdateResult(emptyList(), emptyList()).right()
+        coEvery {
+            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+        } returns updateResult.right()
+        coEvery {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+        } returns Job()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId?observedAt=2019-12-04T12:00:00.00Z")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityPayloadService.checkEntityExistence(eq(entityId))
+            authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
+            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
+            entityPayloadService.mergeEntity(
+                eq(entityId),
+                any(),
+                any(),
+                eq(ZonedDateTime.parse("2019-12-04T12:00:00.00Z")),
+                any()
+            )
+        }
+        coVerify {
+            entityEventService.publishAttributeChangeEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityId),
+                any(),
+                eq(updateResult),
+                true,
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+            )
+        }
+    }
+
+    @Test
+    fun `merge entity should return a 400 if optional parameter observedAt is not a datetime`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId?observedAt=notDateTime")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'observedAt' parameter is not a valid date"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        coEvery {
+            entityPayloadService.checkEntityExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title":"The referred resource has not been found",
+                  "detail":"${entityNotFoundMessage(entityId.toString())}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 403 if user is not allowed to update it`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanUpdateEntity(any(), any())
+        } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge entity should return a 400 if entityId is missing`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Missing entity id when trying to merge an entity"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
@@ -1767,7 +1986,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns updateResult.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1785,7 +2004,7 @@ class EntityHandlerTests {
             entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeChangeEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
@@ -1817,7 +2036,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1847,7 +2066,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.updateAttributes(any(), any(), any(), any())
         } returns UpdateResult(emptyList(), emptyList()).right()
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -1962,9 +2181,9 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1976,10 +2195,10 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(beehiveId)
             entityPayloadService.retrieve(eq(beehiveId))
             authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
-            entityPayloadService.deleteEntityPayload(eq(beehiveId))
+            entityPayloadService.deleteEntity(eq(beehiveId))
             authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
-        verify {
+        coVerify {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2020,7 +2239,7 @@ class EntityHandlerTests {
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntityPayload(any())
+            entityPayloadService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -2068,7 +2287,7 @@ class EntityHandlerTests {
         coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
         } returns Job()
     }
@@ -2097,7 +2316,7 @@ class EntityHandlerTests {
                 null
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2132,7 +2351,7 @@ class EntityHandlerTests {
                 eq(true)
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2170,7 +2389,7 @@ class EntityHandlerTests {
                 eq(datasetId.toUri())
             )
         }
-        verify {
+        coVerify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
@@ -2275,15 +2494,5 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
         verify { entityEventService wasNot called }
-    }
-
-    @Test
-    @WithAnonymousUser
-    fun `it should not authorize an anonymous to call the API`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .exchange()
-            .expectStatus().isUnauthorized
     }
 }

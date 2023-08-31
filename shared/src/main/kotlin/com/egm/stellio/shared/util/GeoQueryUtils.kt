@@ -1,8 +1,8 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -119,7 +119,7 @@ fun buildGeoQuery(geoQuery: GeoQuery, target: JsonLdEntity? = null): String {
     return (
         if (georelQuery.first == GEOREL_NEAR_DISTANCE_MODIFIER)
             """
-            ST_Distance(
+            public.ST_Distance(
                 'SRID=4326;${geoQuery.wktCoordinates.value}'::geography, 
                 ('SRID=4326;' || $targetWKTCoordinates)::geography,
                 false
@@ -127,9 +127,9 @@ fun buildGeoQuery(geoQuery: GeoQuery, target: JsonLdEntity? = null): String {
             """.trimIndent()
         else
             """
-            ST_${georelQuery.first}(
-                ST_GeomFromText('${geoQuery.wktCoordinates.value}'), 
-                ST_GeomFromText($targetWKTCoordinates)
+            public.ST_${georelQuery.first}(
+                public.ST_GeomFromText('${geoQuery.wktCoordinates.value}'), 
+                public.ST_GeomFromText($targetWKTCoordinates)
             ) 
             """.trimIndent()
         )

@@ -1,16 +1,15 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -26,11 +25,13 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
@@ -39,8 +40,7 @@ import java.net.URI
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityOperationHandlerTests {
 
     @Autowired
@@ -70,6 +70,8 @@ class EntityOperationHandlerTests {
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -107,8 +109,6 @@ class EntityOperationHandlerTests {
             every { members } returns emptyMap()
         }
     }
-
-    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 
     private val temperatureSensorUri = "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
     private val dissolvedOxygenSensorUri = "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
@@ -270,7 +270,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
                 capture(capturedEntitiesIds),
@@ -291,7 +291,7 @@ class EntityOperationHandlerTests {
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.id })
 
         coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
-        verify(timeout = 1000, exactly = 3) {
+        coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
         capturedEntitiesIds.forEach { assertTrue(it in allEntitiesUris) }
@@ -319,7 +319,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every {
+        coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
                 capture(capturedEntitiesIds),
@@ -351,7 +351,9 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        coVerify(timeout = 1000, exactly = 2) {
+            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
+        }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
     }
@@ -434,11 +436,11 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
-        every {
+        coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
 
@@ -451,7 +453,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
         coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
-        verify {
+        coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq(sub.value),
                 match { it in createdEntitiesIds },
@@ -459,7 +461,7 @@ class EntityOperationHandlerTests {
                 eq(hcmrContext)
             )
         }
-        verify(timeout = 1000, exactly = 2) {
+        coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishAttributeChangeEvents(
                 eq(sub.value),
                 match { it in updatedEntitiesIds },
@@ -492,7 +494,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify { entityOperationService.replace(any(), any()) wasNot Called }
-        coVerify { entityOperationService.update(any(), false, sub.orNull()) }
+        coVerify { entityOperationService.update(any(), false, sub.getOrNull()) }
     }
 
     @Test
@@ -544,7 +546,7 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createAdminRights(listOf(deviceUri), sub) }
-        verify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
     }
 
     @Test
@@ -561,7 +563,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -570,9 +572,9 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
 
         coVerify { entityOperationService.create(any(), any(), any()) wasNot Called }
-        coVerify { entityOperationService.replace(any(), sub.orNull()) }
+        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
         coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
-        verify(timeout = 1000, exactly = 2) {
+        coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
                 eq(sub.value),
                 match { it in entitiesIds },
@@ -655,8 +657,8 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { entityOperationService.replace(any(), sub.orNull()) }
-        verify {
+        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
+        coVerify {
             entityEventService.publishEntityReplaceEvent(
                 eq(sub.value),
                 eq(temperatureSensorUri),
@@ -722,7 +724,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
@@ -730,7 +732,7 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 3) {
+        coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
                 eq(sub.value),
                 match { it in allEntitiesUris },

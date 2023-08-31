@@ -37,7 +37,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var entityPayloadService: EntityPayloadService
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Autowired
@@ -71,11 +71,11 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @AfterAll
     fun deleteEntities() {
         runBlocking {
-            entityPayloadService.deleteEntityPayload(entity01Uri)
-            entityPayloadService.deleteEntityPayload(entity02Uri)
-            entityPayloadService.deleteEntityPayload(entity03Uri)
-            entityPayloadService.deleteEntityPayload(entity04Uri)
-            entityPayloadService.deleteEntityPayload(entity05Uri)
+            entityPayloadService.deleteEntity(entity01Uri)
+            entityPayloadService.deleteEntity(entity02Uri)
+            entityPayloadService.deleteEntity(entity03Uri)
+            entityPayloadService.deleteEntity(entity04Uri)
+            entityPayloadService.deleteEntity(entity05Uri)
         }
     }
 

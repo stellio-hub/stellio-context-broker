@@ -1,15 +1,14 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.User
-import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
@@ -40,11 +39,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
@@ -53,8 +54,7 @@ import java.time.Duration
 @OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityAccessControlHandlerTests {
 
     private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)
@@ -71,7 +71,6 @@ class EntityAccessControlHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
-    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val otherUserSub = "D8916880-D0DC-4469-82F7-F294AEF7292D"
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
@@ -80,6 +79,8 @@ class EntityAccessControlHandlerTests {
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE

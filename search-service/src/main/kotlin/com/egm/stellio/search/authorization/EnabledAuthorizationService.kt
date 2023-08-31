@@ -1,8 +1,8 @@
 package com.egm.stellio.search.authorization
 
 import arrow.core.*
-import arrow.core.continuations.either
-import arrow.fx.coroutines.parTraverseEither
+import arrow.core.raise.either
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
@@ -84,8 +84,10 @@ class EnabledAuthorizationService(
         createAdminRights(listOf(entityId), sub)
 
     override suspend fun createAdminRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
-        entitiesId.parTraverseEither {
-            entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it)
+        either {
+            entitiesId.parMap {
+                entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it).bind()
+            }
         }.map { it.first() }
 
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
@@ -96,7 +98,7 @@ class EnabledAuthorizationService(
         contextLink: String,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
-        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).orNull() }
+        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,

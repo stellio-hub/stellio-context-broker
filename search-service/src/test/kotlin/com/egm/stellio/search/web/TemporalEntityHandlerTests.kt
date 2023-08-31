@@ -5,7 +5,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -16,12 +16,14 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.sub
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,14 +32,15 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
@@ -48,8 +51,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class TemporalEntityHandlerTests {
 
     private lateinit var apicHeaderLink: String
@@ -75,13 +77,14 @@ class TemporalEntityHandlerTests {
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val temporalEntityAttributeName = "speed"
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
-    private val sub = Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")
 
     @BeforeAll
     fun configureWebClientDefaults() {
         apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -381,7 +384,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            authorizationService.userCanReadEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
+            authorizationService.userCanReadEntity(eq(entityUri), eq(Some(MOCK_USER_SUB)))
         }
     }
 
@@ -628,7 +631,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            authorizationService.userCanReadEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
+            authorizationService.userCanReadEntity(eq(entityUri), eq(Some(MOCK_USER_SUB)))
         }
     }
 
@@ -857,15 +860,6 @@ class TemporalEntityHandlerTests {
             .jsonPath("$.length()").isEqualTo(2)
             .jsonPath("$[0].@context").doesNotExist()
             .jsonPath("$[1].@context").doesNotExist()
-    }
-
-    @Test
-    @WithAnonymousUser
-    fun `it should not authorize an anonymous to call the API`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .exchange()
-            .expectStatus().isUnauthorized
     }
 
     @Test
@@ -1203,7 +1197,7 @@ class TemporalEntityHandlerTests {
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
         coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntityPayload(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         webClient.delete()
@@ -1215,7 +1209,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(entityUri)
             authorizationService.userCanAdminEntity(eq(entityUri), eq(sub))
-            entityPayloadService.deleteEntityPayload(eq(entityUri))
+            entityPayloadService.deleteEntity(eq(entityUri))
             authorizationService.removeRightsOnEntity(eq(entityUri))
         }
     }
@@ -1280,7 +1274,7 @@ class TemporalEntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntityPayload(any())
+            entityPayloadService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1577,7 +1571,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
         coVerify {
-            authorizationService.userCanUpdateEntity(eq(entityUri), eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")))
+            authorizationService.userCanUpdateEntity(eq(entityUri), eq(Some(MOCK_USER_SUB)))
         }
     }
 
@@ -1647,7 +1641,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             authorizationService.userCanUpdateEntity(
                 eq(entityUri),
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
+                eq(Some(MOCK_USER_SUB))
             )
         }
     }
@@ -1682,7 +1676,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             authorizationService.userCanUpdateEntity(
                 eq(entityUri),
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79"))
+                eq(Some(MOCK_USER_SUB))
             )
         }
     }

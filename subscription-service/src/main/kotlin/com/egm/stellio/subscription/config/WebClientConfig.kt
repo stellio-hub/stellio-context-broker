@@ -18,7 +18,7 @@ class WebClientConfig {
     @ConditionalOnProperty("application.authentication.enabled")
     fun webClient(
         clientRegistrations: ReactiveClientRegistrationRepository,
-        @Value("\${application.entity.service-url}") entityServiceUrl: String
+        @Value("\${subscription.entity-service-url}") entityServiceUrl: String
     ): WebClient {
         val clientService = InMemoryReactiveOAuth2AuthorizedClientService(clientRegistrations)
         val authorizedClientManager =
@@ -36,7 +36,7 @@ class WebClientConfig {
 
     @Bean
     @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
-    fun webClientNoAuthentification(@Value("\${application.entity.service-url}") entityServiceUrl: String): WebClient {
+    fun webClientNoAuthentification(@Value("\${subscription.entity-service-url}") entityServiceUrl: String): WebClient {
         val factory = DefaultUriBuilderFactory(entityServiceUrl)
         factory.encodingMode = DefaultUriBuilderFactory.EncodingMode.NONE
         return WebClient.builder()

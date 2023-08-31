@@ -235,7 +235,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                             temporal_entity_attribute, instance_id, payload)
                     VALUES
                         ('$createdAt', '${AttributeInstance.TemporalProperty.CREATED_AT}', 
-                            ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
+                            public.ST_GeomFromText('${temporalAttributesMetadata.value.geoValue!!.value}'), 
                             '$teaId', '$attributeInstanceId', $$$serializedAttributePayload$$)
                     """.trimIndent()
                 else

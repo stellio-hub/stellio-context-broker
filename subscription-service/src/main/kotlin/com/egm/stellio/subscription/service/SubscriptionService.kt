@@ -1,13 +1,13 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
-import com.egm.stellio.subscription.config.ApplicationProperties
+import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Subscription
@@ -40,7 +40,7 @@ import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
-    private val applicationProperties: ApplicationProperties,
+    private val subscriptionProperties: SubscriptionProperties,
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
@@ -60,9 +60,7 @@ class SubscriptionService(
 
     private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
         if (!subscription.id.isAbsolute)
-            BadRequestDataException(
-                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
-            ).left()
+            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
         else Unit.right()
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -84,13 +82,13 @@ class SubscriptionService(
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ZonedDateTime.now()))
+        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ngsiLdDateTime()))
             BadRequestDataException("'expiresAt' must be in the future").left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
         runCatching { ZonedDateTime.parse(expiresAt) }.fold({
-            if (it.isBefore(ZonedDateTime.now()))
+            if (it.isBefore(ngsiLdDateTime()))
                 BadRequestDataException("'expiresAt' must be in the future").left()
             else it.right()
         }, {
@@ -181,7 +179,7 @@ class SubscriptionService(
                 .bind("id_pattern", entityInfo.idPattern)
                 .bind("type", entityInfo.type)
                 .bind("subscription_id", subscriptionId)
-                .execute()
+                .execute().bind()
         }
 
     private suspend fun createGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
@@ -190,7 +188,7 @@ class SubscriptionService(
                 """
                 INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, 
                     geoproperty, subscription_id) 
-                VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), 
+                VALUES (:georel, :geometry, :coordinates, public.ST_GeomFromText(:wkt_coordinates), 
                     :geoproperty, :subscription_id)
             """
             )
@@ -200,7 +198,7 @@ class SubscriptionService(
                 .bind("wkt_coordinates", geoQuery.wktCoordinates.value)
                 .bind("geoproperty", geoQuery.geoproperty)
                 .bind("subscription_id", subscriptionId)
-                .execute()
+                .execute().bind()
         }
 
     suspend fun getById(id: URI): Subscription {
@@ -243,7 +241,7 @@ class SubscriptionService(
 
     fun getContextsLink(subscription: Subscription): String =
         if (subscription.contexts.size > 1) {
-            val linkToRetrieveContexts = applicationProperties.stellioUrl +
+            val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
                 "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
             buildContextLinkHeader(linkToRetrieveContexts)
         } else
@@ -354,7 +352,7 @@ class SubscriptionService(
             """
             UPDATE geometry_query
             SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
-                pgis_geometry = ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
+                pgis_geometry = public.ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
             WHERE subscription_id = :subscription_id
             """
         )
@@ -602,7 +600,7 @@ class SubscriptionService(
         ).awaitFirst()
     }
 
-    private var rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
+    private val rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
@@ -641,7 +639,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
+    private val rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
@@ -667,7 +665,7 @@ class SubscriptionService(
         )
     }
 
-    private var rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
+    private val rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
         if (row["georel"] != null)
             GeoQ(
                 georel = row["georel"] as String,

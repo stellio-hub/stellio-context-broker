@@ -19,13 +19,13 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.1.0" apply false
-    id("io.spring.dependency-management") version "1.1.0" apply false
-    id("org.graalvm.buildtools.native") version "0.9.23"
-    kotlin("jvm") version "1.8.21" apply false
-    kotlin("plugin.spring") version "1.8.21" apply false
+    id("org.springframework.boot") version "3.1.3" apply false
+    id("io.spring.dependency-management") version "1.1.3" apply false
+    id("org.graalvm.buildtools.native") version "0.9.25"
+    kotlin("jvm") version "1.9.10" apply false
+    kotlin("plugin.spring") version "1.9.10" apply false
     id("com.google.cloud.tools.jib") version "3.3.2" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.1" apply false
     id("org.sonarqube") version "4.2.1.3168"
     jacoco
 }
@@ -66,7 +66,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.5")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 
@@ -96,6 +96,15 @@ subprojects {
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
+        }
+    }
+
+    // see https://github.com/detekt/detekt/issues/6198
+    configurations.matching { it.name == "detekt" }.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion("1.9.0")
+            }
         }
     }
 

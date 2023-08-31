@@ -204,7 +204,7 @@ class QueryServiceTests {
                 SimplifiedAttributeInstanceResult(
                     temporalEntityAttribute = temporalEntityAttribute.id,
                     value = 2.0,
-                    time = ZonedDateTime.now()
+                    time = ngsiLdDateTime()
                 )
             ).right()
 

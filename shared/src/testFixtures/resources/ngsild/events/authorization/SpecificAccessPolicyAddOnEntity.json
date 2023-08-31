@@ -1,5 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:Beekeeper:01",
+  "tenantUri": "urn:ngsi-ld:tenant:default",
   "entityTypes": ["Beekeeper"],
   "attributeName": "specificAccessPolicy",
   "operationPayload": "{\"type\":\"Property\",\"value\":\"AUTH_READ\"}",

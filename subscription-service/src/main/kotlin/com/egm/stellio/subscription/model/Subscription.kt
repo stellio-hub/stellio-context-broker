@@ -46,7 +46,7 @@ data class Subscription(
     val status: SubscriptionStatus =
         if (!isActive)
             SubscriptionStatus.PAUSED
-        else if (expiresAt != null && expiresAt.isBefore(ZonedDateTime.now()))
+        else if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
             SubscriptionStatus.EXPIRED
         else
             SubscriptionStatus.ACTIVE

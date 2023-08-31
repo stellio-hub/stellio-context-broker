@@ -1,14 +1,17 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.*
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.*
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -37,11 +40,11 @@ class AttributeInstanceService(
                     (time, measured_value, value, geo_value, temporal_entity_attribute, 
                         instance_id, payload)
                 VALUES 
-                    (:time, :measured_value, :value, ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
+                    (:time, :measured_value, :value, public.ST_GeomFromText(:geo_value), :temporal_entity_attribute, 
                         :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
-                              instance_id = :instance_id, geo_value = ST_GeomFromText(:geo_value)
+                              instance_id = :instance_id, geo_value = public.ST_GeomFromText(:geo_value)
                 """.trimIndent()
             else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 """
@@ -61,7 +64,7 @@ class AttributeInstanceService(
                     (time, time_property, measured_value, value, geo_value, 
                         temporal_entity_attribute, instance_id, payload, sub)
                 VALUES
-                    (:time, :time_property, :measured_value, :value, ST_GeomFromText(:geo_value), 
+                    (:time, :time_property, :measured_value, :value, public.ST_GeomFromText(:geo_value), 
                         :temporal_entity_attribute, :instance_id, :payload, :sub)
                 """.trimIndent()
             else
@@ -219,7 +222,7 @@ class AttributeInstanceService(
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
                 TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"
-                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "ST_AsText(geo_value) as value"
+                TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
                 else -> "value"
             }
             val subColumn = when (temporalQuery.timeproperty) {
@@ -392,8 +395,8 @@ class AttributeInstanceService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
@@ -415,14 +418,16 @@ class AttributeInstanceService(
                     else it
                 }
                 .execute()
+                .bind()
         }.map { }
+    }
 
     @Transactional
     suspend fun deleteAllInstancesOfAttribute(
         entityId: URI,
         attributeName: ExpandedTerm
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
@@ -439,26 +444,26 @@ class AttributeInstanceService(
                 .bind("entity_id", entityId)
                 .bind("attribute_name", attributeName)
                 .execute()
+                .bind()
         }.map { }
+    }
 
     @Transactional
     suspend fun deleteInstancesOfEntity(
-        entityId: URI
-    ): Either<APIException, Unit> =
-        attributesInstancesTables.parTraverseEither { attributeInstanceTable ->
+        uuids: List<UUID>
+    ): Either<APIException, Unit> = either {
+        attributesInstancesTables.parMap { attributeInstanceTable ->
             val deleteQuery =
                 """
                 DELETE FROM $attributeInstanceTable
-                WHERE temporal_entity_attribute IN ( 
-                    SELECT id 
-                    FROM temporal_entity_attribute 
-                    WHERE entity_id = :entity_id 
-                )
+                WHERE temporal_entity_attribute IN (:uuids)
                 """.trimIndent()
 
             databaseClient
                 .sql(deleteQuery)
-                .bind("entity_id", entityId)
+                .bind("uuids", uuids)
                 .execute()
+                .bind()
         }.map { }
+    }
 }

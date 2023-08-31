@@ -2,8 +2,8 @@ package com.egm.stellio.search.web
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.EntityEventService
@@ -109,14 +109,14 @@ class EntityOperationHandler(
                 Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
             }
             val updateOperationResult = when (options) {
-                "update" -> entityOperationService.update(entitiesToUpdate, false, sub.orNull())
-                else -> entityOperationService.replace(entitiesToUpdate, sub.orNull())
+                "update" -> entityOperationService.update(entitiesToUpdate, false, sub.getOrNull())
+                else -> entityOperationService.replace(entitiesToUpdate, sub.getOrNull())
             }
 
             if (options == "update")
-                publishUpdateEvents(sub.orNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
+                publishUpdateEvents(sub.getOrNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
             else
-                publishReplaceEvents(sub.orNull(), updateOperationResult, ngsiLdEntities)
+                publishReplaceEvents(sub.getOrNull(), updateOperationResult, ngsiLdEntities)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -169,9 +169,9 @@ class EntityOperationHandler(
                 Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
             }
             val updateOperationResult =
-                entityOperationService.update(entitiesToUpdate, disallowOverwrite, sub.orNull())
+                entityOperationService.update(entitiesToUpdate, disallowOverwrite, sub.getOrNull())
 
-            publishUpdateEvents(sub.orNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
+            publishUpdateEvents(sub.getOrNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -222,7 +222,7 @@ class EntityOperationHandler(
             deleteOperationResult.success.map { it.entityId }.forEach { uri ->
                 val entity = entitiesBeforeDelete.find { it.entityId == uri }!!
                 entityEventService.publishEntityDeleteEvent(
-                    sub.orNull(),
+                    sub.getOrNull(),
                     entity.entityId,
                     entity.types,
                     entity.contexts
@@ -271,13 +271,13 @@ class EntityOperationHandler(
         sub: Option<Sub>
     ) {
         if (entitiesToCreate.isNotEmpty()) {
-            val createOperationResult = entityOperationService.create(entitiesToCreate, jsonLdEntities, sub.orNull())
+            val createOperationResult = entityOperationService.create(entitiesToCreate, jsonLdEntities, sub.getOrNull())
             authorizationService.createAdminRights(createOperationResult.getSuccessfulEntitiesIds(), sub)
             entitiesToCreate
                 .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
                 .forEach {
                     entityEventService.publishEntityCreateEvent(
-                        sub.orNull(),
+                        sub.getOrNull(),
                         it.id,
                         it.types,
                         it.contexts
@@ -288,7 +288,7 @@ class EntityOperationHandler(
         }
     }
 
-    private fun publishReplaceEvents(
+    private suspend fun publishReplaceEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         ngsiLdEntities: List<NgsiLdEntity>
@@ -302,7 +302,7 @@ class EntityOperationHandler(
             )
         }
 
-    private fun publishUpdateEvents(
+    private suspend fun publishUpdateEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         jsonLdEntities: List<JsonLdEntity>,

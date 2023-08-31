@@ -2,19 +2,22 @@ package com.egm.stellio.search.web
 
 import arrow.core.Either
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
-import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.util.LinkedMultiValueMap
@@ -23,8 +26,7 @@ import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityOperationsHandler::class)
-@Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
+@EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class TemporalEntityOperationsHandlerTests {
 
     private lateinit var apicHeaderLink: String
@@ -43,6 +45,8 @@ class TemporalEntityOperationsHandlerTests {
         apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
         webClient = webClient.mutate()
+            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
+            .apply(csrf())
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
@@ -157,14 +161,5 @@ class TemporalEntityOperationsHandlerTests {
                 }
                 """
             )
-    }
-
-    @Test
-    @WithAnonymousUser
-    fun `it should not authorize an anonymous to call the API`() {
-        webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
-            .exchange()
-            .expectStatus().isUnauthorized
     }
 }

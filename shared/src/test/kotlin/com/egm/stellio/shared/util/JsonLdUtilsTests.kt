@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.http.MediaType
-import java.time.ZonedDateTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class JsonLdUtilsTests {
@@ -464,7 +463,7 @@ class JsonLdUtilsTests {
             "value" to 12.0
         )
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), null)
+        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
 
         assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
         assertFalse(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
@@ -477,7 +476,7 @@ class JsonLdUtilsTests {
             "value" to 12.0
         )
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ZonedDateTime.now(), ZonedDateTime.now())
+        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
 
         assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
         assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))

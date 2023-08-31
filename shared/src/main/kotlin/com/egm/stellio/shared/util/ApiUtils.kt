@@ -1,10 +1,10 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
-import arrow.fx.coroutines.parTraverseEither
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.QueryParams
@@ -42,6 +42,7 @@ const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
+const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
@@ -70,7 +71,7 @@ fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, Str
 fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
-suspend fun checkAndGetContext(
+fun checkAndGetContext(
     httpHeaders: HttpHeaders,
     body: Map<String, Any>
 ): Either<APIException, List<String>> = either {
@@ -86,14 +87,16 @@ suspend fun checkAndGetContext(
         if (contexts.isEmpty())
             BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
-            ).left()
+            ).left().bind()
         contexts
     }
 }
 
 suspend fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
-    body.parTraverseEither {
-        checkContext(httpHeaders, it)
+    either {
+        body.parMap {
+            checkContext(httpHeaders, it).bind()
+        }
     }.map { Unit.right() }
 
 fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {

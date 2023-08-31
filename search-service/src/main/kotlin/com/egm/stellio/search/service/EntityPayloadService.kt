@@ -1,9 +1,9 @@
 package com.egm.stellio.search.service
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.flatMap
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
@@ -25,8 +25,7 @@ import java.time.ZonedDateTime
 @Service
 class EntityPayloadService(
     private val databaseClient: DatabaseClient,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val entityAttributeCleanerService: EntityAttributeCleanerService
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -104,6 +103,34 @@ class EntityPayloadService(
             .execute()
 
     @Transactional
+    suspend fun mergeEntity(
+        entityId: URI,
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        expandedAttributes: ExpandedAttributes,
+        observedAt: ZonedDateTime?,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> = either {
+        val mergedAt = ngsiLdDateTime()
+        logger.debug("Merging entity {}", entityId)
+
+        val updateResult = temporalEntityAttributeService.mergeEntityAttributes(
+            entityId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            mergedAt,
+            observedAt,
+            sub
+        ).bind()
+
+        // update modifiedAt in entity if at least one attribute has been merged
+        if (updateResult.hasSuccessfulUpdate()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            updateState(entityId, mergedAt, teas).bind()
+        }
+        updateResult
+    }
+
+    @Transactional
     suspend fun replaceEntity(
         entityId: URI,
         ngsiLdEntity: NgsiLdEntity,
@@ -114,8 +141,8 @@ class EntityPayloadService(
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        // wait for attributes to be deleted before creating new ones
-        entityAttributeCleanerService.deleteEntityAttributes(entityId).join()
+        temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
+
         replaceEntityPayload(ngsiLdEntity, replacedAt, jsonLdEntity).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
@@ -602,7 +629,7 @@ class EntityPayloadService(
             .execute()
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Unit> =
+    suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM entity_payload WHERE entity_id = :entity_id
@@ -611,7 +638,7 @@ class EntityPayloadService(
             .bind("entity_id", entityId)
             .execute()
             .onRight {
-                entityAttributeCleanerService.deleteEntityAttributes(entityId)
+                temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
             }
 
     @Transactional

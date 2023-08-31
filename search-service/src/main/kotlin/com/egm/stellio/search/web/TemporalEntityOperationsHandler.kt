@@ -1,10 +1,10 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.parseQueryAndTemporalParams
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

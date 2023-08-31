@@ -1,11 +1,11 @@
 package com.egm.stellio.search.util
 
 import arrow.core.*
-import arrow.core.continuations.either
-import com.egm.stellio.search.config.ApplicationProperties
+import arrow.core.raise.either
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*

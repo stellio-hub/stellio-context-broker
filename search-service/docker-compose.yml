@@ -22,7 +22,7 @@ services:
       - ../config/kafka/update_run.sh:/tmp/update_run.sh
     command: "bash -c 'if [ ! -f /tmp/update_run.sh ]; then echo \"ERROR: Did you forget the update_run.sh file that came with this docker-compose.yml file?\" && exit 1 ; else /tmp/update_run.sh && /etc/confluent/docker/run ; fi'"
   postgres:
-    image: stellio/stellio-timescale-postgis:14-2.9.1-3.3
+    image: stellio/stellio-timescale-postgis:14-2.11.1-3.3
     container_name: stellio-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}

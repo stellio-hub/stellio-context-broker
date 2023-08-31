@@ -1,11 +1,11 @@
 package com.egm.stellio.search.web
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.*
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
@@ -216,7 +216,7 @@ class EntityAccessControlHandler(
             entityAccessRightsService.setRoleOnEntity(
                 subjectId,
                 ngsiLdRelInstance.objectId,
-                AccessRight.forAttributeName(ngsiLdRel.name).orNull()!!
+                AccessRight.forAttributeName(ngsiLdRel.name).getOrNull()!!
             ).fold(
                 ifLeft = { apiException ->
                     UpdateAttributeResult(

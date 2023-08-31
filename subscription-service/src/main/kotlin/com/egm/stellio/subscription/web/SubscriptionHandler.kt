@@ -1,7 +1,8 @@
 package com.egm.stellio.subscription.web
 
 import arrow.core.*
-import arrow.core.continuations.either
+import arrow.core.raise.either
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -10,7 +11,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -165,7 +165,7 @@ class SubscriptionHandler(
     )
 
     @PatchMapping("/", "")
-    suspend fun handleMissingIdOnUpdate(): ResponseEntity<*> =
+    fun handleMissingIdOnUpdate(): ResponseEntity<*> =
         missingPathErrorResponse("Missing id when trying to update a subscription")
 
     /**
@@ -187,7 +187,7 @@ class SubscriptionHandler(
     )
 
     @DeleteMapping("/", "")
-    suspend fun handleMissingIdOnDelete(): ResponseEntity<*> =
+    fun handleMissingIdOnDelete(): ResponseEntity<*> =
         missingPathErrorResponse("Missing id when trying to delete a subscription")
 
     private suspend fun checkSubscriptionExists(subscriptionId: URI): Either<APIException, Unit> =

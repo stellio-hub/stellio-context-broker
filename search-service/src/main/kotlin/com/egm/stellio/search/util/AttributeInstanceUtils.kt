@@ -1,13 +1,14 @@
 package com.egm.stellio.search.util
 
 import arrow.core.Either
-import arrow.core.continuations.either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.net.URI
@@ -29,7 +30,7 @@ fun valueToStringOrNull(value: Any): String? =
         else -> null
     }
 
-suspend fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
+fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
     val ngsiLdEntity = this
     return either {
         ngsiLdEntity.attributes
@@ -77,10 +78,26 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
     ).right()
 }
 
+fun guessAttributeValueType(
+    attributeType: TemporalEntityAttribute.AttributeType,
+    expandedAttributeInstance: ExpandedAttributeInstance
+): AttributeValueType =
+    when (attributeType) {
+        TemporalEntityAttribute.AttributeType.Property ->
+            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()).first
+        TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
+        TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
+    }
+
 fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
 ): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
-    when (val value = ngsiLdPropertyInstance.value) {
+    guessPropertyValueType(ngsiLdPropertyInstance.value)
+
+fun guessPropertyValueType(
+    value: Any
+): Pair<AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
+    when (value) {
         is Double -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Int -> Pair(AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Map<*, *> -> Pair(AttributeValueType.OBJECT, Triple(serializeObject(value), null, null))

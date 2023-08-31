@@ -1,8 +1,8 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import io.mockk.every

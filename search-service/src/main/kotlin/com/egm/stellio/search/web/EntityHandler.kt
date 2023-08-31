@@ -1,15 +1,16 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
+import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.hasSuccessfulUpdate
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -63,12 +64,12 @@ class EntityHandler(
         entityPayloadService.createEntity(
             ngsiLdEntity,
             jsonLdEntity,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
         authorizationService.createAdminRight(ngsiLdEntity.id, sub).bind()
 
         entityEventService.publishEntityCreateEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             contexts
@@ -81,6 +82,72 @@ class EntityHandler(
         { it.toErrorResponse() },
         { it }
     )
+
+    /**
+     * Implements 6.5.3.4 - Merge Entity
+     */
+    @PatchMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun merge(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam options: MultiValueMap<String, String>,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> = either {
+        val entityUri = entityId.toUri()
+        val sub = getSubFromSecurityContext()
+
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+
+        val observedAt = options.getFirst(QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE)
+            ?.parseTimeParameter("'observedAt' parameter is not a valid date")
+            ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
+
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val expandedAttributes = expandAttributes(body, contexts)
+        val (typeAttr, otherAttrs) = expandedAttributes.toList().partition { it.first == JsonLdUtils.JSONLD_TYPE }
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
+
+        val updateResult = entityPayloadService.updateTypes(
+            entityUri,
+            typeAttr.map { it.second as List<ExpandedTerm> }.firstOrNull().orEmpty()
+        ).bind().mergeWith(
+            entityPayloadService.mergeEntity(
+                entityUri,
+                ngsiLdAttributes,
+                expandedAttributes,
+                observedAt,
+                sub.getOrNull()
+            ).bind()
+        )
+
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishAttributeChangeEvents(
+                sub.getOrNull(),
+                entityUri,
+                expandedAttributes,
+                updateResult,
+                true,
+                contexts
+            )
+        }
+
+        if (updateResult.notUpdated.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @PatchMapping("/", "")
+    fun handleMissingEntityIdOnMerge(): ResponseEntity<*> =
+        missingPathErrorResponse("Missing entity id when trying to merge an entity")
 
     /**
      * Implements 6.5.3.3 - Replace Entity
@@ -112,11 +179,11 @@ class EntityHandler(
             entityUri,
             ngsiLdEntity,
             jsonLdEntity,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
 
         entityEventService.publishEntityReplaceEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             ngsiLdEntity.id,
             ngsiLdEntity.types,
             contexts
@@ -129,7 +196,7 @@ class EntityHandler(
     )
 
     @PutMapping("/", "")
-    suspend fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to replace an entity")
 
     /**
@@ -259,10 +326,10 @@ class EntityHandler(
         val entity = entityPayloadService.retrieve(entityId.toUri()).bind()
         authorizationService.userCanAdminEntity(entityUri, sub).bind()
 
-        entityPayloadService.deleteEntityPayload(entityUri).bind()
+        entityPayloadService.deleteEntity(entityUri).bind()
         authorizationService.removeRightsOnEntity(entityUri).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId.toUri(), entity.types, entity.contexts)
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -271,7 +338,7 @@ class EntityHandler(
     )
 
     @DeleteMapping("/", "")
-    suspend fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to delete an entity")
 
     /**
@@ -311,13 +378,13 @@ class EntityHandler(
                 ngsiLdAttributes,
                 expandedAttributes,
                 disallowOverwrite,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
         )
 
         if (updateResult.hasSuccessfulUpdate()) {
             entityEventService.publishAttributeChangeEvents(
-                sub.orNull(),
+                sub.getOrNull(),
                 entityUri,
                 expandedAttributes,
                 updateResult,
@@ -336,7 +403,7 @@ class EntityHandler(
     )
 
     @PostMapping("/attrs")
-    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
@@ -374,13 +441,13 @@ class EntityHandler(
                 entityUri,
                 ngsiLdAttributes,
                 expandedAttributes,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
         )
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
-                sub.orNull(),
+                sub.getOrNull(),
                 entityUri,
                 expandedAttributes,
                 updateResult,
@@ -399,7 +466,7 @@ class EntityHandler(
     )
 
     @PatchMapping("/attrs")
-    suspend fun handleMissingAttributeOnAttributeUpdate(): ResponseEntity<*> =
+    fun handleMissingAttributeOnAttributeUpdate(): ResponseEntity<*> =
         missingPathErrorResponse("Missing attribute id when trying to update an attribute")
 
     /**
@@ -433,7 +500,7 @@ class EntityHandler(
         entityPayloadService.partialUpdateAttribute(
             entityUri,
             expandedAttribute,
-            sub.orNull()
+            sub.getOrNull()
         )
             .bind()
             .let {
@@ -441,7 +508,7 @@ class EntityHandler(
                     ResourceNotFoundException("Unknown attribute in entity $entityId").left()
                 else {
                     entityEventService.publishAttributeChangeEvents(
-                        sub.orNull(),
+                        sub.getOrNull(),
                         entityUri,
                         expandedAttribute.toExpandedAttributes(),
                         it,
@@ -458,7 +525,7 @@ class EntityHandler(
     )
 
     @PatchMapping("/attrs/{attrId}")
-    suspend fun handleMissingAttributeOnPartialAttributeUpdate(): ResponseEntity<*> =
+    fun handleMissingAttributeOnPartialAttributeUpdate(): ResponseEntity<*> =
         missingPathErrorResponse("Missing attribute id when trying to partially update an attribute")
 
     /**
@@ -495,7 +562,7 @@ class EntityHandler(
         ).bind()
 
         entityEventService.publishAttributeDeleteEvent(
-            sub.orNull(),
+            sub.getOrNull(),
             entityUri,
             expandedAttrId,
             datasetId,
@@ -509,6 +576,6 @@ class EntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
-    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
 }

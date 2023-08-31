@@ -3,6 +3,8 @@ package com.egm.stellio.search.service
 import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateOperationResult
+import com.egm.stellio.search.model.UpdateResult
+import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -32,9 +34,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -47,16 +46,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    @MockkBean(relaxed = true)
-    private lateinit var entityAttributeCleanerService: EntityAttributeCleanerService
-
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val entity02Uri = "urn:ngsi-ld:Entity:02".toUri()
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    private val now = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS)
+    private val now = ngsiLdDateTime()
 
     @AfterEach
     fun clearEntityPayloadTable() {
@@ -193,6 +189,67 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should merge an entity`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+        } returns UpdateResult(
+            listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        ).right()
+        coEvery {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } returns emptyList()
+
+        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+
+        entityPayloadService.createEntity(
+            createEntityPayload,
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+
+        entityPayloadService.mergeEntity(
+            beehiveTestCId,
+            ngsiLdEntity.attributes,
+            jsonLdEntity.getAttributes(),
+            now,
+            "0123456789-1234-5678-987654321"
+        ).shouldSucceed()
+
+        entityPayloadService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertTrue(it.modifiedAt != null)
+            }
+
+        coVerify {
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                any(),
+                any(),
+                emptyList(),
+                any(),
+                eq("0123456789-1234-5678-987654321")
+            )
+            temporalEntityAttributeService.mergeEntityAttributes(
+                eq(beehiveTestCId),
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("0123456789-1234-5678-987654321")
+            )
+            temporalEntityAttributeService.getForEntity(
+                eq(beehiveTestCId),
+                emptySet()
+            )
+        }
+    }
+
+    @Test
     fun `it should replace an entity payload if entity previously existed`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
@@ -206,6 +263,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
         } returns Unit.right()
+        coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } just Runs
 
         val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
 
@@ -231,7 +289,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeCleanerService.deleteEntityAttributes(beehiveURI)
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(beehiveURI)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 any(),
                 any(),
@@ -473,6 +531,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should delete an entity payload`() = runTest {
+        coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } just Runs
+
         entityPayloadService.createEntityPayload(
             entity01Uri,
             listOf(BEEHIVE_TYPE),
@@ -481,7 +541,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val deleteResult = entityPayloadService.deleteEntityPayload(entity01Uri)
+        val deleteResult = entityPayloadService.deleteEntity(entity01Uri)
         assertTrue(deleteResult.isRight())
 
         // if correctly deleted, we should be able to create a new one

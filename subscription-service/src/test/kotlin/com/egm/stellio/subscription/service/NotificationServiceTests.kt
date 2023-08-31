@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
@@ -20,6 +21,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -391,6 +394,39 @@ class NotificationServiceTests {
             1,
             postRequestedFor(urlPathEqualTo("/notification"))
                 .withHeader(HttpHeaders.LINK, equalTo(link))
+        )
+    }
+
+    @Test
+    fun `it should add an NGSILD-Tenant header if the subscription is not from the default context`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD
+                )
+            )
+        )
+
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        mono {
+            notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+        }.contextWrite { context ->
+            context.put(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01".toUri())
+        }.awaitSingle()
+
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(NGSILD_TENANT_HEADER, equalTo("urn:ngsi-ld:tenant:01"))
         )
     }
 

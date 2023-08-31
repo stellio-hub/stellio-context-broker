@@ -1,10 +1,10 @@
 package com.egm.stellio.search.web
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.parseQueryAndTemporalParams
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -69,11 +69,11 @@ class TemporalEntityHandler(
             )
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
-            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.orNull()).bind()
+            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.getOrNull()).bind()
             entityPayloadService.upsertAttributes(
                 entityUri,
                 sortedJsonLdInstances.removeFirstInstances(),
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
             authorizationService.createAdminRight(entityUri, sub).bind()
 
@@ -85,7 +85,7 @@ class TemporalEntityHandler(
             entityPayloadService.upsertAttributes(
                 entityUri,
                 sortedJsonLdInstances,
-                sub.orNull()
+                sub.getOrNull()
             ).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build()
@@ -121,7 +121,7 @@ class TemporalEntityHandler(
         entityPayloadService.upsertAttributes(
             entityUri,
             sortedJsonLdInstances,
-            sub.orNull()
+            sub.getOrNull()
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -131,7 +131,7 @@ class TemporalEntityHandler(
     )
 
     @PostMapping("/attrs")
-    suspend fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnAttributeAppend(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
@@ -254,7 +254,7 @@ class TemporalEntityHandler(
         "/{entityId}/attrs",
         "/attrs"
     )
-    suspend fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
+    fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
         missingPathErrorResponse(
             "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
         )
@@ -271,7 +271,7 @@ class TemporalEntityHandler(
 
         entityPayloadService.checkEntityExistence(entityUri).bind()
         authorizationService.userCanAdminEntity(entityUri, sub).bind()
-        entityPayloadService.deleteEntityPayload(entityUri).bind()
+        entityPayloadService.deleteEntity(entityUri).bind()
         authorizationService.removeRightsOnEntity(entityUri).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -281,7 +281,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/", "")
-    suspend fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
+    fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id when trying to delete temporal entity")
 
     /**
@@ -325,7 +325,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
-    suspend fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute temporal")
 
     /**
@@ -358,7 +358,7 @@ class TemporalEntityHandler(
     )
 
     @DeleteMapping("/attrs/{attrId}/{instanceId}")
-    suspend fun handleMissingEntityIdOrAttrOnDeleteAttrInstance(): ResponseEntity<*> =
+    fun handleMissingEntityIdOrAttrOnDeleteAttrInstance(): ResponseEntity<*> =
         missingPathErrorResponse(
             "Missing entity, attribute or instance id when trying to delete an attribute instance"
         )

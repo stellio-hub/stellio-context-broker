@@ -756,7 +756,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 )
         }
 
-        attributeInstanceService.deleteInstancesOfEntity(entityId).shouldSucceed()
+        attributeInstanceService.deleteInstancesOfEntity(listOf(incomingTemporalEntityAttribute.id)).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             TemporalQuery(

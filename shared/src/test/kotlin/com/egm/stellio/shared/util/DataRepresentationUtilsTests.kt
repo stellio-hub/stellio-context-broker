@@ -164,7 +164,7 @@ class DataRepresentationUtilsTests {
                 "type": "Device",
                 "device": {
                     "type": "Property",
-                    "value": "23;=23"
+                    "value": "23>=23"
                 }
             }
             """.trimIndent()
@@ -173,7 +173,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters in value (4.6.3): 23;=23",
+                    "The JSON-LD object contains a member with invalid characters in value (4.6.4): 23>=23",
                     it.message
                 )
             }
@@ -201,7 +201,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters in value (4.6.3): 23>=23",
+                    "The JSON-LD object contains a member with invalid characters in value (4.6.4): 23>=23",
                     it.message
                 )
             }
@@ -236,7 +236,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters in value (4.6.3): open>open;",
+                    "The JSON-LD object contains a member with invalid characters in value (4.6.4): open>open;",
                     it.message
                 )
             }

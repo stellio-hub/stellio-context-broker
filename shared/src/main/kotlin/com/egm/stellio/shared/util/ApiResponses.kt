@@ -39,7 +39,7 @@ fun invalidCharacterInName(name: Any?) =
     "The JSON-LD object contains a member with invalid characters (4.6.2): $name"
 
 fun invalidCharacterInContent(content: Any?) =
-    "The JSON-LD object contains a member with invalid characters in value (4.6.3): $content"
+    "The JSON-LD object contains a member with invalid characters in value (4.6.4): $content"
 
 const val NULL_VALUE_IN_CONTENT = "The JSON-LD object contains a member with a null value (5.5.4)"
 

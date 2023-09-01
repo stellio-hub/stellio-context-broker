@@ -67,9 +67,12 @@ private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
     } else Unit.right()
 
 /**
- * Relaxed list of forbidden characters in entity content defined in 4.6.4. Full list prevents from a lot of use-cases.
+ * List of forbidden characters in entity content as defined in 4.6.4. Currently disabled as it prevents
+ * from a lot of use-cases.
+ *
+ * Original char array was "<>\"'=()".
  */
-private val invalidCharactersForValues = ">\"".toCharArray()
+private val invalidCharactersForValues = "".toCharArray()
 
 /**
  * Returns whether the given string is a supported content as defined in 4.6.3

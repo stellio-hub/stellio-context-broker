@@ -56,7 +56,12 @@ object TemporalEntityBuilder {
         scopeHistory: List<ScopeService.ScopeHistoryEntry>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Map<String, Any> =
-        if (entityPayload.scopes == null || temporalEntitiesQuery.withAggregatedValues)
+        // if no history, only add an empty scope entry if entity has a scope
+        if (entityPayload.scopes == null && scopeHistory.isEmpty())
+            emptyMap()
+        else if (scopeHistory.isEmpty())
+            mapOf(NGSILD_SCOPE_TERM to emptyList<String>())
+        else if (temporalEntitiesQuery.withAggregatedValues)
             emptyMap()
         else if (temporalEntitiesQuery.withTemporalValues)
             mapOf(
@@ -69,15 +74,13 @@ object TemporalEntityBuilder {
             )
         else
             mapOf(
-                NGSILD_SCOPE_TERM to listOf(
-                    scopeHistory.map {
-                        mapOf(
-                            JSONLD_TYPE_TERM to "Property",
-                            "values" to it.scopes,
-                            it.timeProperty.propertyName to it.time
-                        )
-                    }
-                )
+                NGSILD_SCOPE_TERM to scopeHistory.map {
+                    mapOf(
+                        JSONLD_TYPE_TERM to "Property",
+                        JSONLD_VALUE_TERM to it.scopes,
+                        it.timeProperty.propertyName to it.time
+                    )
+                }
             )
 
     private fun buildTemporalAttributes(

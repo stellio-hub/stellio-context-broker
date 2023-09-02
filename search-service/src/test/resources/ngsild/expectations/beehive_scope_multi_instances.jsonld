@@ -1,0 +1,13 @@
+{
+  "id" : "urn:ngsi-ld:BeeHive:TESTC",
+  "type" : "BeeHive",
+  "scope" : [{
+    "type": "Property",
+    "value": ["/A/B", "/C/D"],
+    "modifiedAt": "2020-03-25T08:29:17.965206Z"
+  }, {
+    "type": "Property",
+    "value": ["/C/D"],
+    "modifiedAt": "2020-03-25T09:29:17.965206Z"
+  }]
+}

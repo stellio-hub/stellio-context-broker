@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
+import java.time.ZonedDateTime
 
 @Service
 class QueryService(
@@ -71,13 +72,15 @@ class QueryService(
         }.bind()
 
         val entityPayload = entityPayloadService.retrieve(entityId).bind()
+        val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, temporalEntityAttributes)
+
         val scopeHistory =
             if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
-                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery)
+                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin)
             else emptyList()
 
         val temporalEntityAttributesWithMatchingInstances =
-            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery).bind()
+            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery, origin).bind()
 
         val temporalEntityAttributesWithInstances =
             fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -87,6 +90,41 @@ class QueryService(
             temporalEntitiesQuery,
             listOf(contextLink)
         )
+    }
+
+    internal suspend fun calculateOldestTimestamp(
+        entityId: URI,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        temporalEntityAttributes: List<TemporalEntityAttribute>
+    ): ZonedDateTime? {
+        val temporalQuery = temporalEntitiesQuery.temporalQuery
+
+        // time_bucket has a default origin set to 2000-01-03
+        // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
+        // so we force the default origin to:
+        // - timeAt if it is provided
+        // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
+
+        if (!temporalEntitiesQuery.withAggregatedValues)
+            return null
+        else if (temporalQuery.timeAt != null)
+            return temporalQuery.timeAt
+        else {
+            val originForTemporalEntityAttributes =
+                attributeInstanceService.selectOldestDate(temporalQuery, temporalEntityAttributes)
+
+            val attrs = temporalEntitiesQuery.queryParams.attrs
+            val originForScope =
+                if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
+                    scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
+                else null
+
+            return when {
+                originForTemporalEntityAttributes == null -> originForScope
+                originForScope == null -> originForTemporalEntityAttributes
+                else -> minOf(originForTemporalEntityAttributes, originForScope)
+            }
+        }
     }
 
     suspend fun queryTemporalEntities(
@@ -150,7 +188,8 @@ class QueryService(
 
     private suspend fun searchInstancesForTemporalEntityAttributes(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        temporalEntitiesQuery: TemporalEntitiesQuery
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        origin: ZonedDateTime? = null
     ): Either<APIException, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>> = either {
         // split the group according to attribute type as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
@@ -158,7 +197,7 @@ class QueryService(
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalEntitiesQuery, it.value).bind()
+                attributeInstanceService.search(temporalEntitiesQuery, it.value, origin).bind()
             }
             .mapValues {
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically

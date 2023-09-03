@@ -188,6 +188,69 @@ class QueryServiceTests {
     }
 
     @Test
+    fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            emptyList()
+        )
+
+        assertNull(origin)
+    }
+
+    @Test
+    fun `it should return timeAt as the oldest timestamp if it is provided in the temporal query`() = runTest {
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = now
+                ),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            emptyList()
+        )
+
+        assertNotNull(origin)
+        assertEquals(now, origin)
+    }
+
+    @Test
+    fun `it should return the oldest timestamp from the DB if none is provided in the temporal query`() = runTest {
+        coEvery {
+            attributeInstanceService.selectOldestDate(any(), any())
+        } returns ZonedDateTime.parse("2023-09-03T12:34:56Z")
+        coEvery {
+            scopeService.selectOldestDate(any(), any())
+        } returns ZonedDateTime.parse("2023-09-03T14:22:55Z")
+
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            emptyList()
+        )
+
+        assertNotNull(origin)
+        assertEquals(ZonedDateTime.parse("2023-09-03T12:34:56Z"), origin)
+    }
+
+    @Test
     fun `it should query temporal entities as requested by query params`() = runTest {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityUri,

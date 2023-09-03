@@ -272,106 +272,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should set the start time to the timeAt value if asking for an after timerel`() = runTest {
-        (1..9).forEachIndexed { index, _ ->
-            val attributeInstance =
-                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
-            attributeInstanceService.create(attributeInstance)
-        }
-        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
-                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-                aggrPeriodDuration = "P30D",
-                aggrMethods = listOf(TemporalQuery.Aggregate.MIN)
-            ),
-            withAggregatedValues = true
-        )
-
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-            .shouldSucceedWith { results ->
-                assertThat(results)
-                    .singleElement()
-                    .matches {
-                        it is AggregatedAttributeInstanceResult &&
-                            it.values.size == 1 &&
-                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-03T00:00:00Z")
-                    }
-            }
-    }
-
-    @Test
-    fun `it should set the start time to the timeAt value if asking for a before timerel`() = runTest {
-        (1..9).forEachIndexed { index, _ ->
-            val attributeInstance =
-                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
-            attributeInstanceService.create(attributeInstance)
-        }
-        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.BEFORE,
-                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-                aggrPeriodDuration = "P30D",
-                aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
-            ),
-            withAggregatedValues = true
-        )
-
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-            .shouldSucceedWith { results ->
-                assertThat(results)
-                    .singleElement()
-                    .matches {
-                        it is AggregatedAttributeInstanceResult &&
-                            it.values.size == 1 &&
-                            it.values[0].startDateTime == ZonedDateTime.parse("2022-06-03T00:00:00Z")
-                    }
-            }
-    }
-
-    @Test
-    fun `it should set the start time to the timeAt value if asking for a between timerel`() = runTest {
-        (1..9).forEachIndexed { index, _ ->
-            val attributeInstance =
-                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
-            attributeInstanceService.create(attributeInstance)
-        }
-        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.BETWEEN,
-                timeAt = ZonedDateTime.parse("2022-07-03T00:00:00Z"),
-                endTimeAt = ZonedDateTime.parse("2022-07-06T00:00:00Z"),
-                aggrPeriodDuration = "P30D",
-                aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
-            ),
-            withAggregatedValues = true
-        )
-
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-            .shouldSucceedWith { results ->
-                assertThat(results)
-                    .singleElement()
-                    .matches {
-                        it is AggregatedAttributeInstanceResult &&
-                            it.values.size == 1 &&
-                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-03T00:00:00Z")
-                    }
-            }
-    }
-
-    @Test
     fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
@@ -390,16 +290,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             withAggregatedValues = true
         )
 
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
-            .shouldSucceedWith { results ->
-                assertThat(results)
-                    .singleElement()
-                    .matches {
-                        it is AggregatedAttributeInstanceResult &&
-                            it.values.size == 1 &&
-                            it.values[0].startDateTime == ZonedDateTime.parse("2022-07-01T00:00:00Z")
-                    }
-            }
+        val origin = attributeInstanceService.selectOldestDate(
+            temporalEntitiesQuery.temporalQuery,
+            listOf(incomingTemporalEntityAttribute)
+        )
+
+        assertNotNull(origin)
+        assertEquals(ZonedDateTime.parse("2022-07-01T00:00:00Z"), origin)
     }
 
     @Test

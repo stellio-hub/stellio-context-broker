@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
+import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -90,49 +91,85 @@ class ScopeService(
 
     suspend fun retrieveHistory(
         entitiesIds: List<URI>,
-        temporalEntitiesQuery: TemporalEntitiesQuery
-    ): List<ScopeHistoryEntry> =
-        if (temporalEntitiesQuery.withAggregatedValues)
-            emptyList()
-        else {
-            val sqlQueryBuilder = StringBuilder()
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        origin: ZonedDateTime? = null
+    ): List<ScopeHistoryEntry> {
+        val temporalQuery = temporalEntitiesQuery.temporalQuery
+        val sqlQueryBuilder = StringBuilder()
 
-            sqlQueryBuilder.append(
-                """
+        sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, origin))
+
+        sqlQueryBuilder.append(
+            """
+            FROM scope_history
+            WHERE entity_id IN (:entities_ids)
+            AND time_property = :time_property                    
+            """.trimIndent()
+        )
+
+        when (temporalQuery.timerel) {
+            TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
+                " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
+            )
+            null -> Unit
+        }
+
+        if (temporalQuery.lastN != null)
+            // in order to get last instances, need to order by time desc
+            // final ascending ordering of instances is done in query service
+            sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
+
+        return databaseClient.sql(sqlQueryBuilder.toString())
+            .bind("entities_ids", entitiesIds)
+            .bind("time_property", temporalEntitiesQuery.temporalQuery.timeproperty.toString())
+            .allToMappedList {
+                ScopeHistoryEntry(
+                    toUri(it["entity_id"]),
+                    toList(it["scopes"]),
+                    temporalEntitiesQuery.temporalQuery.timeproperty,
+                    toZonedDateTime(it["time"])
+                )
+            }
+    }
+
+    private fun composeSearchSelectStatement(
+        temporalQuery: TemporalQuery,
+        origin: ZonedDateTime?
+    ): String = when {
+        temporalQuery.aggrPeriodDuration != null -> {
+            val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
+                val sqlAggregateExpression = aggrMethodToSqlAggregate(it, AttributeValueType.ARRAY)
+                "$sqlAggregateExpression as ${it.method}_value"
+            }
+            """
+            SELECT entity_id,
+               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${origin!!}') as origin,
+               $allAggregates
+            """.trimIndent()
+        }
+        else -> {
+            """
                 SELECT entity_id, scopes, time
+            """
+        }
+    }
+
+    suspend fun selectOldestDate(entityId: URI, timeproperty: TemporalProperty): ZonedDateTime? =
+        databaseClient
+            .sql(
+                """
+                SELECT min(time)
                 FROM scope_history
-                WHERE entity_id IN (:entities_ids)
-                AND time_property = :time_property                    
+                WHERE entity_id = :entity_id
+                AND time_property = :time_property
                 """.trimIndent()
             )
-
-            val temporalQuery = temporalEntitiesQuery.temporalQuery
-            when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
-                TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
-                TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
-                    " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
-                )
-                null -> Unit
-            }
-
-            if (temporalQuery.lastN != null)
-                // in order to get last instances, need to order by time desc
-                // final ascending ordering of instances is done in query service
-                sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
-
-            databaseClient.sql(sqlQueryBuilder.toString())
-                .bind("entities_ids", entitiesIds)
-                .bind("time_property", temporalEntitiesQuery.temporalQuery.timeproperty.toString())
-                .allToMappedList {
-                    ScopeHistoryEntry(
-                        toUri(it["entity_id"]),
-                        toList(it["scopes"]),
-                        temporalEntitiesQuery.temporalQuery.timeproperty,
-                        toZonedDateTime(it["time"])
-                    )
-                }
-        }
+            .bind("entity_id", entityId)
+            .bind("time_property", timeproperty.name)
+            .oneToResult { toZonedDateTime(it["first"]) }
+            .getOrNull()
 
     private fun Json.replaceScopeValue(newScopeValue: Any): Map<String, Any> =
         this.deserializeExpandedPayload()

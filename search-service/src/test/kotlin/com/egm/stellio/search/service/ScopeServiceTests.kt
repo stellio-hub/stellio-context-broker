@@ -1,16 +1,22 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.OperationType
+import com.egm.stellio.search.model.TemporalEntitiesQuery
+import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.deserializeAsMap
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -102,9 +108,65 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                Assertions.assertEquals(expectedScopes, it.scopes)
+                assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = (it.payload.deserializeAsMap() as ExpandedAttributeInstance).getScopes()
-                Assertions.assertEquals(expectedScopes, scopesInEntity)
+                assertEquals(expectedScopes, scopesInEntity)
             }
+    }
+
+    @Test
+    fun `it should retrieve the history of scopes`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                TemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            )
+        )
+
+        assertEquals(1, scopeHistoryEntries.size)
+        assertThat(scopeHistoryEntries).allMatch {
+            it.scopes == listOf("/A", "/B/C") &&
+                it.timeProperty == TemporalProperty.MODIFIED_AT
+        }
+    }
+
+    @Test
+    fun `it should delete scope and its history`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
+
+        scopeService.delete(beehiveTestCId).shouldSucceed()
+
+        scopeService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertNull(it.first)
+                assertNull((it.second.deserializeAsMap() as ExpandedAttributeInstance).getScopes())
+            }
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                TemporalQuery(),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            )
+        )
+        assertTrue(scopeHistoryEntries.isEmpty())
     }
 }

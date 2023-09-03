@@ -250,7 +250,8 @@ class ScopeService(
         databaseClient.sql(
             """
             UPDATE entity_payload
-            SET scopes = null
+            SET scopes = null,
+                payload = payload - '$NGSILD_SCOPE_PROPERTY'
             WHERE entity_id = :entity_id
             """.trimIndent()
         )

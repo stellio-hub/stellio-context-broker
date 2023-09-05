@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
 import com.egm.stellio.search.util.TemporalEntityBuilder
@@ -59,7 +60,7 @@ class TemporalEntityBuilderTests {
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
-        scopeHistory: List<ScopeService.ScopeHistoryEntry>,
+        scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         withTemporalValues: Boolean,
         withAudit: Boolean,

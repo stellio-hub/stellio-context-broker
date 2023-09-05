@@ -5,6 +5,9 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.OperationType
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.scope.AggregatedScopeInstanceResult
+import com.egm.stellio.search.scope.FullScopeInstanceResult
+import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.deserializeAsMap
@@ -12,6 +15,7 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -47,6 +51,10 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         r2dbcEntityTemplate.delete(EntityPayload::class.java)
             .all()
             .block()
+
+        runBlocking {
+            scopeService.delete(beehiveTestCId)
+        }
     }
 
     @Suppress("unused")
@@ -114,8 +122,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
     }
 
-    @Test
-    fun `it should retrieve the history of scopes`() = runTest {
+    private suspend fun createScopeHistory() {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
             .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
@@ -125,6 +132,11 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalProperty.MODIFIED_AT,
             ngsiLdDateTime()
         ).shouldSucceed()
+    }
+
+    @Test
+    fun `it should retrieve the history of scopes`() = runTest {
+        createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
@@ -135,12 +147,71 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 withAudit = false,
                 withAggregatedValues = false
             )
-        )
+        ).shouldSucceedAndResult()
 
         assertEquals(1, scopeHistoryEntries.size)
         assertThat(scopeHistoryEntries).allMatch {
+            it as FullScopeInstanceResult
             it.scopes == listOf("/A", "/B/C") &&
-                it.timeProperty == TemporalProperty.MODIFIED_AT
+                it.timeproperty == TemporalProperty.MODIFIED_AT.propertyName
+        }
+    }
+
+    @Test
+    fun `it should retrieve the history of scopes with a time interval`() = runTest {
+        createScopeHistory()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                TemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    timeAt = ngsiLdDateTime()
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            )
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, scopeHistoryEntries.size)
+        assertThat(scopeHistoryEntries).allMatch {
+            it as FullScopeInstanceResult
+            it.scopes == listOf("/A", "/B/C") &&
+                it.timeproperty == TemporalProperty.MODIFIED_AT.propertyName
+        }
+    }
+
+    @Test
+    fun `it should retrieve the history of scopes with aggregated values`() = runTest {
+        createScopeHistory()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                TemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    timeAt = ngsiLdDateTime(),
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                    aggrPeriodDuration = "PT1S"
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, scopeHistoryEntries.size)
+        assertThat(scopeHistoryEntries).allMatch {
+            it as AggregatedScopeInstanceResult
+            it.values.size == 1 &&
+                it.values[0].aggregate == TemporalQuery.Aggregate.SUM &&
+                it.values[0].value as Long == 2L
         }
     }
 
@@ -166,7 +237,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 withAudit = false,
                 withAggregatedValues = false
             )
-        )
+        ).shouldSucceedAndResult()
         assertTrue(scopeHistoryEntries.isEmpty())
     }
 }

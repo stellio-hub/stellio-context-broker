@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.OperationType.*
+import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*

@@ -1,9 +1,9 @@
 CREATE TABLE scope_history(
     entity_id       text not null
         references entity_payload(entity_id) on delete cascade,
-    scopes          text[] not null ,
+    value           jsonb not null,
     time            timestamp with time zone not null,
-    time_property   text not null ,
+    time_property   text not null,
     sub             text
 );
 

@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.*
@@ -76,7 +77,7 @@ class QueryService(
 
         val scopeHistory =
             if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
-                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin)
+                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
             else emptyList()
 
         val temporalEntityAttributesWithMatchingInstances =
@@ -147,7 +148,7 @@ class QueryService(
 
         val scopesHistory =
             if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
-                scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).groupBy { it.entityId }
+                scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
             else emptyMap()
 
         val temporalEntityAttributesWithMatchingInstances =

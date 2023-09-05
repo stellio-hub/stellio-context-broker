@@ -1,7 +1,9 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.service.ScopeService
+import com.egm.stellio.search.scope.FullScopeInstanceResult
+import com.egm.stellio.search.scope.ScopeInstanceResult
+import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -24,7 +26,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesWithoutDatasetId =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -67,7 +69,7 @@ class ParameterizedTests {
 
         private val beehiveRelationshipMultiInstancesWithoutDatasetId =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -113,7 +115,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstances =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -191,7 +193,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesStringValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -235,7 +237,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesStringValuesWithAudit =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -279,7 +281,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesWithoutDatasetIdStringValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -324,7 +326,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesWithoutDatasetIdTemporalValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -355,7 +357,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesTemporalValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -405,7 +407,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesStringValuesTemporalValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -435,7 +437,7 @@ class ParameterizedTests {
 
         private val beehivePropertyMultiInstancesWithoutDatasetIdStringValuesTemporalValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -466,7 +468,7 @@ class ParameterizedTests {
 
         private val beehiveRelationshipMultiInstancesTemporalValues =
             Arguments.arguments(
-                emptyList<ScopeService.ScopeHistoryEntry>(),
+                emptyList<ScopeInstanceResult>(),
                 mapOf(
                     TemporalEntityAttribute(
                         entityId = entityId,
@@ -498,16 +500,14 @@ class ParameterizedTests {
         private val beehiveScopeMultiInstancesTemporalValues =
             Arguments.arguments(
                 listOf(
-                    ScopeService.ScopeHistoryEntry(
+                    SimplifiedScopeInstanceResult(
                         entityId = entityId,
                         scopes = listOf("/A/B", "/C/D"),
-                        timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
                         time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                     ),
-                    ScopeService.ScopeHistoryEntry(
+                    SimplifiedScopeInstanceResult(
                         entityId = entityId,
                         scopes = listOf("/C/D"),
-                        timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
                         time = ZonedDateTime.parse("2020-03-25T09:29:17.965206Z")
                     )
                 ),
@@ -520,16 +520,16 @@ class ParameterizedTests {
         private val beehiveScopeMultiInstances =
             Arguments.arguments(
                 listOf(
-                    ScopeService.ScopeHistoryEntry(
+                    FullScopeInstanceResult(
                         entityId = entityId,
                         scopes = listOf("/A/B", "/C/D"),
-                        timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+                        timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT.propertyName,
                         time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                     ),
-                    ScopeService.ScopeHistoryEntry(
+                    FullScopeInstanceResult(
                         entityId = entityId,
                         scopes = listOf("/C/D"),
-                        timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+                        timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT.propertyName,
                         time = ZonedDateTime.parse("2020-03-25T09:29:17.965206Z")
                     )
                 ),

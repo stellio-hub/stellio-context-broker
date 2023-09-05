@@ -1,7 +1,9 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.service.ScopeService
+import com.egm.stellio.search.scope.FullScopeInstanceResult
+import com.egm.stellio.search.scope.ScopeInstanceResult
+import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
@@ -53,7 +55,7 @@ object TemporalEntityBuilder {
 
     private fun buildScopeAttribute(
         entityPayload: EntityPayload,
-        scopeHistory: List<ScopeService.ScopeHistoryEntry>,
+        scopeHistory: List<ScopeInstanceResult>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Map<String, Any> =
         // if no history, only add an empty scope entry if entity has a scope
@@ -68,6 +70,7 @@ object TemporalEntityBuilder {
                 NGSILD_SCOPE_TERM to mapOf(
                     JSONLD_TYPE_TERM to "Property",
                     "values" to scopeHistory.map {
+                        it as SimplifiedScopeInstanceResult
                         listOf(it.scopes, it.time)
                     }
                 )
@@ -75,10 +78,11 @@ object TemporalEntityBuilder {
         else
             mapOf(
                 NGSILD_SCOPE_TERM to scopeHistory.map {
+                    it as FullScopeInstanceResult
                     mapOf(
                         JSONLD_TYPE_TERM to "Property",
                         JSONLD_VALUE_TERM to it.scopes,
-                        it.timeProperty.propertyName to it.time
+                        it.timeproperty to it.time
                     )
                 }
             )

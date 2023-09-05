@@ -3,6 +3,8 @@ package com.egm.stellio.search.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.scope.ScopeInstanceResult
+import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.QueryParams
@@ -148,7 +150,7 @@ class QueryServiceTests {
 
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns teas
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
@@ -265,7 +267,7 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
@@ -342,7 +344,7 @@ class QueryServiceTests {
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns emptyList<AttributeInstanceResult>().right()

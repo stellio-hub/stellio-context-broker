@@ -1,6 +1,7 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.scope
 
 import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
@@ -9,8 +10,10 @@ import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.ExpandedAttributeInstances
+import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -21,6 +24,7 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.time.Duration
 import java.time.ZonedDateTime
 
 @Service
@@ -54,12 +58,12 @@ class ScopeService(
     ): Either<APIException, Unit> =
         databaseClient.sql(
             """
-            INSERT INTO scope_history (entity_id, scopes, time, time_property, sub)
-            VALUES (:entity_id, :scopes, :time, :time_property, :sub)
+            INSERT INTO scope_history (entity_id, value, time, time_property, sub)
+            VALUES (:entity_id, array_to_json(:value), :time, :time_property, :sub)
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .bind("scopes", scopes.toTypedArray())
+            .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
             .bind("time_property", temportalProperty.toString())
             .bind("sub", sub)
@@ -82,22 +86,15 @@ class ScopeService(
                 )
             }
 
-    data class ScopeHistoryEntry(
-        val entityId: URI,
-        val scopes: List<String>,
-        val timeProperty: TemporalProperty,
-        val time: ZonedDateTime
-    )
-
     suspend fun retrieveHistory(
         entitiesIds: List<URI>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         origin: ZonedDateTime? = null
-    ): List<ScopeHistoryEntry> {
+    ): Either<APIException, List<ScopeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
 
-        sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, origin))
+        sqlQueryBuilder.append(composeSearchSelectStatement(temporalEntitiesQuery, origin))
 
         sqlQueryBuilder.append(
             """
@@ -116,7 +113,9 @@ class ScopeService(
             null -> Unit
         }
 
-        if (temporalQuery.lastN != null)
+        if (temporalEntitiesQuery.withAggregatedValues)
+            sqlQueryBuilder.append(" GROUP BY entity_id, origin")
+        else if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
@@ -124,21 +123,20 @@ class ScopeService(
         return databaseClient.sql(sqlQueryBuilder.toString())
             .bind("entities_ids", entitiesIds)
             .bind("time_property", temporalEntitiesQuery.temporalQuery.timeproperty.toString())
-            .allToMappedList {
-                ScopeHistoryEntry(
-                    toUri(it["entity_id"]),
-                    toList(it["scopes"]),
-                    temporalEntitiesQuery.temporalQuery.timeproperty,
-                    toZonedDateTime(it["time"])
-                )
-            }
+            .runCatching {
+                this.allToMappedList { rowToScopeInstanceResult(it, temporalEntitiesQuery) }
+            }.fold(
+                { it.right() },
+                { OperationNotSupportedException(INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE).left() }
+            )
     }
 
     private fun composeSearchSelectStatement(
-        temporalQuery: TemporalQuery,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         origin: ZonedDateTime?
     ): String = when {
-        temporalQuery.aggrPeriodDuration != null -> {
+        temporalEntitiesQuery.withAggregatedValues -> {
+            val temporalQuery = temporalEntitiesQuery.temporalQuery
             val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
                 val sqlAggregateExpression = aggrMethodToSqlAggregate(it, AttributeValueType.ARRAY)
                 "$sqlAggregateExpression as ${it.method}_value"
@@ -147,11 +145,11 @@ class ScopeService(
             SELECT entity_id,
                time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${origin!!}') as origin,
                $allAggregates
-            """.trimIndent()
+            """
         }
         else -> {
             """
-                SELECT entity_id, scopes, time
+                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time
             """
         }
     }
@@ -177,6 +175,39 @@ class ScopeService(
                 if (it.key == NGSILD_SCOPE_PROPERTY) newScopeValue
                 else it.value
             }
+
+    private fun rowToScopeInstanceResult(
+        row: Map<String, Any>,
+        temporalEntitiesQuery: TemporalEntitiesQuery
+    ): ScopeInstanceResult =
+        if (temporalEntitiesQuery.withAggregatedValues) {
+            val startDateTime = toZonedDateTime(row["origin"])
+            val endDateTime =
+                startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
+            // in a row, there is the result for each requested aggregation method
+            val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
+                val value = row["${it.method}_value"] ?: ""
+                AggregatedScopeInstanceResult.AggregateResult(it, value, startDateTime, endDateTime)
+            }
+            AggregatedScopeInstanceResult(
+                entityId = toUri(row["entity_id"]),
+                values = values
+            )
+        } else if (temporalEntitiesQuery.withTemporalValues) {
+            SimplifiedScopeInstanceResult(
+                entityId = toUri(row["entity_id"]),
+                scopes = toList(row["value"]),
+                time = toZonedDateTime(row["time"])
+            )
+        } else {
+            FullScopeInstanceResult(
+                entityId = toUri(row["entity_id"]),
+                scopes = toList(row["value"]),
+                time = toZonedDateTime(row["time"]),
+                timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
+                sub = row["sub"] as? String
+            )
+        }
 
     @Transactional
     suspend fun update(

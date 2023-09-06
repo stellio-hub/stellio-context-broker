@@ -1,9 +1,7 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.scope.FullScopeInstanceResult
-import com.egm.stellio.search.scope.ScopeInstanceResult
-import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
+import com.egm.stellio.search.scope.TemporalScopeBuilder
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
@@ -11,7 +9,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
@@ -39,7 +36,7 @@ object TemporalEntityBuilder {
             contexts
         )
 
-        val scopeAttribute = buildScopeAttribute(
+        val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityTemporalResult.entityPayload,
             entityTemporalResult.scopeHistory,
             temporalEntitiesQuery
@@ -50,42 +47,8 @@ object TemporalEntityBuilder {
             withCompactTerms = true,
             contexts
         ).plus(temporalAttributes)
-            .plus(scopeAttribute)
+            .plus(scopeAttributeInstances)
     }
-
-    private fun buildScopeAttribute(
-        entityPayload: EntityPayload,
-        scopeHistory: List<ScopeInstanceResult>,
-        temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Map<String, Any> =
-        // if no history, only add an empty scope entry if entity has a scope
-        if (entityPayload.scopes == null && scopeHistory.isEmpty())
-            emptyMap()
-        else if (scopeHistory.isEmpty())
-            mapOf(NGSILD_SCOPE_TERM to emptyList<String>())
-        else if (temporalEntitiesQuery.withAggregatedValues)
-            emptyMap()
-        else if (temporalEntitiesQuery.withTemporalValues)
-            mapOf(
-                NGSILD_SCOPE_TERM to mapOf(
-                    JSONLD_TYPE_TERM to "Property",
-                    "values" to scopeHistory.map {
-                        it as SimplifiedScopeInstanceResult
-                        listOf(it.scopes, it.time)
-                    }
-                )
-            )
-        else
-            mapOf(
-                NGSILD_SCOPE_TERM to scopeHistory.map {
-                    it as FullScopeInstanceResult
-                    mapOf(
-                        JSONLD_TYPE_TERM to "Property",
-                        JSONLD_VALUE_TERM to it.scopes,
-                        it.timeproperty to it.time
-                    )
-                }
-            )
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
@@ -169,7 +132,7 @@ object TemporalEntityBuilder {
             val attributeInstance = mutableMapOf<String, Any>(
                 JSONLD_TYPE_TERM to it.key.attributeType.toString()
             )
-            it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+            it.key.datasetId?.let { datasetId -> attributeInstance["datasetId"] = datasetId }
             val valuesKey =
                 when (it.key.attributeType) {
                     TemporalEntityAttribute.AttributeType.Property -> "values"
@@ -198,9 +161,9 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                "type" to it.key.attributeType.toString()
+                JSONLD_TYPE_TERM to it.key.attributeType.toString()
             )
-            it.key.datasetId?.let { attributeInstance["datasetId"] = it }
+            it.key.datasetId?.let { datasetId -> attributeInstance["datasetId"] = datasetId }
 
             aggrMethods.forEach { aggregate ->
                 val valuesForAggregate = it.value

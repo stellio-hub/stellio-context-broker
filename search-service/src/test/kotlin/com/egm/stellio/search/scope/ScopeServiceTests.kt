@@ -1,13 +1,11 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.OperationType
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.scope.AggregatedScopeInstanceResult
-import com.egm.stellio.search.scope.FullScopeInstanceResult
-import com.egm.stellio.search.scope.ScopeService
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.deserializeAsMap

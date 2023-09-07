@@ -27,7 +27,7 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("org.wiremock:wiremock-standalone:3.0.2")
+    testImplementation("org.wiremock:wiremock-standalone:3.0.3")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))

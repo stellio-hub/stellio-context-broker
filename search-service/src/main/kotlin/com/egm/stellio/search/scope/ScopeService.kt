@@ -147,9 +147,14 @@ class ScopeService(
                $allAggregates
             """
         }
-        else -> {
+        temporalEntitiesQuery.temporalQuery.timeproperty == TemporalProperty.OBSERVED_AT -> {
             """
                 SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time
+            """
+        }
+        else -> {
+            """
+                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time, sub
             """
         }
     }

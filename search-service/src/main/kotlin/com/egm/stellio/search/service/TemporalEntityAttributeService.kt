@@ -819,7 +819,7 @@ class TemporalEntityAttributeService(
                     ngsiLdAttribute,
                     attributeMetadata,
                     replacedAt,
-                    expandedAttribute.toExpandedAttributes(),
+                    expandedAttribute.second.first(),
                     sub
                 ).bind()
 

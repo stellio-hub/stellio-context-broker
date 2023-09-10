@@ -545,4 +545,48 @@ class EntityHandler(
     @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
     fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
+
+    /**
+     * Implements 6.7.3.3 - Replace Attribute
+     */
+    @PutMapping("/{entityId}/attrs/{attrId}")
+    suspend fun replaceEntityAttribute(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> = either {
+        val sub = getSubFromSecurityContext()
+        val entityUri = entityId.toUri()
+
+        entityPayloadService.checkEntityExistence(entityUri).bind()
+        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+
+        val body = requestBody.awaitFirst().deserializeAsMap()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
+
+        entityPayloadService.replaceAttribute(entityUri, expandedAttribute, sub.getOrNull()).bind()
+            .let {
+                if (it.updated.isEmpty())
+                    ResourceNotFoundException(it.notUpdated[0].reason).left()
+                else {
+                    entityEventService.publishAttributeChangeEvents(
+                        sub.getOrNull(),
+                        entityUri,
+                        expandedAttribute.toExpandedAttributes(),
+                        it,
+                        false,
+                        contexts
+                    )
+
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
+                }
+            }.bind()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 }

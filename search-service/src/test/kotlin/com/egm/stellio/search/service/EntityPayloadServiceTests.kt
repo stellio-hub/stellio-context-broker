@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.ninjasquad.springmockk.MockkBean
@@ -387,6 +388,33 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 eq("0123456789-1234-5678-987654321")
             )
         }
+    }
+
+    @Test
+    fun `it should replace an attribute`() = runTest {
+        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns emptyList()
+        coEvery {
+            temporalEntityAttributeService.replaceEntityAttribute(any(), any(), any(), any(), any())
+        } returns UpdateResult(
+            updated = listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)),
+            notUpdated = emptyList()
+        ).right()
+
+        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+
+        val expandedAttribute = expandAttribute(
+            loadSampleData("fragments/beehive_new_incoming_property.json"),
+            listOf(APIC_COMPOUND_CONTEXT)
+        )
+
+        entityPayloadService.replaceAttribute(beehiveTestCId, expandedAttribute, "0123456789-1234-5678-987654321")
+            .shouldSucceedWith {
+                it.updated.size == 1 &&
+                    it.notUpdated.isEmpty() &&
+                    it.updated[0].attributeName == INCOMING_PROPERTY &&
+                    it.updated[0].updateOperationResult == UpdateOperationResult.REPLACED
+            }
     }
 
     @Test

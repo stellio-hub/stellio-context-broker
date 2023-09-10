@@ -134,7 +134,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
             listOf(
                 UpdatedDetails(
@@ -156,11 +156,6 @@ class ObservationEventListenerTests {
         coVerify {
             entityPayloadService.appendAttributes(
                 expectedEntityId,
-                match {
-                    it.size == 1 &&
-                        it.first().name == TEMPERATURE_PROPERTY &&
-                        it.first().getAttributeInstances().size == 1
-                },
                 any(),
                 false,
                 null
@@ -190,7 +185,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property could not be appended"))
@@ -198,16 +193,6 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
-        verify { entityEventService wasNot called }
-    }
-
-    @Test
-    fun `it should ignore an invalid ATTRIBUTE_APPEND event`() = runTest {
-        val observationEvent = loadSampleData("events/entity/invalid/humidityAppendEvent.jsonld")
-
-        observationEventListener.dispatchObservationMessage(observationEvent)
-
-        coVerify { entityPayloadService wasNot called }
         verify { entityEventService wasNot called }
     }
 

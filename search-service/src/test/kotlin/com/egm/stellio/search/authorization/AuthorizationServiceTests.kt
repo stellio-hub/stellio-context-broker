@@ -31,7 +31,7 @@ class AuthorizationServiceTests {
     @Test
     fun `get authorized entities should return a count of -1 if authentication is not enabled`() = runTest {
         authorizationService.getAuthorizedEntities(
-            QueryParams(offset = 0, limit = 0, context = NGSILD_CORE_CONTEXT),
+            QueryParams(limit = 0, offset = 0, context = NGSILD_CORE_CONTEXT),
             NGSILD_CORE_CONTEXT,
             None
         ).shouldSucceedWith {

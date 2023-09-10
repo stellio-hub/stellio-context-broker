@@ -188,19 +188,13 @@ class EntityOperationService(
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
             temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id)
-            val updateResult = entityPayloadService.updateTypes(
+            val updateResult = entityPayloadService.appendAttributes(
                 ngsiLdEntity.id,
-                ngsiLdEntity.types,
-                false
-            ).bind().mergeWith(
-                entityPayloadService.appendAttributes(
-                    ngsiLdEntity.id,
-                    ngsiLdEntity.attributes,
-                    jsonLdEntity.getAttributes(),
-                    disallowOverwrite,
-                    sub
-                ).bind()
-            )
+                jsonLdEntity.getMembersAsExpandedAttributes(),
+                disallowOverwrite,
+                sub
+            ).bind()
+
             if (updateResult.notUpdated.isNotEmpty())
                 BadRequestDataException(
                     updateResult.notUpdated.joinToString(", ") { it.attributeName + " : " + it.reason }
@@ -223,19 +217,12 @@ class EntityOperationService(
     ): Either<BatchEntityError, BatchEntitySuccess> =
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
-            val updateResult = entityPayloadService.updateTypes(
+            val updateResult = entityPayloadService.appendAttributes(
                 ngsiLdEntity.id,
-                ngsiLdEntity.types,
-                false
-            ).bind().mergeWith(
-                entityPayloadService.appendAttributes(
-                    ngsiLdEntity.id,
-                    ngsiLdEntity.attributes,
-                    jsonLdEntity.getAttributes(),
-                    disallowOverwrite,
-                    sub
-                ).bind()
-            )
+                jsonLdEntity.getMembersAsExpandedAttributes(),
+                disallowOverwrite,
+                sub
+            ).bind()
             if (updateResult.notUpdated.isEmpty())
                 updateResult.right().bind()
             else

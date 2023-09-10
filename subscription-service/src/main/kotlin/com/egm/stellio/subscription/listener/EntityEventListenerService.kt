@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
@@ -51,7 +51,7 @@ class EntityEventListenerService(
                     tenantUri,
                     deserializeObject(entityEvent.operationPayload)
                         .keys
-                        .filter { !JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it) }
+                        .filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it) }
                         .toSet(),
                     entityEvent.getEntity(),
                     entityEvent.contexts

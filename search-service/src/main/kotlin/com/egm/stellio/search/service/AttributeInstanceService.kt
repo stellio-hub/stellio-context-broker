@@ -115,26 +115,18 @@ class AttributeInstanceService(
 
     suspend fun search(
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        temporalEntityAttribute: TemporalEntityAttribute
+        temporalEntityAttribute: TemporalEntityAttribute,
+        origin: ZonedDateTime? = null
     ): Either<APIException, List<AttributeInstanceResult>> =
-        search(temporalEntitiesQuery, listOf(temporalEntityAttribute))
+        search(temporalEntitiesQuery, listOf(temporalEntityAttribute), origin)
 
     suspend fun search(
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        temporalEntityAttributes: List<TemporalEntityAttribute>
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        origin: ZonedDateTime? = null
     ): Either<APIException, List<AttributeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
-
-        // time_bucket has a default origin set to 2000-01-03
-        // (see https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/)
-        // so we force the default origin to:
-        // - timeAt if it is provided
-        // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
-        val origin =
-            if (temporalEntitiesQuery.withAggregatedValues)
-                temporalQuery.timeAt ?: selectOldestDate(temporalQuery, temporalEntityAttributes)
-            else null
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, origin))
 

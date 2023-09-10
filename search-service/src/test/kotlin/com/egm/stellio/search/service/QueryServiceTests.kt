@@ -3,6 +3,8 @@ package com.egm.stellio.search.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.scope.ScopeInstanceResult
+import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.QueryParams
@@ -10,7 +12,8 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -37,6 +40,9 @@ class QueryServiceTests {
     private lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean
+    private lateinit var scopeService: ScopeService
+
+    @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @MockkBean
@@ -54,7 +60,7 @@ class QueryServiceTests {
             .shouldSucceedWith {
                 assertEquals(entityUri.toString(), it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
-                assertEquals(6, it.members.size)
+                assertEquals(7, it.members.size)
             }
     }
 
@@ -79,7 +85,7 @@ class QueryServiceTests {
                 assertEquals(1, it.second)
                 assertEquals(entityUri.toString(), it.first[0].id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
-                assertEquals(6, it.first[0].members.size)
+                assertEquals(7, it.first[0].members.size)
             }
     }
 
@@ -107,9 +113,9 @@ class QueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
                 queryParams = QueryParams(
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     limit = 0,
                     offset = 50,
+                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 withTemporalValues = false,
@@ -144,6 +150,7 @@ class QueryServiceTests {
 
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns teas
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
@@ -178,7 +185,71 @@ class QueryServiceTests {
                 },
                 any<List<TemporalEntityAttribute>>()
             )
+            scopeService.retrieveHistory(listOf(entityUri), any())
         }
+    }
+
+    @Test
+    fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            emptyList()
+        )
+
+        assertNull(origin)
+    }
+
+    @Test
+    fun `it should return timeAt as the oldest timestamp if it is provided in the temporal query`() = runTest {
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = now
+                ),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            emptyList()
+        )
+
+        assertNotNull(origin)
+        assertEquals(now, origin)
+    }
+
+    @Test
+    fun `it should return the oldest timestamp from the DB if none is provided in the temporal query`() = runTest {
+        coEvery {
+            attributeInstanceService.selectOldestDate(any(), any())
+        } returns ZonedDateTime.parse("2023-09-03T12:34:56Z")
+        coEvery {
+            scopeService.selectOldestDate(any(), any())
+        } returns ZonedDateTime.parse("2023-09-03T14:22:55Z")
+
+        val origin = queryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQuery(
+                temporalQuery = TemporalQuery(),
+                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            emptyList()
+        )
+
+        assertNotNull(origin)
+        assertEquals(ZonedDateTime.parse("2023-09-03T12:34:56Z"), origin)
     }
 
     @Test
@@ -196,6 +267,7 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
         coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
@@ -211,9 +283,9 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(
@@ -230,9 +302,9 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(
                 listOf(entityUri),
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 )
             )
@@ -247,13 +319,14 @@ class QueryServiceTests {
             )
             entityPayloadService.queryEntitiesCount(
                 QueryParams(
-                    offset = 2,
-                    limit = 2,
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 any()
             )
+            scopeService.retrieveHistory(listOf(entityUri), any())
         }
     }
 
@@ -271,6 +344,7 @@ class QueryServiceTests {
         coEvery {
             temporalEntityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
@@ -281,8 +355,8 @@ class QueryServiceTests {
             TemporalEntitiesQuery(
                 QueryParams(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    offset = 2,
                     limit = 2,
+                    offset = 2,
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(

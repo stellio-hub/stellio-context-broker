@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -151,7 +151,7 @@ class NgsiLdEntityTests {
             valueMap.keys
         )
         assertEquals(
-            listOf(mapOf(JSONLD_VALUE_KW to "open")),
+            listOf(mapOf(JSONLD_VALUE to "open")),
             valueMap["https://uri.etsi.org/ngsi-ld/default-context/state1"]
         )
     }

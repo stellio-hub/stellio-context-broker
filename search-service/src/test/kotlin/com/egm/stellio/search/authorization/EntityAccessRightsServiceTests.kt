@@ -4,15 +4,14 @@ import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
@@ -23,7 +22,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -482,14 +482,17 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         types: Set<ExpandedTerm>,
         specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
     ) {
-        entityPayloadService.createEntityPayload(
-            entityId = entityId,
-            types = types.toList(),
-            createdAt = ngsiLdDateTime(),
-            contexts = listOf(APIC_COMPOUND_CONTEXT),
-            entityPayload = EMPTY_PAYLOAD,
-            specificAccessPolicy = specificAccessPolicy
-        )
+        val rawEntity =
+            if (specificAccessPolicy != null)
+                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+            else loadMinimalEntity(entityId, types)
+        rawEntity.sampleDataToNgsiLdEntity().map {
+            entityPayloadService.createEntityPayload(
+                ngsiLdEntity = it.second,
+                createdAt = ngsiLdDateTime(),
+                jsonLdEntity = it.first
+            )
+        }
     }
 
     private suspend fun createSubjectReferential(

@@ -8,13 +8,12 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -62,9 +61,6 @@ class EntityHandlerTests {
     private lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
-
-    @MockkBean
     private lateinit var queryService: QueryService
 
     @MockkBean(relaxed = true)
@@ -95,7 +91,7 @@ class EntityHandlerTests {
             "master/shared-jsonld-contexts/egm.jsonld",
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/aquac/jsonld-contexts/aquac.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
     )
 
     @Test
@@ -384,7 +380,7 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
                     JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
                     NGSILD_PROPERTY_VALUE to mapOf(
-                        JSONLD_VALUE_KW to "some value"
+                        JSONLD_VALUE to "some value"
                     )
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
@@ -922,9 +918,9 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 QueryParams(
                     type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                    includeSysAttrs = true,
-                    offset = 0,
                     limit = 30,
+                    offset = 0,
+                    includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()
@@ -1058,8 +1054,8 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 QueryParams(
                     ids = setOf(beehiveId),
-                    offset = 0,
                     limit = 30,
+                    offset = 0,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()
@@ -1147,7 +1143,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"one of 'id', 'q', 'type' and 'attrs' request parameters have to be specified"
+                    "detail":"one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
                 }
                 """.trimIndent()
             )
@@ -1305,10 +1301,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1324,7 +1317,6 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                any(),
                 any(),
                 eq(false),
                 sub.getOrNull()
@@ -1359,10 +1351,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1385,7 +1374,6 @@ class EntityHandlerTests {
             entityPayloadService.checkEntityExistence(eq(entityId))
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                any(),
                 any(),
                 eq(false),
                 sub.getOrNull()
@@ -1411,15 +1399,11 @@ class EntityHandlerTests {
             listOf(UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.APPENDED)),
             emptyList()
         )
-        val appendResult = UpdateResult(emptyList(), emptyList())
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns appendTypeResult.right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
-        } returns appendResult.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1431,13 +1415,8 @@ class EntityHandlerTests {
 
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.updateTypes(
-                eq(entityId),
-                listOf(breedingServiceType, deadFishesType)
-            )
             entityPayloadService.appendAttributes(
                 eq(entityId),
-                emptyList(),
                 any(),
                 eq(false),
                 any()
@@ -1470,11 +1449,8 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns appendTypeResult.right()
-        coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any(), any())
-        } returns appendResult.right()
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
+        } returns appendTypeResult.mergeWith(appendResult).right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1550,6 +1526,12 @@ class EntityHandlerTests {
             """.trimIndent()
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityPayloadService.appendAttributes(any(), any(), any(), any())
+        } returns BadRequestDataException(
+            "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
+        ).left()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1765,10 +1747,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1785,8 +1764,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
-            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1823,10 +1801,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any(), any())
+            entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -1843,10 +1818,8 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
             entityPayloadService.mergeEntity(
                 eq(entityId),
-                any(),
                 any(),
                 eq(ZonedDateTime.parse("2019-12-04T12:00:00.00Z")),
                 any()
@@ -1981,10 +1954,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
@@ -2001,8 +1971,7 @@ class EntityHandlerTests {
         coVerify {
             entityPayloadService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateTypes(eq(entityId), eq(emptyList()))
-            entityPayloadService.updateAttributes(eq(entityId), any(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -2026,10 +1995,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
@@ -2058,14 +2024,11 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateTypes(any(), any())
+            entityPayloadService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = emptyList(),
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
         ).right()
-        coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any(), any())
-        } returns UpdateResult(emptyList(), emptyList()).right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
         } returns Job()
@@ -2079,8 +2042,7 @@ class EntityHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
 
         coVerify {
-            entityPayloadService.updateTypes(eq(entityId), eq(listOf(breedingServiceType)))
-            entityPayloadService.updateAttributes(eq(entityId), emptyList(), any(), any())
+            entityPayloadService.updateAttributes(eq(entityId), any(), any())
         }
     }
 
@@ -2284,7 +2246,6 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
-        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
@@ -2308,7 +2269,6 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(eq(beehiveId), eq(TEMPERATURE_PROPERTY))
             authorizationService.userCanUpdateEntity(eq(beehiveId), eq(sub))
             entityPayloadService.deleteAttribute(
                 eq(beehiveId),
@@ -2368,9 +2328,6 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
-        } returns Unit.right()
-        coEvery {
             entityPayloadService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
@@ -2403,8 +2360,9 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 404 if the entity is not found`() {
+        mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any())
+            entityPayloadService.deleteAttribute(any(), any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2472,7 +2430,6 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 403 if user is not allowed to update entity`() {
-        coEvery { temporalEntityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)

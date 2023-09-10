@@ -12,7 +12,8 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -52,23 +53,21 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     fun bootstrapEntities() {
         r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
             EntityPayload(
-                beehiveTestCId,
-                listOf(BEEHIVE_TYPE),
-                Instant.now().atZone(UTC),
-                null,
-                listOf(APIC_COMPOUND_CONTEXT),
-                EMPTY_JSON_PAYLOAD
+                entityId = beehiveTestCId,
+                types = listOf(BEEHIVE_TYPE),
+                createdAt = Instant.now().atZone(UTC),
+                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
 
         r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
             EntityPayload(
-                beehiveTestDId,
-                listOf(BEEHIVE_TYPE),
-                Instant.now().atZone(UTC),
-                null,
-                listOf(APIC_COMPOUND_CONTEXT),
-                EMPTY_JSON_PAYLOAD
+                entityId = beehiveTestDId,
+                types = listOf(BEEHIVE_TYPE),
+                createdAt = Instant.now().atZone(UTC),
+                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
     }

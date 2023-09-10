@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.*
-import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
@@ -98,6 +98,23 @@ fun String.extractSub(): Sub =
 
 // specific to authz terms where we know the compacted term is what is after the last # character
 fun ExpandedTerm.toCompactTerm(): String = this.substringAfterLast("#")
+
+fun NgsiLdEntity.getSpecificAccessPolicy(): Either<APIException, AuthContextModel.SpecificAccessPolicy>? =
+    this.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }?.getSpecificAccessPolicy()
+
+fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, AuthContextModel.SpecificAccessPolicy> {
+    val ngsiLdAttributeInstances = this.getAttributeInstances()
+    if (ngsiLdAttributeInstances.size > 1)
+        return BadRequestDataException("Payload must contain a single attribute instance").left()
+    val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
+    if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
+        return BadRequestDataException("Payload must be a property").left()
+    return try {
+        AuthContextModel.SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString()).right()
+    } catch (e: java.lang.IllegalArgumentException) {
+        BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE (${e.message})").left()
+    }
+}
 
 enum class SubjectType {
     USER,

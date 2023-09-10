@@ -90,7 +90,7 @@ data class AttributeInstance private constructor(
 
         companion object {
             fun forPropertyName(propertyName: String): TemporalProperty? =
-                values().find { it.propertyName == propertyName }
+                entries.find { it.propertyName == propertyName }
         }
     }
 }

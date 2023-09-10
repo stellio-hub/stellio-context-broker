@@ -184,7 +184,7 @@ class SubjectReferentialService(
                     givenName = it["givenName"] as? String,
                     familyName = it["familyName"] as? String,
                     subjectInfo = toJsonString(it["subject_info"])
-                        .deserializeAsMap()[JsonLdUtils.JSONLD_VALUE] as Map<String, String>
+                        .deserializeAsMap()[JsonLdUtils.JSONLD_VALUE_TERM] as Map<String, String>
                 )
             }
 

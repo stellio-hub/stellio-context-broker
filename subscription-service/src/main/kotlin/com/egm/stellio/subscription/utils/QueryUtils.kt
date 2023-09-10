@@ -5,12 +5,20 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.buildGeoQuery
 import com.egm.stellio.shared.util.buildQQuery
+import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.subscription.model.GeoQ
 
 object QueryUtils {
 
     fun createQueryStatement(query: String, jsonLdEntity: JsonLdEntity, contexts: List<String>): String {
         val filterQuery = buildQQuery(query, contexts, jsonLdEntity)
+        return """
+        SELECT $filterQuery AS match
+        """.trimIndent()
+    }
+
+    fun createScopeQueryStatement(scopeQ: String, jsonLdEntity: JsonLdEntity): String {
+        val filterQuery = buildScopeQQuery(scopeQ, jsonLdEntity)
         return """
         SELECT $filterQuery AS match
         """.trimIndent()

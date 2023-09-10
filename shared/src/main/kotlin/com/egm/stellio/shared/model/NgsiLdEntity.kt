@@ -11,7 +11,7 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
@@ -22,6 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
@@ -33,6 +34,7 @@ import java.time.ZonedDateTime
 class NgsiLdEntity private constructor(
     val id: URI,
     val types: List<ExpandedTerm>,
+    val scopes: List<String>?,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
     val geoProperties: List<NgsiLdGeoProperty>,
@@ -53,6 +55,8 @@ class NgsiLdEntity private constructor(
             }
             val types = parsedKeys[JSONLD_TYPE]!! as List<String>
 
+            val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
+
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
@@ -63,7 +67,7 @@ class NgsiLdEntity private constructor(
                 BadRequestDataException("Entity has attribute(s) with an unknown type: $attributesWithUnknownTypes")
             }
 
-            NgsiLdEntity(id, types, relationships, properties, geoProperties, contexts)
+            NgsiLdEntity(id, types, scopes, relationships, properties, geoProperties, contexts)
         }
     }
 
@@ -268,7 +272,7 @@ class NgsiLdGeoPropertyInstance(
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
-            val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE_KW] as String
+            val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE] as String
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
@@ -388,8 +392,15 @@ suspend fun JsonLdEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
+fun ExpandedAttributeInstance.getScopes(): List<String>? =
+    when (val rawScopes = getPropertyValueFromMap(this, NGSILD_SCOPE_PROPERTY)) {
+        is String -> listOf(rawScopes)
+        is List<*> -> rawScopes as List<String>
+        else -> null
+    }
+
 fun ExpandedAttributeInstance.getPropertyValue(): Any =
-    (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE_KW]!!
+    (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE]!!
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
     this.flatMap { ngsiLdAttribute ->
@@ -399,6 +410,7 @@ fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAt
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
     JSONLD_ID,
     JSONLD_TYPE,
+    NGSILD_SCOPE_PROPERTY,
     NGSILD_CREATED_AT_PROPERTY,
     NGSILD_MODIFIED_AT_PROPERTY
 )

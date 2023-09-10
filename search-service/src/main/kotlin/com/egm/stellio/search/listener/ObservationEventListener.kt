@@ -127,12 +127,10 @@ class ObservationEventListener(
             observationEvent.operationPayload,
             observationEvent.contexts
         )
-        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().bind()
 
         mono {
             entityPayloadService.appendAttributes(
                 observationEvent.entityId,
-                listOf(ngsiLdAttribute),
                 expandedAttribute.toExpandedAttributes(),
                 !observationEvent.overwrite,
                 observationEvent.sub

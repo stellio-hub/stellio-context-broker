@@ -42,14 +42,36 @@ fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
 private fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 
+val scopeNameRegex: Regex = """^/?\p{L}+[\p{L}\w_]*(/\p{L}+[\p{L}\w_]*)*$""".toRegex()
+
+fun Any.checkScopesNamesAreNgsiLdSupported(): Either<APIException, Unit> {
+    val rawScope = this
+    return either {
+        when (rawScope) {
+            is String -> rawScope.checkScopeNameIsNgsiLdSupported().bind()
+            is List<*> -> (rawScope as List<String>).map { it.checkScopeNameIsNgsiLdSupported().bind() }
+            else -> Unit.right().bind()
+        }
+    }
+}
+
+fun String.checkScopeNameIsNgsiLdSupported(): Either<APIException, Unit> =
+    if (this.isNgsiLdSupportedScopeName()) Unit.right()
+    else BadRequestDataException(invalidCharacterInScope(this)).left()
+
+fun String.isNgsiLdSupportedScopeName(): Boolean = this.matches(scopeNameRegex)
+
 /**
  * Checks whether the given JSON-LD object contains content that conforms to the restrictions defined in 4.6.3
  */
 suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIException, Map<String, Any>> = either {
-    val values = filter { it.key != JsonLdUtils.JSONLD_CONTEXT }.getAllValues()
+    val values = filter {
+        it.key != JsonLdUtils.JSONLD_CONTEXT && it.key != JsonLdUtils.NGSILD_SCOPE_TERM
+    }.getAllValues()
     values.parMap { value ->
         (value?.checkContentIsNgsiLdSupported() ?: BadRequestDataException(NULL_VALUE_IN_CONTENT).left()).bind()
     }
+    get(JsonLdUtils.NGSILD_SCOPE_TERM)?.checkScopesNamesAreNgsiLdSupported()?.bind()
     this@checkContentIsNgsiLdSupported
 }
 

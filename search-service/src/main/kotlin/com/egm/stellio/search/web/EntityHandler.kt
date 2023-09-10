@@ -545,15 +545,14 @@ class EntityHandler(
     @PutMapping("/{entityId}/attrs/{attrId}")
     suspend fun replaceEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
@@ -561,14 +560,14 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
 
-        entityPayloadService.replaceAttribute(entityUri, expandedAttribute, sub.getOrNull()).bind()
+        entityPayloadService.replaceAttribute(entityId, expandedAttribute, sub.getOrNull()).bind()
             .let {
                 if (it.updated.isEmpty())
                     ResourceNotFoundException(it.notUpdated[0].reason).left()
                 else {
                     entityEventService.publishAttributeChangeEvents(
                         sub.getOrNull(),
-                        entityUri,
+                        entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
                         false,

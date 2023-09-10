@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -33,7 +34,7 @@ class TemporalEntityHandler(
     private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
     private val applicationProperties: ApplicationProperties
-) {
+) : BaseHandler() {
 
     /**
      * Implements 6.18.3.1 - Create or Update (Upsert) Temporal Representation of Entity
@@ -101,14 +102,13 @@ class TemporalEntityHandler(
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
@@ -119,7 +119,7 @@ class TemporalEntityHandler(
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         entityPayloadService.upsertAttributes(
-            entityUri,
+            entityId,
             sortedJsonLdInstances,
             sub.getOrNull()
         ).bind()
@@ -175,24 +175,23 @@ class TemporalEntityHandler(
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestParam requestParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        authorizationService.userCanReadEntity(entityUri, sub).bind()
+        authorizationService.userCanReadEntity(entityId, sub).bind()
 
         val temporalEntitiesQuery =
             parseQueryAndTemporalParams(applicationProperties.pagination, requestParams, contextLink).bind()
 
         val temporalEntity = queryService.queryTemporalEntity(
-            entityUri,
+            entityId,
             temporalEntitiesQuery,
             contextLink
         ).bind()
@@ -214,7 +213,7 @@ class TemporalEntityHandler(
     )
     suspend fun modifyAttributeInstanceTemporal(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @PathVariable instanceId: String,
         @RequestBody requestBody: Mono<String>
@@ -224,18 +223,17 @@ class TemporalEntityHandler(
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
         attrId.checkNameIsNgsiLdSupported().bind()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val expandedAttribute = expandAttribute(attrId, JsonLdUtils.removeContextFromInput(body), contexts)
         expandedAttribute.toExpandedAttributes().checkTemporalAttributeInstance().bind()
 
         attributeInstanceService.modifyAttributeInstance(
-            entityUri,
+            entityId,
             expandedAttribute.first,
             instanceUri,
             expandedAttribute.second
@@ -264,15 +262,14 @@ class TemporalEntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun deleteTemporalEntity(
-        @PathVariable entityId: String
+        @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
-        val entityUri = entityId.toUri()
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
-        authorizationService.userCanAdminEntity(entityUri, sub).bind()
-        entityPayloadService.deleteEntity(entityUri).bind()
-        authorizationService.removeRightsOnEntity(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        entityPayloadService.deleteEntity(entityId).bind()
+        authorizationService.removeRightsOnEntity(entityId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -290,12 +287,11 @@ class TemporalEntityHandler(
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     suspend fun deleteAttributeTemporal(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
@@ -304,15 +300,15 @@ class TemporalEntityHandler(
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
         temporalEntityAttributeService.checkEntityAndAttributeExistence(
-            entityUri,
+            entityId,
             expandedAttrId,
             datasetId
         ).bind()
 
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         entityPayloadService.deleteAttribute(
-            entityUri,
+            entityId,
             expandedAttrId,
             datasetId,
             deleteAll
@@ -334,22 +330,21 @@ class TemporalEntityHandler(
     @DeleteMapping("/{entityId}/attrs/{attrId}/{instanceId}")
     suspend fun deleteAttributeInstanceTemporal(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @PathVariable instanceId: String
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
         val instanceUri = instanceId.toUri()
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
-        entityPayloadService.checkEntityExistence(entityUri).bind()
+        entityPayloadService.checkEntityExistence(entityId).bind()
 
-        authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        attributeInstanceService.deleteInstance(entityUri, expandedAttrId, instanceUri).bind()
+        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceUri).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

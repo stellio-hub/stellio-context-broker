@@ -791,6 +791,49 @@ class TemporalEntityAttributeService(
         }
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
+    @Transactional
+    suspend fun replaceEntityAttribute(
+        entityId: URI,
+        ngsiLdAttribute: NgsiLdAttribute,
+        expandedAttribute: ExpandedAttribute,
+        replacedAt: ZonedDateTime,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> = either {
+        val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
+        val attributeName = ngsiLdAttribute.name
+        val datasetId = ngsiLdAttributeInstance.datasetId
+        val currentTea =
+            getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
+        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val updateAttributeResult =
+            if (currentTea == null) {
+                UpdateAttributeResult(
+                    attributeName,
+                    datasetId,
+                    UpdateOperationResult.IGNORED,
+                    "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
+                )
+            } else {
+                replaceAttribute(
+                    currentTea,
+                    ngsiLdAttribute,
+                    attributeMetadata,
+                    replacedAt,
+                    expandedAttribute.toExpandedAttributes(),
+                    sub
+                ).bind()
+
+                UpdateAttributeResult(
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
+                    UpdateOperationResult.REPLACED,
+                    null
+                )
+            }
+
+        updateResultFromDetailedResult(listOf(updateAttributeResult))
+    }
+
     suspend fun getValueFromPartialAttributePayload(
         tea: TemporalEntityAttribute,
         attributePayload: ExpandedAttributeInstance

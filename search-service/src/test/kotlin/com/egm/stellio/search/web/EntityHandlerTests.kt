@@ -2452,4 +2452,78 @@ class EntityHandlerTests {
             )
         verify { entityEventService wasNot called }
     }
+
+    private fun mockkDefaultBehaviorForReplaceAttribute() {
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+        } returns Job()
+    }
+
+    @Test
+    fun `replace attribute should return a 204 if attribute has been successfully replaced`() {
+        mockkDefaultBehaviorForReplaceAttribute()
+        val attributeFragment = ClassPathResource("/ngsild/fragments/beehive_new_incoming_property.json")
+        coEvery {
+            entityPayloadService.replaceAttribute(any(), any(), any())
+        } returns UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)
+            ),
+            notUpdated = emptyList()
+        ).right()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(attributeFragment)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityPayloadService.replaceAttribute(
+                beehiveId,
+                match {
+                    it.first == INCOMING_PROPERTY
+                },
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+            )
+        }
+    }
+
+    @Test
+    fun `replace attribute should return a 404 if the attribute does not exist`() {
+        mockkDefaultBehaviorForReplaceAttribute()
+        val attributeFragment = ClassPathResource("/ngsild/fragments/beehive_new_incoming_property.json")
+        coEvery {
+            entityPayloadService.replaceAttribute(any(), any(), any())
+        } returns UpdateResult(
+            updated = emptyList(),
+            notUpdated = arrayListOf(
+                NotUpdatedDetails(
+                    INCOMING_PROPERTY,
+                    "Unknown attribute $INCOMING_PROPERTY in entity $beehiveId"
+                )
+            )
+        ).right()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_COMPACT_PROPERTY")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(attributeFragment)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title":"The referred resource has not been found",
+                      "detail":"Unknown attribute $INCOMING_PROPERTY in entity $beehiveId"
+                    }
+                    """
+            )
+    }
 }

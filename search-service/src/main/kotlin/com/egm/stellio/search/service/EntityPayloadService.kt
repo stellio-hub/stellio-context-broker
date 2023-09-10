@@ -596,6 +596,31 @@ class EntityPayloadService(
         }
 
     @Transactional
+    suspend fun replaceAttribute(
+        entityId: URI,
+        expandedAttribute: ExpandedAttribute,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> = either {
+        val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
+        val replacedAt = ngsiLdDateTime()
+
+        val updateResult = temporalEntityAttributeService.replaceEntityAttribute(
+            entityId,
+            ngsiLdAttribute,
+            expandedAttribute,
+            replacedAt,
+            sub
+        ).bind()
+
+        // update modifiedAt in entity if at least one attribute has been added
+        if (updateResult.hasSuccessfulUpdate()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            updateState(entityId, replacedAt, teas).bind()
+        }
+        updateResult
+    }
+
+    @Transactional
     suspend fun updateState(
         entityUri: URI,
         modifiedAt: ZonedDateTime,

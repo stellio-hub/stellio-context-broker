@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -31,7 +32,7 @@ import java.util.Optional
 class SubscriptionHandler(
     private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService
-) {
+) : BaseHandler() {
 
     /**
      * Implements 6.10.3.1 - Create Subscription

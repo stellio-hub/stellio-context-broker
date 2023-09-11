@@ -42,23 +42,21 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityPayloadService.createEntity(any<String>(), any(), any())
+            entityPayloadService.createEntity(any<String>(), any())
         } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
         coVerify {
             entityPayloadService.createEntity(
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
-                eq("0123456789-1234-5678-987654321")
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
 
         coVerify(timeout = 1000L) {
             entityEventService.publishEntityCreateEvent(
-                eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
                 eq(listOf(BEEHIVE_TYPE)),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
@@ -71,7 +69,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityPayloadService.partialUpdateAttribute(any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(
@@ -84,7 +82,7 @@ class ObservationEventListenerTests {
         ).right()
 
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -92,13 +90,11 @@ class ObservationEventListenerTests {
         coVerify {
             entityPayloadService.partialUpdateAttribute(
                 expectedEntityId,
-                match { it.first == TEMPERATURE_PROPERTY },
-                null
+                match { it.first == TEMPERATURE_PROPERTY }
             )
         }
         coVerify(timeout = 1000L) {
             entityEventService.publishAttributeChangeEvents(
-                null,
                 eq(expectedEntityId),
                 match { it.containsKey(TEMPERATURE_PROPERTY) },
                 match {
@@ -118,7 +114,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityPayloadService.partialUpdateAttribute(any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property does not exist"))
@@ -134,7 +130,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any())
         } returns UpdateResult(
             listOf(
                 UpdatedDetails(
@@ -148,7 +144,7 @@ class ObservationEventListenerTests {
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -157,13 +153,11 @@ class ObservationEventListenerTests {
             entityPayloadService.appendAttributes(
                 expectedEntityId,
                 any(),
-                false,
-                null
+                false
             )
         }
         coVerify(timeout = 1000L) {
             entityEventService.publishAttributeChangeEvents(
-                null,
                 eq(expectedEntityId),
                 match {
                     it.containsKey(TEMPERATURE_PROPERTY)
@@ -185,7 +179,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property could not be appended"))

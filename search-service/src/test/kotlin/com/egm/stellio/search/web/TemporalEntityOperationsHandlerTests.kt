@@ -62,7 +62,7 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()
@@ -104,7 +104,7 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
         val queryParams = LinkedMultiValueMap<String, String>()

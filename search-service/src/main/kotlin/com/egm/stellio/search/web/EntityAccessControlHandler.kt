@@ -42,8 +42,6 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
@@ -60,8 +58,7 @@ class EntityAccessControlHandler(
 
         val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
             queryParams,
-            contextLink,
-            sub
+            contextLink
         ).bind()
 
         if (countAndAuthorizedEntities.first == -1) {
@@ -94,8 +91,6 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
         val queryParams = parseQueryParams(
@@ -105,7 +100,7 @@ class EntityAccessControlHandler(
         ).bind()
 
         val countAndGroupEntities =
-            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, contextLink, sub).bind()
+            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, contextLink).bind()
 
         if (countAndGroupEntities.first == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -137,9 +132,7 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userIsAdmin(sub).bind()
+        authorizationService.userIsAdmin().bind()
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
@@ -183,8 +176,6 @@ class EntityAccessControlHandler(
         @PathVariable subjectId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
         val expandedAttributes = expandAttributes(body, contexts)
@@ -204,7 +195,7 @@ class EntityAccessControlHandler(
             .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
             .flatten()
             .partition {
-                authorizationService.userCanAdminEntity(it.second.objectId, sub).isRight()
+                authorizationService.userCanAdminEntity(it.second.objectId).isRight()
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
@@ -260,9 +251,7 @@ class EntityAccessControlHandler(
         @PathVariable subjectId: String,
         @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
 
@@ -278,9 +267,7 @@ class EntityAccessControlHandler(
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
@@ -303,9 +290,7 @@ class EntityAccessControlHandler(
     suspend fun deleteSpecificAccessPolicy(
         @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         entityPayloadService.removeSpecificAccessPolicy(entityId).bind()
 

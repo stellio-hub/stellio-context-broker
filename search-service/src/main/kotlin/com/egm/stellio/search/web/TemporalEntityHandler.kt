@@ -44,7 +44,6 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
@@ -59,7 +58,7 @@ class TemporalEntityHandler(
         val sortedJsonLdInstances = jsonLdInstances.sorted()
 
         if (entityDoesNotExist) {
-            authorizationService.userCanCreateEntities(sub).bind()
+            authorizationService.userCanCreateEntities().bind()
 
             // create a view of the entity containing only the most recent instance of each attribute
             val jsonLdEntity = JsonLdEntity(
@@ -70,23 +69,21 @@ class TemporalEntityHandler(
             )
             val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
-            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.getOrNull()).bind()
+            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity).bind()
             entityPayloadService.upsertAttributes(
                 entityUri,
-                sortedJsonLdInstances.removeFirstInstances(),
-                sub.getOrNull()
+                sortedJsonLdInstances.removeFirstInstances()
             ).bind()
-            authorizationService.createAdminRight(entityUri, sub).bind()
+            authorizationService.createAdminRight(entityUri).bind()
 
             ResponseEntity.status(HttpStatus.CREATED)
                 .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
                 .build<String>()
         } else {
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
+            authorizationService.userCanUpdateEntity(entityUri).bind()
             entityPayloadService.upsertAttributes(
                 entityUri,
-                sortedJsonLdInstances,
-                sub.getOrNull()
+                sortedJsonLdInstances
             ).bind()
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build()
@@ -105,10 +102,8 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         entityPayloadService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
             .checkNamesAreNgsiLdSupported().bind()
@@ -120,8 +115,7 @@ class TemporalEntityHandler(
 
         entityPayloadService.upsertAttributes(
             entityId,
-            sortedJsonLdInstances,
-            sub.getOrNull()
+            sortedJsonLdInstances
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -142,14 +136,13 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
         val temporalEntitiesQuery =
             parseQueryAndTemporalParams(applicationProperties.pagination, params, contextLink, true).bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+        val accessRightFilter = authorizationService.computeAccessRightFilter()
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
@@ -178,14 +171,12 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @RequestParam requestParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         entityPayloadService.checkEntityExistence(entityId).bind()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        authorizationService.userCanReadEntity(entityId, sub).bind()
+        authorizationService.userCanReadEntity(entityId).bind()
 
         val temporalEntitiesQuery =
             parseQueryAndTemporalParams(applicationProperties.pagination, requestParams, contextLink).bind()
@@ -218,7 +209,6 @@ class TemporalEntityHandler(
         @PathVariable instanceId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsList().first()
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
@@ -227,7 +217,7 @@ class TemporalEntityHandler(
         attrId.checkNameIsNgsiLdSupported().bind()
 
         entityPayloadService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         val expandedAttribute = expandAttribute(attrId, JsonLdUtils.removeContextFromInput(body), contexts)
         expandedAttribute.toExpandedAttributes().checkTemporalAttributeInstance().bind()
@@ -264,10 +254,8 @@ class TemporalEntityHandler(
     suspend fun deleteTemporalEntity(
         @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         entityPayloadService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
         entityPayloadService.deleteEntity(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
@@ -291,7 +279,6 @@ class TemporalEntityHandler(
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
@@ -305,7 +292,7 @@ class TemporalEntityHandler(
             datasetId
         ).bind()
 
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         entityPayloadService.deleteAttribute(
             entityId,
@@ -332,19 +319,17 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @PathVariable instanceId: String
+        @PathVariable instanceId: URI
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-        val instanceUri = instanceId.toUri()
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
 
         entityPayloadService.checkEntityExistence(entityId).bind()
 
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
-        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceUri).bind()
+        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

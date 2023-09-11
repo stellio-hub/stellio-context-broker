@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
@@ -113,6 +114,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
+    @WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
     fun `it should create entries for all attributes of an entity`() = runTest {
         val rawEntity = loadSampleData()
 
@@ -120,8 +122,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
@@ -134,7 +135,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                         it.measuredValue == 1543.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1)) &&
-                        it.sub == "0123456789-1234-5678-987654321"
+                        it.sub == "0768A6D5-D87B-4209-9A22-8C40A8961A79"
                 }
             )
             attributeInstanceService.create(
@@ -267,8 +268,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            expandedAttribute.second[0],
-            null
+            expandedAttribute.second[0]
         ).shouldSucceed()
 
         temporalEntityAttributeService.getForEntityAndAttribute(
@@ -315,8 +315,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ),
             mergedAt,
             null,
-            expandedAttribute.second[0],
-            null
+            expandedAttribute.second[0]
         ).shouldSucceed()
 
         val expectedMergedPayload = expandAttribute(
@@ -366,7 +365,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ngsiLdAttributes,
             expandedAttributes,
             createdAt,
-            null,
             null
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
@@ -432,8 +430,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ngsiLdAttributes,
             expandedAttributes,
             createdAt,
-            observedAt,
-            null
+            observedAt
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(1, updatedDetails.size)
@@ -470,8 +467,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            null
+            replacedAt
         ).shouldSucceed()
 
         temporalEntityAttributeService.getForEntityAndAttribute(
@@ -504,8 +500,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            null
+            replacedAt
         ).shouldSucceedWith {
             assertTrue(it.updated.isEmpty())
             assertEquals(1, it.notUpdated.size)

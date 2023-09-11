@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -26,6 +27,7 @@ import java.util.concurrent.CompletableFuture
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventService::class])
 @ActiveProfiles("test")
+@WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class EntityEventServiceTests {
 
     @SpykBean
@@ -87,7 +89,6 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
-            null,
             breedingServiceUri,
             listOf(breedingServiceType),
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -105,7 +106,6 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityReplaceEvent(
-            null,
             breedingServiceUri,
             listOf(breedingServiceType),
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -120,7 +120,6 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
-            null,
             breedingServiceUri,
             listOf(breedingServiceType),
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -138,7 +137,6 @@ class EntityEventServiceTests {
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         entityEventService.publishAttributeChangeEvents(
-            "sub",
             breedingServiceUri,
             expandedAttribute.toExpandedAttributes(),
             UpdateResult(
@@ -153,7 +151,7 @@ class EntityEventServiceTests {
             entityEventService["publishEntityEvent"](
                 match<AttributeAppendEvent> {
                     it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                        it.sub == "sub" &&
+                        it.sub == "0768A6D5-D87B-4209-9A22-8C40A8961A79" &&
                         it.entityId == breedingServiceUri &&
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
@@ -174,7 +172,6 @@ class EntityEventServiceTests {
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         entityEventService.publishAttributeChangeEvents(
-            null,
             breedingServiceUri,
             expandedAttribute.toExpandedAttributes(),
             UpdateResult(
@@ -189,7 +186,7 @@ class EntityEventServiceTests {
             entityEventService["publishEntityEvent"](
                 match<AttributeReplaceEvent> {
                     it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                        it.sub == null &&
+                        it.sub == "0768A6D5-D87B-4209-9A22-8C40A8961A79" &&
                         it.entityId == breedingServiceUri &&
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
@@ -225,7 +222,6 @@ class EntityEventServiceTests {
             every { entityPayload.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeChangeEvents(
-                null,
                 breedingServiceUri,
                 jsonLdAttributes,
                 appendResult,
@@ -291,7 +287,6 @@ class EntityEventServiceTests {
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
-            null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
@@ -351,7 +346,6 @@ class EntityEventServiceTests {
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
-            null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
@@ -400,7 +394,6 @@ class EntityEventServiceTests {
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
-            null,
             breedingServiceUri,
             expandedAttribute.toExpandedAttributes(),
             UpdateResult(updatedDetails, emptyList()),
@@ -432,7 +425,6 @@ class EntityEventServiceTests {
             every { entityPayload.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeDeleteEvent(
-                null,
                 breedingServiceUri,
                 fishNameProperty,
                 null,
@@ -463,7 +455,6 @@ class EntityEventServiceTests {
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeDeleteEvent(
-            null,
             breedingServiceUri,
             fishNameProperty,
             fishName1DatasetUri,

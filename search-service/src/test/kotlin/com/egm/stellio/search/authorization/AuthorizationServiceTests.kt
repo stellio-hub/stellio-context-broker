@@ -1,6 +1,5 @@
 package com.egm.stellio.search.authorization
 
-import arrow.core.None
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -22,7 +21,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize access to read`() = runTest {
-        authorizationService.userCanReadEntity(entityUri, None)
+        authorizationService.userCanReadEntity(entityUri)
             .mapLeft {
                 fail("it should not have failed")
             }
@@ -32,8 +31,7 @@ class AuthorizationServiceTests {
     fun `get authorized entities should return a count of -1 if authentication is not enabled`() = runTest {
         authorizationService.getAuthorizedEntities(
             QueryParams(limit = 0, offset = 0, context = NGSILD_CORE_CONTEXT),
-            NGSILD_CORE_CONTEXT,
-            None
+            NGSILD_CORE_CONTEXT
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)
@@ -45,8 +43,7 @@ class AuthorizationServiceTests {
         authorizationService.getGroupsMemberships(
             0,
             0,
-            AUTHORIZATION_COMPOUND_CONTEXT,
-            None
+            AUTHORIZATION_COMPOUND_CONTEXT
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)

@@ -131,9 +131,9 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
             emptyList()
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -144,7 +144,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityOperationService.update(any(), false, eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+            entityOperationService.update(any(), false)
         }
     }
 
@@ -160,8 +160,8 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(),
             errors
         )
@@ -203,9 +203,9 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -216,7 +216,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityOperationService.update(any(), true, eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+            entityOperationService.update(any(), true)
         }
     }
 
@@ -228,8 +228,8 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity),
             listOf(mockedDeviceEntity)
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
             errors = mutableListOf()
         )
@@ -264,15 +264,14 @@ class EntityOperationHandlerTests {
         coEvery {
             entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities))
         } answers { Pair(emptyList(), capturedExpandedEntities.captured) }
-        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any()) } returns Unit.right()
         coEvery {
             entityEventService.publishEntityCreateEvent(
-                any(),
                 capture(capturedEntitiesIds),
                 capture(capturedEntityTypes),
                 any()
@@ -290,9 +289,9 @@ class EntityOperationHandlerTests {
 
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.id })
 
-        coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
+        coVerify { authorizationService.createAdminRights(allEntitiesUris) }
         coVerify(timeout = 1000, exactly = 3) {
-            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
+            entityEventService.publishEntityCreateEvent(any(), any(), any())
         }
         capturedEntitiesIds.forEach { assertTrue(it in allEntitiesUris) }
         assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
@@ -313,15 +312,14 @@ class EntityOperationHandlerTests {
                 listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity)
             )
         }
-        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any()) } returns Unit.right()
         coEvery {
             entityEventService.publishEntityCreateEvent(
-                any(),
                 capture(capturedEntitiesIds),
                 capture(capturedEntityTypes),
                 any()
@@ -350,9 +348,9 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createAdminRights(createdEntitiesIds) }
         coVerify(timeout = 1000, exactly = 2) {
-            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
+            entityEventService.publishEntityCreateEvent(any(), any(), any())
         }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
@@ -366,7 +364,7 @@ class EntityOperationHandlerTests {
             entityOperationService.splitEntitiesByExistence(any())
         } returns Pair(emptyList(), listOf(mockedDeviceEntity))
         coEvery {
-            authorizationService.userCanCreateEntities(sub)
+            authorizationService.userCanCreateEntities()
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
 
         webClient.post()
@@ -433,15 +431,15 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
             listOf(mockedTemperatureSensorEntity)
         )
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
+        coEvery { authorizationService.createAdminRights(any()) } returns Unit.right()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any()) } returns updatedBatchResult
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), true, any())
         } returns Job()
 
         webClient.post()
@@ -452,10 +450,9 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
-        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createAdminRights(createdEntitiesIds) }
         coVerify {
             entityEventService.publishEntityCreateEvent(
-                eq(sub.value),
                 match { it in createdEntitiesIds },
                 eq(listOf(SENSOR_TYPE)),
                 eq(hcmrContext)
@@ -463,7 +460,6 @@ class EntityOperationHandlerTests {
         }
         coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishAttributeChangeEvents(
-                eq(sub.value),
                 match { it in updatedEntitiesIds },
                 any(),
                 match { it in updatedBatchResult.success.map { it.updateResult } },
@@ -481,9 +477,9 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -493,8 +489,8 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
-        coVerify { entityOperationService.update(any(), false, sub.getOrNull()) }
+        coVerify { entityOperationService.replace(any()) wasNot Called }
+        coVerify { entityOperationService.update(any(), false) }
     }
 
     @Test
@@ -509,15 +505,15 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
             listOf(mockedDeviceEntity)
         )
-        coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createAdminRights(any()) } returns Unit.right()
 
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
         )
@@ -545,8 +541,8 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminRights(listOf(deviceUri), sub) }
-        coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        coVerify { authorizationService.createAdminRights(listOf(deviceUri)) }
+        coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any()) }
     }
 
     @Test
@@ -558,12 +554,12 @@ class EntityOperationHandlerTests {
             listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
             emptyList()
         )
-        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
-        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -571,12 +567,11 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify { entityOperationService.create(any(), any(), any()) wasNot Called }
-        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
-        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
+        coVerify { entityOperationService.create(any(), any()) wasNot Called }
+        coVerify { entityOperationService.replace(any()) }
+        coVerify { entityOperationService.update(any(), any()) wasNot Called }
         coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
-                eq(sub.value),
                 match { it in entitiesIds },
                 eq(listOf(SENSOR_TYPE)),
                 eq(hcmrContext)
@@ -593,7 +588,7 @@ class EntityOperationHandlerTests {
             listOf(mockedTemperatureSensorEntity)
         )
         coEvery {
-            authorizationService.userCanCreateEntities(sub)
+            authorizationService.userCanCreateEntities()
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
 
         webClient.post()
@@ -616,7 +611,7 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { entityEventService wasNot called }
-        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
+        coVerify { entityOperationService.replace(any()) wasNot Called }
     }
 
     @Test
@@ -628,12 +623,12 @@ class EntityOperationHandlerTests {
             emptyList()
         )
         coEvery {
-            authorizationService.userCanUpdateEntity(match { it == temperatureSensorUri }, sub)
+            authorizationService.userCanUpdateEntity(match { it == temperatureSensorUri })
         } returns Unit.right()
         coEvery {
-            authorizationService.userCanUpdateEntity(match { it == dissolvedOxygenSensorUri }, sub)
+            authorizationService.userCanUpdateEntity(match { it == dissolvedOxygenSensorUri })
         } returns AccessDeniedException(ENTITY_UPDATE_FORBIDDEN_MESSAGE).left()
-        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(temperatureSensorUri)),
             arrayListOf()
         )
@@ -657,10 +652,9 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
+        coVerify { entityOperationService.replace(any()) }
         coVerify {
             entityEventService.publishEntityReplaceEvent(
-                eq(sub.value),
                 eq(temperatureSensorUri),
                 eq(listOf(SENSOR_TYPE)),
                 eq(hcmrContext)
@@ -699,7 +693,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(allEntitiesUris, emptyList())
         }
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
                 allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
@@ -724,7 +718,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
@@ -734,7 +728,6 @@ class EntityOperationHandlerTests {
 
         coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
-                eq(sub.value),
                 match { it in allEntitiesUris },
                 match { it[0] in listOf(SENSOR_TYPE, DEVICE_TYPE) },
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
@@ -747,7 +740,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(emptyList(), allEntitiesUris)
         }
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } answers { Unit.right() }
+        coEvery { authorizationService.userCanAdminEntity(any()) } answers { Unit.right() }
 
         performBatchDeleteAndCheck207Response(ENTITY_DOES_NOT_EXIST_MESSAGE)
 
@@ -778,7 +771,7 @@ class EntityOperationHandlerTests {
                 }
             )
         coEvery {
-            authorizationService.userCanAdminEntity(any(), any())
+            authorizationService.userCanAdminEntity(any())
         } returns AccessDeniedException(ENTITY_DELETE_FORBIDDEN_MESSAGE).left()
 
         performBatchDeleteAndCheck207Response(ENTITY_DELETE_FORBIDDEN_MESSAGE)

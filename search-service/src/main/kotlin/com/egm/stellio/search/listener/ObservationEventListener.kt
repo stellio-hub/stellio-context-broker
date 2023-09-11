@@ -67,11 +67,9 @@ class ObservationEventListener(
         mono {
             entityPayloadService.createEntity(
                 observationEvent.operationPayload,
-                observationEvent.contexts,
-                observationEvent.sub
+                observationEvent.contexts
             ).map {
                 entityEventService.publishEntityCreateEvent(
-                    observationEvent.sub,
                     observationEvent.entityId,
                     expandJsonLdTerms(observationEvent.entityTypes, observationEvent.contexts),
                     observationEvent.contexts
@@ -93,8 +91,7 @@ class ObservationEventListener(
         mono {
             entityPayloadService.partialUpdateAttribute(
                 observationEvent.entityId,
-                expandedAttribute,
-                observationEvent.sub
+                expandedAttribute
             ).map {
                 // there is only one result for an event, a success or a failure
                 if (it.notUpdated.isNotEmpty()) {
@@ -106,7 +103,6 @@ class ObservationEventListener(
                     Job()
                 } else {
                     entityEventService.publishAttributeChangeEvents(
-                        observationEvent.sub,
                         observationEvent.entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
@@ -132,8 +128,7 @@ class ObservationEventListener(
             entityPayloadService.appendAttributes(
                 observationEvent.entityId,
                 expandedAttribute.toExpandedAttributes(),
-                !observationEvent.overwrite,
-                observationEvent.sub
+                !observationEvent.overwrite
             ).map {
                 if (it.notUpdated.isNotEmpty()) {
                     val notUpdatedDetails = it.notUpdated.first()
@@ -144,7 +139,6 @@ class ObservationEventListener(
                     Job()
                 } else {
                     entityEventService.publishAttributeChangeEvents(
-                        observationEvent.sub,
                         observationEvent.entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,

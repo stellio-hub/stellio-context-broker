@@ -32,7 +32,6 @@ class TemporalEntityOperationsHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
@@ -49,7 +48,7 @@ class TemporalEntityOperationsHandler(
         val temporalEntitiesQuery =
             parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink, true).bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+        val accessRightFilter = authorizationService.computeAccessRightFilter()
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter

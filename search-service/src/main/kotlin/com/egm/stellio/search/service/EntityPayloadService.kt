@@ -37,41 +37,37 @@ class EntityPayloadService(
     @Transactional
     suspend fun createEntity(
         payload: String,
-        contexts: List<String>,
-        sub: String? = null
+        contexts: List<String>
     ): Either<APIException, Unit> = either {
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts)
         val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
 
-        createEntity(ngsiLdEntity, jsonLdEntity, sub).bind()
+        createEntity(ngsiLdEntity, jsonLdEntity).bind()
     }
 
     @Transactional
     suspend fun createEntity(
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
-        sub: String? = null
+        jsonLdEntity: JsonLdEntity
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity, sub = sub).bind()
+        createEntityPayload(ngsiLdEntity, jsonLdEntity, createdAt).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
             jsonLdEntity,
             attributesMetadata,
-            createdAt,
-            sub
+            createdAt
         ).bind()
     }
 
     @Transactional
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        createdAt: ZonedDateTime,
         jsonLdEntity: JsonLdEntity,
-        sub: Sub? = null
+        createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
@@ -89,7 +85,7 @@ class EntityPayloadService(
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
-                scopeService.createHistory(ngsiLdEntity, createdAt, sub)
+                scopeService.createHistory(ngsiLdEntity, createdAt)
             }
     }
 
@@ -97,8 +93,7 @@ class EntityPayloadService(
     suspend fun mergeEntity(
         entityId: URI,
         expandedAttributes: ExpandedAttributes,
-        observedAt: ZonedDateTime?,
-        sub: Sub?
+        observedAt: ZonedDateTime?
     ): Either<APIException, UpdateResult> = either {
         logger.debug("Merging entity {}", entityId)
 
@@ -112,8 +107,7 @@ class EntityPayloadService(
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
             mergedAt,
-            observedAt,
-            sub
+            observedAt
         ).bind()
 
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
@@ -129,8 +123,7 @@ class EntityPayloadService(
     suspend fun replaceEntity(
         entityId: URI,
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
-        sub: String? = null
+        jsonLdEntity: JsonLdEntity
     ): Either<APIException, Unit> = either {
         val replacedAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
@@ -138,22 +131,20 @@ class EntityPayloadService(
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
 
-        replaceEntityPayload(ngsiLdEntity, replacedAt, jsonLdEntity, sub).bind()
+        replaceEntityPayload(ngsiLdEntity, jsonLdEntity, replacedAt).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
             jsonLdEntity,
             attributesMetadata,
-            replacedAt,
-            sub
+            replacedAt
         ).bind()
     }
 
     @Transactional
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        replacedAt: ZonedDateTime,
         jsonLdEntity: JsonLdEntity,
-        sub: Sub? = null
+        replacedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
@@ -181,7 +172,7 @@ class EntityPayloadService(
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
-                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt, sub)
+                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt)
             }
     }
 
@@ -490,8 +481,7 @@ class EntityPayloadService(
     suspend fun appendAttributes(
         entityUri: URI,
         expandedAttributes: ExpandedAttributes,
-        disallowOverwrite: Boolean,
-        sub: Sub?
+        disallowOverwrite: Boolean
     ): Either<APIException, UpdateResult> =
         either {
             val (coreAttrs, otherAttrs) =
@@ -507,8 +497,7 @@ class EntityPayloadService(
                 otherAttrs.toMap().toNgsiLdAttributes().bind(),
                 expandedAttributes,
                 disallowOverwrite,
-                createdAt,
-                sub
+                createdAt
             ).bind()
 
             val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
@@ -523,8 +512,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun updateAttributes(
         entityUri: URI,
-        expandedAttributes: ExpandedAttributes,
-        sub: Sub?
+        expandedAttributes: ExpandedAttributes
     ): Either<APIException, UpdateResult> =
         either {
             val (coreAttrs, otherAttrs) =
@@ -536,8 +524,7 @@ class EntityPayloadService(
                 entityUri,
                 otherAttrs.toMap().toNgsiLdAttributes().bind(),
                 expandedAttributes,
-                createdAt,
-                sub
+                createdAt
             ).bind()
 
             val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
@@ -552,16 +539,14 @@ class EntityPayloadService(
     @Transactional
     suspend fun partialUpdateAttribute(
         entityId: URI,
-        expandedAttribute: ExpandedAttribute,
-        sub: Sub?
+        expandedAttribute: ExpandedAttribute
     ): Either<APIException, UpdateResult> =
         either {
             val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
             val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
                 entityId,
                 expandedAttribute,
-                modifiedAt,
-                sub
+                modifiedAt
             ).bind()
             if (updateResult.isSuccessful()) {
                 val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
@@ -573,8 +558,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun upsertAttributes(
         entityId: URI,
-        expandedAttributes: ExpandedAttributes,
-        sub: Sub?
+        expandedAttributes: ExpandedAttributes
     ): Either<APIException, Unit> =
         either {
             val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
@@ -587,8 +571,7 @@ class EntityPayloadService(
                         entityId,
                         ngsiLdAttribute,
                         jsonLdAttribute,
-                        createdAt,
-                        sub
+                        createdAt
                     ).bind()
                 }
             }
@@ -598,8 +581,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun replaceAttribute(
         entityId: URI,
-        expandedAttribute: ExpandedAttribute,
-        sub: Sub?
+        expandedAttribute: ExpandedAttribute
     ): Either<APIException, UpdateResult> = either {
         val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
         val replacedAt = ngsiLdDateTime()
@@ -608,8 +590,7 @@ class EntityPayloadService(
             entityId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            sub
+            replacedAt
         ).bind()
 
         // update modifiedAt in entity if at least one attribute has been added

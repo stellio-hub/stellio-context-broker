@@ -98,12 +98,11 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to create all provided entities`() = runTest {
-        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.create(
             listOf(firstEntity, secondEntity),
-            listOf(firstJsonLdEntity, secondJsonLdEntity),
-            sub
+            listOf(firstJsonLdEntity, secondJsonLdEntity)
         )
 
         assertEquals(
@@ -113,24 +112,23 @@ class EntityOperationServiceTests {
         assertTrue(batchOperationResult.errors.isEmpty())
 
         coVerify {
-            entityPayloadService.createEntity(firstEntity, firstJsonLdEntity, sub)
+            entityPayloadService.createEntity(firstEntity, firstJsonLdEntity)
         }
         coVerify {
-            entityPayloadService.createEntity(secondEntity, secondJsonLdEntity, sub)
+            entityPayloadService.createEntity(secondEntity, secondJsonLdEntity)
         }
     }
 
     @Test
     fun `it should ask to create entities and transmit back any error`() = runTest {
-        coEvery { entityPayloadService.createEntity(firstEntity, any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.createEntity(firstEntity, any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.createEntity(secondEntity, any(), any())
+            entityPayloadService.createEntity(secondEntity, any())
         } returns BadRequestDataException("Invalid entity").left()
 
         val batchOperationResult = entityOperationService.create(
             listOf(firstEntity, secondEntity),
-            listOf(firstJsonLdEntity, secondJsonLdEntity),
-            sub
+            listOf(firstJsonLdEntity, secondJsonLdEntity)
         )
 
         assertEquals(arrayListOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
@@ -145,13 +143,12 @@ class EntityOperationServiceTests {
     @Test
     fun `it should ask to update attributes of entities`() = runTest {
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.update(
             listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-            false,
-            sub
+            false
         )
 
         assertEquals(
@@ -160,27 +157,26 @@ class EntityOperationServiceTests {
         )
 
         coVerify {
-            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), false)
         }
         coVerify {
-            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), false)
         }
     }
 
     @Test
     fun `it should count as error an update which raises a BadRequestDataException`() = runTest {
         coEvery {
-            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any())
         } returns BadRequestDataException("error").left()
 
         val batchOperationResult =
             entityOperationService.update(
                 listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-                false,
-                sub
+                false
             )
 
         assertEquals(
@@ -203,16 +199,15 @@ class EntityOperationServiceTests {
             )
         )
         coEvery {
-            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any())
         } returns updateResult.right()
 
         val batchOperationResult = entityOperationService.update(
             listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-            false,
-            sub
+            false
         )
 
         assertEquals(
@@ -233,12 +228,11 @@ class EntityOperationServiceTests {
     @Test
     fun `it should ask to replace entities`() = runTest {
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityPayloadService.appendAttributes(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.replace(
-            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-            sub
+            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity))
         )
 
         assertEquals(
@@ -251,25 +245,24 @@ class EntityOperationServiceTests {
         coVerify { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(secondEntityURI) }
 
         coVerify {
-            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(firstEntityURI), any(), false)
         }
         coVerify {
-            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), false, sub)
+            entityPayloadService.appendAttributes(eq(secondEntityURI), any(), false)
         }
     }
 
     @Test
     fun `it should count as error an replace which raises a BadRequestDataException`() = runTest {
         coEvery {
-            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any())
         } returns BadRequestDataException("error").left()
 
         val batchOperationResult = entityOperationService.replace(
-            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-            sub
+            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity))
         )
 
         assertEquals(listOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
@@ -282,10 +275,10 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error not replaced entities in entities`() = runTest {
         coEvery {
-            entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityPayloadService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityPayloadService.appendAttributes(secondEntityURI, any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(
@@ -295,8 +288,7 @@ class EntityOperationServiceTests {
         ).right()
 
         val batchOperationResult = entityOperationService.replace(
-            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity)),
-            sub
+            listOf(Pair(firstEntity, firstJsonLdEntity), Pair(secondEntity, secondJsonLdEntity))
         )
 
         assertEquals(listOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)

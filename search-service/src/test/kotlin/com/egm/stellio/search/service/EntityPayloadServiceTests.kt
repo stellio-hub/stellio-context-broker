@@ -71,8 +71,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 ).shouldSucceed()
             }
     }
@@ -80,7 +80,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should create an entity payload from an NGSI-LD Entity if none existed yet`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity)
+        entityPayloadService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now)
             .shouldSucceed()
     }
 
@@ -91,8 +91,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
         loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
@@ -100,8 +100,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
         entityPayloadService.hasSpecificAccessPolicies(
@@ -130,8 +130,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntityPayload(
             ngsiLdEntity,
-            now,
-            jsonLdEntity
+            jsonLdEntity,
+            now
         )
 
         entityPayloadService.hasSpecificAccessPolicies(
@@ -147,15 +147,14 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should only create an entity payload for a minimal entity`() = runTest {
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
 
         val rawEntity = loadSampleData("beehive_minimal.jsonld")
 
         entityPayloadService.createEntity(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
@@ -168,8 +167,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 any(),
                 any(),
                 emptyList(),
-                any(),
-                eq("0123456789-1234-5678-987654321")
+                any()
             )
         }
     }
@@ -180,15 +178,15 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityPayloadService.createEntityPayload(
             ngsiLdEntity,
-            now,
             jsonLdEntity,
+            now,
         )
 
         assertThrows<DataIntegrityViolationException> {
             entityPayloadService.createEntityPayload(
                 ngsiLdEntity,
-                now,
                 jsonLdEntity,
+                now,
             )
         }
     }
@@ -196,10 +194,10 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity`() = runTest {
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
@@ -212,8 +210,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         val (jsonLdEntity, _) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
@@ -221,8 +218,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.mergeEntity(
             beehiveTestCId,
             jsonLdEntity.getAttributes(),
-            now,
-            "0123456789-1234-5678-987654321"
+            now
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
@@ -235,16 +231,14 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 any(),
                 any(),
                 emptyList(),
-                any(),
-                eq("0123456789-1234-5678-987654321")
+                any()
             )
             temporalEntityAttributeService.mergeEntityAttributes(
                 eq(beehiveTestCId),
                 any(),
                 any(),
                 any(),
-                any(),
-                eq("0123456789-1234-5678-987654321")
+                any()
             )
             temporalEntityAttributeService.getForEntity(
                 eq(beehiveTestCId),
@@ -256,10 +250,10 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity with new types`() = runTest {
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
@@ -272,8 +266,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -284,8 +277,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.mergeEntity(
             beehiveTestCId,
             expandedAttributes,
-            now,
-            "0123456789-1234-5678-987654321"
+            now
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
@@ -297,16 +289,16 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity with new types and scopes`() = runTest {
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            temporalEntityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
         ).right()
         coEvery {
-            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any(), any())
+            temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any())
@@ -316,8 +308,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -328,8 +319,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.mergeEntity(
             beehiveTestCId,
             expandedAttributes,
-            now,
-            "0123456789-1234-5678-987654321"
+            now
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
@@ -342,16 +332,16 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should replace an entity payload if entity previously existed`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now).shouldSucceed()
 
-        entityPayloadService.replaceEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+        entityPayloadService.replaceEntityPayload(ngsiLdEntity, jsonLdEntity, now).shouldSucceed()
     }
 
     @Test
     fun `it should replace an entity`() = runTest {
         val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         coEvery {
-            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any())
         } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Unit.right()
 
@@ -359,8 +349,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
-            "0123456789-1234-5678-987654321"
+            listOf(APIC_COMPOUND_CONTEXT)
         ).shouldSucceed()
 
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
@@ -368,8 +357,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.replaceEntity(
             beehiveURI,
             ngsiLdEntity,
-            jsonLdEntity,
-            "0123456789-1234-5678-987654321"
+            jsonLdEntity
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
@@ -384,8 +372,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 any(),
                 any(),
                 emptyList(),
-                any(),
-                eq("0123456789-1234-5678-987654321")
+                any()
             )
         }
     }
@@ -394,21 +381,21 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should replace an attribute`() = runTest {
         coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns emptyList()
         coEvery {
-            temporalEntityAttributeService.replaceEntityAttribute(any(), any(), any(), any(), any())
+            temporalEntityAttributeService.replaceEntityAttribute(any(), any(), any(), any())
         } returns UpdateResult(
             updated = listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)),
             notUpdated = emptyList()
         ).right()
 
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-        entityPayloadService.createEntityPayload(ngsiLdEntity, now, jsonLdEntity).shouldSucceed()
+        entityPayloadService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now).shouldSucceed()
 
         val expandedAttribute = expandAttribute(
             loadSampleData("fragments/beehive_new_incoming_property.json"),
             listOf(APIC_COMPOUND_CONTEXT)
         )
 
-        entityPayloadService.replaceAttribute(beehiveTestCId, expandedAttribute, "0123456789-1234-5678-987654321")
+        entityPayloadService.replaceAttribute(beehiveTestCId, expandedAttribute)
             .shouldSucceedWith {
                 it.updated.size == 1 &&
                     it.notUpdated.isEmpty() &&
@@ -424,8 +411,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
                     it.first,
+                    now,
                 ).shouldSucceed()
             }
 
@@ -448,8 +435,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -466,8 +453,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         expandedPayload.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(
                 it.second,
-                ZonedDateTime.parse("2023-08-20T15:44:10.381090Z"),
-                it.first
+                it.first,
+                ZonedDateTime.parse("2023-08-20T15:44:10.381090Z")
             )
         }
 
@@ -484,8 +471,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -504,8 +491,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -527,8 +514,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -550,8 +537,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         expandedPayload.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(
                 it.second,
-                now,
-                it.first
+                it.first,
+                now
             )
         }
 
@@ -581,8 +568,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -606,8 +593,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -622,8 +609,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
         loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_READ)
@@ -631,8 +618,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -664,8 +651,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -678,8 +665,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 ).shouldSucceed()
             }
     }
@@ -687,7 +674,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should remove the scopes from an entity`() = runTest {
         coEvery {
-            temporalEntityAttributeService.addAttribute(any(), any(), any(), any(), any(), any())
+            temporalEntityAttributeService.addAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any())
@@ -698,8 +685,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 
@@ -719,8 +706,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .map {
                 entityPayloadService.createEntityPayload(
                     it.second,
-                    now,
-                    it.first
+                    it.first,
+                    now
                 )
             }
 

@@ -12,7 +12,6 @@ import com.egm.stellio.search.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -59,15 +58,14 @@ class EntityOperationService(
      */
     suspend fun create(
         entities: List<NgsiLdEntity>,
-        jsonLdEntities: List<JsonLdEntity>,
-        sub: Sub?
+        jsonLdEntities: List<JsonLdEntity>
     ): BatchOperationResult {
         val creationResults = entities.map { ngsiLdEntity ->
             either {
                 val jsonLdEntity = jsonLdEntities.find { jsonLdEntity ->
                     ngsiLdEntity.id.toString() == jsonLdEntity.id
                 }!!
-                entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub)
+                entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity)
                     .map {
                         BatchEntitySuccess(ngsiLdEntity.id)
                     }.mapLeft { apiException ->
@@ -124,8 +122,8 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
     @Transactional
-    suspend fun replace(entities: List<Pair<NgsiLdEntity, JsonLdEntity>>, sub: Sub?): BatchOperationResult =
-        processEntities(entities, false, sub, ::replaceEntity)
+    suspend fun replace(entities: List<Pair<NgsiLdEntity, JsonLdEntity>>): BatchOperationResult =
+        processEntities(entities, false, ::replaceEntity)
 
     /**
      * Updates a batch of [entities]
@@ -137,20 +135,18 @@ class EntityOperationService(
     @Transactional
     suspend fun update(
         entities: List<Pair<NgsiLdEntity, JsonLdEntity>>,
-        disallowOverwrite: Boolean = false,
-        sub: Sub?
+        disallowOverwrite: Boolean = false
     ): BatchOperationResult =
-        processEntities(entities, disallowOverwrite, sub, ::updateEntity)
+        processEntities(entities, disallowOverwrite, ::updateEntity)
 
     private suspend fun processEntities(
         entities: List<Pair<NgsiLdEntity, JsonLdEntity>>,
         disallowOverwrite: Boolean = false,
-        sub: Sub?,
         processor:
-        suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): BatchOperationResult =
         entities.map {
-            processEntity(it, disallowOverwrite, sub, processor)
+            processEntity(it, disallowOverwrite, processor)
         }.fold(
             initial = BatchOperationResult(),
             operation = { acc, either ->
@@ -164,12 +160,10 @@ class EntityOperationService(
     private suspend fun processEntity(
         entity: Pair<NgsiLdEntity, JsonLdEntity>,
         disallowOverwrite: Boolean = false,
-        sub: Sub?,
-        processor:
-        suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        processor: suspend (Pair<NgsiLdEntity, JsonLdEntity>, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): Either<BatchEntityError, BatchEntitySuccess> =
         kotlin.runCatching {
-            processor(entity, disallowOverwrite, sub)
+            processor(entity, disallowOverwrite)
         }.fold(
             onFailure = { BatchEntityError(entity.first.id, arrayListOf(it.message!!)).left() },
             onSuccess = { it }
@@ -182,8 +176,7 @@ class EntityOperationService(
     @Throws(BadRequestDataException::class)
     suspend fun replaceEntity(
         entity: Pair<NgsiLdEntity, JsonLdEntity>,
-        disallowOverwrite: Boolean,
-        sub: Sub?
+        disallowOverwrite: Boolean
     ): Either<BatchEntityError, BatchEntitySuccess> =
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
@@ -191,8 +184,7 @@ class EntityOperationService(
             val updateResult = entityPayloadService.appendAttributes(
                 ngsiLdEntity.id,
                 jsonLdEntity.getAttributes(),
-                disallowOverwrite,
-                sub
+                disallowOverwrite
             ).bind()
 
             if (updateResult.notUpdated.isNotEmpty())
@@ -212,16 +204,14 @@ class EntityOperationService(
     @Transactional
     suspend fun updateEntity(
         entity: Pair<NgsiLdEntity, JsonLdEntity>,
-        disallowOverwrite: Boolean,
-        sub: Sub?
+        disallowOverwrite: Boolean
     ): Either<BatchEntityError, BatchEntitySuccess> =
         either {
             val (ngsiLdEntity, jsonLdEntity) = entity
             val updateResult = entityPayloadService.appendAttributes(
                 ngsiLdEntity.id,
                 jsonLdEntity.getAttributes(),
-                disallowOverwrite,
-                sub
+                disallowOverwrite
             ).bind()
             if (updateResult.notUpdated.isEmpty())
                 updateResult.right().bind()

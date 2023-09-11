@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.getSubOrNullFromSecurityContext
 import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,11 +38,11 @@ class EntityEventService(
     }
 
     suspend fun publishEntityCreateEvent(
-        sub: String?,
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ): Job {
+        val sub = getSubOrNullFromSecurityContext()
         val tenantUri = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
@@ -55,11 +56,11 @@ class EntityEventService(
     }
 
     suspend fun publishEntityReplaceEvent(
-        sub: String?,
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ): Job {
+        val sub = getSubOrNullFromSecurityContext()
         val tenantUri = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
@@ -73,11 +74,11 @@ class EntityEventService(
     }
 
     suspend fun publishEntityDeleteEvent(
-        sub: String?,
         entityId: URI,
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ): Job {
+        val sub = getSubOrNullFromSecurityContext()
         val tenantUri = getTenantFromContext()
         return coroutineScope.launch {
             logger.debug("Sending delete event for entity {} in tenant {}", entityId, tenantUri)
@@ -86,13 +87,13 @@ class EntityEventService(
     }
 
     suspend fun publishAttributeChangeEvents(
-        sub: String?,
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updateResult: UpdateResult,
         overwrite: Boolean,
         contexts: List<String>
     ): Job {
+        val sub = getSubOrNullFromSecurityContext()
         val tenantUri = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
@@ -183,13 +184,13 @@ class EntityEventService(
     }
 
     suspend fun publishAttributeDeleteEvent(
-        sub: String?,
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI? = null,
         deleteAll: Boolean,
         contexts: List<String>
     ): Job {
+        val sub = getSubOrNullFromSecurityContext()
         val tenantUri = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {

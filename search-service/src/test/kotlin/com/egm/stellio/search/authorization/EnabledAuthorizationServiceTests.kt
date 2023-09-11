@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
@@ -32,6 +33,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EnabledAuthorizationService::class])
 @ActiveProfiles("test")
+@WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class EnabledAuthorizationServiceTests {
 
     @Autowired
@@ -54,7 +56,7 @@ class EnabledAuthorizationServiceTests {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertFalse(it) }
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
@@ -66,7 +68,7 @@ class EnabledAuthorizationServiceTests {
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
@@ -77,7 +79,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should return an access denied if user cannot read the given entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanReadEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanReadEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to read entity", it.message)
@@ -97,7 +99,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should allow an user that has the right to read an entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanReadEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanReadEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
@@ -114,7 +116,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should return an access denied if user cannot update the given entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanUpdateEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanUpdateEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to modify entity", it.message)
@@ -134,7 +136,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should allow an user that has the right to update an entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanUpdateEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanUpdateEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
@@ -151,7 +153,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should return an access denied if user cannot admin the given entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanAdminEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanAdminEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to admin entity", it.message)
@@ -171,7 +173,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should allow an user that has the right to admin an entity`() = runTest {
         coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanAdminEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanAdminEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
@@ -188,7 +190,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should create admin link for a set of entities`() = runTest {
         coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
 
-        enabledAuthorizationService.createAdminRights(listOf(entityId01, entityId02), Some(subjectUuid))
+        enabledAuthorizationService.createAdminRights(listOf(entityId01, entityId02))
             .shouldSucceed()
 
         coVerifyAll {
@@ -204,7 +206,7 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(subjectUuid).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
+        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
         assertNull(accessRightFilter())
     }
 
@@ -215,7 +217,7 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(subjectUuid, groupUuid).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
+        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
         assertEquals(
             """
             ( 
@@ -252,7 +254,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT)
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -277,7 +279,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountGroups(any()) } returns Either.Right(1)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT)
             .shouldSucceedWith {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)
@@ -346,8 +348,7 @@ class EnabledAuthorizationServiceTests {
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
-            sub = Some(subjectUuid)
+            contextLink = APIC_COMPOUND_CONTEXT
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             it.second.forEach { jsonLdEntity ->
@@ -401,8 +402,7 @@ class EnabledAuthorizationServiceTests {
                 offset = 0,
                 context = APIC_COMPOUND_CONTEXT
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
-            sub = Some(subjectUuid)
+            contextLink = APIC_COMPOUND_CONTEXT
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             assertEquals(2, it.second.size)

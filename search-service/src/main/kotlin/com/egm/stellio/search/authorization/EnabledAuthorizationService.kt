@@ -20,19 +20,18 @@ class EnabledAuthorizationService(
     private val entityAccessRightsService: EntityAccessRightsService
 ) : AuthorizationService {
 
-    override suspend fun userIsAdmin(sub: Option<Sub>): Either<APIException, Unit> =
-        userHasOneOfGivenRoles(ADMIN_ROLES, sub)
+    override suspend fun userIsAdmin(): Either<APIException, Unit> =
+        userHasOneOfGivenRoles(ADMIN_ROLES)
             .toAccessDecision("User does not have any of the required roles: $ADMIN_ROLES")
 
-    override suspend fun userCanCreateEntities(sub: Option<Sub>): Either<APIException, Unit> =
-        userHasOneOfGivenRoles(CREATION_ROLES, sub)
+    override suspend fun userCanCreateEntities(): Either<APIException, Unit> =
+        userHasOneOfGivenRoles(CREATION_ROLES)
             .toAccessDecision("User does not have any of the required roles: $CREATION_ROLES")
 
     internal suspend fun userHasOneOfGivenRoles(
-        roles: Set<GlobalRole>,
-        sub: Option<Sub>
+        roles: Set<GlobalRole>
     ): Either<APIException, Boolean> =
-        subjectReferentialService.getSubjectAndGroupsUUID(sub)
+        subjectReferentialService.getSubjectAndGroupsUUID(getSubFromSecurityContext())
             .flatMap { uuids -> subjectReferentialService.hasOneOfGlobalRoles(uuids, roles) }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
@@ -43,50 +42,46 @@ class EnabledAuthorizationService(
                 AccessDeniedException(errorMessage).left()
         }
 
-    override suspend fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanReadEntity(entityId: URI): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
             listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ),
-            listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
-            sub
+            listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ)
         ).toAccessDecision(ENTITIY_READ_FORBIDDEN_MESSAGE)
 
-    override suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanUpdateEntity(entityId: URI): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
             listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE),
-            listOf(SpecificAccessPolicy.AUTH_WRITE),
-            sub
+            listOf(SpecificAccessPolicy.AUTH_WRITE)
         ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
-    override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun userCanAdminEntity(entityId: URI): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
             listOf(AccessRight.R_CAN_ADMIN),
-            emptyList(),
-            sub
+            emptyList()
         ).toAccessDecision(ENTITY_ADMIN_FORBIDDEN_MESSAGE)
 
     private suspend fun userHasOneOfGivenRightsOnEntity(
         entityId: URI,
         rights: List<AccessRight>,
-        specificAccessPolicies: List<SpecificAccessPolicy>,
-        sub: Option<Sub>
+        specificAccessPolicies: List<SpecificAccessPolicy>
     ): Either<APIException, Boolean> =
         entityAccessRightsService.checkHasRightOnEntity(
-            sub,
+            getSubFromSecurityContext(),
             entityId,
             specificAccessPolicies,
             rights
         )
 
-    override suspend fun createAdminRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        createAdminRights(listOf(entityId), sub)
+    override suspend fun createAdminRight(entityId: URI): Either<APIException, Unit> =
+        createAdminRights(listOf(entityId))
 
-    override suspend fun createAdminRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun createAdminRights(entitiesId: List<URI>): Either<APIException, Unit> =
         either {
             entitiesId.parMap {
-                entityAccessRightsService.setAdminRoleOnEntity((sub as Some).value, it).bind()
+                entityAccessRightsService.setAdminRoleOnEntity((getSubFromSecurityContext() as Some).value, it).bind()
             }
         }.map { it.first() }
 
@@ -95,9 +90,9 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         queryParams: QueryParams,
-        contextLink: String,
-        sub: Option<Sub>
+        contextLink: String
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val sub = getSubFromSecurityContext()
         val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
@@ -143,10 +138,10 @@ class EnabledAuthorizationService(
         offset: Int,
         limit: Int,
         contextLink: String,
-        sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        val sub = getSubFromSecurityContext()
         val groups =
-            when (userIsAdmin(sub)) {
+            when (userIsAdmin()) {
                 is Either.Left -> {
                     val groups = subjectReferentialService.getGroups(sub, offset, limit)
                     val groupsCount = subjectReferentialService.getCountGroups(sub).bind()
@@ -188,8 +183,8 @@ class EnabledAuthorizationService(
         Pair(usersCount, jsonLdEntities)
     }
 
-    override suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? =
-        subjectReferentialService.getSubjectAndGroupsUUID(sub).map { uuids ->
+    override suspend fun computeAccessRightFilter(): () -> String? =
+        subjectReferentialService.getSubjectAndGroupsUUID(getSubFromSecurityContext()).map { uuids ->
             if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
                 { null }
             } else {

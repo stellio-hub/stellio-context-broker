@@ -1,6 +1,5 @@
 package com.egm.stellio.subscription.service
 
-import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NotImplementedException
@@ -33,7 +32,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -43,8 +41,6 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService
-
-    private val mockUserSub = Some(UUID.randomUUID().toString())
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI
@@ -76,7 +72,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     private fun createSubscription(subscription: Subscription): URI {
         runBlocking {
-            subscriptionService.create(subscription, mockUserSub)
+            subscriptionService.create(subscription)
         }
         return subscription.id
     }
@@ -409,7 +405,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         )
         val notifiedAt = ngsiLdDateTime()
 
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription)
         subscriptionService.updateSubscriptionNotification(
             subscription,
             Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
@@ -434,7 +430,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should delete an existing subscription`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription)
 
         subscriptionService.delete(subscription.id)
             .shouldSucceed()
@@ -573,7 +569,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             watchedAttributes = null
         )
 
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription)
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
@@ -599,7 +595,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
             )
 
-            subscriptionService.create(subscription, mockUserSub)
+            subscriptionService.create(subscription)
 
             val subscriptions =
                 subscriptionService.getMatchingSubscriptions(
@@ -624,7 +620,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             watchedAttributes = listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
         )
 
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription)
 
         val subscriptions =
             subscriptionService.getMatchingSubscriptions(
@@ -923,7 +919,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             geometry = geometry,
             coordinates = coordinates
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.create(subscription).shouldSucceed()
 
         subscriptionService.isMatchingGeoQuery(subscription.id, jsonldEntity)
             .shouldSucceedWith { assertEquals(expectedResult, it) }

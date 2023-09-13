@@ -7,14 +7,18 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
+import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.Optional
@@ -122,6 +126,18 @@ fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIEx
             ).left()
     }
     return Unit.right()
+}
+
+suspend fun extractPayloadAndContexts(
+    requestBody: Mono<String>,
+    httpHeaders: HttpHeaders
+): Either<APIException, Pair<CompactedJsonLdEntity, List<String>>> = either {
+    val body = requestBody.awaitFirst().deserializeAsMap()
+        .checkNamesAreNgsiLdSupported().bind()
+        .checkContentIsNgsiLdSupported().bind()
+    val contexts = checkAndGetContext(httpHeaders, body).bind()
+
+    Pair(body, contexts)
 }
 
 enum class OptionsParamValue(val value: String) {

@@ -4,6 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
@@ -32,6 +33,7 @@ import java.net.URI
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
+@WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired

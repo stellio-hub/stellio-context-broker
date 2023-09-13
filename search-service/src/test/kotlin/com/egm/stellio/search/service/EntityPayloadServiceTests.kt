@@ -7,6 +7,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.search.util.deserializeAsMap
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -41,6 +42,7 @@ import java.time.ZonedDateTime
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
+@WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired

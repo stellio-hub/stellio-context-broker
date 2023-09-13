@@ -1,6 +1,5 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
@@ -17,10 +16,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.BaseHandler
-import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -529,16 +526,4 @@ class EntityHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    private suspend fun extractPayloadAndContexts(
-        requestBody: Mono<String>,
-        httpHeaders: HttpHeaders
-    ): Either<APIException, Pair<CompactedJsonLdEntity, List<String>>> = either {
-        val body = requestBody.awaitFirst().deserializeAsMap()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
-
-        Pair(body, contexts)
-    }
 }

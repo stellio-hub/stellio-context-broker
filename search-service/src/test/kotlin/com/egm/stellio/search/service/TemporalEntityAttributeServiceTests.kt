@@ -37,6 +37,7 @@ import java.time.ZonedDateTime
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
+@WithMockCustomUser(name = "User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired

@@ -106,54 +106,52 @@ class SubscriptionService(
         }.right()
 
     @Transactional
-    suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> {
-        return either {
-            validateNewSubscription(subscription).bind()
+    suspend fun create(subscription: Subscription): Either<APIException, Unit> = either {
+        validateNewSubscription(subscription).bind()
 
-            val geoQuery =
-                if (subscription.geoQ != null)
-                    parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
-                else null
+        val geoQuery =
+            if (subscription.geoQ != null)
+                parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
+            else null
 
-            val insertStatement =
-                """
-                INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
-                    time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
-                    endpoint_info, times_sent, is_active, expires_at, sub, contexts)
-                VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
-                    :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
-                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
-                """.trimIndent()
+        val insertStatement =
+            """
+            INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
+                time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
+                endpoint_info, times_sent, is_active, expires_at, sub, contexts)
+            VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
+                :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
+                :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
+            """.trimIndent()
 
-            databaseClient.sql(insertStatement)
-                .bind("id", subscription.id)
-                .bind("type", subscription.type)
-                .bind("subscription_name", subscription.subscriptionName)
-                .bind("created_at", subscription.createdAt)
-                .bind("description", subscription.description)
-                .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
-                .bind("time_interval", subscription.timeInterval)
-                .bind("q", subscription.q)
-                .bind("scope_q", subscription.scopeQ)
-                .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
-                .bind("notif_format", subscription.notification.format.name)
-                .bind("endpoint_uri", subscription.notification.endpoint.uri)
-                .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
-                .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
-                .bind("times_sent", subscription.notification.timesSent)
-                .bind("is_active", subscription.isActive)
-                .bind("expires_at", subscription.expiresAt)
-                .bind("sub", sub.toStringValue())
-                .bind("contexts", subscription.contexts.toTypedArray())
-                .execute().bind()
+        databaseClient.sql(insertStatement)
+            .bind("id", subscription.id)
+            .bind("type", subscription.type)
+            .bind("subscription_name", subscription.subscriptionName)
+            .bind("created_at", subscription.createdAt)
+            .bind("description", subscription.description)
+            .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
+            .bind("time_interval", subscription.timeInterval)
+            .bind("q", subscription.q)
+            .bind("scope_q", subscription.scopeQ)
+            .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
+            .bind("notif_format", subscription.notification.format.name)
+            .bind("endpoint_uri", subscription.notification.endpoint.uri)
+            .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
+            .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
+            .bind("times_sent", subscription.notification.timesSent)
+            .bind("is_active", subscription.isActive)
+            .bind("expires_at", subscription.expiresAt)
+            .bind("sub", getSubFromSecurityContext().toStringValue())
+            .bind("contexts", subscription.contexts.toTypedArray())
+            .execute().bind()
 
-            geoQuery?.let {
-                createGeometryQuery(it, subscription.id).bind()
-            }
+        geoQuery?.let {
+            createGeometryQuery(it, subscription.id).bind()
+        }
 
-            subscription.entities.forEach {
-                createEntityInfo(it, subscription.id).bind()
-            }
+        subscription.entities.forEach {
+            createEntityInfo(it, subscription.id).bind()
         }
     }
 
@@ -249,7 +247,8 @@ class SubscriptionService(
         } else
             buildContextLinkHeader(subscription.contexts[0])
 
-    suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(subscriptionId: URI): Either<APIException, Boolean> {
+        val sub = getSubFromSecurityContext().toStringValue()
         val selectStatement =
             """
             SELECT sub
@@ -260,7 +259,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .oneToResult {
-                it["sub"] == sub.toStringValue()
+                it["sub"] == sub
             }
     }
 
@@ -461,7 +460,7 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): List<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
@@ -483,7 +482,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", getSubFromSecurityContext().toStringValue())
             .allToMappedList { rowToSubscription(it) }
             .groupBy { t: Subscription ->
                 t.id
@@ -495,7 +494,7 @@ class SubscriptionService(
             }.values.toList()
     }
 
-    suspend fun getSubscriptionsCount(sub: Option<Sub>): Either<APIException, Int> {
+    suspend fun getSubscriptionsCount(): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(*)
@@ -503,7 +502,7 @@ class SubscriptionService(
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", getSubFromSecurityContext().toStringValue())
             .oneToResult { toInt(it["count"]) }
     }
 

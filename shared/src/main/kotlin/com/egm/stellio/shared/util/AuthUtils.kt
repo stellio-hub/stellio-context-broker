@@ -79,13 +79,7 @@ object AuthContextModel {
 typealias Sub = String
 
 suspend fun getSubFromSecurityContext(): Option<Sub> =
-    ReactiveSecurityContextHolder.getContext()
-        .switchIfEmpty(Mono.just(SecurityContextImpl()))
-        .map { context ->
-            // Authentication#getName maps to the JWT’s sub property, if one is present.
-            context.authentication?.name.toOption()
-        }
-        .awaitFirst()
+    getSubOrNullFromSecurityContext().toOption()
 
 suspend fun getSubOrNullFromSecurityContext(): Sub? =
     ReactiveSecurityContextHolder.getContext()

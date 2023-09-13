@@ -1,7 +1,10 @@
 package com.egm.stellio.subscription.web
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -44,12 +47,11 @@ class SubscriptionHandler(
     ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        val sub = getSubFromSecurityContext()
 
         val subscription = parseSubscription(body, contexts).bind()
         checkSubscriptionNotExists(subscription).bind()
 
-        subscriptionService.create(subscription, sub).bind()
+        subscriptionService.create(subscription).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
@@ -69,16 +71,15 @@ class SubscriptionHandler(
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
-        val sub = getSubFromSecurityContext()
 
         val queryParams = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,
             contextLink
         ).bind()
-        val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
+        val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset)
             .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
-        val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
+        val subscriptionsCount = subscriptionService.getSubscriptionsCount().bind()
 
         buildQueryResponse(
             subscriptions,
@@ -109,8 +110,7 @@ class SubscriptionHandler(
 
         checkSubscriptionExists(subscriptionId).bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionId, sub).bind()
+        checkIsAllowed(subscriptionId).bind()
         val subscription = subscriptionService.getById(subscriptionId)
 
         prepareGetSuccessResponse(mediaType, contextLink)
@@ -150,8 +150,7 @@ class SubscriptionHandler(
     ): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionId, sub).bind()
+        checkIsAllowed(subscriptionId).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
         subscriptionService.update(subscriptionId, body, contexts).bind()
@@ -173,8 +172,7 @@ class SubscriptionHandler(
     suspend fun delete(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionId, sub).bind()
+        checkIsAllowed(subscriptionId).bind()
         subscriptionService.delete(subscriptionId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -204,8 +202,8 @@ class SubscriptionHandler(
                 else Unit.right()
             }
 
-    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        subscriptionService.isCreatorOf(subscriptionId, sub)
+    private suspend fun checkIsAllowed(subscriptionId: URI): Either<APIException, Unit> =
+        subscriptionService.isCreatorOf(subscriptionId)
             .flatMap {
                 if (!it)
                     AccessDeniedException(subscriptionUnauthorizedMessage(subscriptionId)).left()

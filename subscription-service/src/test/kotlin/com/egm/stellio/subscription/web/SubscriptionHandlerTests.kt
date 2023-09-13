@@ -61,7 +61,7 @@ class SubscriptionHandlerTests {
         val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.getById(any()) } returns subscription
 
         webClient.get()
@@ -73,7 +73,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").doesNotExist()
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id) }
         coVerify { subscriptionService.getById(subscription.id) }
     }
 
@@ -82,7 +82,7 @@ class SubscriptionHandlerTests {
         val subscription = gimmeRawSubscription(withModifiedAt = true)
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.getById(any()) } returns subscription
 
         webClient.get()
@@ -94,7 +94,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").exists()
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id) }
         coVerify { subscriptionService.getById(subscription.id) }
     }
 
@@ -118,7 +118,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `get subscription by id should return a 403 if subscription does not belong to the user`() = runTest {
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns false.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns false.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -135,7 +135,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
     }
 
     @Test
@@ -151,7 +151,7 @@ class SubscriptionHandlerTests {
     fun `get subscription context should return a list of contexts`() = runTest {
         val subscription = gimmeRawSubscription().copy(contexts = listOf(APIC_COMPOUND_CONTEXT))
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.getContextsForSubscription(any()) } returns subscription.contexts.right()
 
         webClient.get()
@@ -174,7 +174,7 @@ class SubscriptionHandlerTests {
 
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
-        coEvery { subscriptionService.create(any(), any()) } returns Unit.right()
+        coEvery { subscriptionService.create(any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -209,7 +209,7 @@ class SubscriptionHandlerTests {
 
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
-        coEvery { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
+        coEvery { subscriptionService.create(any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -268,7 +268,7 @@ class SubscriptionHandlerTests {
 
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery {
-            subscriptionService.create(any(), any())
+            subscriptionService.create(any())
         } returns BadRequestDataException("You can't use 'timeInterval' with 'watchedAttributes' in conjunction").left()
 
         @Suppress("MaxLineLength")
@@ -293,8 +293,8 @@ class SubscriptionHandlerTests {
         runTest {
             val subscription = gimmeRawSubscription()
 
-            coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(1)
-            coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+            coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(1)
+            coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
             webClient.get()
                 .uri("/ngsi-ld/v1/subscriptions")
@@ -310,8 +310,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with sysAttrs when options query param specify it`() = runTest {
         val subscription = gimmeRawSubscription(withModifiedAt = true)
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(1)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(1)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions?options=sysAttrs")
@@ -327,8 +327,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 without link header`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(1)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(1)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/")
@@ -341,8 +341,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with prev link header if exists`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(2)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(2)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=2")
@@ -359,8 +359,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with next link header if exists`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(2)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(2)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=0")
@@ -377,8 +377,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with prev and next link header if exists`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(3)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(3)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=1")
@@ -393,8 +393,8 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `query subscriptions should return 200 and empty response if requested offset does not exists`() = runTest {
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(2)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns emptyList()
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(2)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=9")
@@ -408,8 +408,8 @@ class SubscriptionHandlerTests {
         val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(3)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(3)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=0&offset=1&count=true")
@@ -423,8 +423,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 400 if requested offset is less than zero`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(2)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(2)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=-1")
@@ -445,8 +445,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 400 if limit is equal or less than zero`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(2)
-        coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
+        coEvery { subscriptionService.getSubscriptionsCount() } returns Either.Right(2)
+        coEvery { subscriptionService.getSubscriptions(any(), any()) } returns listOf(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=-1&offset=1")
@@ -487,7 +487,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.update(any(), any(), any()) } returns Unit.right()
 
         webClient.patch()
@@ -497,7 +497,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
         coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
 
         confirmVerified(subscriptionService)
@@ -510,7 +510,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
@@ -529,7 +529,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
         coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
 
         confirmVerified(subscriptionService)
@@ -562,7 +562,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
 
         @Suppress("MaxLineLength")
         webClient.patch()
@@ -581,7 +581,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
     }
 
     @Test
@@ -590,7 +590,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns false.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns false.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -608,7 +608,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
 
         confirmVerified(subscriptionService)
     }
@@ -617,7 +617,7 @@ class SubscriptionHandlerTests {
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() = runTest {
         val subscription = gimmeRawSubscription()
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -627,7 +627,7 @@ class SubscriptionHandlerTests {
             .expectBody().isEmpty
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id) }
         coVerify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)
@@ -659,7 +659,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() = runTest {
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns true.right()
         coEvery { subscriptionService.getContextsForSubscription(any()) } returns listOf(APIC_COMPOUND_CONTEXT).right()
         coEvery { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
@@ -678,14 +678,14 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
         coVerify { subscriptionService.delete(eq(subscriptionId)) }
     }
 
     @Test
     fun `delete subscription should return a 403 if subscription does not belong to the user`() = runTest {
         coEvery { subscriptionService.exists(any()) } returns true.right()
-        coEvery { subscriptionService.isCreatorOf(any(), any()) } returns false.right()
+        coEvery { subscriptionService.isCreatorOf(any()) } returns false.right()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -702,6 +702,6 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId) }
     }
 }

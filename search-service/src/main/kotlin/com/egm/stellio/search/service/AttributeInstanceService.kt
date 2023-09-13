@@ -205,9 +205,12 @@ class AttributeInstanceService(
                     aggrMethodToSqlAggregate(it, temporalEntityAttributes[0].attributeValueType)
                 "$sqlAggregateExpression as ${it.method}_value"
             }
+            // if retrieving a temporal entity, origin is calculated before
+            // if querying temporal entities, timeAt is mandatory
+            val calculatedOrigin = origin ?: temporalQuery.timeAt
             """
             SELECT temporal_entity_attribute,
-               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${origin!!}') as origin,
+               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${calculatedOrigin!!}') as origin,
                $allAggregates
             """.trimIndent()
         }

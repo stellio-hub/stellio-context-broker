@@ -94,7 +94,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
+            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         val expandedAttributes = JsonLdUtils.expandAttributes(
             """
@@ -123,7 +123,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private suspend fun createScopeHistory() {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
+            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),
@@ -217,7 +217,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, ngsiLdDateTime(), it.first) }
+            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 

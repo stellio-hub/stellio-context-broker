@@ -56,7 +56,7 @@ class EntityPayloadService(
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, createdAt, jsonLdEntity, sub = sub).bind()
+        createEntityPayload(ngsiLdEntity, jsonLdEntity, createdAt, sub = sub).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
             jsonLdEntity,
@@ -69,8 +69,8 @@ class EntityPayloadService(
     @Transactional
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        createdAt: ZonedDateTime,
         jsonLdEntity: JsonLdEntity,
+        createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
@@ -138,7 +138,7 @@ class EntityPayloadService(
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
 
-        replaceEntityPayload(ngsiLdEntity, replacedAt, jsonLdEntity, sub).bind()
+        replaceEntityPayload(ngsiLdEntity, jsonLdEntity, replacedAt, sub).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
             jsonLdEntity,
@@ -151,8 +151,8 @@ class EntityPayloadService(
     @Transactional
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        replacedAt: ZonedDateTime,
         jsonLdEntity: JsonLdEntity,
+        replacedAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()

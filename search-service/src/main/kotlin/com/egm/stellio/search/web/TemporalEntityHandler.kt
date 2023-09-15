@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -45,10 +44,7 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsMap()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
         val entityUri = jsonLdTemporalEntity.id.toUri()
@@ -110,10 +106,7 @@ class TemporalEntityHandler(
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val body = requestBody.awaitFirst().deserializeAsMap()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
         val jsonLdInstances = expandAttributes(body, contexts)
         jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
@@ -332,10 +325,9 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @PathVariable instanceId: String
+        @PathVariable instanceId: URI
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val instanceUri = instanceId.toUri()
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
@@ -344,7 +336,7 @@ class TemporalEntityHandler(
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceUri).bind()
+        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

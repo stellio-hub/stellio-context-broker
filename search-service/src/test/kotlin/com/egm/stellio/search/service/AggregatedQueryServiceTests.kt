@@ -351,6 +351,30 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `ìt should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
+        val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.NUMBER)
+        (1..10).forEach { i ->
+            val attributeInstance = gimmeAttributeInstance(teaUuid)
+                .copy(measuredValue = i.toDouble())
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = createTemporalEntitiesQuery("avg")
+        attributeInstanceService.search(
+            temporalEntitiesQuery.copy(
+                temporalQuery = temporalEntitiesQuery.temporalQuery.copy(aggrPeriodDuration = "PT0S")
+            ),
+            temporalEntityAttribute,
+            now
+        ).shouldSucceedWith { results ->
+            assertAggregatedResult(results, "avg")
+                .matches({
+                    it.toString() == "5.5"
+                }, "expected value is 5.5")
+        }
+    }
+
+    @Test
     fun `it should handle aggregates for an attribute having different types of values in history`() = runTest {
         val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.ARRAY)
         (1..10).forEach { i ->

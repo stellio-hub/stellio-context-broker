@@ -158,8 +158,12 @@ class AttributeInstanceService(
             null -> Unit
         }
 
-        if (temporalEntitiesQuery.withAggregatedValues)
+        if (temporalEntitiesQuery.withAggregatedValues &&
+            (temporalQuery.aggrPeriodDuration != null && temporalQuery.aggrPeriodDuration != "PT0S")
+        )
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin")
+        else if (temporalEntitiesQuery.withAggregatedValues)
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
         else if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
@@ -207,12 +211,18 @@ class AttributeInstanceService(
             }
             // if retrieving a temporal entity, origin is calculated before
             // if querying temporal entities, timeAt is mandatory
-            val calculatedOrigin = origin ?: temporalQuery.timeAt
-            """
-            SELECT temporal_entity_attribute,
-               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${calculatedOrigin!!}') as origin,
-               $allAggregates
-            """.trimIndent()
+            if (temporalQuery.aggrPeriodDuration != "PT0S") {
+                val calculatedOrigin = origin ?: temporalQuery.timeAt
+                """
+                SELECT temporal_entity_attribute,
+                    time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${calculatedOrigin!!}') as origin,
+                    $allAggregates
+                """.trimIndent()
+            } else {
+                """
+                SELECT temporal_entity_attribute, min(time) as origin, max(time) as endTime, $allAggregates                    
+                """.trimIndent()
+            }
         }
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
@@ -269,7 +279,10 @@ class AttributeInstanceService(
         return if (temporalEntitiesQuery.withAggregatedValues) {
             val startDateTime = toZonedDateTime(row["origin"])
             val endDateTime =
-                startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
+                if (temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!! == "PT0S")
+                    toZonedDateTime(row["endTime"])
+                else
+                    startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration))
             // in a row, there is the result for each requested aggregation method
             val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
                 val value = row["${it.method}_value"] ?: ""

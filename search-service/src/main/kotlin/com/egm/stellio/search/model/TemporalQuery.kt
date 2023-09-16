@@ -1,5 +1,6 @@
 package com.egm.stellio.search.model
 
+import java.time.Duration
 import java.time.ZonedDateTime
 
 data class TemporalQuery(
@@ -29,10 +30,13 @@ data class TemporalQuery(
 
         companion object {
             fun isSupportedAggregate(method: String): Boolean =
-                values().any { it.method == method }
+                entries.any { it.method == method }
 
             fun forMethod(method: String): Aggregate? =
-                values().find { it.method == method }
+                entries.find { it.method == method }
         }
     }
+
+    fun computedAggrPeriodDuration(): Duration =
+        Duration.parse(aggrPeriodDuration) ?: Duration.between(timeAt, endTimeAt)
 }

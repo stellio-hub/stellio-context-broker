@@ -2,6 +2,8 @@ package com.egm.stellio.search.model
 
 import java.time.ZonedDateTime
 
+const val WHOLE_TIME_RANGE_DURATION = "PT0S"
+
 data class TemporalQuery(
     val timerel: Timerel? = null,
     val timeAt: ZonedDateTime? = null,
@@ -29,10 +31,10 @@ data class TemporalQuery(
 
         companion object {
             fun isSupportedAggregate(method: String): Boolean =
-                values().any { it.method == method }
+                entries.any { it.method == method }
 
             fun forMethod(method: String): Aggregate? =
-                values().find { it.method == method }
+                entries.find { it.method == method }
         }
     }
 }

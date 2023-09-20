@@ -1,22 +1,22 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.search.model.TemporalQuery
 
 fun aggrMethodToSqlAggregate(
     aggregate: TemporalQuery.Aggregate,
-    attributeValueType: TemporalEntityAttribute.AttributeValueType
+    attributeValueType: AttributeValueType
 ): String = when (attributeValueType) {
-    TemporalEntityAttribute.AttributeValueType.STRING -> sqlAggregationForJsonString(aggregate)
-    TemporalEntityAttribute.AttributeValueType.NUMBER -> sqlAggregateForJsonNumber(aggregate)
-    TemporalEntityAttribute.AttributeValueType.OBJECT -> sqlAggregateForJsonObject(aggregate)
-    TemporalEntityAttribute.AttributeValueType.ARRAY -> sqlAggregateForJsonArray(aggregate)
-    TemporalEntityAttribute.AttributeValueType.BOOLEAN -> sqlAggregateForJsonBoolean(aggregate)
-    TemporalEntityAttribute.AttributeValueType.DATETIME -> sqlAggregateForDateTime(aggregate)
-    TemporalEntityAttribute.AttributeValueType.DATE -> sqlAggregateForDate(aggregate)
-    TemporalEntityAttribute.AttributeValueType.TIME -> sqlAggregateForTime(aggregate)
-    TemporalEntityAttribute.AttributeValueType.URI -> sqlAggregateForURI(aggregate)
-    TemporalEntityAttribute.AttributeValueType.GEOMETRY -> "null"
+    AttributeValueType.STRING -> sqlAggregationForJsonString(aggregate)
+    AttributeValueType.NUMBER -> sqlAggregateForJsonNumber(aggregate)
+    AttributeValueType.OBJECT -> sqlAggregateForJsonObject(aggregate)
+    AttributeValueType.ARRAY -> sqlAggregateForJsonArray(aggregate)
+    AttributeValueType.BOOLEAN -> sqlAggregateForJsonBoolean(aggregate)
+    AttributeValueType.DATETIME -> sqlAggregateForDateTime(aggregate)
+    AttributeValueType.DATE -> sqlAggregateForDate(aggregate)
+    AttributeValueType.TIME -> sqlAggregateForTime(aggregate)
+    AttributeValueType.URI -> sqlAggregateForURI(aggregate)
+    AttributeValueType.GEOMETRY -> "null"
 }
 
 fun sqlAggregationForJsonString(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
@@ -95,3 +95,9 @@ fun sqlAggregateForURI(aggregate: TemporalQuery.Aggregate): String = when (aggre
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
     else -> "null"
 }
+
+fun List<TemporalQuery.Aggregate>?.composeAggregationSelectClause(attributeValueType: AttributeValueType): String? =
+    this?.joinToString(",") {
+        val sqlAggregateExpression = aggrMethodToSqlAggregate(it, attributeValueType)
+        "$sqlAggregateExpression as ${it.method}_value"
+    }

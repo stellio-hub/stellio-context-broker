@@ -113,8 +113,10 @@ class ScopeService(
             null -> Unit
         }
 
-        if (temporalEntitiesQuery.withAggregatedValues)
+        if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
             sqlQueryBuilder.append(" GROUP BY entity_id, origin")
+        else if (temporalEntitiesQuery.withAggregatedValues)
+            sqlQueryBuilder.append(" GROUP BY entity_id")
         else if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
@@ -137,15 +139,19 @@ class ScopeService(
     ): String = when {
         temporalEntitiesQuery.withAggregatedValues -> {
             val temporalQuery = temporalEntitiesQuery.temporalQuery
-            val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
-                val sqlAggregateExpression = aggrMethodToSqlAggregate(it, AttributeValueType.ARRAY)
-                "$sqlAggregateExpression as ${it.method}_value"
-            }
-            """
-            SELECT entity_id,
-               time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${origin!!}') as origin,
-               $allAggregates
-            """
+            val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
+            val allAggregates = temporalQuery.aggrMethods?.composeAggregationSelectClause(AttributeValueType.ARRAY)
+            // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
+            // if querying temporal entities, timeAt is mandatory and will be used if origin is null
+            if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
+                val computedOrigin = origin ?: temporalQuery.timeAt
+                """
+                SELECT entity_id,
+                   time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
+                   $allAggregates
+                """
+            } else
+                "SELECT entity_id, min(time) as origin, max(time) as endTime, $allAggregates "
         }
         temporalEntitiesQuery.temporalQuery.timeproperty == TemporalProperty.OBSERVED_AT -> {
             """
@@ -188,7 +194,10 @@ class ScopeService(
         if (temporalEntitiesQuery.withAggregatedValues) {
             val startDateTime = toZonedDateTime(row["origin"])
             val endDateTime =
-                startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
+                if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
+                    toZonedDateTime(row["endTime"])
+                else
+                    startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
             // in a row, there is the result for each requested aggregation method
             val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
                 val value = row["${it.method}_value"] ?: ""

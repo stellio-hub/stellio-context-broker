@@ -214,6 +214,67 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should retrieve the history of scopes with aggregated values on whole time range`() = runTest {
+        createScopeHistory()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                TemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    timeAt = ngsiLdDateTime(),
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                    aggrPeriodDuration = "PT0S"
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, scopeHistoryEntries.size)
+        assertThat(scopeHistoryEntries).allMatch {
+            it as AggregatedScopeInstanceResult
+            it.values.size == 1 &&
+                it.values[0].aggregate == TemporalQuery.Aggregate.SUM &&
+                it.values[0].value as Long == 2L
+        }
+    }
+
+    @Test
+    fun `it should retrieve the history of scopes with aggregated values on whole time range without interval`() =
+        runTest {
+            createScopeHistory()
+
+            val scopeHistoryEntries = scopeService.retrieveHistory(
+                listOf(beehiveTestCId),
+                TemporalEntitiesQuery(
+                    QueryParams(limit = 100, offset = 0, context = APIC_COMPOUND_CONTEXT),
+                    TemporalQuery(
+                        timeproperty = TemporalProperty.MODIFIED_AT,
+                        aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                        aggrPeriodDuration = "PT0S"
+                    ),
+                    withTemporalValues = false,
+                    withAudit = false,
+                    withAggregatedValues = true
+                ),
+                ngsiLdDateTime().minusHours(1)
+            ).shouldSucceedAndResult()
+
+            assertEquals(1, scopeHistoryEntries.size)
+            assertThat(scopeHistoryEntries).allMatch {
+                it as AggregatedScopeInstanceResult
+                it.values.size == 1 &&
+                    it.values[0].aggregate == TemporalQuery.Aggregate.SUM &&
+                    it.values[0].value as Long == 2L
+            }
+        }
+
+    @Test
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()

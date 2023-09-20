@@ -1,7 +1,8 @@
 package com.egm.stellio.search.model
 
-import java.time.Duration
 import java.time.ZonedDateTime
+
+const val WHOLE_TIME_RANGE_DURATION = "PT0S"
 
 data class TemporalQuery(
     val timerel: Timerel? = null,
@@ -36,7 +37,4 @@ data class TemporalQuery(
                 entries.find { it.method == method }
         }
     }
-
-    fun computedAggrPeriodDuration(): Duration =
-        Duration.parse(aggrPeriodDuration) ?: Duration.between(timeAt, endTimeAt)
 }

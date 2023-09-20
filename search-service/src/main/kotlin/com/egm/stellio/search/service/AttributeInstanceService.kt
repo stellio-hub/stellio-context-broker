@@ -158,9 +158,7 @@ class AttributeInstanceService(
             null -> Unit
         }
 
-        if (temporalEntitiesQuery.withAggregatedValues &&
-            (temporalQuery.aggrPeriodDuration != null && temporalQuery.aggrPeriodDuration != "PT0S")
-        )
+        if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
@@ -204,25 +202,23 @@ class AttributeInstanceService(
         origin: ZonedDateTime?
     ) = when {
         temporalQuery.aggrPeriodDuration != null -> {
+            val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
             val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
                 val sqlAggregateExpression =
                     aggrMethodToSqlAggregate(it, temporalEntityAttributes[0].attributeValueType)
                 "$sqlAggregateExpression as ${it.method}_value"
             }
-            // if retrieving a temporal entity, origin is calculated before
-            // if querying temporal entities, timeAt is mandatory
-            if (temporalQuery.aggrPeriodDuration != "PT0S") {
-                val calculatedOrigin = origin ?: temporalQuery.timeAt
+            // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
+            // if querying temporal entities, timeAt is mandatory and will be used if origin is null
+            if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
+                val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT temporal_entity_attribute,
-                    time_bucket('${temporalQuery.aggrPeriodDuration}', time, TIMESTAMPTZ '${calculatedOrigin!!}') as origin,
+                    time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
                     $allAggregates
                 """.trimIndent()
-            } else {
-                """
-                SELECT temporal_entity_attribute, min(time) as origin, max(time) as endTime, $allAggregates                    
-                """.trimIndent()
-            }
+            } else
+                "SELECT temporal_entity_attribute, min(time) as origin, max(time) as endTime, $allAggregates"
         }
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
@@ -275,11 +271,11 @@ class AttributeInstanceService(
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): AttributeInstanceResult {
-        return if (temporalEntitiesQuery.withAggregatedValues) {
+    ): AttributeInstanceResult =
+        if (temporalEntitiesQuery.withAggregatedValues) {
             val startDateTime = toZonedDateTime(row["origin"])
             val endDateTime =
-                if (temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!! == "PT0S")
+                if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
                     toZonedDateTime(row["endTime"])
                 else
                     startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration))
@@ -307,7 +303,6 @@ class AttributeInstanceService(
             timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )
-    }
 
     @Transactional
     suspend fun modifyAttributeInstance(

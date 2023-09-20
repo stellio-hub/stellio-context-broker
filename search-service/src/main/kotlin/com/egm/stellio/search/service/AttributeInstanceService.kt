@@ -218,7 +218,7 @@ class AttributeInstanceService(
                     $allAggregates
                 """.trimIndent()
             } else
-                "SELECT temporal_entity_attribute, min(time) as origin, max(time) as endTime, $allAggregates"
+                "SELECT temporal_entity_attribute, min(time) as origin, max(time) as endTime, $allAggregates "
         }
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {

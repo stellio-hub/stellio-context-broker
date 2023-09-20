@@ -154,7 +154,7 @@ class ScopeService(
                    $allAggregates
                 """
             } else
-                "SELECT entity_id, min(time) as origin, max(time) as endTime, $allAggregates"
+                "SELECT entity_id, min(time) as origin, max(time) as endTime, $allAggregates "
         }
         temporalEntitiesQuery.temporalQuery.timeproperty == TemporalProperty.OBSERVED_AT -> {
             """

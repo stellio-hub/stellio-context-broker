@@ -140,10 +140,7 @@ class ScopeService(
         temporalEntitiesQuery.withAggregatedValues -> {
             val temporalQuery = temporalEntitiesQuery.temporalQuery
             val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
-            val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
-                val sqlAggregateExpression = aggrMethodToSqlAggregate(it, AttributeValueType.ARRAY)
-                "$sqlAggregateExpression as ${it.method}_value"
-            }
+            val allAggregates = temporalQuery.aggrMethods?.composeAggregationSelectClause(AttributeValueType.ARRAY)
             // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
             // if querying temporal entities, timeAt is mandatory and will be used if origin is null
             if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {

@@ -203,11 +203,8 @@ class AttributeInstanceService(
     ) = when {
         temporalQuery.aggrPeriodDuration != null -> {
             val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
-            val allAggregates = temporalQuery.aggrMethods?.joinToString(",") {
-                val sqlAggregateExpression =
-                    aggrMethodToSqlAggregate(it, temporalEntityAttributes[0].attributeValueType)
-                "$sqlAggregateExpression as ${it.method}_value"
-            }
+            val allAggregates = temporalQuery.aggrMethods
+                ?.composeAggregationSelectClause(temporalEntityAttributes[0].attributeValueType)
             // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
             // if querying temporal entities, timeAt is mandatory and will be used if origin is null
             if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {

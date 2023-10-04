@@ -36,27 +36,20 @@ class QueryService(
     suspend fun queryEntities(
         queryParams: QueryParams,
         accessRightFilter: () -> String?
-    ): Either<APIException, Pair<List<JsonLdEntity>, Int>> =
-        either {
-            val entitiesIds = entityPayloadService.queryEntities(
-                queryParams,
-                accessRightFilter
-            )
-            val count = entityPayloadService.queryEntitiesCount(
-                queryParams,
-                accessRightFilter
-            ).bind()
+    ): Either<APIException, Pair<List<JsonLdEntity>, Int>> = either {
+        val entitiesIds = entityPayloadService.queryEntities(queryParams, accessRightFilter)
+        val count = entityPayloadService.queryEntitiesCount(queryParams, accessRightFilter).bind()
 
-            // we can have an empty list of entities with a non-zero count (e.g., offset too high)
-            if (entitiesIds.isEmpty())
-                return@either Pair<List<JsonLdEntity>, Int>(emptyList(), count)
+        // we can have an empty list of entities with a non-zero count (e.g., offset too high)
+        if (entitiesIds.isEmpty())
+            return@either Pair<List<JsonLdEntity>, Int>(emptyList(), count)
 
-            val entitiesPayloads =
-                entityPayloadService.retrieve(entitiesIds)
-                    .map { toJsonLdEntity(it, listOf(queryParams.context)) }
+        val entitiesPayloads =
+            entityPayloadService.retrieve(entitiesIds)
+                .map { toJsonLdEntity(it, listOf(queryParams.context)) }
 
-            Pair(entitiesPayloads, count).right().bind()
-        }
+        Pair(entitiesPayloads, count).right().bind()
+    }
 
     suspend fun queryTemporalEntity(
         entityId: URI,

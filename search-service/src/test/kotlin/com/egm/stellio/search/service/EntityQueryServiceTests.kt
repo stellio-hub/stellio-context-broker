@@ -234,6 +234,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
         "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
         "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime>2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:02",

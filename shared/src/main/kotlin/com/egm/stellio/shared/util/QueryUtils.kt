@@ -81,8 +81,7 @@ fun String.escapeRegexpPattern(): String =
     if (this.matches(innerRegexPattern.toRegex())) {
         this.replace(innerRegexPattern.toRegex()) { matchResult ->
             matchResult.value
-                .replace("(", "##")
-                .replace(")", "//")
+                .replace("(?i)", "##?i//")
         }
     } else this
 

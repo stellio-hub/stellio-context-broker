@@ -21,7 +21,7 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
@@ -283,7 +283,7 @@ class EntityAccessRightsService(
                             }
 
                             val subjectInfo = toJsonString(record["subject_info"])
-                                .deserializeAsMap()[JSONLD_VALUE] as Map<String, String>
+                                .deserializeAsMap()[JSONLD_VALUE_TERM] as Map<String, String>
                             val subjectSpecificInfo = when (subjectType) {
                                 SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
                                 SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)

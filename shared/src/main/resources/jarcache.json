@@ -10,6 +10,11 @@
     "Content-Type": "application/ld+json"
   },
   {
+    "Content-Location": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld",
+    "X-Classpath": "contexts/ngsi-ld-core-context-v1.7.jsonld",
+    "Content-Type": "application/ld+json"
+  },
+  {
     "Content-Location": "https://forge.etsi.org/rep/cim/ngsi-ld-test-suite/-/raw/develop/resources/jsonld-contexts/ngsi-ld-test-suite-compound.jsonld",
     "X-Classpath": "contexts/ngsi-ld-test-suite-compound.jsonld",
     "Content-Type": "application/ld+json"

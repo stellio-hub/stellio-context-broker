@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -31,7 +32,7 @@ import java.util.Optional
 class SubscriptionHandler(
     private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService
-) {
+) : BaseHandler() {
 
     /**
      * Implements 6.10.3.1 - Create Subscription
@@ -99,19 +100,18 @@ class SubscriptionHandler(
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable subscriptionId: String,
+        @PathVariable subscriptionId: URI,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val subscriptionIdUri = subscriptionId.toUri()
-        checkSubscriptionExists(subscriptionIdUri).bind()
+        checkSubscriptionExists(subscriptionId).bind()
 
         val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionIdUri, sub).bind()
-        val subscription = subscriptionService.getById(subscriptionIdUri)
+        checkIsAllowed(subscriptionId, sub).bind()
+        val subscription = subscriptionService.getById(subscriptionId)
 
         prepareGetSuccessResponse(mediaType, contextLink)
             .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
@@ -127,9 +127,8 @@ class SubscriptionHandler(
      * one link.
      */
     @GetMapping("/{subscriptionId}/context", produces = [MediaType.APPLICATION_JSON_VALUE])
-    suspend fun getSubscriptionContext(@PathVariable subscriptionId: String): ResponseEntity<*> = either {
-        val subscriptionUri = subscriptionId.toUri()
-        val contexts = subscriptionService.getContextsForSubscription(subscriptionUri).bind()
+    suspend fun getSubscriptionContext(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
+        val contexts = subscriptionService.getContextsForSubscription(subscriptionId).bind()
 
         ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
     }.fold(
@@ -145,18 +144,17 @@ class SubscriptionHandler(
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun update(
-        @PathVariable subscriptionId: String,
+        @PathVariable subscriptionId: URI,
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
-        val subscriptionIdUri = subscriptionId.toUri()
-        checkSubscriptionExists(subscriptionIdUri).bind()
+        checkSubscriptionExists(subscriptionId).bind()
 
         val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionIdUri, sub).bind()
+        checkIsAllowed(subscriptionId, sub).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind()
-        subscriptionService.update(subscriptionIdUri, body, contexts).bind()
+        subscriptionService.update(subscriptionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -172,13 +170,12 @@ class SubscriptionHandler(
      * Implements 6.11.3.3 - Delete Subscription
      */
     @DeleteMapping("/{subscriptionId}")
-    suspend fun delete(@PathVariable subscriptionId: String): ResponseEntity<*> = either {
-        val subscriptionUri = subscriptionId.toUri()
-        checkSubscriptionExists(subscriptionUri).bind()
+    suspend fun delete(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
+        checkSubscriptionExists(subscriptionId).bind()
 
         val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionUri, sub).bind()
-        subscriptionService.delete(subscriptionUri).bind()
+        checkIsAllowed(subscriptionId, sub).bind()
+        subscriptionService.delete(subscriptionId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

@@ -1,9 +1,6 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.EntityPayload
-import com.egm.stellio.search.model.FullAttributeInstanceResult
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.*
@@ -14,7 +11,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.Stream
 
-@Suppress("unused")
+@Suppress("unused", "UtilityClassWithPublicConstructor")
 class QueryParameterizedTests {
 
     companion object {
@@ -22,7 +19,7 @@ class QueryParameterizedTests {
 
         private val simplifiedResultOfTwoEntitiesWithOneProperty =
             listOf(
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -30,6 +27,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -46,7 +44,7 @@ class QueryParameterizedTests {
                         )
                     )
                 ),
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -54,6 +52,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
@@ -74,7 +73,7 @@ class QueryParameterizedTests {
 
         private val resultOfTwoEntitiesWithOneProperty =
             listOf(
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -82,6 +81,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -105,7 +105,7 @@ class QueryParameterizedTests {
                         )
                     )
                 ),
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -113,6 +113,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
@@ -140,7 +141,7 @@ class QueryParameterizedTests {
 
         private val simplifiedResultOfTwoEntitiesWithOnePropertyAndOneRelationship =
             listOf(
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -148,6 +149,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -178,7 +180,7 @@ class QueryParameterizedTests {
                         )
                     )
                 ),
-                Pair(
+                EntityTemporalResult(
                     EntityPayload(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
@@ -186,6 +188,7 @@ class QueryParameterizedTests {
                         payload = EMPTY_JSON_PAYLOAD,
                         contexts = listOf(APIC_COMPOUND_CONTEXT)
                     ),
+                    emptyList(),
                     mapOf(
                         TemporalEntityAttribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),

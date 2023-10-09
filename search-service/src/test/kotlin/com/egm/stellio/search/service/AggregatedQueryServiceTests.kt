@@ -19,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
-import java.time.*
+import java.time.LocalDate
+import java.time.OffsetTime
+import java.time.ZonedDateTime
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,7 +38,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
     private val teaUuid = UUID.randomUUID()
     private val entityId = "urn:ngsi-ld:BeeHive:${UUID.randomUUID()}".toUri()
 
@@ -77,7 +79,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -106,7 +108,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -142,7 +144,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -176,7 +178,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -208,7 +210,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -241,7 +243,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -274,7 +276,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -307,7 +309,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
@@ -339,13 +341,37 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery(aggrMethod)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldSucceedWith { results ->
                 assertAggregatedResult(results, aggrMethod)
                     .matches({
                         it.toString() == expectedValue
                     }, "expected value is $expectedValue")
             }
+    }
+
+    @Test
+    fun `ìt should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
+        val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.NUMBER)
+        (1..10).forEach { i ->
+            val attributeInstance = gimmeAttributeInstance(teaUuid)
+                .copy(measuredValue = i.toDouble())
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = createTemporalEntitiesQuery("avg")
+        attributeInstanceService.search(
+            temporalEntitiesQuery.copy(
+                temporalQuery = temporalEntitiesQuery.temporalQuery.copy(aggrPeriodDuration = "PT0S")
+            ),
+            temporalEntityAttribute,
+            now
+        ).shouldSucceedWith { results ->
+            assertAggregatedResult(results, "avg")
+                .matches({
+                    it.toString() == "5.5"
+                }, "expected value is 5.5")
+        }
     }
 
     @Test
@@ -361,7 +387,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery("max")
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldFail {
                 assertInstanceOf(OperationNotSupportedException::class.java, it)
                 assertEquals(INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE, it.message)

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.net.URI
 import kotlin.collections.flatten
 
 @RestController
@@ -33,7 +35,7 @@ class EntityAccessControlHandler(
     private val entityAccessRightsService: EntityAccessRightsService,
     private val entityPayloadService: EntityPayloadService,
     private val authorizationService: AuthorizationService
-) {
+) : BaseHandler() {
 
     @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAuthorizedEntities(
@@ -256,14 +258,13 @@ class EntityAccessControlHandler(
     @DeleteMapping("/{subjectId}/attrs/{entityId}")
     suspend fun removeRightsOnEntity(
         @PathVariable subjectId: String,
-        @PathVariable entityId: String
+        @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val entityUri = entityId.toUri()
 
-        authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityAccessRightsService.removeRoleOnEntity(subjectId, entityUri).bind()
+        entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -274,13 +275,12 @@ class EntityAccessControlHandler(
     @PostMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun updateSpecificAccessPolicy(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable entityId: String,
+        @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val entityUri = entityId.toUri()
-        authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        authorizationService.userCanAdminEntity(entityId, sub).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
@@ -291,7 +291,7 @@ class EntityAccessControlHandler(
 
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().bind()
 
-        entityPayloadService.updateSpecificAccessPolicy(entityUri, ngsiLdAttribute).bind()
+        entityPayloadService.updateSpecificAccessPolicy(entityId, ngsiLdAttribute).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -301,14 +301,13 @@ class EntityAccessControlHandler(
 
     @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun deleteSpecificAccessPolicy(
-        @PathVariable entityId: String
+        @PathVariable entityId: URI
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val entityUri = entityId.toUri()
-        authorizationService.userCanAdminEntity(entityUri, sub).bind()
+        authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityPayloadService.removeSpecificAccessPolicy(entityUri).bind()
+        entityPayloadService.removeSpecificAccessPolicy(entityId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

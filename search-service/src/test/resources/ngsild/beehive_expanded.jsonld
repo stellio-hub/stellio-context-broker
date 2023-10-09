@@ -1,20 +1,18 @@
 {
-  "https://ontology.eglobalmark.com/egm#connectsTo": [
-    {
-      "https://uri.etsi.org/ngsi-ld/hasObject": [
-        {
-          "@id": "urn:ngsi-ld:Beekeeper:Pascal"
-        }
-      ],
-      "@type": [
-        "https://uri.etsi.org/ngsi-ld/Relationship"
-      ]
-    }
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
   ],
   "https://ontology.eglobalmark.com/apic#dateOfFirstBee": [
     {
       "@type": [
         "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/createdAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
+        }
       ],
       "https://uri.etsi.org/ngsi-ld/hasValue": [
         {
@@ -24,33 +22,56 @@
       ]
     }
   ],
-  "@id": "urn:ngsi-ld:BeeHive:TESTC",
   "https://ontology.eglobalmark.com/apic#incoming": [
     {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://ontology.eglobalmark.com/egm#observedBy": [
+        {
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/Relationship"
+          ],
+          "https://uri.etsi.org/ngsi-ld/hasObject": [
+            {
+              "@id": "urn:ngsi-ld:Sensor:IncomingSensor"
+            }
+          ]
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/createdAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 1543
+        }
+      ],
       "https://uri.etsi.org/ngsi-ld/observedAt": [
         {
           "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
           "@value": "2020-01-24T14:01:22.066Z"
         }
+      ]
+    }
+  ],
+  "https://ontology.eglobalmark.com/egm#connectsTo": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Relationship"
       ],
-      "https://ontology.eglobalmark.com/egm#observedBy": [
+      "https://uri.etsi.org/ngsi-ld/createdAt": [
         {
-          "https://uri.etsi.org/ngsi-ld/hasObject": [
-            {
-              "@id": "urn:ngsi-ld:Sensor:IncomingSensor"
-            }
-          ],
-          "@type": [
-            "https://uri.etsi.org/ngsi-ld/Relationship"
-          ]
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
         }
       ],
-      "@type": [
-        "https://uri.etsi.org/ngsi-ld/Property"
-      ],
-      "https://uri.etsi.org/ngsi-ld/hasValue": [
+      "https://uri.etsi.org/ngsi-ld/hasObject": [
         {
-          "@value": 1543
+          "@id": "urn:ngsi-ld:Beekeeper:Pascal"
         }
       ]
     }
@@ -60,6 +81,12 @@
       "@type": [
         "https://uri.etsi.org/ngsi-ld/Property"
       ],
+      "https://uri.etsi.org/ngsi-ld/createdAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
+        }
+      ],
       "https://uri.etsi.org/ngsi-ld/hasValue": [
         {
           "@value": "ParisBeehive12"
@@ -67,7 +94,10 @@
       ]
     }
   ],
-  "@type": [
-    "https://ontology.eglobalmark.com/apic#BeeHive"
+  "https://uri.etsi.org/ngsi-ld/createdAt": [
+    {
+      "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+      "@value": "2023-08-20T15:44:10.381090Z"
+    }
   ]
 }

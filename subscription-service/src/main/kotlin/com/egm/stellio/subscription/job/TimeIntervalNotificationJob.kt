@@ -55,7 +55,7 @@ class TimeIntervalNotificationJob(
         param.append("?$QUERY_PARAM_TYPE=${entityInfo.type.encode()}")
         if (entityInfo.id != null) param.append("&$QUERY_PARAM_ID=${entityInfo.id}")
         if (entityInfo.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entityInfo.idPattern}")
-        if (q != null) param.append("&$QUERY_PARAM_FILTER=${q.encode()}")
+        if (q != null) param.append("&$QUERY_PARAM_Q=${q.encode()}")
         if (!attributes.isNullOrEmpty())
             param.append("&$QUERY_PARAM_ATTRS=${attributes.joinToString(",") { it.encode() }}")
         return param.toString()

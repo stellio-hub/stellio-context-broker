@@ -8,10 +8,11 @@ import org.springframework.web.reactive.config.WebFluxConfigurer
 
 @Configuration
 @EnableWebFlux
-class WebConfig : WebFluxConfigurer {
+class WebConfig(private val searchProperties: SearchProperties) : WebFluxConfigurer {
 
     override fun configureHttpMessageCodecs(configurer: ServerCodecConfigurer) {
         configurer.defaultCodecs().enableLoggingRequestDetails(true)
+        configurer.defaultCodecs().maxInMemorySize(searchProperties.payloadMaxBodySize)
     }
 
     override fun configurePathMatching(configurer: PathMatchConfigurer) {

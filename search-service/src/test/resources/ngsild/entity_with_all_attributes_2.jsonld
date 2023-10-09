@@ -1,5 +1,6 @@
 {
   "id": "urn:ngsi-ld:BeeHive:02",
+  "scope": "/Madrid/Gardens/ParqueNorte",
   "type": "BeeHive",
   "string": {
     "type": "Property",
@@ -102,6 +103,6 @@
     }
   },
   "@context": [
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
   ]
 }

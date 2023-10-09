@@ -2,7 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -81,8 +81,7 @@ fun String.escapeRegexpPattern(): String =
     if (this.matches(innerRegexPattern.toRegex())) {
         this.replace(innerRegexPattern.toRegex()) { matchResult ->
             matchResult.value
-                .replace("(", "##")
-                .replace(")", "//")
+                .replace("(?i)", "##?i//")
         }
     } else this
 
@@ -148,7 +147,7 @@ private fun transformQQueryToSqlJsonPath(
         val jsonAttributePath = mainAttributePath.joinToString(".") { "\"$it\"" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
+            '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
             '{ "value": $value }')
         """.trimIndent()
     }
@@ -168,7 +167,7 @@ private fun transformQQueryToSqlJsonPath(
         val jsonTrailingPath = trailingAttributePath.joinToString(".") { "\"$it\"" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE_KW" ? 
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE" ? 
                 (@ $operator ${'$'}value)',
             '{ "value": $value }')
         """.trimIndent()
@@ -176,12 +175,12 @@ private fun transformQQueryToSqlJsonPath(
     operator == "like_regex" ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex $value)')
         """.trimIndent()
     operator == "not_like_regex" ->
         """
         NOT (jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex $value)'))
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex $value)'))
         """.trimIndent()
     value.isURI() ->
         """
@@ -193,7 +192,7 @@ private fun transformQQueryToSqlJsonPath(
         val (min, max) = value.rangeInterval()
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? 
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? 
                 (@ >= ${'$'}min && @ <= ${'$'}max)',
             '{ "min": $min, "max": $max }')
         """.trimIndent()
@@ -205,13 +204,48 @@ private fun transformQQueryToSqlJsonPath(
             .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? ($valuesFilter)')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? ($valuesFilter)')
         """.trimIndent()
     }
     else ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
             '{ "value": $value }')
         """.trimIndent()
 }
+
+fun buildScopeQQuery(scopeQQuery: String, target: JsonLdEntity? = null): String =
+    scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
+        when {
+            matchResult.value.endsWith('#') ->
+                """
+                exists (select * from unnest(#{TARGET}#) as scope 
+                where scope similar to '${matchResult.value.replace('#', '%')}')
+                """.trimIndent()
+            matchResult.value.contains('+') ->
+                """
+                exists (select * from unnest(#{TARGET}#) as scope 
+                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
+                """.trimIndent()
+            else ->
+                """
+                exists (select * from unnest(#{TARGET}#) as scope where scope = '${matchResult.value}')
+                """.trimIndent()
+        }
+    }
+        .replace(";", " AND ")
+        .replace("|", " OR ")
+        .replace(",", " OR ")
+        .let {
+            if (target == null)
+                it.replace("#{TARGET}#", "scopes")
+            else {
+                val scopesArray = target.getScopes()?.let { scopes ->
+                    """
+                    ARRAY[${scopes.joinToString(",") { "'$it'" } }]
+                    """.trimIndent()
+                }
+                it.replace("#{TARGET}#", "$scopesArray")
+            }
+        }

@@ -26,8 +26,11 @@ data class JsonLdEntity(
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
     fun getAttributes(): ExpandedAttributes =
-        members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key) }
+        members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
+
+    fun getScopes(): List<String>? =
+        (members as Map<String, List<Any>>).getScopes()
 
     /**
      * Called at entity creation time to populate entity and attributes with createdAt information
@@ -35,7 +38,7 @@ data class JsonLdEntity(
     fun populateCreationTimeDate(createdAt: ZonedDateTime): JsonLdEntity =
         JsonLdEntity(
             members = members.mapValues {
-                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key))
+                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
@@ -54,7 +57,7 @@ data class JsonLdEntity(
     fun populateReplacementTimeDates(createdAt: ZonedDateTime, replacedAt: ZonedDateTime): JsonLdEntity =
         JsonLdEntity(
             members = members.mapValues {
-                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS.contains(it.key))
+                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(

@@ -7,14 +7,18 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
+import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.Optional
@@ -37,7 +41,8 @@ const val QUERY_PARAM_ID: String = "id"
 const val QUERY_PARAM_TYPE: String = "type"
 const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
 const val QUERY_PARAM_ATTRS: String = "attrs"
-const val QUERY_PARAM_FILTER: String = "q"
+const val QUERY_PARAM_Q: String = "q"
+const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
@@ -47,6 +52,7 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
+val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
@@ -120,6 +126,18 @@ fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIEx
             ).left()
     }
     return Unit.right()
+}
+
+suspend fun extractPayloadAndContexts(
+    requestBody: Mono<String>,
+    httpHeaders: HttpHeaders
+): Either<APIException, Pair<CompactedJsonLdEntity, List<String>>> = either {
+    val body = requestBody.awaitFirst().deserializeAsMap()
+        .checkNamesAreNgsiLdSupported().bind()
+        .checkContentIsNgsiLdSupported().bind()
+    val contexts = checkAndGetContext(httpHeaders, body).bind()
+
+    Pair(body, contexts)
 }
 
 enum class OptionsParamValue(val value: String) {
@@ -216,7 +234,8 @@ suspend fun parseQueryParams(
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = requestParams.getFirst(QUERY_PARAM_FILTER)?.decode()
+    val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
+    val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val count = requestParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
     val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -237,6 +256,7 @@ suspend fun parseQueryParams(
         type = type,
         idPattern = idPattern,
         q = q,
+        scopeQ = scopeQ,
         limit = limit,
         offset = offset,
         count = count,

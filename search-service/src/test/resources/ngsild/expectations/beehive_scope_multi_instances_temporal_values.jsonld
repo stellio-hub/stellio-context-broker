@@ -1,0 +1,8 @@
+{
+  "id" : "urn:ngsi-ld:BeeHive:TESTC",
+  "type" : "BeeHive",
+  "scope" : {
+    "type" : "Property",
+    "values" : [ [["/A/B", "/C/D"],"2020-03-25T08:29:17.965206Z"], [["/C/D"],"2020-03-25T09:29:17.965206Z"] ]
+  }
+}

@@ -7,7 +7,7 @@ import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -34,10 +34,12 @@ value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
     const val EGM_BASE_CONTEXT_URL =
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     const val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
+
+    const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -50,12 +52,19 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE_TERM = "type"
     const val JSONLD_TYPE = "@type"
-    const val JSONLD_VALUE = "value"
-    const val JSONLD_VALUE_KW = "@value"
+    const val JSONLD_VALUE_TERM = "value"
+    const val JSONLD_VALUE = "@value"
     const val JSONLD_OBJECT = "object"
     const val JSONLD_CONTEXT = "@context"
-    val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
-    val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
+    const val NGSILD_SCOPE_TERM = "scope"
+    const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
+
+    val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
+
+    // List of members that are part of a core entity base definition (i.e., without attributes)
+    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
+    val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
+        setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT, NGSILD_SCOPE_TERM)
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
@@ -90,7 +99,7 @@ object JsonLdUtils {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =
-        ClassPathResource("/contexts/ngsi-ld-core-context-v1.3.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+        ClassPathResource("/contexts/ngsi-ld-core-context-v1.7.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
 
     init {
@@ -271,17 +280,17 @@ object JsonLdUtils {
                 val finalValueType = firstListEntry[JSONLD_TYPE]
                 when {
                     finalValueType != null -> {
-                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
+                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE])
                         when (finalValueType) {
                             NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
                             NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
                             NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                            else -> firstListEntry[JSONLD_VALUE_KW]
+                            else -> firstListEntry[JSONLD_VALUE]
                         }
                     }
 
-                    firstListEntry[JSONLD_VALUE_KW] != null ->
-                        firstListEntry[JSONLD_VALUE_KW]
+                    firstListEntry[JSONLD_VALUE] != null ->
+                        firstListEntry[JSONLD_VALUE]
 
                     firstListEntry[JSONLD_ID] != null -> {
                         // Used to get the value of datasetId property,
@@ -297,7 +306,7 @@ object JsonLdUtils {
                 }
             } else {
                 intermediateList.map {
-                    it[JSONLD_VALUE_KW]
+                    it[JSONLD_VALUE]
                 }
             }
         } else
@@ -347,7 +356,7 @@ object JsonLdUtils {
                 is Map<*, *> -> {
                     val geoValues = it.value as MutableMap<String, Any>
                     if (geoValues.isNotEmpty()) {
-                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
                         geoValues
                     } else geoValues
                 }
@@ -355,7 +364,7 @@ object JsonLdUtils {
                 is List<*> ->
                     (it.value as List<Map<String, Any>>).map { geoInstance ->
                         val geoValues = geoInstance.toMutableMap()
-                        geoValues[JSONLD_VALUE] = wktToGeoJson(geoValues[JSONLD_VALUE] as String)
+                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
                         geoValues
                     }
                 else -> it.value
@@ -460,9 +469,9 @@ object JsonLdUtils {
             inputToMap(input)
         } else {
             val mandatoryFields = if (isExpandedForm)
-                JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
+                JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
             else
-                JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+                JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
             val includedKeys = mandatoryFields.plus(includedAttributes)
             inputToMap(input).filterKeys { includedKeys.contains(it) }
         }
@@ -514,7 +523,7 @@ object JsonLdUtils {
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
-                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to value))
+                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE to value))
             )
         )
 
@@ -559,7 +568,7 @@ object JsonLdUtils {
         )
 
     /**
-     * Build the expanded payload of a property.
+     * Build the expanded payload of a relationship.
      *
      * "https://uri.etsi.org/ngsi-ld/default-context/aRelationship": [
      *   {
@@ -598,7 +607,7 @@ object JsonLdUtils {
         listOf(
             mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to value.toNgsiLdFormat()
+                JSONLD_VALUE to value.toNgsiLdFormat()
             )
         )
 
@@ -710,12 +719,12 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
                 else
                     jsonFragment[geoProperty] as List<MutableMap<String, Any>>
             geoAttributes.forEach { geoAttribute ->
-                val geoJsonAsString = geoAttribute[JSONLD_VALUE]
+                val geoJsonAsString = geoAttribute[JSONLD_VALUE_TERM]
                 val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
                     .fold({
                         throw BadRequestDataException(it.message)
                     }, { it })
-                geoAttribute[JSONLD_VALUE] = wktGeom
+                geoAttribute[JSONLD_VALUE_TERM] = wktGeom
             }
         }
     }

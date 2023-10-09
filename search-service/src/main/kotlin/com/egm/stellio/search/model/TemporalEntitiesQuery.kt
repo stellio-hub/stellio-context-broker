@@ -8,4 +8,8 @@ data class TemporalEntitiesQuery(
     val withTemporalValues: Boolean,
     val withAudit: Boolean,
     val withAggregatedValues: Boolean
-)
+) {
+    fun isAggregatedWithDefinedDuration(): Boolean =
+        withAggregatedValues &&
+            (temporalQuery.aggrPeriodDuration != null && temporalQuery.aggrPeriodDuration != "PT0S")
+}

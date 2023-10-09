@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -33,16 +33,16 @@ jobs:
     needs: build
     steps:
       - name: Checkout project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Download jars artifacts
         uses: actions/download-artifact@v3
         with:
           name: jars
           path: build
       - name: Build API Gateway local container
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./api-gateway/Dockerfile
@@ -52,7 +52,7 @@ jobs:
           build-args: |
             JAR_FILE=./build/api-gateway/build/libs/api-gateway-latest-dev.jar
       - name: Build Search Service local container
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./search-service/Dockerfile
@@ -62,7 +62,7 @@ jobs:
           build-args: |
             JAR_FILE=./build/search-service/build/libs/search-service-latest-dev.jar
       - name: Build Subscription Service local container
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./subscription-service/Dockerfile

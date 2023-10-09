@@ -8,8 +8,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -20,6 +23,7 @@ import java.time.ZonedDateTime
 data class EntityPayload(
     val entityId: URI,
     val types: List<ExpandedTerm>,
+    val scopes: List<String>? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
     // creation time contexts
@@ -43,15 +47,23 @@ data class EntityPayload(
             resultEntity[JSONLD_TYPE_TERM] =
                 types.map { compactTerm(it, contexts) }
                     .let { if (it.size > 1) it else it.first() }
+            scopes?.run {
+                resultEntity[NGSILD_SCOPE_TERM] = this
+            }
             specificAccessPolicy?.run {
                 resultEntity[AuthContextModel.AUTH_TERM_SAP] = mapOf(
                     JSONLD_TYPE_TERM to "Property",
-                    JSONLD_VALUE to this
+                    JSONLD_VALUE_TERM to this
                 )
             }
         } else {
             resultEntity[JSONLD_ID] = entityId.toString()
             resultEntity[JSONLD_TYPE] = types
+            scopes?.run {
+                resultEntity[NGSILD_SCOPE_PROPERTY] = this.map {
+                    mapOf(JSONLD_VALUE to it)
+                }
+            }
             specificAccessPolicy?.run {
                 resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedProperty(this)
             }

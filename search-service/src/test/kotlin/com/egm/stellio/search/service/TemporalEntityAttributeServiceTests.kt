@@ -9,10 +9,13 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -52,23 +55,21 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     fun bootstrapEntities() {
         r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
             EntityPayload(
-                beehiveTestCId,
-                listOf(BEEHIVE_TYPE),
-                Instant.now().atZone(UTC),
-                null,
-                listOf(APIC_COMPOUND_CONTEXT),
-                EMPTY_JSON_PAYLOAD
+                entityId = beehiveTestCId,
+                types = listOf(BEEHIVE_TYPE),
+                createdAt = Instant.now().atZone(UTC),
+                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
 
         r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
             EntityPayload(
-                beehiveTestDId,
-                listOf(BEEHIVE_TYPE),
-                Instant.now().atZone(UTC),
-                null,
-                listOf(APIC_COMPOUND_CONTEXT),
-                EMPTY_JSON_PAYLOAD
+                entityId = beehiveTestDId,
+                types = listOf(BEEHIVE_TYPE),
+                createdAt = Instant.now().atZone(UTC),
+                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
     }
@@ -251,7 +252,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val createdAt = ngsiLdDateTime()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
-        val expandedAttribute = JsonLdUtils.expandAttribute(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(newProperty, listOf(APIC_COMPOUND_CONTEXT))
         val newNgsiLdProperty = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
         temporalEntityAttributeService.replaceAttribute(
             temporalEntityAttribute,
@@ -299,7 +300,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val mergedAt = ngsiLdDateTime()
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
-        val expandedAttribute = JsonLdUtils.expandAttribute(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
         temporalEntityAttributeService.mergeAttribute(
             temporalEntityAttribute,
             INCOMING_PROPERTY,
@@ -318,7 +319,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             null
         ).shouldSucceed()
 
-        val expectedMergedPayload = JsonLdUtils.expandAttribute(
+        val expectedMergedPayload = expandAttribute(
             """
                 {
                     "incoming": {
@@ -448,6 +449,68 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                         it.time.isEqual(ZonedDateTime.parse("2019-12-04T12:00:00.00Z"))
                 }
             )
+        }
+    }
+
+    @Test
+    fun `it should replace an entity attribute`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceed()
+
+        val replacedAt = ngsiLdDateTime()
+        val propertyToReplace = loadSampleData("fragments/beehive_new_incoming_property.json")
+        val expandedAttribute = expandAttribute(propertyToReplace, listOf(APIC_COMPOUND_CONTEXT))
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
+
+        temporalEntityAttributeService.replaceEntityAttribute(
+            beehiveTestCId,
+            ngsiLdAttribute,
+            expandedAttribute,
+            replacedAt,
+            null
+        ).shouldSucceed()
+
+        temporalEntityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY
+        ).shouldSucceedWith {
+            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
+            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertJsonPayloadsAreEqual(serializeObject(expandedAttribute.second[0]), it.payload.asString())
+            assertTrue(it.createdAt.isBefore(replacedAt))
+            assertEquals(replacedAt, it.modifiedAt)
+        }
+    }
+
+    @Test
+    fun `it should ignore a replace attribute if attribute does not exist`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceed()
+
+        val replacedAt = ngsiLdDateTime()
+        val propertyToReplace = loadSampleData("fragments/beehive_new_unknown_property.json")
+        val expandedAttribute = expandAttribute(propertyToReplace, listOf(APIC_COMPOUND_CONTEXT))
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
+
+        temporalEntityAttributeService.replaceEntityAttribute(
+            beehiveTestCId,
+            ngsiLdAttribute,
+            expandedAttribute,
+            replacedAt,
+            null
+        ).shouldSucceedWith {
+            assertTrue(it.updated.isEmpty())
+            assertEquals(1, it.notUpdated.size)
+            val notUpdatedDetails = it.notUpdated.first()
+            assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", notUpdatedDetails.attributeName)
         }
     }
 

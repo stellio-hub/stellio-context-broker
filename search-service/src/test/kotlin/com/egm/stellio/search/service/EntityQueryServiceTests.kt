@@ -13,7 +13,7 @@ import io.mockk.coEvery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
@@ -99,9 +99,39 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 30,
                     type = types,
+                    limit = 30,
+                    offset = 0,
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "/Madrid/Gardens/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/+/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/CompanyA/#, 1, urn:ngsi-ld:BeeHive:01",
+        "/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC, 1, urn:ngsi-ld:BeeHive:01",
+        "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
+    )
+    fun `it should retrieve entities according to scope query`(
+        scopeQ: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                QueryParams(
+                    type = BEEHIVE_TYPE,
+                    scopeQ = scopeQ,
+                    limit = 30,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -116,10 +146,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 2,
                     ids = setOf(entity02Uri, entity01Uri),
                     type = BEEHIVE_TYPE,
+                    limit = 2,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -133,9 +163,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 2,
                     type = BEEHIVE_TYPE,
+                    limit = 2,
+                    offset = 0,
                     attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -150,10 +180,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 1,
                     ids = setOf(entity02Uri),
                     type = BEEHIVE_TYPE,
+                    limit = 1,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -167,9 +197,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 1,
                     type = BEEHIVE_TYPE,
+                    limit = 1,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -182,10 +212,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 1,
                     type = BEEHIVE_TYPE,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
+                    limit = 1,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -204,6 +234,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
         "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
         "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime>2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:02",
@@ -241,9 +272,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 2,
                     q = q,
+                    limit = 2,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -275,8 +306,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
                     limit = 2,
+                    offset = 0,
                     geoQuery = GeoQuery(
                         georel = georel,
                         geometry = GeoQuery.GeometryType.forType(geometry)!!,
@@ -298,9 +329,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 30,
                     type = BEEHIVE_TYPE,
+                    limit = 30,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -324,9 +355,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 30,
                     type = BEEHIVE_TYPE,
+                    limit = 30,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -352,9 +383,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 0,
-                    limit = 30,
                     type = BEEHIVE_TYPE,
+                    limit = 30,
+                    offset = 0,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -377,9 +408,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve the count of entities`() = runTest {
         entityPayloadService.queryEntitiesCount(
             QueryParams(
-                offset = 0,
-                limit = 30,
                 type = BEEHIVE_TYPE,
+                limit = 30,
+                offset = 0,
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { null }.shouldSucceedWith { assertEquals(2, it) }
@@ -389,10 +420,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve the count of entities according to access rights`() = runTest {
         entityPayloadService.queryEntitiesCount(
             QueryParams(
-                offset = 0,
-                limit = 30,
                 ids = setOf(entity02Uri, entity01Uri),
                 type = BEEHIVE_TYPE,
+                limit = 30,
+                offset = 0,
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')" }
@@ -404,10 +435,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 2,
                     ids = setOf(entity02Uri, entity01Uri),
                     type = "https://ontology.eglobalmark.com/apic#UnknownType",
+                    limit = 2,
+                    offset = 10,
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -420,9 +451,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 2,
                     type = BEEHIVE_TYPE,
+                    limit = 2,
+                    offset = 10,
                     attrs = setOf("unknownAttribute"),
                     context = APIC_COMPOUND_CONTEXT
                 )

@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.shared.util.*
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
@@ -69,7 +70,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,
@@ -107,7 +108,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false,
@@ -147,7 +148,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,

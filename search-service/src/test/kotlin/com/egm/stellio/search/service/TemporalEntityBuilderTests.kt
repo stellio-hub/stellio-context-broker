@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
@@ -43,7 +44,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues = false,
                 withAudit = false,
@@ -77,7 +78,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, scopeHistory, attributeAndResultsMap),
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -99,7 +100,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntities(
             entityTemporalResults,
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = TemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -175,7 +176,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQuery(
-                queryParams = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,

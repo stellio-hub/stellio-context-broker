@@ -9,15 +9,22 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.util.parseQueryParamsForPost
+import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
+import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntitiesOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.util.Optional
@@ -25,8 +32,10 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
 class EntityOperationHandler(
+    private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
     private val entityPayloadService: EntityPayloadService,
+    private val queryService: QueryService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
 ) {
@@ -237,6 +246,54 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    /**
+     * Implements 6.23.3.1 - Query Entities via POST
+     */
+    @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getEntitiesViaPost(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val sub = getSubFromSecurityContext()
+
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val entitiesQuery = parseQueryParamsForPost(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            requestBody.awaitFirst(),
+            params,
+            contextLink
+        ).bind()
+            .validateMinimalQueryEntitiesParameters().bind()
+
+        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+        val countAndEntities = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
+
+        val filteredEntities = filterJsonLdEntitiesOnAttributes(countAndEntities.first, entitiesQuery.attrs)
+
+        val compactedEntities = JsonLdUtils.compactEntities(
+            filteredEntities,
+            entitiesQuery.useSimplifiedRepresentation,
+            entitiesQuery.includeSysAttrs,
+            contextLink,
+            mediaType
+        )
+
+        buildQueryResponse(
+            compactedEntities,
+            countAndEntities.second,
+            "/ngsi-ld/v1/entities",
+            entitiesQuery.paginationQuery,
+            LinkedMultiValueMap(),
+            mediaType,
+            contextLink
+        )
     }.fold(
         { it.toErrorResponse() },
         { it }

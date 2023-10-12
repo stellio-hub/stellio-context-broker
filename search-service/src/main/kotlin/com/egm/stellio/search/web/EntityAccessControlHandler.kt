@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import com.egm.stellio.search.authorization.*
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.util.parseQueryParams
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -47,19 +48,19 @@ class EntityAccessControlHandler(
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val queryParams = parseQueryParams(
+        val entitiesQuery = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,
             contextLink
         ).bind()
 
-        if (!queryParams.attrs.all { ALL_IAM_RIGHTS.contains(it) })
+        if (!entitiesQuery.attrs.all { ALL_IAM_RIGHTS.contains(it) })
             BadRequestDataException(
                 "The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
             ).left().bind<ResponseEntity<*>>()
 
         val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
-            queryParams,
+            entitiesQuery,
             contextLink,
             sub
         ).bind()
@@ -70,7 +71,8 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndAuthorizedEntities.second,
-            queryParams.useSimplifiedRepresentation,
+            entitiesQuery.useSimplifiedRepresentation,
+            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
@@ -79,7 +81,7 @@ class EntityAccessControlHandler(
             compactedEntities,
             countAndAuthorizedEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
-            queryParams,
+            entitiesQuery.paginationQuery,
             params,
             mediaType,
             contextLink
@@ -98,14 +100,19 @@ class EntityAccessControlHandler(
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
-        val queryParams = parseQueryParams(
+        val entitiesQuery = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,
             contextLink
         ).bind()
 
         val countAndGroupEntities =
-            authorizationService.getGroupsMemberships(queryParams.offset, queryParams.limit, contextLink, sub).bind()
+            authorizationService.getGroupsMemberships(
+                entitiesQuery.paginationQuery.offset,
+                entitiesQuery.paginationQuery.limit,
+                contextLink,
+                sub
+            ).bind()
 
         if (countAndGroupEntities.first == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -113,7 +120,8 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndGroupEntities.second,
-            queryParams.useSimplifiedRepresentation,
+            entitiesQuery.useSimplifiedRepresentation,
+            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
@@ -122,7 +130,7 @@ class EntityAccessControlHandler(
             compactedEntities,
             countAndGroupEntities.first,
             "/ngsi-ld/v1/entityAccessControl/groups",
-            queryParams,
+            entitiesQuery.paginationQuery,
             params,
             mediaType,
             contextLink
@@ -143,14 +151,18 @@ class EntityAccessControlHandler(
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
-        val queryParams = parseQueryParams(
+        val entitiesQuery = parseQueryParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,
             contextLink
         ).bind()
 
         val countAndUserEntities =
-            authorizationService.getUsers(queryParams.offset, queryParams.limit, contextLink).bind()
+            authorizationService.getUsers(
+                entitiesQuery.paginationQuery.offset,
+                entitiesQuery.paginationQuery.limit,
+                contextLink
+            ).bind()
 
         if (countAndUserEntities.first == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -158,7 +170,8 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndUserEntities.second,
-            queryParams.useSimplifiedRepresentation,
+            entitiesQuery.useSimplifiedRepresentation,
+            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
@@ -167,7 +180,7 @@ class EntityAccessControlHandler(
             compactedEntities,
             countAndUserEntities.first,
             "/ngsi-ld/v1/entityAccessControl/users",
-            queryParams,
+            entitiesQuery.paginationQuery,
             params,
             mediaType,
             contextLink

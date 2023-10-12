@@ -9,6 +9,7 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
@@ -51,6 +52,9 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
+
+    @MockkBean
+    private lateinit var queryService: QueryService
 
     @MockkBean
     private lateinit var authorizationService: AuthorizationService

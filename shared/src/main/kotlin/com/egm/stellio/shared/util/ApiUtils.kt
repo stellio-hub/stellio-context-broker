@@ -3,12 +3,13 @@ package com.egm.stellio.shared.util
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -90,10 +91,11 @@ fun checkAndGetContext(
     } else {
         val contexts = extractContextFromInput(body)
         // kind of duplicate what is checked in checkContext but a bit more sure
-        if (contexts.isEmpty())
+        ensure(contexts.isNotEmpty()) {
             BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
-            ).left().bind()
+            )
+        }
         contexts
     }
 }
@@ -175,22 +177,22 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
 fun parsePaginationParameters(
     queryParams: MultiValueMap<String, String>,
     limitDefault: Int,
-    limitMax: Int,
-    isAskingForCount: Boolean = false
-): Either<APIException, Pair<Int, Int>> {
+    limitMax: Int
+): Either<APIException, PaginationQuery> {
+    val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
     val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
     val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: limitDefault
-    if (!isAskingForCount && (limit <= 0 || offset < 0))
+    if (!count && (limit <= 0 || offset < 0))
         return BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         ).left()
-    if (isAskingForCount && (limit < 0 || offset < 0))
+    if (count && (limit < 0 || offset < 0))
         return BadRequestDataException("Offset and limit must be greater than zero").left()
     if (limit > limitMax)
         return BadRequestDataException(
             "You asked for $limit results, but the supported maximum limit is $limitMax"
         ).left()
-    return Pair(offset, limit).right()
+    return PaginationQuery(offset, limit, count).right()
 }
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
@@ -213,57 +215,4 @@ fun List<MediaType>.getApplicable(): MediaType {
         MediaType.APPLICATION_JSON
     else
         JSON_LD_MEDIA_TYPE
-}
-
-suspend fun parseQueryParams(
-    pagination: Pair<Int, Int>,
-    requestParams: MultiValueMap<String, String>,
-    contextLink: String
-): Either<APIException, QueryParams> = either {
-    val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
-    val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
-        runCatching {
-            Pattern.compile(idPattern)
-        }.onFailure {
-            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
-        }
-    }
-
-    /**
-     * Decoding query parameters is not supported by default so a call to a decode function was added query
-     * with the right parameters values
-     */
-    val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
-    val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
-    val count = requestParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
-    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
-    val (offset, limit) = parsePaginationParameters(
-        requestParams,
-        pagination.first,
-        pagination.second,
-        count
-    ).bind()
-
-    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
-
-    QueryParams(
-        ids = ids,
-        type = type,
-        idPattern = idPattern,
-        q = q,
-        scopeQ = scopeQ,
-        limit = limit,
-        offset = offset,
-        count = count,
-        attrs = attrs,
-        includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation,
-        geoQuery = geoQuery,
-        context = contextLink
-    )
 }

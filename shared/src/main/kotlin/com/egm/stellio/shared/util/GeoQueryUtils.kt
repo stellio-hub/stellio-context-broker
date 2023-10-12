@@ -35,12 +35,12 @@ const val GEOREL_NEAR_MAXDISTANCE_MODIFIER = "maxDistance"
 
 private val georelNearRegex = "^near;(?:minDistance|maxDistance)==\\d+$".toRegex()
 
-suspend fun parseGeoQueryParameters(
+fun parseGeoQueryParameters(
     requestParams: Map<String, String>,
     contextLink: String
 ): Either<APIException, GeoQuery?> = parseGeoQueryParameters(requestParams, listOf(contextLink))
 
-suspend fun parseGeoQueryParameters(
+fun parseGeoQueryParameters(
     requestParams: Map<String, String>,
     contexts: List<String>
 ): Either<APIException, GeoQuery?> = either {

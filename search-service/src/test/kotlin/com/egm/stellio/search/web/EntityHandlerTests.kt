@@ -916,10 +916,9 @@ class EntityHandlerTests {
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         coEvery {
             queryService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
@@ -1052,10 +1051,9 @@ class EntityHandlerTests {
     fun `get entities with request parameter id should return 200`() {
         coEvery {
             queryService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     ids = setOf(beehiveId),
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()

@@ -71,20 +71,22 @@ class SubscriptionHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        val queryParams = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val paginationQuery = parsePaginationParameters(
             params,
-            contextLink
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax
         ).bind()
-        val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
-            .serialize(contextLink, mediaType, queryParams.includeSysAttrs)
+        val subscriptions = subscriptionService.getSubscriptions(paginationQuery.limit, paginationQuery.offset, sub)
+            .serialize(contextLink, mediaType, includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
 
         buildQueryResponse(
             subscriptions,
             subscriptionsCount,
             "/ngsi-ld/v1/subscriptions",
-            queryParams,
+            paginationQuery,
             params,
             mediaType,
             contextLink

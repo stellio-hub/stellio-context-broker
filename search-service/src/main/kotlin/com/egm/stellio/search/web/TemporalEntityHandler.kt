@@ -152,7 +152,7 @@ class TemporalEntityHandler(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
             total,
             "/ngsi-ld/v1/temporal/entities",
-            temporalEntitiesQuery.queryParams,
+            temporalEntitiesQuery.entitiesQuery.paginationQuery,
             params,
             mediaType,
             contextLink

@@ -43,7 +43,7 @@ object TemporalEntityBuilder {
         )
 
         return entityTemporalResult.entityPayload.serializeProperties(
-            withSysAttrs = temporalEntitiesQuery.queryParams.includeSysAttrs,
+            withSysAttrs = temporalEntitiesQuery.entitiesQuery.includeSysAttrs,
             withCompactTerms = true,
             contexts
         ).plus(temporalAttributes)

@@ -2,9 +2,7 @@ package com.egm.stellio.search.util
 
 import arrow.core.*
 import arrow.core.raise.either
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -12,8 +10,125 @@ import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 import java.util.Optional
+import java.util.regex.Pattern
 
-suspend fun parseQueryAndTemporalParams(
+fun parseQueryParams(
+    pagination: Pair<Int, Int>,
+    requestParams: MultiValueMap<String, String>,
+    contextLink: String
+): Either<APIException, EntitiesQuery> = either {
+    val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
+    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
+        runCatching {
+            Pattern.compile(idPattern)
+        }.onFailure {
+            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
+        }
+    }
+
+    /**
+     * Decoding query parameters is not supported by default so a call to a decode function was added query
+     * with the right parameters values
+     */
+    val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
+    val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
+    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
+    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+    val paginationQuery = parsePaginationParameters(
+        requestParams,
+        pagination.first,
+        pagination.second
+    ).bind()
+
+    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
+
+    EntitiesQuery(
+        ids = ids,
+        type = type,
+        idPattern = idPattern,
+        q = q,
+        scopeQ = scopeQ,
+        paginationQuery = paginationQuery,
+        attrs = attrs,
+        includeSysAttrs = includeSysAttrs,
+        useSimplifiedRepresentation = useSimplifiedRepresentation,
+        geoQuery = geoQuery,
+        context = contextLink
+    )
+}
+
+fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQuery> = either {
+    if (
+        ids.isEmpty() &&
+        q.isNullOrEmpty() &&
+        type.isNullOrEmpty() &&
+        attrs.isEmpty()
+    )
+        return@either BadRequestDataException(
+            "one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
+        ).left().bind<EntitiesQuery>()
+
+    this@validateMinimalQueryEntitiesParameters
+}
+
+fun parseQueryParamsForPost(
+    pagination: Pair<Int, Int>,
+    requestBody: String,
+    requestParams: MultiValueMap<String, String>,
+    contextLink: String
+): Either<APIException, EntitiesQuery> = either {
+    val query = Query(requestBody).bind()
+    val entitySelector = query.entities?.get(0)
+    val id = entitySelector?.id?.toUri()
+    val type = parseAndExpandTypeSelection(entitySelector?.type, contextLink)
+    val idPattern = entitySelector?.idPattern?.also { idPattern ->
+        runCatching {
+            Pattern.compile(idPattern)
+        }.onFailure {
+            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
+        }
+    }
+    val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
+    val geoQuery = if (query.geoQ != null) {
+        val geoQueryElements = mapOf(
+            "geometry" to query.geoQ.geometry,
+            "coordinates" to query.geoQ.coordinates.toString(),
+            "georel" to query.geoQ.georel,
+            "geoproperty" to query.geoQ.geoproperty
+        )
+        parseGeoQueryParameters(geoQueryElements, contextLink).bind()
+    } else null
+
+    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+    val paginationQuery = parsePaginationParameters(
+        requestParams,
+        pagination.first,
+        pagination.second
+    ).bind()
+
+    EntitiesQuery(
+        ids = setOfNotNull(id),
+        type = type,
+        idPattern = idPattern,
+        q = query.q?.decode(),
+        scopeQ = query.scopeQ,
+        paginationQuery = paginationQuery,
+        attrs = attrs,
+        includeSysAttrs = includeSysAttrs,
+        useSimplifiedRepresentation = useSimplifiedRepresentation,
+        geoQuery = geoQuery,
+        context = contextLink
+    )
+}
+
+fun parseQueryAndTemporalParams(
     pagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contextLink: String,
@@ -44,7 +159,7 @@ suspend fun parseQueryAndTemporalParams(
     val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
-        queryParams = queryParams,
+        entitiesQuery = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,

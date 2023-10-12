@@ -7,7 +7,8 @@ import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
-import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.search.support.buildDefaultQueryParams
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
@@ -112,9 +113,8 @@ class QueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                queryParams = QueryParams(
-                    limit = 0,
-                    offset = 50,
+                entitiesQuery = EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -166,7 +166,10 @@ class QueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                entitiesQuery = EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    context = APIC_COMPOUND_CONTEXT
+                ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
@@ -195,7 +198,10 @@ class QueryServiceTests {
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = TemporalQuery(),
-                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                entitiesQuery = EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    context = APIC_COMPOUND_CONTEXT
+                ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
@@ -215,7 +221,10 @@ class QueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = now
                 ),
-                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                entitiesQuery = EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    context = APIC_COMPOUND_CONTEXT
+                ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = true
@@ -240,7 +249,10 @@ class QueryServiceTests {
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = TemporalQuery(),
-                queryParams = QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT),
+                entitiesQuery = EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    context = APIC_COMPOUND_CONTEXT
+                ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = true
@@ -282,10 +294,9 @@ class QueryServiceTests {
 
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
-                QueryParams(
+                EntitiesQuery(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    limit = 2,
-                    offset = 2,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(
@@ -301,10 +312,9 @@ class QueryServiceTests {
         coVerify {
             temporalEntityAttributeService.getForTemporalEntities(
                 listOf(entityUri),
-                QueryParams(
+                EntitiesQuery(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    limit = 2,
-                    offset = 2,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 )
             )
@@ -318,10 +328,9 @@ class QueryServiceTests {
                 any<List<TemporalEntityAttribute>>()
             )
             entityPayloadService.queryEntitiesCount(
-                QueryParams(
+                EntitiesQuery(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    limit = 2,
-                    offset = 2,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 any()
@@ -353,10 +362,9 @@ class QueryServiceTests {
 
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
-                QueryParams(
+                EntitiesQuery(
                     type = "$BEEHIVE_TYPE,$APIARY_TYPE",
-                    limit = 2,
-                    offset = 2,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
                 TemporalQuery(

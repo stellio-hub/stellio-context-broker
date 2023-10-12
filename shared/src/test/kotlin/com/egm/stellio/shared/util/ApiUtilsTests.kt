@@ -12,8 +12,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.util.LinkedMultiValueMap
-import java.net.URI
 import java.util.Optional
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -181,61 +179,6 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should parse query parameters`() = runTest {
-        val requestParams = gimmeFullParamsMap()
-        val queryParams = parseQueryParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
-
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", queryParams.type)
-        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), queryParams.attrs)
-        assertEquals(
-            setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
-            queryParams.ids
-        )
-        assertEquals(".*BeeHive.*", queryParams.idPattern)
-        assertEquals("brandName!=Mercedes", queryParams.q)
-        assertEquals(true, queryParams.count)
-        assertEquals(1, queryParams.offset)
-        assertEquals(10, queryParams.limit)
-        assertEquals(true, queryParams.useSimplifiedRepresentation)
-        assertEquals(false, queryParams.includeSysAttrs)
-    }
-
-    @Test
-    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("options", "sysAttrs")
-        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-
-        assertEquals(true, queryParams.includeSysAttrs)
-    }
-
-    @Test
-    fun `it should decode q in query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
-        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-
-        assertEquals("speed>50;foodName==dietary fibres", queryParams.q)
-    }
-
-    @Test
-    fun `it should set default values in query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
-
-        assertEquals(null, queryParams.type)
-        assertEquals(emptySet<String>(), queryParams.attrs)
-        assertEquals(emptySet<URI>(), queryParams.ids)
-        assertEquals(null, queryParams.idPattern)
-        assertEquals(null, queryParams.q)
-        assertEquals(false, queryParams.count)
-        assertEquals(0, queryParams.offset)
-        assertEquals(30, queryParams.limit)
-        assertEquals(false, queryParams.useSimplifiedRepresentation)
-        assertEquals(false, queryParams.includeSysAttrs)
-    }
-
-    @Test
     fun `it should parse and expand entity type selection query`() {
         val query = "(TypeA|TypeB);(TypeC,TypeD)"
         val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
@@ -243,19 +186,5 @@ class ApiUtilsTests {
         val expectedExpandTypeSelection =
             "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
         assertEquals(expectedExpandTypeSelection, expandedQuery)
-    }
-
-    private fun gimmeFullParamsMap(): LinkedMultiValueMap<String, String> {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("type", "BeeHive,Apiary")
-        requestParams.add("attrs", "incoming,outgoing")
-        requestParams.add("id", "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTB")
-        requestParams.add("idPattern", ".*BeeHive.*")
-        requestParams.add("q", "brandName!=Mercedes")
-        requestParams.add("count", "true")
-        requestParams.add("offset", "1")
-        requestParams.add("limit", "10")
-        requestParams.add("options", "keyValues")
-        return requestParams
     }
 }

@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.QueryParams
 
 suspend fun gimmeSimpleEntityWithGeoProperty(
     propertyKey: String,
@@ -28,6 +27,3 @@ suspend fun gimmeSimpleEntityWithGeoProperty(
 
     return JsonLdUtils.expandJsonLdEntity(entityWithLocation, DEFAULT_CONTEXTS)
 }
-
-fun buildDefaultQueryParams(): QueryParams =
-    QueryParams(limit = 0, offset = 50, context = APIC_COMPOUND_CONTEXT)

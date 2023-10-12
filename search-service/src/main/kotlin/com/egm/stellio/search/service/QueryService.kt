@@ -34,11 +34,11 @@ class QueryService(
         }
 
     suspend fun queryEntities(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<JsonLdEntity>, Int>> = either {
-        val entitiesIds = entityPayloadService.queryEntities(queryParams, accessRightFilter)
-        val count = entityPayloadService.queryEntitiesCount(queryParams, accessRightFilter).bind()
+        val entitiesIds = entityPayloadService.queryEntities(entitiesQuery, accessRightFilter)
+        val count = entityPayloadService.queryEntitiesCount(entitiesQuery, accessRightFilter).bind()
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
@@ -46,7 +46,7 @@ class QueryService(
 
         val entitiesPayloads =
             entityPayloadService.retrieve(entitiesIds)
-                .map { toJsonLdEntity(it, listOf(queryParams.context)) }
+                .map { toJsonLdEntity(it, listOf(entitiesQuery.context)) }
 
         Pair(entitiesPayloads, count).right().bind()
     }
@@ -56,11 +56,11 @@ class QueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contextLink: String
     ): Either<APIException, CompactedJsonLdEntity> = either {
-        val attrs = temporalEntitiesQuery.queryParams.attrs
+        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
-                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.queryParams.attrs)
+                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)
                 ).left()
             else it.right()
         }.bind()
@@ -107,7 +107,7 @@ class QueryService(
             val originForTemporalEntityAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, temporalEntityAttributes)
 
-            val attrs = temporalEntitiesQuery.queryParams.attrs
+            val attrs = temporalEntitiesQuery.entitiesQuery.attrs
             val originForScope =
                 if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
@@ -125,9 +125,9 @@ class QueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> = either {
-        val attrs = temporalEntitiesQuery.queryParams.attrs
-        val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.queryParams, accessRightFilter)
-        val count = entityPayloadService.queryEntitiesCount(temporalEntitiesQuery.queryParams, accessRightFilter)
+        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val count = entityPayloadService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
             .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
@@ -136,7 +136,7 @@ class QueryService(
 
         val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
             entitiesIds,
-            temporalEntitiesQuery.queryParams
+            temporalEntitiesQuery.entitiesQuery
         )
 
         val scopesHistory =
@@ -174,7 +174,7 @@ class QueryService(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
                 temporalEntitiesQuery,
-                listOf(temporalEntitiesQuery.queryParams.context)
+                listOf(temporalEntitiesQuery.entitiesQuery.context)
             ),
             count
         )

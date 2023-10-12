@@ -101,7 +101,7 @@ fun buildQueryResponse(
     entities: List<CompactedJsonLdEntity>,
     count: Int,
     resourceUrl: String,
-    queryParams: QueryParams,
+    paginationQuery: PaginationQuery,
     requestParams: MultiValueMap<String, String>,
     mediaType: MediaType,
     contextLink: String
@@ -110,7 +110,7 @@ fun buildQueryResponse(
         serializeObject(entities),
         count,
         resourceUrl,
-        queryParams,
+        paginationQuery,
         requestParams,
         mediaType,
         contextLink
@@ -120,7 +120,7 @@ fun buildQueryResponse(
     body: String,
     count: Int,
     resourceUrl: String,
-    queryParams: QueryParams,
+    paginationQuery: PaginationQuery,
     requestParams: MultiValueMap<String, String>,
     mediaType: MediaType,
     contextLink: String
@@ -129,8 +129,8 @@ fun buildQueryResponse(
         resourceUrl,
         requestParams,
         count,
-        queryParams.offset,
-        queryParams.limit
+        paginationQuery.offset,
+        paginationQuery.limit
     )
 
     val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
@@ -147,7 +147,7 @@ fun buildQueryResponse(
     else
         prepareGetSuccessResponse(mediaType, contextLink)
 
-    return if (queryParams.count) responseHeaders.header(RESULTS_COUNT_HEADER, count.toString()).body(body)
+    return if (paginationQuery.count) responseHeaders.header(RESULTS_COUNT_HEADER, count.toString()).body(body)
     else responseHeaders.body(body)
 }
 

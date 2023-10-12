@@ -793,10 +793,10 @@ class TemporalEntityHandlerTests {
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 30 &&
-                        temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.type == BEEHIVE_TYPE &&
+                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
+                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
+                        temporalEntitiesQuery.entitiesQuery.type == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },

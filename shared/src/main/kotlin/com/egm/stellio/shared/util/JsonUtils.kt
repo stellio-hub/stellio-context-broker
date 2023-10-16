@@ -19,10 +19,21 @@ val mapper: ObjectMapper =
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
+// a specific object mapper for data types defined in 5.2
+// difference is that unknown properties are not allowed (in contrast to entities)
+val dataTypeMapper: ObjectMapper =
+    jacksonObjectMapper()
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+        .findAndRegisterModules()
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
 object JsonUtils {
 
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue(content, T::class.java)
+
+    inline fun <reified T> deserializeDataTypeAs(content: String): T =
+        dataTypeMapper.readValue(content, T::class.java)
 
     @SuppressWarnings("SwallowedException")
     fun deserializeObject(input: String): Map<String, Any> =

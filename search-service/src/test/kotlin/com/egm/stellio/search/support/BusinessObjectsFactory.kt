@@ -1,7 +1,7 @@
 package com.egm.stellio.search.support
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
 import java.util.UUID
 import kotlin.random.Random
@@ -42,9 +42,18 @@ fun gimmeTemporalEntitiesQuery(
     withAggregatedValues: Boolean = false
 ): TemporalEntitiesQuery =
     TemporalEntitiesQuery(
-        queryParams = QueryParams(limit = 50, offset = 0, context = APIC_COMPOUND_CONTEXT),
+        entitiesQuery = EntitiesQuery(
+            paginationQuery = PaginationQuery(limit = 50, offset = 0),
+            context = APIC_COMPOUND_CONTEXT
+        ),
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,
         withAggregatedValues = withAggregatedValues
+    )
+
+fun buildDefaultQueryParams(): EntitiesQuery =
+    EntitiesQuery(
+        paginationQuery = PaginationQuery(limit = 50, offset = 0),
+        context = APIC_COMPOUND_CONTEXT
     )

@@ -3,10 +3,10 @@ package com.egm.stellio.search.authorization
 import arrow.core.*
 import arrow.core.raise.either
 import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -94,17 +94,17 @@ class EnabledAuthorizationService(
         entityAccessRightsService.removeRolesOnEntity(entityId)
 
     override suspend fun getAuthorizedEntities(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         contextLink: String,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
-        val accessRights = queryParams.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
+        val accessRights = entitiesQuery.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,
-            queryParams.type,
-            queryParams.limit,
-            queryParams.offset
+            entitiesQuery.type,
+            entitiesQuery.paginationQuery.limit,
+            entitiesQuery.paginationQuery.offset
         ).bind()
 
         // for each entity user is admin of, retrieve the full details of rights other users have on it
@@ -133,7 +133,7 @@ class EnabledAuthorizationService(
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
             accessRights,
-            queryParams.type
+            entitiesQuery.type
         ).bind()
 
         Pair(count, entitiesAccessControlWithSubjectRights)

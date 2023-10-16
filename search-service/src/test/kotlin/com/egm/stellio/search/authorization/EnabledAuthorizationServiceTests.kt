@@ -4,8 +4,9 @@ import arrow.core.Either
 import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
+import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
@@ -340,10 +341,9 @@ class EnabledAuthorizationServiceTests {
         } returns emptyMap<URI, Map<AccessRight, List<SubjectRightInfo>>>().right()
 
         enabledAuthorizationService.getAuthorizedEntities(
-            QueryParams(
+            EntitiesQuery(
                 type = BEEHIVE_TYPE,
-                limit = 10,
-                offset = 0,
+                paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),
             contextLink = APIC_COMPOUND_CONTEXT,
@@ -395,10 +395,9 @@ class EnabledAuthorizationServiceTests {
         ).right()
 
         enabledAuthorizationService.getAuthorizedEntities(
-            QueryParams(
+            EntitiesQuery(
                 type = BEEHIVE_TYPE,
-                limit = 10,
-                offset = 0,
+                paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),
             contextLink = APIC_COMPOUND_CONTEXT,

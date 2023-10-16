@@ -916,10 +916,9 @@ class EntityHandlerTests {
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         coEvery {
             queryService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
@@ -1049,14 +1048,14 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entities with request parameter id should return 200`() {
+    fun `get entities with id and type should return 200`() {
         coEvery {
             queryService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     ids = setOf(beehiveId),
-                    limit = 30,
-                    offset = 0,
-                    context = NGSILD_CORE_CONTEXT
+                    type = BEEHIVE_TYPE,
+                    paginationQuery = PaginationQuery(offset = 0, limit = 30),
+                    context = APIC_COMPOUND_CONTEXT
                 ),
                 any()
             )
@@ -1067,15 +1066,16 @@ class EntityHandlerTests {
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(APIC_COMPOUND_CONTEXT)
                 )
             ),
             1
         ).right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities?id=$beehiveId")
+            .uri("/ngsi-ld/v1/entities?id=$beehiveId&type=$BEEHIVE_COMPACT_TYPE")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
@@ -1084,7 +1084,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": ["$APIC_COMPOUND_CONTEXT"]
                     }
                 ]
                 """.trimMargin()
@@ -1143,7 +1143,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
+                    "detail":"One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
                 }
                 """.trimIndent()
             )

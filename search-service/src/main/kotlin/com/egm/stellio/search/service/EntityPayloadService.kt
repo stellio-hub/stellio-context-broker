@@ -256,10 +256,10 @@ class EntityPayloadService(
     }
 
     suspend fun queryEntities(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
     ): List<URI> {
-        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
+        val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val selectQuery =
             """
@@ -275,16 +275,16 @@ class EntityPayloadService(
 
         return databaseClient
             .sql(selectQuery)
-            .bind("limit", queryParams.limit)
-            .bind("offset", queryParams.offset)
+            .bind("limit", entitiesQuery.paginationQuery.limit)
+            .bind("offset", entitiesQuery.paginationQuery.offset)
             .allToMappedList { toUri(it["entity_id"]) }
     }
 
     suspend fun queryEntitiesCount(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
     ): Either<APIException, Int> {
-        val filterQuery = buildFullEntitiesFilter(queryParams, accessRightFilter)
+        val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val countQuery =
             """
@@ -301,44 +301,44 @@ class EntityPayloadService(
             .map { it.toInt() }
     }
 
-    private fun buildFullEntitiesFilter(queryParams: QueryParams, accessRightFilter: () -> String?): String =
+    private fun buildFullEntitiesFilter(entitiesQuery: EntitiesQuery, accessRightFilter: () -> String?): String =
         buildEntitiesQueryFilter(
-            queryParams,
+            entitiesQuery,
             accessRightFilter
         ).let {
-            if (queryParams.q != null)
-                it.wrapToAndClause(buildQQuery(queryParams.q!!, listOf(queryParams.context)))
+            if (entitiesQuery.q != null)
+                it.wrapToAndClause(buildQQuery(entitiesQuery.q, listOf(entitiesQuery.context)))
             else it
         }.let {
-            if (queryParams.scopeQ != null)
-                it.wrapToAndClause(buildScopeQQuery(queryParams.scopeQ!!))
+            if (entitiesQuery.scopeQ != null)
+                it.wrapToAndClause(buildScopeQQuery(entitiesQuery.scopeQ))
             else it
         }.let {
-            if (queryParams.geoQuery != null)
-                it.wrapToAndClause(buildGeoQuery(queryParams.geoQuery!!))
+            if (entitiesQuery.geoQuery != null)
+                it.wrapToAndClause(buildGeoQuery(entitiesQuery.geoQuery))
             else it
         }
 
     fun buildEntitiesQueryFilter(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
     ): String {
         val formattedIds =
-            if (queryParams.ids.isNotEmpty())
-                queryParams.ids.joinToString(
+            if (entitiesQuery.ids.isNotEmpty())
+                entitiesQuery.ids.joinToString(
                     separator = ",",
                     prefix = "entity_payload.entity_id in(",
                     postfix = ")"
                 ) { "'$it'" }
             else null
         val formattedIdPattern =
-            if (!queryParams.idPattern.isNullOrEmpty())
-                "entity_payload.entity_id ~ '${queryParams.idPattern}'"
+            if (!entitiesQuery.idPattern.isNullOrEmpty())
+                "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
             else null
-        val formattedType = queryParams.type?.let { buildTypeQuery(it) }
+        val formattedType = entitiesQuery.type?.let { buildTypeQuery(it) }
         val formattedAttrs =
-            if (queryParams.attrs.isNotEmpty())
-                queryParams.attrs.joinToString(
+            if (entitiesQuery.attrs.isNotEmpty())
+                entitiesQuery.attrs.joinToString(
                     separator = ",",
                     prefix = "attribute_name in (",
                     postfix = ")"

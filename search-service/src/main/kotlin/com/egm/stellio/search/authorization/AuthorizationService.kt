@@ -2,9 +2,9 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.Either
 import arrow.core.Option
+import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
@@ -22,7 +22,7 @@ interface AuthorizationService {
     suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit>
 
     suspend fun getAuthorizedEntities(
-        queryParams: QueryParams,
+        entitiesQuery: EntitiesQuery,
         contextLink: String,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<JsonLdEntity>>>

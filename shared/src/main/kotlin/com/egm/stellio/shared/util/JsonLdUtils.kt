@@ -77,6 +77,7 @@ object JsonLdUtils {
     const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_OBSERVATION_SPACE_TERM = "observationSpace"
+    const val NGSILD_OBSERVATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/observationSpace"
     const val NGSILD_OPERATION_SPACE_TERM = "operationSpace"
     const val NGSILD_OPERATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/operationSpace"
     val NGSILD_GEO_PROPERTIES_TERMS =
@@ -411,6 +412,7 @@ object JsonLdUtils {
     fun compactEntities(
         entities: List<JsonLdEntity>,
         useSimplifiedRepresentation: Boolean,
+        includeSysAttrs: Boolean,
         context: String,
         mediaType: MediaType
     ): List<CompactedJsonLdEntity> =
@@ -419,6 +421,10 @@ object JsonLdUtils {
                 compact(it, context, mediaType).toKeyValues()
             else
                 compact(it, context, mediaType)
+        }.map {
+            if (!includeSysAttrs)
+                it.withoutSysAttrs()
+            else it
         }
 
     fun compactTerms(terms: List<ExpandedTerm>, contexts: List<String>): List<String> =
@@ -450,6 +456,15 @@ object JsonLdUtils {
         val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
         return filterEntityOnAttributes(input, identity, includedAttributes, false)
     }
+
+    fun filterJsonLdEntitiesOnAttributes(
+        jsonLdEntities: List<JsonLdEntity>,
+        includedAttributes: Set<String>
+    ): List<JsonLdEntity> =
+        jsonLdEntities.filter { it.containsAnyOf(includedAttributes) }
+            .map {
+                JsonLdEntity(filterJsonLdEntityOnAttributes(it, includedAttributes), it.contexts)
+            }
 
     fun filterJsonLdEntityOnAttributes(
         input: JsonLdEntity,

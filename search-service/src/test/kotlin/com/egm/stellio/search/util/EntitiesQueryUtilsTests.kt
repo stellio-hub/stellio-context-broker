@@ -142,6 +142,31 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
+    fun `it should parse a valid simple query`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "BeeHive"
+                }],
+                "attrs": ["attr1"],
+                "q": "temperature>32"
+            }
+        """.trimIndent()
+
+        parseQueryParamsForPost(
+            Pair(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXT
+        ).shouldSucceedWith {
+            assertEquals(BEEHIVE_TYPE, it.type)
+            assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
+            assertEquals("temperature>32", it.q)
+        }
+    }
+
+    @Test
     fun `it should not validate a query if the type is not correct`() {
         val query = """
             {

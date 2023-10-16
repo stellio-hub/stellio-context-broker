@@ -3,7 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseQueryAndTemporalParams
+import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -12,7 +12,7 @@ import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
@@ -25,29 +25,25 @@ class TemporalEntityOperationsHandler(
 ) {
 
     /**
-     * Partial implementation of 6.24.3.1 - Query Temporal Evolution of Entities With POST
+     * Implementation of 6.24.3.1 - Query Temporal Evolution of Entities via POST
      */
     @PostMapping("/query", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun queryEntities(
+    suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val body = requestBody.awaitFirst()
-        val params = JsonUtils.deserializeObject(body)
-        val queryParams = LinkedMultiValueMap<String, String>()
-        params.forEach {
-            if (it.value is List<*>)
-                queryParams.add(it.key, (it.value as List<*>).joinToString(","))
-            else
-                queryParams.add(it.key, it.value.toString())
-        }
-
         val temporalEntitiesQuery =
-            parseQueryAndTemporalParams(applicationProperties.pagination, queryParams, contextLink, true).bind()
+            composeTemporalEntitiesQueryFromPostRequest(
+                applicationProperties.pagination,
+                requestBody.awaitFirst(),
+                params,
+                contextLink
+            ).bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
@@ -60,7 +56,7 @@ class TemporalEntityOperationsHandler(
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery.entitiesQuery.paginationQuery,
-            queryParams,
+            params,
             mediaType,
             contextLink
         )

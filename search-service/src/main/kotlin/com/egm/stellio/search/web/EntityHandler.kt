@@ -9,7 +9,7 @@ import com.egm.stellio.search.model.hasSuccessfulUpdate
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseQueryParams
+import com.egm.stellio.search.util.composeEntitiesQuery
 import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -190,8 +190,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val entitiesQuery = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val entitiesQuery = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()
@@ -237,8 +237,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val queryParams = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val queryParams = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()

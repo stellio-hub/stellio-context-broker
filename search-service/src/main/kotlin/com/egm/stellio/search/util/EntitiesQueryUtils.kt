@@ -8,24 +8,18 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
+import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime
 import java.util.Optional
-import java.util.regex.Pattern
 
-fun parseQueryParams(
-    pagination: Pair<Int, Int>,
+fun composeEntitiesQuery(
+    defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
-    val idPattern = requestParams.getFirst(QUERY_PARAM_ID_PATTERN)?.also { idPattern ->
-        runCatching {
-            Pattern.compile(idPattern)
-        }.onFailure {
-            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
-        }
-    }
+    val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
 
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
@@ -40,8 +34,8 @@ fun parseQueryParams(
         .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
-        pagination.first,
-        pagination.second
+        defaultPagination.limitDefault,
+        defaultPagination.limitMax
     ).bind()
 
     val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
@@ -63,35 +57,38 @@ fun parseQueryParams(
 
 fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQuery> = either {
     if (
-        ids.isEmpty() &&
+        geoQuery == null &&
         q.isNullOrEmpty() &&
         type.isNullOrEmpty() &&
         attrs.isEmpty()
     )
         return@either BadRequestDataException(
-            "one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
+            "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
         ).left().bind<EntitiesQuery>()
 
     this@validateMinimalQueryEntitiesParameters
 }
 
-fun parseQueryParamsForPost(
-    pagination: Pair<Int, Int>,
+fun composeEntitiesQueryFromPostRequest(
+    defaultPagination: ApplicationProperties.Pagination,
     requestBody: String,
     requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val query = Query(requestBody).bind()
+    composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contextLink).bind()
+}
+
+fun composeEntitiesQueryFromPostRequest(
+    defaultPagination: ApplicationProperties.Pagination,
+    query: Query,
+    requestParams: MultiValueMap<String, String>,
+    contextLink: String
+): Either<APIException, EntitiesQuery> = either {
     val entitySelector = query.entities?.get(0)
     val id = entitySelector?.id?.toUri()
     val type = parseAndExpandTypeSelection(entitySelector?.type, contextLink)
-    val idPattern = entitySelector?.idPattern?.also { idPattern ->
-        runCatching {
-            Pattern.compile(idPattern)
-        }.onFailure {
-            BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left().bind()
-        }
-    }
+    val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
     val geoQuery = if (query.geoQ != null) {
         val geoQueryElements = mapOf(
@@ -109,8 +106,8 @@ fun parseQueryParamsForPost(
         .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
-        pagination.first,
-        pagination.second
+        defaultPagination.limitDefault,
+        defaultPagination.limitMax
     ).bind()
 
     EntitiesQuery(
@@ -128,21 +125,20 @@ fun parseQueryParamsForPost(
     )
 }
 
-fun parseQueryAndTemporalParams(
-    pagination: ApplicationProperties.Pagination,
+fun composeTemporalEntitiesQuery(
+    defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contextLink: String,
     inQueryEntities: Boolean = false
 ): Either<APIException, TemporalEntitiesQuery> = either {
-    val queryParams = parseQueryParams(
-        Pair(pagination.limitDefault, pagination.limitMax),
+    val entitiesQuery = composeEntitiesQuery(
+        defaultPagination,
         requestParams,
         contextLink
     ).bind()
 
-    if (queryParams.type.isNullOrEmpty() && queryParams.attrs.isEmpty() && inQueryEntities)
-        BadRequestDataException("Either type or attrs need to be present in request parameters")
-            .left().bind<TemporalEntitiesQuery>()
+    if (inQueryEntities)
+        entitiesQuery.validateMinimalQueryEntitiesParameters().bind()
 
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
@@ -159,7 +155,55 @@ fun parseQueryAndTemporalParams(
     val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
-        entitiesQuery = queryParams,
+        entitiesQuery = entitiesQuery,
+        temporalQuery = temporalQuery,
+        withTemporalValues = withTemporalValues,
+        withAudit = withAudit,
+        withAggregatedValues = withAggregatedValues
+    )
+}
+
+fun composeTemporalEntitiesQueryFromPostRequest(
+    defaultPagination: ApplicationProperties.Pagination,
+    requestBody: String,
+    requestParams: MultiValueMap<String, String>,
+    contextLink: String
+): Either<APIException, TemporalEntitiesQuery> = either {
+    val query = Query(requestBody).bind()
+    val entitiesQuery = composeEntitiesQueryFromPostRequest(
+        defaultPagination,
+        query,
+        requestParams,
+        contextLink
+    ).bind()
+        .validateMinimalQueryEntitiesParameters().bind()
+
+    val withTemporalValues = hasValueInOptionsParam(
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.TEMPORAL_VALUES
+    )
+    val withAudit = hasValueInOptionsParam(
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AUDIT
+    )
+    val withAggregatedValues = hasValueInOptionsParam(
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
+        OptionsParamValue.AGGREGATED_VALUES
+    )
+
+    val temporalParams = mapOf(
+        "timerel" to listOf(query.temporalQ?.timerel),
+        "timeAt" to listOf(query.temporalQ?.timeAt),
+        "endTimeAt" to listOf(query.temporalQ?.endTimeAt),
+        "aggrPeriodDuration" to listOf(query.temporalQ?.aggrPeriodDuration),
+        "aggrMethods" to query.temporalQ?.aggrMethods,
+        "lastN" to listOf(query.temporalQ?.lastN.toString()),
+        "timeproperty" to listOf(query.temporalQ?.timeproperty)
+    )
+    val temporalQuery = buildTemporalQuery(MultiValueMapAdapter(temporalParams), true, withAggregatedValues).bind()
+
+    TemporalEntitiesQuery(
+        entitiesQuery = entitiesQuery,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,

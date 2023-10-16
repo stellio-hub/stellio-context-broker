@@ -10,7 +10,7 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.parseQueryParamsForPost
+import com.egm.stellio.search.util.composeEntitiesQueryFromPostRequest
 import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -255,17 +255,17 @@ class EntityOperationHandler(
      * Implements 6.23.3.1 - Query Entities via POST
      */
     @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun getEntitiesViaPost(
+    suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
-
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val entitiesQuery = parseQueryParamsForPost(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val mediaType = getApplicableMediaType(httpHeaders)
+
+        val entitiesQuery = composeEntitiesQueryFromPostRequest(
+            applicationProperties.pagination,
             requestBody.awaitFirst(),
             params,
             contextLink

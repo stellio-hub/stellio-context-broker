@@ -174,6 +174,16 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
             JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
         }.toSet()
 
+fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
+    idPattern?.let {
+        runCatching {
+            Pattern.compile(it)
+        }.fold(
+            { idPattern.right() },
+            { BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left() }
+        )
+    } ?: Either.Right(null)
+
 fun parsePaginationParameters(
     queryParams: MultiValueMap<String, String>,
     limitDefault: Int,

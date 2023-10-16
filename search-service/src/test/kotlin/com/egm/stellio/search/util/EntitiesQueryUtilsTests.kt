@@ -27,7 +27,11 @@ class EntitiesQueryUtilsTests {
     @Test
     fun `it should parse query parameters`() = runTest {
         val requestParams = gimmeEntitiesQueryParams()
-        val entitiesQuery = parseQueryParams(Pair(1, 20), requestParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+        val entitiesQuery = composeEntitiesQuery(
+            ApplicationProperties.Pagination(1, 20),
+            requestParams,
+            APIC_COMPOUND_CONTEXT
+        ).shouldSucceedAndResult()
 
         assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.type)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), entitiesQuery.attrs)
@@ -48,7 +52,11 @@ class EntitiesQueryUtilsTests {
     fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("options", "sysAttrs")
-        val queryParams = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+        val queryParams = composeEntitiesQuery(
+            ApplicationProperties.Pagination(30, 100),
+            requestParams,
+            NGSILD_CORE_CONTEXT
+        ).shouldSucceedAndResult()
 
         assertEquals(true, queryParams.includeSysAttrs)
     }
@@ -57,7 +65,11 @@ class EntitiesQueryUtilsTests {
     fun `it should decode q in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
-        val entitiesQuery = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+        val entitiesQuery = composeEntitiesQuery(
+            ApplicationProperties.Pagination(30, 100),
+            requestParams,
+            NGSILD_CORE_CONTEXT
+        ).shouldSucceedAndResult()
 
         assertEquals("speed>50;foodName==dietary fibres", entitiesQuery.q)
     }
@@ -65,7 +77,11 @@ class EntitiesQueryUtilsTests {
     @Test
     fun `it should set default values in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
-        val entitiesQuery = parseQueryParams(Pair(30, 100), requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+        val entitiesQuery = composeEntitiesQuery(
+            ApplicationProperties.Pagination(30, 100),
+            requestParams,
+            NGSILD_CORE_CONTEXT
+        ).shouldSucceedAndResult()
 
         assertEquals(null, entitiesQuery.type)
         assertEquals(emptySet<String>(), entitiesQuery.attrs)
@@ -122,8 +138,8 @@ class EntitiesQueryUtilsTests {
             }
         """.trimIndent()
 
-        parseQueryParamsForPost(
-            Pair(30, 100),
+        composeEntitiesQueryFromPostRequest(
+            ApplicationProperties.Pagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
@@ -154,8 +170,8 @@ class EntitiesQueryUtilsTests {
             }
         """.trimIndent()
 
-        parseQueryParamsForPost(
-            Pair(30, 100),
+        composeEntitiesQueryFromPostRequest(
+            ApplicationProperties.Pagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
@@ -175,8 +191,8 @@ class EntitiesQueryUtilsTests {
             }
         """.trimIndent()
 
-        parseQueryParamsForPost(
-            Pair(30, 100),
+        composeEntitiesQueryFromPostRequest(
+            ApplicationProperties.Pagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
@@ -195,8 +211,8 @@ class EntitiesQueryUtilsTests {
             }
         """.trimIndent()
 
-        parseQueryParamsForPost(
-            Pair(30, 100),
+        composeEntitiesQueryFromPostRequest(
+            ApplicationProperties.Pagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
@@ -215,8 +231,8 @@ class EntitiesQueryUtilsTests {
             }
         """.trimIndent()
 
-        parseQueryParamsForPost(
-            Pair(30, 100),
+        composeEntitiesQueryFromPostRequest(
+            ApplicationProperties.Pagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
@@ -233,14 +249,14 @@ class EntitiesQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        parseQueryAndTemporalParams(
+        composeTemporalEntitiesQuery(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXT,
             true
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("Either type or attrs need to be present in request parameters", it.message)
+            assertEquals("One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query", it.message)
         }
     }
 
@@ -253,7 +269,7 @@ class EntitiesQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        parseQueryAndTemporalParams(
+        composeTemporalEntitiesQuery(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXT
@@ -272,7 +288,7 @@ class EntitiesQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        parseQueryAndTemporalParams(
+        composeTemporalEntitiesQuery(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXT,
@@ -292,7 +308,7 @@ class EntitiesQueryUtilsTests {
         every { pagination.limitMax } returns 100
 
         val temporalEntitiesQuery =
-            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
@@ -325,7 +341,7 @@ class EntitiesQueryUtilsTests {
         every { pagination.limitMax } returns 100
 
         val temporalEntitiesQuery =
-            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertTrue(temporalEntitiesQuery.withAudit)
     }
@@ -357,7 +373,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("attrs", "outgoing")
 
         val temporalQuery =
-            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(1, temporalQuery.entitiesQuery.attrs.size)
         assertTrue(temporalQuery.entitiesQuery.attrs.contains(OUTGOING_PROPERTY))
@@ -375,7 +391,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery =
-            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.entitiesQuery.attrs.size)
         assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.entitiesQuery.attrs)
@@ -392,7 +408,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
 
         val temporalQuery =
-            parseQueryAndTemporalParams(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXT).shouldSucceedAndResult()
         assertTrue(temporalQuery.entitiesQuery.attrs.isEmpty())
     }
 

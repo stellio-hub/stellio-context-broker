@@ -5,7 +5,7 @@ import arrow.core.raise.either
 import com.egm.stellio.search.authorization.*
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.util.parseQueryParams
+import com.egm.stellio.search.util.composeEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -48,8 +48,8 @@ class EntityAccessControlHandler(
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val entitiesQuery = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val entitiesQuery = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()
@@ -100,8 +100,8 @@ class EntityAccessControlHandler(
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
-        val entitiesQuery = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val entitiesQuery = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()
@@ -151,8 +151,8 @@ class EntityAccessControlHandler(
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders)
-        val entitiesQuery = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val entitiesQuery = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()

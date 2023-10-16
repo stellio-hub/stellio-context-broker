@@ -7,12 +7,12 @@ import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils
-import java.time.ZonedDateTime
 
 /**
  * A Query data type as defined in 5.2.23.
  *
- * It represents the raw data as received in the API.
+ * It represents the raw data as received in the API. To have a consistent validation handling, even mandatory
+ * parameters are declared as optional here, validation is performed later in #{EntitiesQueryUtils}.
  */
 data class Query private constructor(
     val type: String,
@@ -47,13 +47,13 @@ data class Query private constructor(
 data class EntitySelector(
     val id: String? = null,
     val idPattern: String? = null,
-    val type: String
+    val type: String? = null
 )
 
 data class UnparsedTemporalQuery(
-    val timerel: String,
-    val timeAt: ZonedDateTime,
-    val endTimeAt: ZonedDateTime? = null,
+    val timerel: String? = null,
+    val timeAt: String? = null,
+    val endTimeAt: String? = null,
     val aggrPeriodDuration: String? = null,
     val aggrMethods: List<String>? = null,
     val lastN: Int? = null,

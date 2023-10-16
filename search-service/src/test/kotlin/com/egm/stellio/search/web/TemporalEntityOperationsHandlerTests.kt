@@ -20,8 +20,6 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.web.reactive.function.BodyInserters
 import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
@@ -65,17 +63,24 @@ class TemporalEntityOperationsHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("options", "temporalValues")
-        queryParams.add("timerel", "between")
-        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
-        queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
-        queryParams.add("type", "BeeHive,Apiary")
-        queryParams.add("attrs", "incoming,outgoing")
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "$BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE"
+                }],
+                "attrs": ["incoming", "outgoing"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                }
+            }
+        """.trimIndent()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
-            .body(BodyInserters.fromValue(queryParams))
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues")
+            .bodyValue(query)
             .header("Link", apicHeaderLink)
             .exchange()
             .expectStatus().isOk
@@ -107,18 +112,24 @@ class TemporalEntityOperationsHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
 
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("options", "temporalValues")
-        queryParams.add("count", "true")
-        queryParams.add("timerel", "between")
-        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
-        queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
-        queryParams.add("type", "BeeHive,Apiary")
-        queryParams.add("attrs", "incoming,outgoing")
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "$BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE"
+                }],
+                "attrs": ["incoming", "outgoing"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                }
+            }
+        """.trimIndent()
 
         webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
-            .body(BodyInserters.fromValue(queryParams))
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues&count=true")
+            .bodyValue(query)
             .header("Link", apicHeaderLink)
             .exchange()
             .expectStatus().isOk
@@ -145,11 +156,21 @@ class TemporalEntityOperationsHandlerTests {
 
     @Test
     fun `it should raise a 400 if required parameters are missing`() {
-        val queryParams = mapOf("timerel" to "before", "type" to "Beehive")
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "$BEEHIVE_TYPE"
+                }],
+                "temporalQ": {
+                    "timerel": "before"
+                }
+            }
+        """.trimIndent()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
-            .body(BodyInserters.fromValue(queryParams))
+            .bodyValue(query)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

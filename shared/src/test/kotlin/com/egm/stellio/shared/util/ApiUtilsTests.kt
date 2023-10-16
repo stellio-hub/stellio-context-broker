@@ -8,6 +8,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
@@ -186,5 +187,40 @@ class ApiUtilsTests {
         val expectedExpandTypeSelection =
             "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
         assertEquals(expectedExpandTypeSelection, expandedQuery)
+    }
+
+    @Test
+    fun `it should parse a conform datetime parameter`() {
+        val parseResult = "2023-10-16T16:18:00Z".parseTimeParameter("Invalid date time")
+        parseResult.onLeft {
+            fail("it should have parsed the date time")
+        }
+    }
+
+    @Test
+    fun `it should return an error if datetime parameter is not conform`() {
+        val parseResult = "16/10/2023".parseTimeParameter("Invalid date time")
+        parseResult.fold(
+            { assertEquals("Invalid date time", it) }
+        ) {
+            fail("it should not have parsed the date time")
+        }
+    }
+
+    @Test
+    fun `it should validate a correct idPattern`() {
+        val validationResult = validateIdPattern("urn:ngsi-ld:Entity:*")
+        validationResult.onLeft {
+            fail("it should have parsed the date time")
+        }
+    }
+
+    @Test
+    fun `it should not validate an incorrect idPattern`() {
+        val validationResult = validateIdPattern("(?x)urn:ngsi-ld:Entity:{*}2")
+        validationResult.fold(
+            { assertTrue(it.message.startsWith("Invalid value for idPattern: (?x)urn:ngsi-ld:Entity:{*}2")) },
+            { fail("it should not have validated the idPattern") }
+        )
     }
 }

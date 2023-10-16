@@ -25,13 +25,6 @@ import java.time.format.DateTimeParseException
 import java.util.Optional
 import java.util.regex.Pattern
 
-fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
-    try {
-        ZonedDateTime.parse(this).right()
-    } catch (e: DateTimeParseException) {
-        errorMsg.left()
-    }
-
 const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
@@ -226,3 +219,10 @@ fun List<MediaType>.getApplicable(): MediaType {
     else
         JSON_LD_MEDIA_TYPE
 }
+
+fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
+    try {
+        ZonedDateTime.parse(this).right()
+    } catch (e: DateTimeParseException) {
+        errorMsg.left()
+    }

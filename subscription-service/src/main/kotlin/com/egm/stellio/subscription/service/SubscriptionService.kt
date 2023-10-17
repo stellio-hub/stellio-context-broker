@@ -49,15 +49,14 @@ class SubscriptionService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> {
-        return either {
-            checkTypeIsSubscription(subscription).bind()
-            checkIdIsValid(subscription).bind()
-            checkTimeIntervalGreaterThanZero(subscription).bind()
-            checkSubscriptionValidity(subscription).bind()
-            checkExpiresAtInTheFuture(subscription).bind()
-            checkIdPatternIsValid(subscription).bind()
-        }
+    suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> = either {
+        checkTypeIsSubscription(subscription).bind()
+        checkIdIsValid(subscription).bind()
+        checkTimeIntervalGreaterThanZero(subscription).bind()
+        checkSubscriptionValidity(subscription).bind()
+        checkExpiresAtInTheFuture(subscription).bind()
+        checkIdPatternIsValid(subscription).bind()
+        checkNotificationTriggersAreValid(subscription).bind()
     }
 
     private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
@@ -106,55 +105,62 @@ class SubscriptionService(
             }
         }.right()
 
+    private fun checkNotificationTriggersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
+        subscription.notificationTrigger?.all {
+            NotificationTrigger.isValid(it)
+        }.let {
+            if (it == null || it) Unit.right()
+            else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
+        }
+
     @Transactional
-    suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> {
-        return either {
-            validateNewSubscription(subscription).bind()
+    suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
+        validateNewSubscription(subscription).bind()
 
-            val geoQuery =
-                if (subscription.geoQ != null)
-                    parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
-                else null
+        val geoQuery =
+            if (subscription.geoQ != null)
+                parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
+            else null
 
-            val insertStatement =
-                """
-                INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
-                    time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
-                    endpoint_info, times_sent, is_active, expires_at, sub, contexts)
-                VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
-                    :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
-                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
-                """.trimIndent()
+        val insertStatement =
+            """
+            INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
+                notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
+                endpoint_accept, endpoint_info, times_sent, is_active, expires_at, sub, contexts)
+            VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
+                :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
+                :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
+            """.trimIndent()
 
-            databaseClient.sql(insertStatement)
-                .bind("id", subscription.id)
-                .bind("type", subscription.type)
-                .bind("subscription_name", subscription.subscriptionName)
-                .bind("created_at", subscription.createdAt)
-                .bind("description", subscription.description)
-                .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
-                .bind("time_interval", subscription.timeInterval)
-                .bind("q", subscription.q)
-                .bind("scope_q", subscription.scopeQ)
-                .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
-                .bind("notif_format", subscription.notification.format.name)
-                .bind("endpoint_uri", subscription.notification.endpoint.uri)
-                .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
-                .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
-                .bind("times_sent", subscription.notification.timesSent)
-                .bind("is_active", subscription.isActive)
-                .bind("expires_at", subscription.expiresAt)
-                .bind("sub", sub.toStringValue())
-                .bind("contexts", subscription.contexts.toTypedArray())
-                .execute().bind()
+        databaseClient.sql(insertStatement)
+            .bind("id", subscription.id)
+            .bind("type", subscription.type)
+            .bind("subscription_name", subscription.subscriptionName)
+            .bind("created_at", subscription.createdAt)
+            .bind("description", subscription.description)
+            .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
+            .bind("notification_trigger", subscription.notificationTrigger?.toTypedArray())
+            .bind("time_interval", subscription.timeInterval)
+            .bind("q", subscription.q)
+            .bind("scope_q", subscription.scopeQ)
+            .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
+            .bind("notif_format", subscription.notification.format.name)
+            .bind("endpoint_uri", subscription.notification.endpoint.uri)
+            .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
+            .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
+            .bind("times_sent", subscription.notification.timesSent)
+            .bind("is_active", subscription.isActive)
+            .bind("expires_at", subscription.expiresAt)
+            .bind("sub", sub.toStringValue())
+            .bind("contexts", subscription.contexts.toTypedArray())
+            .execute().bind()
 
-            geoQuery?.let {
-                createGeometryQuery(it, subscription.id).bind()
-            }
+        geoQuery?.let {
+            createGeometryQuery(it, subscription.id).bind()
+        }
 
-            subscription.entities.forEach {
-                createEntityInfo(it, subscription.id).bind()
-            }
+        subscription.entities.forEach {
+            createEntityInfo(it, subscription.id).bind()
         }
     }
 
@@ -208,9 +214,9 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
-                modified_at, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
-                endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
-                last_failure, last_success, entity_info.id as entity_id, id_pattern,
+                modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
+                notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
+                last_notification, last_failure, last_success, entity_info.id as entity_id, id_pattern,
                 entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, 
                 scope_q, expires_at, contexts
             FROM subscription 
@@ -312,6 +318,7 @@ class SubscriptionService(
                 listOf(
                     "subscriptionName",
                     "description",
+                    "notificationTrigger",
                     "timeInterval",
                     "q",
                     "scopeQ",
@@ -472,10 +479,11 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
-                modified_At, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
-                endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
-                last_failure, last_success, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                georel, geometry, coordinates, pgis_geometry, geoproperty, scope_q, expires_at, contexts
+                modified_At, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes, 
+                notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
+                last_notification, last_failure, last_success, entity_info.id as entity_id, id_pattern, 
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, scope_q,
+                expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -626,6 +634,7 @@ class SubscriptionService(
             expiresAt = toNullableZonedDateTime(row["expires_at"]),
             description = row["description"] as? String,
             watchedAttributes = (row["watched_attributes"] as? String)?.split(","),
+            notificationTrigger = toNullableList(row["notification_trigger"]),
             timeInterval = toNullableInt(row["time_interval"]),
             q = row["q"] as? String,
             entities = setOf(
@@ -700,10 +709,11 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
-                modified_At, expires_at, description, watched_attributes, time_interval, q, scope_q, notif_attributes,
-                notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, times_sent, last_notification,
-                last_failure, last_success, is_active, entity_info.id as entity_id, id_pattern,
-                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, contexts
+                modified_At, expires_at, description, watched_attributes, notification_trigger, time_interval, q, 
+                scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, 
+                times_sent, last_notification, last_failure, last_success, is_active, entity_info.id as entity_id, 
+                id_pattern, entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, 
+                contexts
             FROM subscription
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

@@ -30,6 +30,7 @@ data class Subscription(
     val description: String? = null,
     val entities: Set<EntityInfo>,
     val watchedAttributes: List<ExpandedTerm>? = null,
+    val notificationTrigger: List<String>? = null,
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQ? = null,
@@ -132,6 +133,22 @@ enum class SubscriptionStatus(val status: String) {
 
     @JsonProperty("expired")
     EXPIRED("expired")
+}
+
+enum class NotificationTrigger(val notificationTrigger: String) {
+    ENTITY_CREATED("entityCreated"),
+    ENTITY_UPDATED("entityUpdated"),
+    ENTITY_DELETED("entityDeleted"),
+    ATTRIBUTE_CREATED("attributeCreated"),
+    ATTRIBUTE_UPDATED("attributeUpdated"),
+    ATTRIBUTE_DELETED("attributeDeleted");
+
+    companion object {
+        fun isValid(notificationTrigger: String): Boolean =
+            runCatching {
+                NotificationTrigger.valueOf(notificationTrigger)
+            }.fold({ true }, { false })
+    }
 }
 
 fun Map<String, Any>.toFinalRepresentation(

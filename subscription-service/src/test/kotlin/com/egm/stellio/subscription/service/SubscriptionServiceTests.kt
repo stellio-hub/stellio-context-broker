@@ -10,6 +10,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.ParsingUtils
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
@@ -261,9 +263,27 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscriptionService.validateNewSubscription(subscription)
-            .shouldFail {
+            .shouldFailWith {
                 it is BadRequestDataException &&
                     it.message == "Invalid value for idPattern: ["
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an unknown notification trigger`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notificationTrigger" to listOf("unknownNotificationTrigger"),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "Unknown notification trigger in [unknownNotificationTrigger]"
             }
     }
 
@@ -783,6 +803,28 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         assertThat(subscription)
             .matches {
                 it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
+                    it.modifiedAt != null
+            }
+    }
+
+    @Test
+    fun `it should update notification trigger of a subscription`() = runTest {
+        val notificationTriggers = arrayListOf(
+            ATTRIBUTE_CREATED.notificationTrigger,
+            ATTRIBUTE_UPDATED.notificationTrigger
+        )
+        val parsedInput = mapOf(
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "notificationTrigger" to notificationTriggers
+        )
+
+        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
+
+        val subscription = subscriptionService.getById(subscription5Id)
+
+        assertThat(subscription)
+            .matches {
+                it.notificationTrigger!! == notificationTriggers &&
                     it.modifiedAt != null
             }
     }

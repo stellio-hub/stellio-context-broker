@@ -13,7 +13,6 @@ import java.net.URI
     *[
         JsonSubTypes.Type(value = EntityCreateEvent::class),
         JsonSubTypes.Type(value = EntityReplaceEvent::class),
-        JsonSubTypes.Type(value = EntityUpdateEvent::class),
         JsonSubTypes.Type(value = EntityDeleteEvent::class),
         JsonSubTypes.Type(value = AttributeAppendEvent::class),
         JsonSubTypes.Type(value = AttributeReplaceEvent::class),
@@ -69,23 +68,13 @@ data class EntityReplaceEvent(
     override fun getEntity() = this.operationPayload
 }
 
-@JsonTypeName("ENTITY_UPDATE")
-data class EntityUpdateEvent(
-    override val sub: String?,
-    override val tenantUri: URI = DEFAULT_TENANT_URI,
-    override val entityId: URI,
-    override val entityTypes: List<ExpandedTerm>,
-    val operationPayload: String,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_UPDATE, sub, tenantUri, entityId, entityTypes, contexts)
-
 @JsonTypeName("ENTITY_DELETE")
 data class EntityDeleteEvent(
     override val sub: String?,
     override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
+    val deletedEntity: String?,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantUri, entityId, entityTypes, contexts)
 
@@ -168,7 +157,6 @@ data class AttributeDeleteAllInstancesEvent(
 enum class EventsType {
     ENTITY_CREATE,
     ENTITY_REPLACE,
-    ENTITY_UPDATE,
     ENTITY_DELETE,
     ATTRIBUTE_APPEND,
     ATTRIBUTE_REPLACE,

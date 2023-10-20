@@ -730,7 +730,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
@@ -741,8 +741,7 @@ class EntityOperationHandlerTests {
         coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
                 eq(sub.value),
-                match { it in allEntitiesUris },
-                match { it[0] in listOf(SENSOR_TYPE, DEVICE_TYPE) },
+                any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }

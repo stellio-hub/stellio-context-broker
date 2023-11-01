@@ -46,6 +46,7 @@ jobs:
         with:
           junit_files: '**/test-results/**/TEST-*.xml'
       - name: Perform SonarQube analysis
+        if: github.actor != 'dependabot[bot]'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

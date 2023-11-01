@@ -23,7 +23,7 @@ dependencies {
     implementation("org.json:json:20231013")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.1")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

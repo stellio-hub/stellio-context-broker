@@ -15,19 +15,19 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4527/badge)](https://bestpractices.coreinfrastructure.org/projects/4527)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
-context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.02_60/gs_CIM009v010202p.pdf).
+context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf).
 
 Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
 FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
 platform components to accelerate the development of Smart Solutions. For more information check the FIWARE Catalogue entry for
-[Core Context](https://github.com/Fiware/catalogue/tree/master/core). The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
+[Core Context](https://github.com/Fiware/catalogue/tree/master/core). The roadmap of this FIWARE GE is described [here](https://github.com/stellio-hub/stellio-context-broker/projects/1).
 
 You can find more info at the [FIWARE developers](https://developers.fiware.org/) website and the [FIWARE](https://fiware.org/) website.
 The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FIWARE Catalogue](https://catalogue.fiware.org/).
 
-##### NGSI-LD Context Broker Feature Comparison
+**NGSI-LD Context Broker Feature Comparison**
 
-The NGSI-LD Specification is regularly updated published by ETSI. The latest specification is [version 1.6.1 ](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf) which was  published in **September 2022**. 
+The NGSI-LD Specification is regularly updated published by ETSI. The latest specification is [version 1.7.1 ](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf) which was  published in June 2023. 
 
 -  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.6.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 
@@ -63,7 +63,7 @@ It will start all the services composing the Stellio context broker platform and
 
 Please note that the environment and scripts are validated on Ubuntu and macOS. Some errors may occur on other platforms.
 
-We also provide an experimental configuration to deploy Stellio in a k8s cluster (only tested in Minikube as of now). For more information, please look at [the README](kubernetes/README.md)
+We also provide a configuration to deploy Stellio in a k8s cluster. For more information, please look in the [stellio-k8s project](https://github.com/stellio-hub/stellio-k8s)
 
 ## Docker images tagging
 
@@ -71,8 +71,6 @@ Starting from version 2.0.0, a new scheme is used for tagging of Docker images:
 * Releases are tagged with the version number, e.g., `stellio/stellio-search-service:2.0.0`
 * `latest` tag is no longer used for releases as it can be dangerous (for instance, triggering an unwanted major
   upgrade)
-* Developement versions (automatically produced when a commit is pushed on the `develop` branch) are tagged with a 
-  tag containing the `-dev` suffix, e.g., `stellio/stellio-search-service:2.1.0-dev`
 * On each commit on the `develop` branch, an image with the `latest-dev` tag is produced, e.g., `stellio/stellio-search-service:latest-dev`
 
 The version number is obtained during the build process by using the `version` information in the `build.gradle.kts` file.
@@ -205,7 +203,7 @@ Please note that these requirements may vary based on factors such as the size o
 
 For more detailed explanations on NGSI-LD or FIWARE:
 
--  [NGSI-LD v1.6.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
+-  [NGSI-LD v1.7.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf)
 -  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.01.01_60/gr_CIM008v010101p.pdf)
 -  [NGSI-LD Tutorials](https://ngsi-ld-tutorials.readthedocs.io/en/latest/)
 -  [FIWARE Training](https://fiware-academy.readthedocs.io/en/latest/integrated-courses/fiware-training/index.html)

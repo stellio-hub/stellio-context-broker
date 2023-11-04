@@ -27,7 +27,6 @@ springBoot {
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-api-gateway:${project.version}"
-jib.container.jvmFlags = listOf("-Xms64m", "-Xmx128m")
 jib.container.ports = listOf("8080")
 jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

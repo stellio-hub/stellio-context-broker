@@ -9,11 +9,13 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +53,9 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
+
+    @MockkBean
+    private lateinit var queryService: QueryService
 
     @MockkBean
     private lateinit var authorizationService: AuthorizationService
@@ -120,6 +125,7 @@ class EntityOperationHandlerTests {
     private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
     private val batchUpdateEndpoint = "/ngsi-ld/v1/entityOperations/update"
     private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
+    private val queryEntitiesEndpoint = "/ngsi-ld/v1/entityOperations/query"
 
     private val hcmrContext = listOf(AQUAC_COMPOUND_CONTEXT)
 
@@ -809,5 +815,39 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `query entities should return a 200 if the query is correct`() = runTest {
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "$BEEHIVE_TYPE"
+                }],
+                "attrs": ["attr1", "attr2"]
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("$queryEntitiesEndpoint?limit=10&offset=20")
+            .bodyValue(query)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            queryService.queryEntities(
+                match {
+                    it.paginationQuery.limit == 10 &&
+                        it.paginationQuery.offset == 20 &&
+                        it.type == BEEHIVE_TYPE &&
+                        it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
+                },
+                any()
+            )
+        }
     }
 }

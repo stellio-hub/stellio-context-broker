@@ -1,11 +1,12 @@
 package com.egm.stellio.search.service
 
 import arrow.core.right
+import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.GeoQuery
-import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
@@ -98,10 +99,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = types,
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -127,11 +127,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
                     scopeQ = scopeQ,
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -145,11 +144,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities according to ids and types and attrs`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     ids = setOf(entity02Uri, entity01Uri),
                     type = BEEHIVE_TYPE,
-                    limit = 2,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -162,10 +160,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities according to attrs and types`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 2,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -179,11 +176,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities by a list of ids`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     ids = setOf(entity02Uri),
                     type = BEEHIVE_TYPE,
-                    limit = 1,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -196,10 +192,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities with respect to limit and offset`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 1,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -211,11 +206,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities with respect to idPattern`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
-                    limit = 1,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -271,10 +265,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     q = q,
-                    limit = 2,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -305,9 +298,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
-                    limit = 2,
-                    offset = 0,
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     geoQuery = GeoQuery(
                         georel = georel,
                         geometry = GeoQuery.GeometryType.forType(geometry)!!,
@@ -328,10 +320,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve entities according to access rights`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -354,10 +345,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -382,10 +372,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 30,
-                    offset = 0,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) {
@@ -407,10 +396,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve the count of entities`() = runTest {
         entityPayloadService.queryEntitiesCount(
-            QueryParams(
+            EntitiesQuery(
                 type = BEEHIVE_TYPE,
-                limit = 30,
-                offset = 0,
+                paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { null }.shouldSucceedWith { assertEquals(2, it) }
@@ -419,11 +407,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve the count of entities according to access rights`() = runTest {
         entityPayloadService.queryEntitiesCount(
-            QueryParams(
+            EntitiesQuery(
                 ids = setOf(entity02Uri, entity01Uri),
                 type = BEEHIVE_TYPE,
-                limit = 30,
-                offset = 0,
+                paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             )
         ) { "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')" }
@@ -434,11 +421,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return an empty list if no entity matches the requested type`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     ids = setOf(entity02Uri, entity01Uri),
                     type = "https://ontology.eglobalmark.com/apic#UnknownType",
-                    limit = 2,
-                    offset = 10,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
@@ -450,10 +436,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return an empty list if no entitiy matched the requested attributes`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
-                QueryParams(
+                EntitiesQuery(
                     type = BEEHIVE_TYPE,
-                    limit = 2,
-                    offset = 10,
+                    paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     attrs = setOf("unknownAttribute"),
                     context = APIC_COMPOUND_CONTEXT
                 )

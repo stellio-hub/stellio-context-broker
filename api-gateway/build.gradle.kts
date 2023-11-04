@@ -7,9 +7,9 @@ plugins {
 
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
-    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.5.0")
+    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.6.0")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.1")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
 }
 
 springBoot {

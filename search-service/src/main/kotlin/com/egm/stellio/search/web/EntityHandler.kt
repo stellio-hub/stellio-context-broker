@@ -9,6 +9,8 @@ import com.egm.stellio.search.model.hasSuccessfulUpdate
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.util.composeEntitiesQuery
+import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -188,50 +190,31 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val queryParams = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val entitiesQuery = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()
-
-        if (
-            queryParams.ids.isEmpty() &&
-            queryParams.q.isNullOrEmpty() &&
-            queryParams.type.isNullOrEmpty() &&
-            queryParams.attrs.isEmpty()
-        )
-            BadRequestDataException(
-                "one of 'ids', 'q', 'type' and 'attrs' request parameters have to be specified"
-            ).left().bind<ResponseEntity<*>>()
+            .validateMinimalQueryEntitiesParameters().bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val countAndEntities = queryService.queryEntities(queryParams, accessRightFilter).bind()
+        val countAndEntities = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
 
-        val filteredEntities =
-            countAndEntities.first.filter { it.containsAnyOf(queryParams.attrs) }
-                .map {
-                    JsonLdEntity(
-                        JsonLdUtils.filterJsonLdEntityOnAttributes(it, queryParams.attrs),
-                        it.contexts
-                    )
-                }
+        val filteredEntities = JsonLdUtils.filterJsonLdEntitiesOnAttributes(countAndEntities.first, entitiesQuery.attrs)
 
         val compactedEntities = JsonLdUtils.compactEntities(
             filteredEntities,
-            queryParams.useSimplifiedRepresentation,
+            entitiesQuery.useSimplifiedRepresentation,
+            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
-        ).map {
-            if (!queryParams.includeSysAttrs)
-                it.withoutSysAttrs()
-            else it
-        }
+        )
 
         buildQueryResponse(
             compactedEntities,
             countAndEntities.second,
             "/ngsi-ld/v1/entities",
-            queryParams,
+            entitiesQuery.paginationQuery,
             params,
             mediaType,
             contextLink
@@ -254,8 +237,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val queryParams = parseQueryParams(
-            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+        val queryParams = composeEntitiesQuery(
+            applicationProperties.pagination,
             params,
             contextLink
         ).bind()

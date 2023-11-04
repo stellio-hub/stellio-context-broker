@@ -21,13 +21,13 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.8.0")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.1")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("org.wiremock:wiremock-standalone:3.2.0")
+    testImplementation("org.wiremock:wiremock-standalone:3.3.1")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))

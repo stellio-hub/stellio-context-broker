@@ -793,10 +793,10 @@ class TemporalEntityHandlerTests {
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 30 &&
-                        temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
-                        temporalEntitiesQuery.queryParams.type == BEEHIVE_TYPE &&
+                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
+                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
+                        temporalEntitiesQuery.entitiesQuery.type == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },
@@ -1696,7 +1696,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Either type or attrs need to be present in request parameters"
+                    "detail":"One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
                 }
                 """.trimIndent()
             )

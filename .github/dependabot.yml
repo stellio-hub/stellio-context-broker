@@ -8,6 +8,14 @@ updates:
     assignees:
       - "bobeal"
     open-pull-requests-limit: 10
+    groups:
+      detekt:
+        patterns:
+          - "io.gitlab.arturbosch.detekt*"
+      kotlin:
+        patterns:
+          - "jvm"
+          - "plugin.spring"
   - package-ecosystem: "github-actions"
     # Workflow files stored in the default location of `.github/workflows`
     directory: "/"

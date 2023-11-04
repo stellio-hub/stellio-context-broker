@@ -357,11 +357,11 @@ class TemporalEntityAttributeService(
 
     suspend fun getForTemporalEntities(
         entitiesIds: List<URI>,
-        queryParams: QueryParams
+        entitiesQuery: EntitiesQuery
     ): List<TemporalEntityAttribute> {
         val filterOnAttributes =
-            if (queryParams.attrs.isNotEmpty())
-                " AND " + queryParams.attrs.joinToString(
+            if (entitiesQuery.attrs.isNotEmpty())
+                " AND " + entitiesQuery.attrs.joinToString(
                     separator = ",",
                     prefix = "attribute_name in (",
                     postfix = ")"

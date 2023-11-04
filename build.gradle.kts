@@ -19,13 +19,13 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.1.4" apply false
+    id("org.springframework.boot") version "3.1.5" apply false
     id("io.spring.dependency-management") version "1.1.3" apply false
-    id("org.graalvm.buildtools.native") version "0.9.27"
-    kotlin("jvm") version "1.9.10" apply false
-    kotlin("plugin.spring") version "1.9.10" apply false
+    id("org.graalvm.buildtools.native") version "0.9.28"
+    kotlin("jvm") version "1.9.20" apply false
+    kotlin("plugin.spring") version "1.9.20" apply false
     id("com.google.cloud.tools.jib") version "3.4.0" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.1" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.3" apply false
     id("org.sonarqube") version "4.4.1.3373"
     jacoco
 }
@@ -64,7 +64,7 @@ subprojects {
         implementation("org.springframework.kafka:spring-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-        implementation("com.github.jsonld-java:jsonld-java:0.13.4")
+        implementation("com.github.jsonld-java:jsonld-java:0.13.5")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:1.2.1")
 
@@ -72,7 +72,7 @@ subprojects {
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:4.0.2")
+        runtimeOnly("de.siegmar:logback-gelf:5.0.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
@@ -103,7 +103,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.0")
+                useVersion("1.9.10")
             }
         }
     }

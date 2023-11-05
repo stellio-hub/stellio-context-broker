@@ -1,0 +1,39 @@
+{
+  "id": "urn:ngsi-ld:Subscription:1",
+  "type": "Subscription",
+  "subscriptionName": "A subscription with all possible members",
+  "description": "A possible description",
+  "entities": [
+    {
+      "type": "BeeHive"
+    },
+    { "id": "urn:ngsi-ld:Beehive:1234567890",
+      "type": "BeeHive"
+    },
+    {
+      "idPattern": "urn:ngsi-ld:Beehive:1234*",
+      "type": "BeeHive"
+    }
+  ],
+  "watchedAttributes": ["incoming"],
+  "notificationTrigger": ["entityCreated", "attributeUpdated", "entityDeleted"],
+  "q": "foodQuantity<150;foodName=='dietary fibres'",
+  "geoQ": {
+    "georel": "within",
+    "geometry": "Polygon",
+    "coordinates": "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
+  },
+  "scopeQ": "/Nantes/+",
+  "notification": {
+    "attributes": ["incoming", "outgoing"],
+    "format": "normalized",
+    "endpoint": {
+      "uri": "http://localhost:8084",
+      "accept": "application/json",
+      "info": [
+        { "key": "Authorization-token", "value": "Authorization-token-value" }
+      ]
+    }
+  },
+  "expiresAt": "2100-01-01T00:00:00Z"
+}

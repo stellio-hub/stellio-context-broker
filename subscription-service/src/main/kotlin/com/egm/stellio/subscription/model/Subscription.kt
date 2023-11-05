@@ -10,6 +10,8 @@ import com.egm.stellio.shared.util.JsonUtils.convertToMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -21,6 +23,11 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
+val defaultNotificationTriggers = listOf(
+    ATTRIBUTE_CREATED.notificationTrigger,
+    ATTRIBUTE_UPDATED.notificationTrigger
+)
+
 data class Subscription(
     @Id val id: URI = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}".toUri(),
     val type: String,
@@ -28,9 +35,9 @@ data class Subscription(
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
-    val entities: Set<EntityInfo>,
+    val entities: Set<EntityInfo>? = null,
     val watchedAttributes: List<ExpandedTerm>? = null,
-    val notificationTrigger: List<String>? = null,
+    val notificationTrigger: List<String> = defaultNotificationTriggers,
     val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQ? = null,
@@ -57,11 +64,11 @@ data class Subscription(
 
     fun expand(contexts: List<String>): Subscription =
         this.copy(
-            entities = entities.map { entityInfo ->
+            entities = entities?.map { entityInfo ->
                 entityInfo.copy(
                     type = expandJsonLdTerm(entityInfo.type, contexts)
                 )
-            }.toSet(),
+            }?.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { attributeName ->
                     expandJsonLdTerm(attributeName, contexts)
@@ -77,9 +84,9 @@ data class Subscription(
 
     fun compact(contexts: List<String>): Subscription =
         this.copy(
-            entities = entities.map {
+            entities = entities?.map {
                 EntityInfo(it.id, it.idPattern, compactTerm(it.type, contexts))
-            }.toSet(),
+            }?.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
             ),
@@ -145,9 +152,7 @@ enum class NotificationTrigger(val notificationTrigger: String) {
 
     companion object {
         fun isValid(notificationTrigger: String): Boolean =
-            runCatching {
-                NotificationTrigger.valueOf(notificationTrigger)
-            }.fold({ true }, { false })
+            NotificationTrigger.entries.any { it.notificationTrigger == notificationTrigger }
     }
 }
 

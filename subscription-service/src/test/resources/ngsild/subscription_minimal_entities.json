@@ -1,0 +1,14 @@
+{
+  "id":"urn:ngsi-ld:Subscription:1",
+  "type":"Subscription",
+  "entities": [
+    {
+      "type": "BeeHive"
+    }
+  ],
+  "notification": {
+    "endpoint": {
+      "uri": "http://localhost:8084"
+    }
+  }
+}

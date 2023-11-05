@@ -21,7 +21,7 @@ import java.net.URI
         JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class)
     ]
 )
-open class EntityEvent(
+sealed class EntityEvent(
     val operationType: EventsType,
     open val sub: String?,
     open val tenantUri: URI = DEFAULT_TENANT_URI,
@@ -76,7 +76,9 @@ data class EntityDeleteEvent(
     override val entityTypes: List<ExpandedTerm>,
     val deletedEntity: String?,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantUri, entityId, entityTypes, contexts)
+) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantUri, entityId, entityTypes, contexts) {
+    override fun getEntity() = deletedEntity
+}
 
 @JsonTypeName("ATTRIBUTE_APPEND")
 data class AttributeAppendEvent(
@@ -138,6 +140,7 @@ data class AttributeDeleteEvent(
     val updatedEntity: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, tenantUri, entityId, entityTypes, contexts) {
+    override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
 
@@ -151,6 +154,7 @@ data class AttributeDeleteAllInstancesEvent(
     val updatedEntity: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, tenantUri, entityId, entityTypes, contexts) {
+    override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
 

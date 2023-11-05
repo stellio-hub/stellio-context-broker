@@ -6,20 +6,22 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
-import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
-import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
+import com.egm.stellio.subscription.model.NotificationTrigger.*
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.ParsingUtils
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.utils.gimmeSubscriptionFromMembers
+import com.egm.stellio.subscription.utils.loadAndDeserializeSubscription
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -28,14 +30,13 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
+import kotlin.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
@@ -46,15 +47,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Autowired
     private lateinit var subscriptionService: SubscriptionService
 
-    private val mockUserSub = Some(UUID.randomUUID().toString())
+    @Autowired
+    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private lateinit var subscription1Id: URI
-    private lateinit var subscription2Id: URI
-    private lateinit var subscription3Id: URI
-    private lateinit var subscription4Id: URI
-    private lateinit var subscription5Id: URI
-    private lateinit var subscription6Id: URI
-    private lateinit var subscription7Id: URI
+    private val mockUserSub = Some(UUID.randomUUID().toString())
 
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
@@ -62,160 +58,17 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     private lateinit var jsonldEntity: JsonLdEntity
 
     @BeforeAll
-    fun bootstrapSubscriptions() {
+    fun loadTestEntity() {
         runBlocking {
             jsonldEntity = JsonLdUtils.expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         }
-
-        createSubscription1()
-        createSubscription2()
-        createSubscription3()
-        createSubscription4()
-        createSubscription5()
-        createSubscription6()
-        createSubscription7()
     }
 
-    private fun createSubscription(subscription: Subscription): URI {
-        runBlocking {
-            subscriptionService.create(subscription, mockUserSub)
-        }
-        return subscription.id
-    }
-
-    private fun createSubscription1() {
-        val subscription = gimmeRawSubscription(
-            withQueryAndGeoQuery = Pair(first = true, second = false),
-            withEndpointInfo = false,
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 1",
-            scopeQ = "/A/+/C,/B",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE),
-                EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = BEEKEEPER_TYPE)
-            )
-        )
-        subscription1Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription2() {
-        val subscription = gimmeRawSubscription(
-            withEndpointInfo = true,
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 2",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE),
-                EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = BEEHIVE_TYPE)
-            ),
-            expiresAt = Instant.now().atZone(ZoneOffset.UTC).plusDays(1)
-        )
-        subscription2Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription3() {
-        val subscription = gimmeRawSubscription(
-            withEndpointInfo = false,
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 3",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = APIARY_TYPE)
-            ),
-            isActive = false
-        )
-        subscription3Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription4() {
-        val subscription = gimmeRawSubscription(
-            withEndpointInfo = false,
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 4",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
-            ),
-            isActive = false,
-            watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-        )
-        subscription4Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription5() {
-        val subscription = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 5",
-            entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
-            ),
-            isActive = true,
-            expiresAt = null
-        )
-        subscription5Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription6() {
-        val subscription = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY))
-        ).copy(
-            subscriptionName = "Subscription 6",
-            entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = DEVICE_TYPE)
-            ),
-            isActive = false,
-            expiresAt = ZonedDateTime.parse("2012-08-12T08:33:38Z")
-        )
-        subscription6Id = createSubscription(subscription)
-    }
-
-    private fun createSubscription7() {
-        val subscription = gimmeRawSubscription().copy(
-            subscriptionName = "Subscription 7",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = APIARY_TYPE)
-            ),
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
-        )
-        subscription7Id = createSubscription(subscription)
-    }
-
-    @Test
-    fun `it should not retrieve an expired subscription matching an id`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:smartDoor:88".toUri(),
-                listOf(DEVICE_TYPE),
-                setOf(INCOMING_PROPERTY)
-            )
-
-        assertThat(persistedSubscription).isEmpty()
-    }
-
-    @Test
-    fun `it should retrieve a subscription matching an id when expired date is not given`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:smartDoor:77".toUri(),
-                listOf(DEVICE_TYPE),
-                setOf(INCOMING_PROPERTY)
-            )
-
-        assertThat(persistedSubscription).hasSize(1)
-    }
-
-    @Test
-    fun `it should retrieve a subscription matching an id when expired date is in the future`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
-            )
-
-        assertThat(persistedSubscription).hasSize(2)
+    @AfterEach
+    fun deleteSubscriptions() {
+        r2dbcEntityTemplate.delete(Subscription::class.java)
+            .all()
+            .block()
     }
 
     @Test
@@ -265,7 +118,75 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         subscriptionService.validateNewSubscription(subscription)
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "Invalid value for idPattern: ["
+                    it.message == "Invalid idPattern found in subscription"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription without entities and watchedAttributes`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "At least one of entities or watchedAttributes shall be present"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with timeInterval and watchedAttributes`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to 10,
+            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with a negative timeInterval`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to -10,
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "At least one of entities or watchedAttributes shall be present"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an expiresAt in the past`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "expiresAt" to ngsiLdDateTime().minusDays(1),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "At least one of entities or watchedAttributes shall be present"
             }
     }
 
@@ -288,148 +209,103 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should load and fill a persisted subscription with entities info`() = runTest {
-        val persistedSubscription = subscriptionService.getById(subscription1Id)
+    fun `it should load a subscription with minimal required info - entities`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
+        val persistedSubscription = subscriptionService.getById(subscription.id)
         assertThat(persistedSubscription)
             .matches {
-                it.subscriptionName == "Subscription 1" &&
-                    it.description == "My beautiful subscription" &&
-                    it.notification.attributes == listOf(INCOMING_PROPERTY) &&
+                it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
                     it.notification.format == FormatType.NORMALIZED &&
-                    it.notification.endpoint ==
-                    Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD,
-                        null
-                    ) &&
-                    it.entities.size == 2 &&
-                    it.entities.any { entityInfo ->
-                        entityInfo.type == BEEKEEPER_TYPE &&
-                            entityInfo.id == null &&
-                            entityInfo.idPattern == "urn:ngsi-ld:Beekeeper:1234*"
-                    } &&
-                    it.entities.any { entityInfo ->
-                        entityInfo.type == BEEHIVE_TYPE &&
-                            entityInfo.id == null &&
-                            entityInfo.idPattern == null
-                    } &&
-                    it.geoQ == null
-            }
-    }
-
-    @Test
-    fun `it should load and fill a persisted subscription with entities info and query`() = runTest {
-        val persistedSubscription = subscriptionService.getById(subscription3Id)
-
-        assertThat(persistedSubscription)
-            .matches {
-                it.subscriptionName == "Subscription 3" &&
-                    it.description == "My beautiful subscription" &&
-                    it.q == "speed>50;foodName==dietary fibres" &&
-                    it.notification.attributes == listOf(INCOMING_PROPERTY) &&
-                    it.notification.format == FormatType.NORMALIZED &&
-                    it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD,
-                        null
-                    ) &&
-                    it.entities.size == 1
-            }
-    }
-
-    @Test
-    fun `it should load and fill a persisted subscription with entities info and geoquery and endpoint info`() =
-        runTest {
-            val persistedSubscription = subscriptionService.getById(subscription2Id)
-
-            assertThat(persistedSubscription)
-                .matches {
-                    it.subscriptionName == "Subscription 2" &&
-                        it.description == "My beautiful subscription" &&
-                        it.notification.attributes == listOf(INCOMING_PROPERTY) &&
-                        it.notification.format == FormatType.NORMALIZED &&
-                        it.notification.endpoint == Endpoint(
-                            URI("http://localhost:8089/notification"),
-                            Endpoint.AcceptType.JSONLD,
-                            listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                    it.notification.endpoint.uri == URI("http://localhost:8084") &&
+                    it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
+                    (
+                        it.entities != null &&
+                            it.entities!!.size == 1 &&
+                            it.entities!!.all { it.type == BEEHIVE_TYPE }
                         ) &&
-                        it.entities.size == 2 &&
-                        it.geoQ != null &&
-                        it.geoQ!!.georel == "within" &&
-                        it.geoQ!!.geometry == "Polygon" &&
-                        it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/location" &&
-                        it.geoQ!!.coordinates ==
-                        "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
-                }
-        }
-
-    @Test
-    fun `it should load and fill a persisted subscription with entities info and active status`() = runTest {
-        val persistedSubscription = subscriptionService.getById(subscription2Id)
-
-        assertThat(persistedSubscription)
-            .matches {
-                it.subscriptionName == "Subscription 2" &&
-                    it.description == "My beautiful subscription" &&
-                    it.notification.attributes == listOf(INCOMING_PROPERTY) &&
-                    it.notification.format == FormatType.NORMALIZED &&
-                    it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
-                    ) &&
-                    it.entities.size == 2 &&
+                    it.watchedAttributes == null &&
                     it.isActive
             }
     }
 
     @Test
-    fun `it should load and fill a persisted subscription with entities info and inactive status`() = runTest {
-        val persistedSubscription = subscriptionService.getById(subscription4Id)
+    fun `it should load a subscription with minimal required info - watchedAttributes`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_watched_attributes.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
+        val persistedSubscription = subscriptionService.getById(subscription.id)
         assertThat(persistedSubscription)
             .matches {
-                it.subscriptionName == "Subscription 4" &&
-                    it.description == "My beautiful subscription" &&
-                    it.notification.attributes == listOf(INCOMING_PROPERTY) &&
+                it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
                     it.notification.format == FormatType.NORMALIZED &&
-                    it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD,
-                        null
-                    ) &&
-                    it.entities.size == 1 &&
-                    !it.isActive
+                    it.notification.endpoint.uri == URI("http://localhost:8084") &&
+                    it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
+                    it.entities == null &&
+                    it.watchedAttributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                    it.isActive
             }
     }
 
     @Test
-    fun `it should load and fill a persisted subscription with entities info and null value for watched attributes`() =
-        runTest {
-            val persistedSubscription = subscriptionService.getById(subscription2Id)
+    fun `it should load a subscription with all possible members`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_full.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-            assertThat(persistedSubscription)
-                .matches {
-                    it.subscriptionName == "Subscription 2" &&
-                        it.description == "My beautiful subscription" &&
-                        it.entities.size == 2 &&
-                        it.watchedAttributes == null
-                }
-        }
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(persistedSubscription)
+            .matches {
+                it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
+                    it.subscriptionName == "A subscription with all possible members" &&
+                    it.description == "A possible description" &&
+                    (
+                        it.entities != null &&
+                            it.entities!!.size == 3 &&
+                            it.entities!!.all { it.type == BEEHIVE_TYPE } &&
+                            it.entities!!.any { it.id == "urn:ngsi-ld:Beehive:1234567890".toUri() } &&
+                            it.entities!!.any { it.idPattern == "urn:ngsi-ld:Beehive:1234*" }
+                        ) &&
+                    it.watchedAttributes == listOf(INCOMING_PROPERTY) &&
+                    it.notificationTrigger == listOf(
+                        ENTITY_CREATED.notificationTrigger,
+                        ATTRIBUTE_UPDATED.notificationTrigger,
+                        ENTITY_DELETED.notificationTrigger
+                    ) &&
+                    it.timeInterval == null &&
+                    it.q == "foodQuantity<150;foodName=='dietary fibres'" &&
+                    (
+                        it.geoQ != null &&
+                            it.geoQ!!.georel == "within" &&
+                            it.geoQ!!.geometry == "Polygon" &&
+                            it.geoQ!!.coordinates ==
+                            "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]" &&
+                            it.geoQ!!.geoproperty == NGSILD_LOCATION_PROPERTY
+                        ) &&
+                    it.scopeQ == "/Nantes/+" &&
+                    it.notification.attributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                    it.notification.format == FormatType.NORMALIZED &&
+                    it.notification.endpoint == Endpoint(
+                        URI("http://localhost:8084"),
+                        Endpoint.AcceptType.JSON,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                    ) &&
+                    it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z")
+            }
+    }
 
     @Test
-    fun `it should load and fill a persisted subscription with the correct format for temporal values`() = runTest {
-        val createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
-        val subscription = gimmeRawSubscription().copy(
-            createdAt = createdAt,
-            entities = setOf(
-                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = DEVICE_TYPE)
+    fun `it should load a subscription with extra info on last notification`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:smartDoor:77".toUri(), "type" to DEVICE_COMPACT_TYPE)
+                )
             )
         )
-        val notifiedAt = ngsiLdDateTime()
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.create(subscription, mockUserSub)
+        val notifiedAt = ngsiLdDateTime()
         subscriptionService.updateSubscriptionNotification(
             subscription,
             Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
@@ -437,27 +313,25 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         )
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
-
         assertThat(persistedSubscription)
             .matches {
                 it.notification.lastNotification != null &&
                     it.notification.lastNotification!!.isEqual(notifiedAt) &&
                     it.notification.lastSuccess != null &&
                     it.notification.lastSuccess!!.isEqual(notifiedAt) &&
-                    it.createdAt.isEqual(createdAt)
+                    it.notification.lastFailure == null &&
+                    it.notification.timesSent == 1 &&
+                    it.notification.status == StatusType.OK
             }
-
-        subscriptionService.delete(subscription.id)
     }
 
     @Test
     fun `it should delete an existing subscription`() = runTest {
-        val subscription = gimmeRawSubscription()
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
 
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.delete(subscription.id)
-            .shouldSucceed()
+        subscriptionService.delete(subscription.id).shouldSucceed()
     }
 
     @Test
@@ -467,74 +341,137 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should not retrieve an expired subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)),
+                "expiresAt" to ngsiLdDateTime().plusSeconds(1)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        // add a delay to ensure subscription has expired
+        runBlocking {
+            delay(Duration.parse("2s"))
+        }
+
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
+                listOf(BEEKEEPER_TYPE),
+                emptySet(),
+                ATTRIBUTE_CREATED
+            )
+
+        assertThat(persistedSubscription).isEmpty()
+    }
+
+    @Test
+    fun `it should retrieve a subscription whose expiration date has not been reached`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)),
+                "expiresAt" to ngsiLdDateTime().plusDays(1),
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
+                listOf(BEEKEEPER_TYPE),
+                emptySet(),
+                ATTRIBUTE_CREATED
+            )
+
+        assertThat(persistedSubscription).hasSize(1)
+    }
+
+    @Test
     fun `it should retrieve a subscription matching an idPattern`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("idPattern" to "urn:ngsi-ld:Beekeeper:123*", "type" to BEEKEEPER_COMPACT_TYPE)
+                )
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beekeeper:12345678".toUri(),
                 listOf(BEEKEEPER_TYPE),
-                setOf(INCOMING_PROPERTY)
+                emptySet(),
+                ATTRIBUTE_UPDATED
             )
 
-        assertThat(persistedSubscription).hasSize(2)
+        assertThat(persistedSubscription).hasSize(1)
     }
 
     @Test
     fun `it should not retrieve a subscription if idPattern does not match`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("idPattern" to "urn:ngsi-ld:Beekeeper:123*", "type" to BEEKEEPER_COMPACT_TYPE)
+                )
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beekeeper:9876543".toUri(),
+                "urn:ngsi-ld:Beekeeper:3456789".toUri(),
                 listOf(BEEKEEPER_TYPE),
-                setOf(INCOMING_PROPERTY)
+                emptySet(),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(persistedSubscription)
+            .isEmpty()
+    }
+
+    @Test
+    fun `it should retrieve a subscription matching a type`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("type" to BEEKEEPER_COMPACT_TYPE)
+                )
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
+                listOf(BEEKEEPER_TYPE),
+                emptySet(),
+                ATTRIBUTE_UPDATED
             )
 
         assertThat(persistedSubscription)
             .hasSize(1)
-            .element(0).matches {
-                it.subscriptionName == "Subscription 2"
-            }
     }
 
     @Test
-    fun `it should retrieve a subscription matching a type and not one with non matching id`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beehive:ABCD".toUri(),
-                listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
+    fun `it should retrieve a subscription matching a type and an id`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)
+                )
             )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        assertThat(persistedSubscription)
-            .hasSize(1)
-            .element(0).matches {
-                it.subscriptionName == "Subscription 1" &&
-                    it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8089/notification"),
-                        Endpoint.AcceptType.JSONLD
-                    ) &&
-                    it.entities.isEmpty()
-            }
-    }
-
-    @Test
-    fun `it should retrieve a subscription matching a type and an exact id`() = runTest {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
-            )
-
-        assertThat(persistedSubscription)
-            .hasSize(2)
-    }
-
-    @Test
-    fun `it should retrieve a subscription matching an id`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
+                listOf(BEEKEEPER_TYPE),
+                emptySet(),
+                ATTRIBUTE_UPDATED
             )
 
         assertThat(persistedSubscription)
@@ -543,40 +480,45 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should not retrieve a subscription if type does not match`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)
+                )
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Sensor:1234567890".toUri(),
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
                 listOf(SENSOR_TYPE),
-                setOf(INCOMING_PROPERTY)
+                emptySet(),
+                ATTRIBUTE_UPDATED
             )
 
         assertThat(persistedSubscription)
             .isEmpty()
-    }
-
-    @Test
-    fun `it should retrieve an activated subscription matching an id`() = runTest {
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:smartDoor:77".toUri(),
-                listOf(DEVICE_TYPE),
-                setOf(INCOMING_PROPERTY)
-            )
-
-        assertThat(persistedSubscription)
-            .hasSize(1)
-            .element(0).matches {
-                it.subscriptionName == "Subscription 5"
-            }
     }
 
     @Test
     fun `it should not retrieve a deactivated subscription matching an id`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)
+                ),
+                "isActive" to false
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:smartDoor:88".toUri(),
-                listOf(DEVICE_TYPE),
-                setOf(INCOMING_PROPERTY)
+                "urn:ngsi-ld:Beekeeper:01".toUri(),
+                listOf(BEEKEEPER_TYPE),
+                emptySet(),
+                ATTRIBUTE_UPDATED
             )
 
         assertThat(persistedSubscription)
@@ -584,88 +526,82 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should retrieve a subscription if watched attributes is null`() = runTest {
-        val subscription = gimmeRawSubscription().copy(
-            subscriptionName = "My subscription",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
-            ),
-            watchedAttributes = null
-        )
-
-        subscriptionService.create(subscription, mockUserSub)
-
-        val persistedSubscription =
-            subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
+    fun `it should retrieve a subscription matching one of the watched attributes`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
             )
-
-        assertThat(persistedSubscription)
-            .anyMatch { it.id == subscription.id }
-
-        subscriptionService.delete(subscription.id)
-    }
-
-    @Test
-    fun `it should retrieve a subscription if watched attributes contains at least one of the updated attributes`() =
-        runTest {
-            val subscription = gimmeRawSubscription().copy(
-                subscriptionName = "My subscription",
-                entities = setOf(
-                    EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
-                ),
-                watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
-            )
-
-            subscriptionService.create(subscription, mockUserSub)
-
-            val subscriptions =
-                subscriptionService.getMatchingSubscriptions(
-                    "urn:ngsi-ld:Beehive:1234567890".toUri(),
-                    listOf(BEEHIVE_TYPE),
-                    setOf(INCOMING_PROPERTY)
-                )
-
-            assertThat(subscriptions)
-                .anyMatch { it.id == subscription.id }
-
-            subscriptionService.delete(subscription.id)
-        }
-
-    @Test
-    fun `it should not retrieve a subscription if watched attributes do not match any updated attributes`() = runTest {
-        val subscription = gimmeRawSubscription().copy(
-            subscriptionName = "My subscription",
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
-            ),
-            watchedAttributes = listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)
         )
-
-        subscriptionService.create(subscription, mockUserSub)
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
         val subscriptions =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 listOf(BEEHIVE_TYPE),
-                setOf(INCOMING_PROPERTY)
+                setOf(INCOMING_PROPERTY),
+                ATTRIBUTE_UPDATED
             )
 
         assertThat(subscriptions)
-            .allMatch { it.id != subscription.id }
+            .hasSize(1)
+    }
 
-        subscriptionService.delete(subscription.id)
+    @Test
+    fun `it should not retrieve a subscription not matching one of the watched attributes`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(subscriptions)
+            .isEmpty()
+    }
+
+    @Test
+    fun `it should not retrieve a subscription matching on type and not on one of the watched attributes`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("type" to BEEHIVE_COMPACT_TYPE)
+                ),
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(subscriptions)
+            .isEmpty()
     }
 
     @Test
     fun `it should update a subscription`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
+            "watchedAttributes" to arrayListOf(INCOMING_COMPACT_PROPERTY, TEMPERATURE_COMPACT_PROPERTY),
             "scopeQ" to "/A/#,/B",
             "geoQ" to mapOf(
                 "georel" to "equals",
@@ -675,14 +611,15 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             )
         )
 
-        subscriptionService.update(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-        val subscription = subscriptionService.getById(subscription4Id)
+        subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
 
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
                 it.subscriptionName == "My Subscription Updated" &&
                     it.description == "My beautiful subscription has been updated" &&
                     it.q == "foodQuantity>=150" &&
+                    it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
                     it.scopeQ == "/A/#,/B" &&
                     it.geoQ!!.georel == "equals" &&
                     it.geoQ!!.geometry == "Point" &&
@@ -693,6 +630,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should update a subscription notification`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = mapOf(
             "attributes" to listOf(OUTGOING_COMPACT_PROPERTY),
             "format" to "keyValues",
@@ -705,10 +645,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             )
         )
 
-        subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-        val subscription = subscriptionService.getById(subscription4Id)
+        subscriptionService.updateNotification(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
 
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
                 it.notification.attributes == listOf(OUTGOING_PROPERTY) &&
                     it.notification.format.name == "KEY_VALUES" &&
@@ -723,6 +663,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should update a subscription entities`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = listOf(
             mapOf(
                 "id" to "urn:ngsi-ld:Beehive:123",
@@ -734,40 +677,48 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             )
         )
 
-        subscriptionService.updateEntities(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-        val subscription = subscriptionService.getById(subscription4Id)
+        subscriptionService.updateEntities(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
 
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
-                it.entities.contains(
-                    EntityInfo(
-                        id = "urn:ngsi-ld:Beehive:123".toUri(),
-                        idPattern = null,
-                        type = BEEHIVE_TYPE
-                    )
-                ) &&
-                    it.entities.contains(
+                it.entities != null &&
+                    it.entities!!.contains(
+                        EntityInfo(
+                            id = "urn:ngsi-ld:Beehive:123".toUri(),
+                            idPattern = null,
+                            type = BEEHIVE_TYPE
+                        )
+                    ) &&
+                    it.entities!!.contains(
                         EntityInfo(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beehive:12*",
                             type = BEEHIVE_TYPE
                         )
                     ) &&
-                    it.entities.size == 2
+                    it.entities!!.size == 2
             }
     }
 
     @Test
     fun `it should activate a subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)),
+                "isActive" to false
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         subscriptionService.update(
-            subscription3Id,
+            subscription.id,
             mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to true),
             listOf(APIC_COMPOUND_CONTEXT)
-        )
+        ).shouldSucceed()
 
-        val subscription = subscriptionService.getById(subscription3Id)
-
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
                 it.isActive && it.modifiedAt != null
             }
@@ -775,15 +726,21 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should deactivate a subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE))
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         subscriptionService.update(
-            subscription1Id,
+            subscription.id,
             mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to false),
             listOf(APIC_COMPOUND_CONTEXT)
         )
 
-        val subscription = subscriptionService.getById(subscription1Id)
-
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
                 !it.isActive && it.modifiedAt != null
             }
@@ -791,16 +748,23 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should update and expand watched attributes of a subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to arrayListOf(INCOMING_COMPACT_PROPERTY)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "watchedAttributes" to arrayListOf(INCOMING_COMPACT_PROPERTY, TEMPERATURE_COMPACT_PROPERTY)
         )
 
-        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).shouldSucceed()
+        subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).shouldSucceed()
 
-        val subscription = subscriptionService.getById(subscription5Id)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
 
-        assertThat(subscription)
+        assertThat(updatedSubscription)
             .matches {
                 it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
                     it.modifiedAt != null
@@ -809,59 +773,52 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should update notification trigger of a subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_COMPACT_TYPE)),
+                "notificationTrigger" to listOf(ENTITY_CREATED.notificationTrigger)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val notificationTriggers = arrayListOf(
-            ATTRIBUTE_CREATED.notificationTrigger,
-            ATTRIBUTE_UPDATED.notificationTrigger
+            ENTITY_CREATED.notificationTrigger,
+            ENTITY_DELETED.notificationTrigger
         )
         val parsedInput = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "notificationTrigger" to notificationTriggers
         )
+        subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
 
-        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-
-        val subscription = subscriptionService.getById(subscription5Id)
-
-        assertThat(subscription)
+        val updatedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(updatedSubscription)
             .matches {
-                it.notificationTrigger!! == notificationTriggers &&
+                it.notificationTrigger == notificationTriggers &&
                     it.modifiedAt != null
             }
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if the subscription has an unknown attribute`() = runTest {
+    fun `it should return a BadRequestData exception if the subscription has an unknown attribute`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = mapOf("unknownAttribute" to "unknownValue")
 
-        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
             .shouldFail { it is BadRequestDataException }
     }
 
     @Test
-    fun `it should throw a NotImplemented exception if the subscription has an unsupported attribute`() = runTest {
+    fun `it should return a NotImplemented exception if the subscription has an unsupported attribute`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
         val parsedInput = mapOf("throttling" to "someValue")
 
-        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
             .shouldFail { it is NotImplementedException }
-    }
-
-    @Test
-    fun `it should update a subscription with a notification result`() = runTest {
-        val persistedSubscription = subscriptionService.getById(subscription1Id)
-        val notification = Notification(subscriptionId = subscription1Id, data = emptyList())
-
-        subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
-
-        val subscription = subscriptionService.getById(subscription1Id)
-        assertThat(subscription)
-            .matches {
-                it.id == subscription1Id &&
-                    it.notification.status == StatusType.OK &&
-                    it.notification.timesSent == 1 &&
-                    it.notification.lastNotification != null &&
-                    it.notification.lastSuccess != null &&
-                    it.notification.lastFailure == null
-            }
     }
 
     @Test
@@ -936,7 +893,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it shoud return true if a subscription has no geoquery`() = runTest {
-        subscriptionService.isMatchingGeoQuery(subscription1Id, jsonldEntity)
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.isMatchingGeoQuery(subscription.id, jsonldEntity)
             .shouldSucceedWith { assertTrue(it) }
     }
 
@@ -959,11 +919,15 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         coordinates: String,
         expectedResult: Boolean
     ) = runTest {
-        val subscription = gimmeRawSubscription(
-            withQueryAndGeoQuery = Pair(false, true),
-            georel = georel,
-            geometry = geometry,
-            coordinates = coordinates
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "geoQ" to mapOf(
+                    "georel" to georel,
+                    "geometry" to geometry,
+                    "coordinates" to coordinates
+                )
+            )
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
@@ -973,67 +937,57 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should return all subscriptions whose 'timeInterval' is reached `() = runTest {
-        val subscription = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY)),
-            timeInterval = 500
-        ).copy(
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "timeInterval" to 500
             )
         )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val subscriptionId = createSubscription(subscription)
-
-        val subscription2 = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY)),
-            timeInterval = 5000
-        ).copy(
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+        val subscription2 = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "timeInterval" to 5000
             )
         )
-        val subscriptionId2 = createSubscription(subscription2)
+        subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
 
-        val persistedSubscription = subscriptionService.getById(subscriptionId)
-        val notification = Notification(subscriptionId = subscriptionId, data = emptyList())
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 
         val subscriptionsToNotify = subscriptionService.getRecurringSubscriptionsToNotify()
         assertEquals(1, subscriptionsToNotify.size)
 
-        subscriptionService.delete(subscriptionId)
-        subscriptionService.delete(subscriptionId2)
+        subscriptionService.delete(subscription.id)
+        subscriptionService.delete(subscription2.id)
     }
 
     @Test
     fun `it should return all subscriptions whose 'timeInterval' is reached with a time of 5s`() = runTest {
-        val subscription = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY)),
-            timeInterval = 1
-        ).copy(
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEHIVE_TYPE)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "timeInterval" to 1
             )
         )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val subscriptionId1 = createSubscription(subscription)
-
-        val subscription2 = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED, listOf(INCOMING_PROPERTY)),
-            timeInterval = 5000
-        ).copy(
-            entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = BEEKEEPER_TYPE)
+        val subscription2 = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "timeInterval" to 5000
             )
         )
-        val subscriptionId2 = createSubscription(subscription2)
+        subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
 
-        val persistedSubscription = subscriptionService.getById(subscriptionId1)
-        val notification = Notification(subscriptionId = subscriptionId1, data = emptyList())
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
 
-        val persistedSubscription2 = subscriptionService.getById(subscriptionId2)
-        val notification2 = Notification(subscriptionId = subscriptionId2, data = emptyList())
+        val persistedSubscription2 = subscriptionService.getById(subscription2.id)
+        val notification2 = Notification(subscriptionId = subscription2.id, data = emptyList())
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 
@@ -1045,13 +999,16 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscriptionsToNotify = subscriptionService.getRecurringSubscriptionsToNotify()
         assertEquals(1, subscriptionsToNotify.size)
 
-        subscriptionService.delete(subscriptionId1)
-        subscriptionService.delete(subscriptionId2)
+        subscriptionService.delete(subscription.id)
+        subscriptionService.delete(subscription2.id)
     }
 
     @Test
-    fun `it should retrieve a context of subscription`() = runTest {
-        subscriptionService.getContextsForSubscription(subscription7Id)
+    fun `it should retrieve the JSON-LD contexts of subscription`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription.jsonld")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getContextsForSubscription(subscription.id)
             .shouldSucceedWith {
                 assertEquals(listOf(APIC_COMPOUND_CONTEXT), it)
             }
@@ -1059,7 +1016,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should return a link to contexts endpoint if subscription has more than one context`() = runTest {
-        val subscription = gimmeRawSubscription().copy(
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json").copy(
             contexts = listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT)
         )
 

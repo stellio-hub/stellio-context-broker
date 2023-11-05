@@ -52,6 +52,7 @@ class SubscriptionService(
     suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> = either {
         checkTypeIsSubscription(subscription).bind()
         checkIdIsValid(subscription).bind()
+        checkEntitiesOrWatchedAttributes(subscription).bind()
         checkTimeIntervalGreaterThanZero(subscription).bind()
         checkSubscriptionValidity(subscription).bind()
         checkExpiresAtInTheFuture(subscription).bind()
@@ -59,22 +60,26 @@ class SubscriptionService(
         checkNotificationTriggersAreValid(subscription).bind()
     }
 
-    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
-        if (!subscription.id.isAbsolute)
-            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
-        else Unit.right()
-
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
         if (subscription.type != NGSILD_SUBSCRIPTION_TERM)
             BadRequestDataException("type attribute must be equal to 'Subscription'").left()
         else Unit.right()
 
+    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
+        if (!subscription.id.isAbsolute)
+            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
+        else Unit.right()
+
+    private fun checkEntitiesOrWatchedAttributes(subscription: Subscription): Either<APIException, Unit> =
+        if (subscription.watchedAttributes == null && subscription.entities == null)
+            BadRequestDataException("At least one of entities or watchedAttributes shall be present").left()
+        else Unit.right()
+
     private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Unit> =
         if (subscription.watchedAttributes != null && subscription.timeInterval != null)
             BadRequestDataException(
-                "You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
-            )
-                .left()
+                "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+            ).left()
         else Unit.right()
 
     private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
@@ -96,20 +101,24 @@ class SubscriptionService(
             BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
         })
 
-    private fun checkIdPatternIsValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        subscription.entities.forEach { endpoint ->
+    private fun checkIdPatternIsValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
+        val result = subscription.entities?.all { endpoint ->
             runCatching {
                 endpoint.idPattern?.let { Pattern.compile(it) }
-            }.onFailure {
-                return BadRequestDataException("Invalid value for idPattern: ${endpoint.idPattern}").left()
-            }
-        }.right()
+                true
+            }.fold({ true }, { false })
+        }
+
+        return if (result == null || result)
+            Unit.right()
+        else BadRequestDataException("Invalid idPattern found in subscription").left()
+    }
 
     private fun checkNotificationTriggersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        subscription.notificationTrigger?.all {
+        subscription.notificationTrigger.all {
             NotificationTrigger.isValid(it)
         }.let {
-            if (it == null || it) Unit.right()
+            if (it) Unit.right()
             else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
         }
 
@@ -139,7 +148,7 @@ class SubscriptionService(
             .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
-            .bind("notification_trigger", subscription.notificationTrigger?.toTypedArray())
+            .bind("notification_trigger", subscription.notificationTrigger.toTypedArray())
             .bind("time_interval", subscription.timeInterval)
             .bind("q", subscription.q)
             .bind("scope_q", subscription.scopeQ)
@@ -159,7 +168,7 @@ class SubscriptionService(
             createGeometryQuery(it, subscription.id).bind()
         }
 
-        subscription.entities.forEach {
+        subscription.entities?.forEach {
             createEntityInfo(it, subscription.id).bind()
         }
     }
@@ -229,9 +238,14 @@ class SubscriptionService(
             .bind("id", id)
             .allToMappedList { rowToSubscription(it) }
             .reduce { t: Subscription, u: Subscription ->
-                t.copy(entities = t.entities.plus(u.entities))
+                t.copy(entities = mergeEntityInfo(t.entities, u.entities))
             }
     }
+
+    private fun mergeEntityInfo(tEntityInfo: Set<EntityInfo>?, uEntityInfo: Set<EntityInfo>?): Set<EntityInfo>? =
+        if (tEntityInfo == null) uEntityInfo
+        else if (uEntityInfo == null) tEntityInfo
+        else tEntityInfo.plus(uEntityInfo)
 
     suspend fun getContextsForSubscription(id: URI): Either<APIException, List<String>> {
         val selectStatement =
@@ -451,12 +465,10 @@ class SubscriptionService(
         subscriptionId: URI,
         entities: List<Map<String, Any>>,
         contexts: List<String>
-    ): Either<APIException, Unit> {
-        return either {
-            deleteEntityInfo(subscriptionId).bind()
-            entities.forEach {
-                createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).bind()
-            }
+    ): Either<APIException, Unit> = either {
+        deleteEntityInfo(subscriptionId).bind()
+        entities.forEach {
+            createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).bind()
         }
     }
 
@@ -505,7 +517,7 @@ class SubscriptionService(
             }
             .mapValues { grouped ->
                 grouped.value.reduce { t: Subscription, u: Subscription ->
-                    t.copy(entities = t.entities.plus(u.entities))
+                    t.copy(entities = mergeEntityInfo(t.entities, u.entities))
                 }
             }.values.toList()
     }
@@ -525,7 +537,8 @@ class SubscriptionService(
     suspend fun getMatchingSubscriptions(
         id: URI,
         types: List<ExpandedTerm>,
-        updatedAttributes: Set<ExpandedTerm>
+        updatedAttributes: Set<ExpandedTerm>,
+        notificationTrigger: NotificationTrigger
     ): List<Subscription> {
         val selectStatement =
             """
@@ -533,17 +546,15 @@ class SubscriptionService(
                    scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info, 
                    contexts
             FROM subscription 
+            LEFT JOIN entity_info on subscription.id = entity_info.subscription_id
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
+            AND notification_trigger && '{ ${notificationTrigger.notificationTrigger} }'
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                OR watched_attributes IS NULL)
-            AND id IN (
-                SELECT subscription_id
-                FROM entity_info
-                WHERE entity_info.type IN (:types)
-                AND (entity_info.id IS NULL OR entity_info.id = :id)
-                AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
+                OR (entity_info.type IN (:types)
+                    AND (entity_info.id IS NULL OR entity_info.id = :id)
+                    AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern))
             )
             """.trimIndent()
         return databaseClient.sql(selectStatement)
@@ -634,16 +645,10 @@ class SubscriptionService(
             expiresAt = toNullableZonedDateTime(row["expires_at"]),
             description = row["description"] as? String,
             watchedAttributes = (row["watched_attributes"] as? String)?.split(","),
-            notificationTrigger = toNullableList(row["notification_trigger"]),
+            notificationTrigger = toList(row["notification_trigger"]),
             timeInterval = toNullableInt(row["time_interval"]),
             q = row["q"] as? String,
-            entities = setOf(
-                EntityInfo(
-                    id = toNullableUri(row["entity_id"]),
-                    idPattern = row["id_pattern"] as? String,
-                    type = row["entity_type"] as String
-                )
-            ),
+            entities = rowToEntityInfo(row)?.let { setOf(it) },
             geoQ = rowToGeoQ(row),
             scopeQ = row["scope_q"] as? String,
             notification = NotificationParams(
@@ -705,6 +710,17 @@ class SubscriptionService(
             null
     }
 
+    private val rowToEntityInfo: ((Map<String, Any>) -> EntityInfo?) = { row ->
+        if (row["entity_type"] != null)
+            EntityInfo(
+                id = toNullableUri(row["entity_id"]),
+                idPattern = row["id_pattern"] as? String,
+                type = row["entity_type"] as String
+            )
+        else
+            null
+    }
+
     suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {
         val selectStatement =
             """
@@ -731,7 +747,7 @@ class SubscriptionService(
             }
             .mapValues { grouped ->
                 grouped.value.reduce { t: Subscription, u: Subscription ->
-                    t.copy(entities = t.entities.plus(u.entities))
+                    t.copy(entities = mergeEntityInfo(t.entities, u.entities))
                 }
             }.values.toList()
     }

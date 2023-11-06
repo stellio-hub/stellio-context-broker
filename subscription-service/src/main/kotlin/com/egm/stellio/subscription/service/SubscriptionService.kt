@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQ
@@ -270,7 +271,7 @@ class SubscriptionService(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Unit> = either {
-        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to ngsiLdDateTime())
 
         if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
             subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM
@@ -301,10 +302,16 @@ class SubscriptionService(
                     updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
                 }
 
+                it.key == "watchedAttributes" -> {
+                    val value = (it.value as List<String>).map { watchedAttribute ->
+                        expandJsonLdTerm(watchedAttribute, contexts)
+                    }.toSqlValue(it.key)
+                    updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
+                }
+
                 listOf(
                     "subscriptionName",
                     "description",
-                    "watchedAttributes",
                     "timeInterval",
                     "q",
                     "scopeQ",

@@ -770,13 +770,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should update a subscription watched attributes`() = runTest {
+    fun `it should update and expand watched attributes of a subscription`() = runTest {
         val parsedInput = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
-            "watchedAttributes" to arrayListOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY)
+            "watchedAttributes" to arrayListOf(INCOMING_COMPACT_PROPERTY, TEMPERATURE_COMPACT_PROPERTY)
         )
 
-        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
+        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).shouldSucceed()
 
         val subscription = subscriptionService.getById(subscription5Id)
 

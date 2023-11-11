@@ -74,10 +74,11 @@ data class EntityDeleteEvent(
     override val tenantUri: URI = DEFAULT_TENANT_URI,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
+    // null only when in the case of an IAM event (previous state is not known)
     val deletedEntity: String?,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantUri, entityId, entityTypes, contexts) {
-    override fun getEntity() = deletedEntity
+    override fun getEntity() = this.deletedEntity
 }
 
 @JsonTypeName("ATTRIBUTE_APPEND")

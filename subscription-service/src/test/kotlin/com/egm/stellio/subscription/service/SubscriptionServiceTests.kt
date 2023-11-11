@@ -571,9 +571,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should not retrieve a subscription matching on type and not on one of the watched attributes`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
-                "entities" to listOf(
-                    mapOf("type" to BEEHIVE_COMPACT_TYPE)
-                ),
+                "entities" to listOf(mapOf("type" to BEEHIVE_COMPACT_TYPE)),
                 "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
             )
         )
@@ -939,7 +937,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should return all subscriptions whose 'timeInterval' is reached `() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
-                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "entities" to listOf(mapOf("type" to BEEKEEPER_COMPACT_TYPE)),
                 "timeInterval" to 500
             )
         )
@@ -947,7 +945,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         val subscription2 = gimmeSubscriptionFromMembers(
             mapOf(
-                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "entities" to listOf(mapOf("type" to BEEKEEPER_COMPACT_TYPE)),
                 "timeInterval" to 5000
             )
         )
@@ -969,7 +967,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     fun `it should return all subscriptions whose 'timeInterval' is reached with a time of 5s`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
-                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "entities" to listOf(mapOf("type" to BEEKEEPER_COMPACT_TYPE)),
                 "timeInterval" to 1
             )
         )
@@ -977,7 +975,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         val subscription2 = gimmeSubscriptionFromMembers(
             mapOf(
-                "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+                "id" to "urn:ngsi-ld:Subscription:02".toUri(),
+                "entities" to listOf(mapOf("type" to BEEKEEPER_COMPACT_TYPE)),
                 "timeInterval" to 5000
             )
         )

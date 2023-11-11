@@ -165,7 +165,7 @@ class SubscriptionService(
             .execute().bind()
 
         geoQuery?.let {
-            createGeometryQuery(it, subscription.id).bind()
+            upsertGeometryQuery(it, subscription.id).bind()
         }
 
         subscription.entities?.forEach {
@@ -200,7 +200,7 @@ class SubscriptionService(
                 .execute().bind()
         }
 
-    private suspend fun createGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
+    private suspend fun upsertGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
         either {
             databaseClient.sql(
                 """
@@ -208,6 +208,9 @@ class SubscriptionService(
                     geoproperty, subscription_id) 
                 VALUES (:georel, :geometry, :coordinates, public.ST_GeomFromText(:wkt_coordinates), 
                     :geoproperty, :subscription_id)
+                ON CONFLICT (subscription_id)
+                DO UPDATE SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
+                    pgis_geometry = public.ST_GeomFromText(:wkt_coordinates), geoproperty = :geoproperty
             """
             )
                 .bind("georel", geoQuery.georel)
@@ -304,7 +307,7 @@ class SubscriptionService(
             when {
                 it.key == "geoQ" ->
                     parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
-                        ?.let { updateGeometryQuery(subscriptionId, it).bind() }
+                        ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
 
                 it.key == "notification" -> {
                     val notification = it.value as Map<String, Any>
@@ -371,23 +374,6 @@ class SubscriptionService(
             .map { Unit.right() }
             .awaitFirst()
     }
-
-    suspend fun updateGeometryQuery(subscriptionId: URI, geoQ: GeoQuery): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE geometry_query
-            SET georel = :georel, geometry = :geometry, coordinates = :coordinates,
-                pgis_geometry = public.ST_GeomFromText(:wkt_coordinates), geoproperty= :geoproperty
-            WHERE subscription_id = :subscription_id
-            """
-        )
-            .bind("georel", geoQ.georel)
-            .bind("geometry", geoQ.geometry.type)
-            .bind("coordinates", geoQ.coordinates)
-            .bind("wkt_coordinates", geoQ.wktCoordinates.value)
-            .bind("geoproperty", geoQ.geoproperty)
-            .bind("subscription_id", subscriptionId)
-            .execute()
 
     suspend fun updateNotification(
         subscriptionId: URI,

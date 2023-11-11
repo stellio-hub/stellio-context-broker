@@ -590,6 +590,44 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve a subscription without watched attributes matching on type`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf("entities" to listOf(mapOf("type" to BEEHIVE_COMPACT_TYPE)))
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(subscriptions)
+            .hasSize(1)
+    }
+
+    @Test
+    fun `it should retrieve a subscription without watched attributes matching on type and id pattern`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf("entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_COMPACT_TYPE)))
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(subscriptions)
+            .hasSize(1)
+    }
+
+    @Test
     fun `it should update a subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
@@ -945,6 +983,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         val subscription2 = gimmeSubscriptionFromMembers(
             mapOf(
+                "id" to "urn:ngsi-ld:Subscription:02".toUri(),
                 "entities" to listOf(mapOf("type" to BEEKEEPER_COMPACT_TYPE)),
                 "timeInterval" to 5000
             )

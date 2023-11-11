@@ -537,11 +537,18 @@ class SubscriptionService(
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
             AND notification_trigger && '{ ${notificationTrigger.notificationTrigger} }'
-            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                OR (entity_info.type IN (:types)
+            AND CASE 
+                WHEN watched_attributes is NULL
+                    THEN entity_info.type IN (:types)
                     AND (entity_info.id IS NULL OR entity_info.id = :id)
-                    AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern))
-            )
+                    AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
+                WHEN entity_info.type is NULL
+                    THEN string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
+                ELSE ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
+                    AND (entity_info.type IN (:types)
+                        AND (entity_info.id IS NULL OR entity_info.id = :id)
+                        AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)))
+            END
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("id", id)

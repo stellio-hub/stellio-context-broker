@@ -414,11 +414,10 @@ class SubscriptionService(
     ): List<Pair<String, Any?>> {
         return when (attribute.key) {
             "attributes" -> {
-                var valueList = attribute.value as List<String>
-                valueList = valueList.map {
-                    JsonLdUtils.expandJsonLdTerm(it, contexts)
+                val attributes = (attribute.value as List<String>).joinToString(separator = ",") {
+                    expandJsonLdTerm(it, contexts)
                 }
-                listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
+                listOf(Pair("notif_attributes", attributes))
             }
             "format" -> {
                 val format =
@@ -498,9 +497,7 @@ class SubscriptionService(
             .bind("offset", offset)
             .bind("sub", sub.toStringValue())
             .allToMappedList { rowToSubscription(it) }
-            .groupBy { t: Subscription ->
-                t.id
-            }
+            .groupBy { t: Subscription -> t.id }
             .mapValues { grouped ->
                 grouped.value.reduce { t: Subscription, u: Subscription ->
                     t.copy(entities = mergeEntityInfo(t.entities, u.entities))
@@ -536,7 +533,11 @@ class SubscriptionService(
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
-            AND notification_trigger && '{ ${notificationTrigger.notificationTrigger} }'
+            AND CASE
+                WHEN notification_trigger && '{ entityUpdated }'
+                    THEN notification_trigger || '{ ${NotificationTrigger.expandEntityUpdated()} }' && '{ ${notificationTrigger.notificationTrigger} }'
+                ELSE notification_trigger && '{ ${notificationTrigger.notificationTrigger} }'
+            END
             AND CASE 
                 WHEN watched_attributes is NULL
                     THEN entity_info.type IN (:types)

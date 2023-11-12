@@ -153,6 +153,13 @@ enum class NotificationTrigger(val notificationTrigger: String) {
     companion object {
         fun isValid(notificationTrigger: String): Boolean =
             NotificationTrigger.entries.any { it.notificationTrigger == notificationTrigger }
+
+        fun expandEntityUpdated(): String =
+            listOf(
+                ATTRIBUTE_CREATED.notificationTrigger,
+                ATTRIBUTE_UPDATED.notificationTrigger,
+                ATTRIBUTE_DELETED.notificationTrigger
+            ).joinToString(",")
     }
 }
 

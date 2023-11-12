@@ -630,6 +630,73 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve a subscription with exact match on the notification trigger`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_COMPACT_TYPE)),
+                "notificationTrigger" to listOf(ENTITY_CREATED.notificationTrigger)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ENTITY_CREATED
+            )
+
+        assertThat(subscriptions)
+            .hasSize(1)
+    }
+
+    @Test
+    fun `it should retrieve a subscription with entityUpdated trigger matched with an attribute event`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_COMPACT_TYPE)),
+                "notificationTrigger" to listOf(ENTITY_UPDATED.notificationTrigger)
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val subscriptions =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                listOf(BEEHIVE_TYPE),
+                setOf(TEMPERATURE_PROPERTY),
+                ATTRIBUTE_UPDATED
+            )
+
+        assertThat(subscriptions)
+            .hasSize(1)
+    }
+
+    @Test
+    fun `it should not retrieve a subscription with entityUpdated trigger matched with an entity delete event`() =
+        runTest {
+            val subscription = gimmeSubscriptionFromMembers(
+                mapOf(
+                    "entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_COMPACT_TYPE)),
+                    "notificationTrigger" to listOf(ENTITY_DELETED.notificationTrigger)
+                )
+            )
+            subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+            val subscriptions =
+                subscriptionService.getMatchingSubscriptions(
+                    "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                    listOf(BEEHIVE_TYPE),
+                    setOf(TEMPERATURE_PROPERTY),
+                    ATTRIBUTE_UPDATED
+                )
+
+            assertThat(subscriptions)
+                .isEmpty()
+        }
+
+    @Test
     fun `it should update a subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()

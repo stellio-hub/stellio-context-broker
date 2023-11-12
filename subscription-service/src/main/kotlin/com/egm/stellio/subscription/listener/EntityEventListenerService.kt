@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_PROPERTIES
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -28,6 +29,8 @@ class EntityEventListenerService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    private val ignoredExpandedEntityProperties = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(NGSILD_SYSATTRS_PROPERTIES)
 
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_subscription")
     fun processMessage(content: String) {
@@ -147,6 +150,6 @@ class EntityEventListenerService(
     private fun String.getUpdatedAttributes() =
         this.deserializeAsMap()
             .keys
-            .filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it) }
+            .filter { !ignoredExpandedEntityProperties.contains(it) }
             .toSet()
 }

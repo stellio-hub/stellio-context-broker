@@ -31,6 +31,28 @@ class EntityEventListenerServiceTests {
     private lateinit var notificationService: NotificationService
 
     @Test
+    fun `it should parse and transmit an attribute create events for an entity replace event`() = runTest {
+        val replaceEvent = loadSampleData("events/entity/entityReplaceEvent.json")
+
+        val mockedSubscription = mockkClass(Subscription::class)
+        val mockedNotification = mockkClass(Notification::class)
+
+        coEvery {
+            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+        } returns listOf(
+            Triple(mockedSubscription, mockedNotification, true),
+            Triple(mockedSubscription, mockedNotification, false)
+        ).right()
+
+        entityEventListenerService.dispatchEntityEvent(replaceEvent)
+
+        coVerify(exactly = 4, timeout = 1000L) {
+            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+        }
+        confirmVerified(notificationService)
+    }
+
+    @Test
     fun `it should parse and transmit an attribute replace event`() = runTest {
         val replaceEvent = loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
 

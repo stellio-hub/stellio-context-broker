@@ -161,6 +161,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
             "timeInterval" to -10,
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
@@ -169,7 +170,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         subscriptionService.validateNewSubscription(subscription)
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "At least one of entities or watchedAttributes shall be present"
+                    it.message == "The value of 'timeInterval' must be greater than zero (int)"
             }
     }
 
@@ -178,6 +179,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
             "expiresAt" to ngsiLdDateTime().minusDays(1),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
@@ -186,7 +188,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         subscriptionService.validateNewSubscription(subscription)
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "At least one of entities or watchedAttributes shall be present"
+                    it.message == "'expiresAt' must be in the future"
             }
     }
 
@@ -840,10 +842,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("unknownAttribute" to "unknownValue")
+        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "unknownAttribute" to "unknownValue")
 
         subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-            .shouldFail { it is BadRequestDataException }
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has invalid attribute: unknownAttribute"
+            }
     }
 
     @Test
@@ -851,10 +856,13 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("throttling" to "someValue")
+        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "throttling" to "someValue")
 
         subscriptionService.update(subscription.id, parsedInput, listOf(APIC_COMPOUND_CONTEXT))
-            .shouldFail { it is NotImplementedException }
+            .shouldFailWith {
+                it is NotImplementedException &&
+                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: throttling"
+            }
     }
 
     @Test

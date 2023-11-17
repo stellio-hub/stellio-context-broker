@@ -2,11 +2,13 @@ package com.egm.stellio.subscription.utils
 
 import arrow.core.Either
 import arrow.core.left
-import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
@@ -15,16 +17,13 @@ import com.egm.stellio.subscription.model.Subscription
 object ParsingUtils {
 
     fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
-        try {
-            either {
-                mapper.convertValue(
-                    input.plus(JSONLD_CONTEXT to contexts),
-                    Subscription::class.java
-                ).expand(contexts)
-            }
-        } catch (e: Exception) {
-            e.toAPIException().left()
-        }
+        runCatching {
+            deserializeAs<Subscription>(serializeObject(input.plus(JSONLD_CONTEXT to contexts)))
+                .expand(contexts)
+        }.fold(
+            { it.right() },
+            { it.toAPIException("Failed to parse subscription").left() }
+        )
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>): EntityInfo {
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
@@ -64,6 +63,7 @@ object ParsingUtils {
                 else
                     valueAsArrayList.joinToString(separator = ",")
             }
+            "notificationTrigger" -> (this as ArrayList<String>).toTypedArray()
             else -> this
         }
 }

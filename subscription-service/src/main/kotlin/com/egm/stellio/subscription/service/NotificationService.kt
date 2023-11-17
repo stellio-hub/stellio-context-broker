@@ -17,6 +17,7 @@ import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -36,11 +37,12 @@ class NotificationService(
     suspend fun notifyMatchingSubscribers(
         jsonLdEntity: JsonLdEntity,
         ngsiLdEntity: NgsiLdEntity,
-        updatedAttributes: Set<ExpandedTerm>
+        updatedAttributes: Set<ExpandedTerm>,
+        notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
         val id = ngsiLdEntity.id
         val types = ngsiLdEntity.types
-        subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes)
+        subscriptionService.getMatchingSubscriptions(id, types, updatedAttributes, notificationTrigger)
             .filter {
                 subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
             }

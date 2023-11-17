@@ -225,15 +225,13 @@ class EntityOperationHandler(
         }
 
         if (entitiesUserCanAdmin.isNotEmpty()) {
-            val deleteOperationResult =
-                entityOperationService.delete(entitiesUserCanAdmin.map { it.entityId }.toSet())
+            val deleteOperationResult = entityOperationService.delete(entitiesUserCanAdmin.map { it.entityId }.toSet())
 
             deleteOperationResult.success.map { it.entityId }.forEach { uri ->
                 val entity = entitiesBeforeDelete.find { it.entityId == uri }!!
                 entityEventService.publishEntityDeleteEvent(
                     sub.getOrNull(),
-                    entity.entityId,
-                    entity.types,
+                    entity,
                     entity.contexts
                 )
             }

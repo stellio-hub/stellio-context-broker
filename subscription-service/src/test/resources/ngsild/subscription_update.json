@@ -3,7 +3,7 @@
   "geoQ": {
     "georel": "within",
     "geometry": "Polygon",
-    "coordinates": "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
+    "coordinates": "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
   },
   "subscriptionName": "Beehive_subscription",
   "notification": {
@@ -13,8 +13,5 @@
       "uri": "http://localhost:8084",
       "accept": "application/ld+json"
     }
-  },
-  "@context":[
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
-  ]
+  }
 }

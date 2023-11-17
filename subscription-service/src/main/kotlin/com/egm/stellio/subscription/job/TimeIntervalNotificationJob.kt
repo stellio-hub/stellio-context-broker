@@ -75,7 +75,9 @@ class TimeIntervalNotificationJob(
         subscription: Subscription,
         contextLink: String
     ): Set<CompactedJsonLdEntity> =
-        subscription.entities
+        // if a subscription has a "timeInterval" member defined, it has at least one "entities" member
+        // because it can't have a "watchedAttributes" member
+        subscription.entities!!
             .map {
                 getEntities(
                     tenantUri,
@@ -85,11 +87,11 @@ class TimeIntervalNotificationJob(
             }
             .flatten()
             .toSet()
-            .also {
-                if (it.isNotEmpty())
+            .also { compactedEntities ->
+                if (compactedEntities.isNotEmpty())
                     logger.debug(
                         "Gonna notify about entities: {} in tenant {}",
-                        it.joinToString { it["id"] as String },
+                        compactedEntities.joinToString { it["id"] as String },
                         tenantUri
                     )
             }

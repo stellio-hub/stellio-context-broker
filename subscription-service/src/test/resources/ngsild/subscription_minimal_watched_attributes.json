@@ -1,0 +1,10 @@
+{
+  "id":"urn:ngsi-ld:Subscription:1",
+  "type":"Subscription",
+  "watchedAttributes": ["incoming", "outgoing"],
+  "notification": {
+    "endpoint": {
+      "uri": "http://localhost:8084"
+    }
+  }
+}

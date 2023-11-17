@@ -280,14 +280,13 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         entityPayloadService.checkEntityExistence(entityId).bind()
-        // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
-        val entity = entityPayloadService.retrieve(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub).bind()
 
+        val entity = entityPayloadService.retrieve(entityId).bind()
         entityPayloadService.deleteEntity(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entityId, entity.types, entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entity, entity.contexts)
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

@@ -1,27 +1,11 @@
 {
   "id":"urn:ngsi-ld:Subscription:1",
   "type":"Subscription",
-  "entities": [
-    {
-      "type": "Beehive"
-    },
-    { "id": "urn:ngsi-ld:Beehive:1234567890",
-      "type": "Beehive"
-    },
-    {
-      "idPattern": "urn:ngsi-ld:Beehive:1234*",
-      "type": "Beehive"
-    }
-  ],
   "timeInterval": 1,
   "watchedAttributes": ["incoming"],
-  "q": "foodQuantity<150;foodName=='dietary fibres'",
   "notification": {
-    "attributes": ["incoming"],
-    "format": "normalized",
     "endpoint": {
-      "uri": "http://localhost:8084",
-      "accept": "application/json"
+      "uri": "http://localhost:8084"
     }
   },
   "@context":[

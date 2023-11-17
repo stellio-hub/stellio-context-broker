@@ -13,5 +13,8 @@
       "uri": "http://localhost:8084",
       "accept": "application/ld+json"
     }
-  }
+  },
+  "@context":[
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  ]
 }

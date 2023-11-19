@@ -18,7 +18,7 @@ fun composeEntitiesQuery(
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val type = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val typeSelection = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
 
     /**
@@ -42,7 +42,7 @@ fun composeEntitiesQuery(
 
     EntitiesQuery(
         ids = ids,
-        type = type,
+        typeSelection = typeSelection,
         idPattern = idPattern,
         q = q,
         scopeQ = scopeQ,
@@ -59,7 +59,7 @@ fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException,
     if (
         geoQuery == null &&
         q.isNullOrEmpty() &&
-        type.isNullOrEmpty() &&
+        typeSelection.isNullOrEmpty() &&
         attrs.isEmpty()
     )
         return@either BadRequestDataException(
@@ -86,8 +86,7 @@ fun composeEntitiesQueryFromPostRequest(
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val entitySelector = query.entities?.get(0)
-    val id = entitySelector?.id?.toUri()
-    val type = expandTypeSelection(entitySelector?.type, contextLink)
+    val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contextLink)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
     val geoQuery = if (query.geoQ != null) {
@@ -111,8 +110,8 @@ fun composeEntitiesQueryFromPostRequest(
     ).bind()
 
     EntitiesQuery(
-        ids = setOfNotNull(id),
-        type = type,
+        ids = setOfNotNull(entitySelector?.id),
+        typeSelection = typeSelection,
         idPattern = idPattern,
         q = query.q?.decode(),
         scopeQ = query.scopeQ,

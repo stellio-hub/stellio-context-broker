@@ -19,10 +19,6 @@ import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
-import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
-import com.egm.stellio.subscription.utils.QueryUtils.createQueryStatement
-import com.egm.stellio.subscription.utils.QueryUtils.createScopeQueryStatement
-import com.egm.stellio.subscription.utils.QueryUtils.createTypeStatement
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
@@ -189,20 +185,19 @@ class SubscriptionService(
     private suspend fun createEntitySelector(
         entitySelector: EntitySelector,
         subscriptionId: URI
-    ): Either<APIException, Unit> =
-        either {
-            databaseClient.sql(
-                """
-                INSERT INTO entity_selector (id, id_pattern, type, subscription_id) 
-                VALUES (:id, :id_pattern, :type, :subscription_id)
-                """.trimIndent()
-            )
-                .bind("id", entitySelector.id)
-                .bind("id_pattern", entitySelector.idPattern)
-                .bind("type", entitySelector.type)
-                .bind("subscription_id", subscriptionId)
-                .execute().bind()
-        }
+    ): Either<APIException, Unit> = either {
+        databaseClient.sql(
+            """
+            INSERT INTO entity_selector (id, id_pattern, type_selection, subscription_id) 
+            VALUES (:id, :id_pattern, :type_selection, :subscription_id)
+            """.trimIndent()
+        )
+            .bind("id", entitySelector.id)
+            .bind("id_pattern", entitySelector.idPattern)
+            .bind("type_selection", entitySelector.typeSelection)
+            .bind("subscription_id", subscriptionId)
+            .execute().bind()
+    }
 
     private suspend fun upsertGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
         either {
@@ -233,8 +228,8 @@ class SubscriptionService(
                 modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
                 last_notification, last_failure, last_success, entity_selector.id as entity_id, id_pattern,
-                entity_selector.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, 
-                scope_q, expires_at, contexts
+                entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
+                geoproperty, scope_q, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -244,15 +239,9 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .allToMappedList { rowToSubscription(it) }
-            .reduce { t: Subscription, u: Subscription ->
-                t.copy(entities = mergeEntityInfo(t.entities, u.entities))
-            }
+            .mergeEntitySelectorsOnSubscriptions()
+            .first()
     }
-
-    private fun mergeEntityInfo(tEntityInfo: Set<EntitySelector>?, uEntityInfo: Set<EntitySelector>?): Set<EntitySelector>? =
-        if (tEntityInfo == null) uEntityInfo
-        else if (uEntityInfo == null) tEntityInfo
-        else tEntityInfo.plus(uEntityInfo)
 
     suspend fun getContextsForSubscription(id: URI): Either<APIException, List<String>> {
         val selectStatement =
@@ -483,8 +472,8 @@ class SubscriptionService(
                 modified_At, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes, 
                 notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
                 last_notification, last_failure, last_success, entity_selector.id as entity_id, id_pattern, 
-                entity_selector.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, scope_q,
-                expires_at, contexts
+                entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
+                geoproperty, scope_q, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -501,12 +490,7 @@ class SubscriptionService(
             .bind("offset", offset)
             .bind("sub", sub.toStringValue())
             .allToMappedList { rowToSubscription(it) }
-            .groupBy { t: Subscription -> t.id }
-            .mapValues { grouped ->
-                grouped.value.reduce { t: Subscription, u: Subscription ->
-                    t.copy(entities = mergeEntityInfo(t.entities, u.entities))
-                }
-            }.values.toList()
+            .mergeEntitySelectorsOnSubscriptions()
     }
 
     suspend fun getSubscriptionsCount(sub: Option<Sub>): Either<APIException, Int> {
@@ -521,105 +505,111 @@ class SubscriptionService(
             .oneToResult { toInt(it["count"]) }
     }
 
-    suspend fun getMatchingSubscriptions(
-        id: URI,
+    internal suspend fun getMatchingSubscriptions(
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
-                   entity_selector.type as entity_type, scope_q, notif_attributes, notif_format, endpoint_uri, 
-                   endpoint_accept, times_sent, endpoint_info, contexts
+                   entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
+                   entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
+                   geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
+                   endpoint_info, contexts
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
+            LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
+            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
+                OR watched_attributes IS NULL)
             AND CASE
                 WHEN notification_trigger && '{ entityUpdated }'
                     THEN notification_trigger || '{ ${NotificationTrigger.expandEntityUpdated()} }' && '{ ${notificationTrigger.notificationTrigger} }'
                 ELSE notification_trigger && '{ ${notificationTrigger.notificationTrigger} }'
             END
-            AND CASE 
-                WHEN watched_attributes is NULL
-                    THEN entity_selector.type IN (:types)
-                    AND (entity_selector.id IS NULL OR entity_selector.id = :id)
-                    AND (entity_selector.id_pattern IS NULL OR :id ~ entity_selector.id_pattern)
-                WHEN entity_selector.type is NULL
-                    THEN string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                ELSE ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                    AND (entity_selector.type IN (:types)
-                        AND (entity_selector.id IS NULL OR entity_selector.id = :id)
-                        AND (entity_selector.id_pattern IS NULL OR :id ~ entity_selector.id_pattern)))
-            END
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("id", id)
             .bind("updatedAttributes", updatedAttributes.joinToString(separator = ","))
             .bind("date", Instant.now().atZone(ZoneOffset.UTC))
-            .allToMappedList { rowToRawSubscription(it) }
+            .allToMappedList { rowToMinimalMatchSubscription(it) }
+            .mergeEntitySelectorsOnSubscriptions()
     }
 
-    suspend fun isMatchingTypeQuery(
-        typesQuery: List<EntityTypeSelection>,
-        types: List<ExpandedTerm>
-    ): Either<APIException, Boolean> =
-        if (typesQuery.isEmpty())
-            true.right()
-        else databaseClient
-            .sql(createTypeStatement(typesQuery, types))
-            .oneToResult { toBoolean(it["match"]) }
+    suspend fun getMatchingSubscriptions(
+        jsonLdEntity: JsonLdEntity,
+        updatedAttributes: Set<ExpandedTerm>,
+        notificationTrigger: NotificationTrigger
+    ): Either<APIException, List<Subscription>> = either {
+        getMatchingSubscriptions(updatedAttributes, notificationTrigger)
+            .filter {
+                val entitiesFilter = prepareEntitiesQuery(it.entities, jsonLdEntity)
+                val qFilter = prepareQQuery(it.q?.decode(), jsonLdEntity, it.contexts)
+                val scopeFilter = prepareScopeQQuery(it.scopeQ?.decode(), jsonLdEntity)
+                val geoQueryFilter = prepareGeoQuery(it.geoQ, jsonLdEntity)
 
-    suspend fun isMatchingQQuery(
+                val query = listOfNotNull(entitiesFilter, qFilter, scopeFilter, geoQueryFilter)
+                if (query.isEmpty())
+                    true
+                else
+                    databaseClient
+                        .sql(query.joinToString(separator = " AND ", prefix = "SELECT ", postfix = " AS match"))
+                        .oneToResult { row -> toBoolean(row["match"]) }
+                        .bind()
+            }
+    }
+
+    suspend fun prepareEntitiesQuery(
+        entities: Set<EntitySelector>?,
+        jsonLdEntity: JsonLdEntity
+    ): String? =
+        if (entities.isNullOrEmpty()) null
+        else {
+            val entityTypes = jsonLdEntity.types
+            entities.joinToString(" OR ") {
+                val typeSelectionQuery = buildTypeQuery(it.typeSelection, entityTypes)
+                val idQuery =
+                    if (it.id == null) null
+                    else " '${jsonLdEntity.id}' = '${it.id}' "
+                val idPatternQuery =
+                    if (it.idPattern == null) null
+                    else " '${jsonLdEntity.id}' ~ '${it.idPattern}' "
+                listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)
+                    .joinToString(separator = " AND ", prefix = "(", postfix = ")")
+            }
+        }
+
+    suspend fun prepareQQuery(
         query: String?,
         jsonLdEntity: JsonLdEntity,
         contexts: List<String>
-    ): Either<APIException, Boolean> =
-        if (query == null)
-            true.right()
-        else
-            databaseClient
-                .sql(createQueryStatement(query, jsonLdEntity, contexts))
-                .oneToResult { toBoolean(it["match"]) }
+    ): String? =
+        if (query == null) null
+        else buildQQuery(query, contexts, jsonLdEntity)
 
-    suspend fun isMatchingScopeQQuery(
+    suspend fun prepareScopeQQuery(
         scopeQ: String?,
         jsonLdEntity: JsonLdEntity
-    ): Either<APIException, Boolean> =
-        if (scopeQ == null)
-            true.right()
-        else
-            databaseClient
-                .sql(createScopeQueryStatement(scopeQ, jsonLdEntity))
-                .oneToResult { toBoolean(it["match"]) }
+    ): String? =
+        if (scopeQ == null) null
+        else buildScopeQQuery(scopeQ, jsonLdEntity)
 
-    suspend fun isMatchingGeoQuery(
-        subscriptionId: URI,
+    suspend fun prepareGeoQuery(
+        geoQ: GeoQ?,
         jsonLdEntity: JsonLdEntity
-    ): Either<APIException, Boolean> =
-        getMatchingGeoQuery(subscriptionId)?.let {
-            val geoQueryStatement = createGeoQueryStatement(it, jsonLdEntity)
-            runGeoQueryStatement(geoQueryStatement)
-        } ?: true.right()
-
-    suspend fun getMatchingGeoQuery(subscriptionId: URI): GeoQ? {
-        val selectStatement =
-            """
-            SELECT *
-            FROM geometry_query 
-            WHERE subscription_id = :sub_id
-            """.trimIndent()
-        return databaseClient.sql(selectStatement)
-            .bind("sub_id", subscriptionId)
-            .oneToResult { rowToGeoQ(it) }
-            .getOrElse { null }
-    }
-
-    suspend fun runGeoQueryStatement(geoQueryStatement: String): Either<APIException, Boolean> {
-        return databaseClient.sql(geoQueryStatement.trimIndent())
-            .oneToResult { toBoolean(it["match"]) }
-    }
+    ): String? =
+        if (geoQ == null) null
+        else buildGeoQuery(
+            GeoQuery(
+                georel = geoQ.georel,
+                geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
+                coordinates = geoQ.coordinates,
+                geoproperty = geoQ.geoproperty,
+                wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
+            ),
+            jsonLdEntity
+        )
 
     suspend fun updateSubscriptionNotification(
         subscription: Subscription,
@@ -676,7 +666,7 @@ class SubscriptionService(
         )
     }
 
-    private val rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
+    private val rowToMinimalMatchSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
             id = toUri(row["sub_id"]),
             type = row["sub_type"] as String,
@@ -684,13 +674,8 @@ class SubscriptionService(
             description = row["description"] as? String,
             q = row["q"] as? String,
             scopeQ = row["scope_q"] as? String,
-            entities = setOf(
-                EntitySelector(
-                    id = toNullableUri(row["entity_id"]),
-                    idPattern = row["id_pattern"] as? String,
-                    type = row["entity_type"] as String
-                )
-            ),
+            entities = rowToEntityInfo(row)?.let { setOf(it) },
+            geoQ = rowToGeoQ(row),
             notification = NotificationParams(
                 attributes = (row["notif_attributes"] as? String)?.split(","),
                 format = toEnum(row["notif_format"]!!),
@@ -723,11 +708,11 @@ class SubscriptionService(
     }
 
     private val rowToEntityInfo: ((Map<String, Any>) -> EntitySelector?) = { row ->
-        if (row["entity_type"] != null)
+        if (row["type_selection"] != null)
             EntitySelector(
                 id = toNullableUri(row["entity_id"]),
                 idPattern = row["id_pattern"] as? String,
-                type = row["entity_type"] as String
+                typeSelection = row["type_selection"] as String
             )
         else
             null
@@ -740,8 +725,8 @@ class SubscriptionService(
                 modified_At, expires_at, description, watched_attributes, notification_trigger, time_interval, q, 
                 scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, 
                 times_sent, last_notification, last_failure, last_success, is_active, entity_selector.id as entity_id, 
-                id_pattern, entity_selector.type as entity_type, georel, geometry, coordinates, pgis_geometry, 
-                geoproperty, contexts
+                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates,
+                pgis_geometry, geoproperty, contexts
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -754,13 +739,6 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("currentDate", Instant.now().atZone(ZoneOffset.UTC))
             .allToMappedList { rowToSubscription(it) }
-            .groupBy { t: Subscription ->
-                t.id
-            }
-            .mapValues { grouped ->
-                grouped.value.reduce { t: Subscription, u: Subscription ->
-                    t.copy(entities = mergeEntityInfo(t.entities, u.entities))
-                }
-            }.values.toList()
+            .mergeEntitySelectorsOnSubscriptions()
     }
 }

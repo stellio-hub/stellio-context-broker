@@ -1,5 +1,6 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.ExpandedTerm
@@ -7,7 +8,7 @@ import java.net.URI
 
 data class EntitiesQuery(
     val ids: Set<URI> = emptySet(),
-    val type: String? = null,
+    val typeSelection: EntityTypeSelection? = null,
     val idPattern: String? = null,
     val q: String? = null,
     val scopeQ: String? = null,

@@ -842,7 +842,7 @@ class EntityOperationHandlerTests {
                 match {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.typeSelection == BEEHIVE_TYPE &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
                 any()

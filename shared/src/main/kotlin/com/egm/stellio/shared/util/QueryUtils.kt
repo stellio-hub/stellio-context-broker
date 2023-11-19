@@ -102,7 +102,7 @@ fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String
             if (target == null)
                 it.replace("#{TARGET}#", "types")
             else
-                it.replace("#{TARGET}#", "ARRAY[${target.joinToString(",", "'", "'")}]")
+                it.replace("#{TARGET}#", "ARRAY[${target.joinToString(",") { "'$it'"} }]")
         }
 
 // Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.

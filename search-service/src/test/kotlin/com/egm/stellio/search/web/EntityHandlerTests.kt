@@ -917,7 +917,7 @@ class EntityHandlerTests {
         coEvery {
             queryService.queryEntities(
                 EntitiesQuery(
-                    type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
+                    typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
@@ -1053,7 +1053,7 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(beehiveId),
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     context = APIC_COMPOUND_CONTEXT
                 ),

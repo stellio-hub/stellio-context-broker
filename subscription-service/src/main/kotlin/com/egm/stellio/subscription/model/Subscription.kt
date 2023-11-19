@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -61,9 +62,9 @@ data class Subscription(
 
     fun expand(contexts: List<String>): Subscription =
         this.copy(
-            entities = entities?.map { entityInfo ->
-                entityInfo.copy(
-                    type = expandJsonLdTerm(entityInfo.type, contexts)
+            entities = entities?.map { entitySelector ->
+                entitySelector.copy(
+                    typeSelection = expandTypeSelection(entitySelector.typeSelection, contexts)!!
                 )
             }?.toSet(),
             notification = notification.copy(
@@ -82,7 +83,7 @@ data class Subscription(
     fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities?.map {
-                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.type, contexts))
+                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.typeSelection, contexts))
             }?.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
@@ -111,9 +112,6 @@ data class Subscription(
         includeSysAttrs: Boolean = false
     ): String =
         serialize(listOf(context), mediaType, includeSysAttrs)
-
-    fun getTypesSelections(): List<EntityTypeSelection> =
-        this.entities?.map { it.type } ?: emptyList()
 }
 
 // Default for booleans is false, so add a simple filter to only include "isActive" is it is false
@@ -188,3 +186,19 @@ fun List<Subscription>.serialize(
     }.let {
         serializeObject(it)
     }
+
+fun List<Subscription>.mergeEntitySelectorsOnSubscriptions() =
+    this.groupBy { t: Subscription -> t.id }
+        .mapValues { grouped ->
+            grouped.value.reduce { t: Subscription, u: Subscription ->
+                t.copy(entities = mergeEntitySelectors(t.entities, u.entities))
+            }
+        }.values.toList()
+
+private fun mergeEntitySelectors(
+    target: Set<EntitySelector>?,
+    source: Set<EntitySelector>?
+): Set<EntitySelector>? =
+    if (target == null) source
+    else if (source == null) target
+    else target.plus(source)

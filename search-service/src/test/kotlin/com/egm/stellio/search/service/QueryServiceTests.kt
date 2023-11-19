@@ -295,7 +295,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -313,7 +313,7 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(
                 listOf(entityUri),
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -329,7 +329,7 @@ class QueryServiceTests {
             )
             entityPayloadService.queryEntitiesCount(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -363,7 +363,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),

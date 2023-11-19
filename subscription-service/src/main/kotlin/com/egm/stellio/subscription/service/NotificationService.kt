@@ -5,12 +5,10 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.getTenantFromContext
 import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
@@ -36,25 +34,10 @@ class NotificationService(
 
     suspend fun notifyMatchingSubscribers(
         jsonLdEntity: JsonLdEntity,
-        ngsiLdEntity: NgsiLdEntity,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
-        val id = ngsiLdEntity.id
-        val types = ngsiLdEntity.types
-        subscriptionService.getMatchingSubscriptions(id, updatedAttributes, notificationTrigger)
-            .filter {
-                subscriptionService.isMatchingTypeQuery(it.getTypesSelections(), types).bind()
-            }
-            .filter {
-                subscriptionService.isMatchingQQuery(it.q?.decode(), jsonLdEntity, it.contexts).bind()
-            }
-            .filter {
-                subscriptionService.isMatchingScopeQQuery(it.scopeQ?.decode(), jsonLdEntity).bind()
-            }
-            .filter {
-                subscriptionService.isMatchingGeoQuery(it.id, jsonLdEntity).bind()
-            }
+        subscriptionService.getMatchingSubscriptions(jsonLdEntity, updatedAttributes, notificationTrigger).bind()
             .map {
                 val filteredEntity =
                     filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())

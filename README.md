@@ -1,14 +1,15 @@
 # Stellio context broker
 
 [![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://www.fiware.org/developers/catalogue/)
+[![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
 ![Status](https://nexus.lab.fiware.org/static/badges/statuses/full.svg)
 [![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
 [![SOF support badge](https://nexus.lab.fiware.org/repository/raw/public/badges/stackoverflow/fiware.svg)](http://stackoverflow.com/questions/tagged/fiware)
 <br>
-[![Documentation badge](https://readthedocs.org/projects/stellio/badge/?version=latest)](http://stellio.readthedocs.io/en/latest/?badge=latest)
-[![Docker badge](https://img.shields.io/docker/pulls/stellio/stellio-entity-service.svg)](https://hub.docker.com/r/stellio)
-[![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
+[![Quay badge](https://img.shields.io/badge/quay.io-fiware%2Fstellio--*-grey?logo=red%20hat&labelColor=EE0000)](https://quay.io/search?q=stellio-)
+[![Docker badge](https://img.shields.io/badge/docker-stellio%2Fstellio--*-blue?logo=docker)](https://hub.docker.com/u/stellio)
 <br>
+[![Documentation badge](https://readthedocs.org/projects/stellio/badge/?version=latest)](http://stellio.readthedocs.io/en/latest/?badge=latest)
 ![Build](https://github.com/stellio-hub/stellio-context-broker/workflows/Build/badge.svg)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=stellio-hub_stellio-context-broker&metric=alert_status)](https://sonarcloud.io/dashboard?id=stellio-hub_stellio-context-broker)
 [![CodeQL](https://github.com/stellio-hub/stellio-context-broker/actions/workflows/codeql.yml/badge.svg)](https://github.com/stellio-hub/stellio-context-broker/actions/workflows/codeql.yml)

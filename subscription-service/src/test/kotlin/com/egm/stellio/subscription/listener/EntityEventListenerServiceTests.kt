@@ -38,7 +38,7 @@ class EntityEventListenerServiceTests {
         val mockedNotification = mockkClass(Notification::class)
 
         coEvery {
-            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+            notificationService.notifyMatchingSubscribers(any(), any(), any())
         } returns listOf(
             Triple(mockedSubscription, mockedNotification, true),
             Triple(mockedSubscription, mockedNotification, false)
@@ -47,7 +47,7 @@ class EntityEventListenerServiceTests {
         entityEventListenerService.dispatchEntityEvent(replaceEvent)
 
         coVerify(exactly = 4, timeout = 1000L) {
-            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+            notificationService.notifyMatchingSubscribers(any(), any(), any())
         }
         confirmVerified(notificationService)
     }
@@ -60,7 +60,7 @@ class EntityEventListenerServiceTests {
         val mockedNotification = mockkClass(Notification::class)
 
         coEvery {
-            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+            notificationService.notifyMatchingSubscribers(any(), any(), any())
         } returns listOf(
             Triple(mockedSubscription, mockedNotification, true),
             Triple(mockedSubscription, mockedNotification, false)
@@ -68,7 +68,7 @@ class EntityEventListenerServiceTests {
 
         entityEventListenerService.dispatchEntityEvent(replaceEvent)
 
-        coVerify(timeout = 1000L) { notificationService.notifyMatchingSubscribers(any(), any(), any(), any()) }
+        coVerify(timeout = 1000L) { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
         confirmVerified(notificationService)
     }
 
@@ -80,7 +80,7 @@ class EntityEventListenerServiceTests {
         val mockedNotification = mockkClass(Notification::class)
 
         coEvery {
-            notificationService.notifyMatchingSubscribers(any(), any(), any(), any())
+            notificationService.notifyMatchingSubscribers(any(), any(), any())
         } returns listOf(
             Triple(mockedSubscription, mockedNotification, true),
             Triple(mockedSubscription, mockedNotification, false)
@@ -90,7 +90,6 @@ class EntityEventListenerServiceTests {
 
         coVerify(timeout = 1000L) {
             notificationService.notifyMatchingSubscribers(
-                any(),
                 any(),
                 setOf(NGSILD_NAME_PROPERTY),
                 NotificationTrigger.ATTRIBUTE_UPDATED

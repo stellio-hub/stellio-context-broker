@@ -4,14 +4,14 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
 
 object ParsingUtils {
@@ -25,10 +25,10 @@ object ParsingUtils {
             { it.toAPIException("Failed to parse subscription").left() }
         )
 
-    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>): EntityInfo {
-        val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        return entityInfo.copy(
-            type = expandJsonLdTerm(entityInfo.type, contexts)
+    fun parseEntitySelector(input: Map<String, Any>, contexts: List<String>): EntitySelector {
+        val entitySelector = mapper.convertValue(input, EntitySelector::class.java)
+        return entitySelector.copy(
+            typeSelection = expandTypeSelection(entitySelector.typeSelection, contexts)!!
         )
     }
 

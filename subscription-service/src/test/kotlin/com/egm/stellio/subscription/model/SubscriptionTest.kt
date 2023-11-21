@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -23,10 +24,10 @@ class SubscriptionTest {
         id = "urn:ngsi-ld:Subscription:01".toUri(),
         type = NGSILD_SUBSCRIPTION_TERM,
         entities = setOf(
-            EntityInfo(
+            EntitySelector(
                 id = null,
                 idPattern = null,
-                type = BEEHIVE_COMPACT_TYPE
+                typeSelection = BEEHIVE_COMPACT_TYPE
             )
         ),
         geoQ = GeoQ(
@@ -61,7 +62,24 @@ class SubscriptionTest {
                 listOf(INCOMING_PROPERTY)
             )
         assertThat(subscription.entities)
-            .allMatch { it.type == BEEHIVE_TYPE }
+            .allMatch { it.typeSelection == BEEHIVE_TYPE }
+            .hasSize(1)
+    }
+
+    @Test
+    fun `it should expand a subscription with a complex type selection`() {
+        val subscription = subscription.copy(
+            entities = setOf(
+                EntitySelector(
+                    id = null,
+                    idPattern = null,
+                    typeSelection = "($BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE);$BEEKEEPER_COMPACT_TYPE"
+                )
+            )
+        ).expand(listOf(APIC_COMPOUND_CONTEXT))
+
+        assertThat(subscription.entities)
+            .allMatch { it.typeSelection == "($BEEHIVE_TYPE,$APIARY_TYPE);$BEEKEEPER_TYPE" }
             .hasSize(1)
     }
 
@@ -79,7 +97,7 @@ class SubscriptionTest {
                 listOf(INCOMING_COMPACT_PROPERTY)
             )
         assertThat(compactedSubscription.entities)
-            .allMatch { it.type == BEEHIVE_COMPACT_TYPE }
+            .allMatch { it.typeSelection == BEEHIVE_COMPACT_TYPE }
             .hasSize(1)
     }
 

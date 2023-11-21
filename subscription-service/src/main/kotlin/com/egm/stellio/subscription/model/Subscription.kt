@@ -1,15 +1,13 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.convertToMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -35,7 +33,7 @@ data class Subscription(
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
-    val entities: Set<EntityInfo>? = null,
+    val entities: Set<EntitySelector>?,
     val watchedAttributes: List<ExpandedTerm>? = null,
     val notificationTrigger: List<String> = defaultNotificationTriggers,
     val timeInterval: Int? = null,
@@ -64,9 +62,9 @@ data class Subscription(
 
     fun expand(contexts: List<String>): Subscription =
         this.copy(
-            entities = entities?.map { entityInfo ->
-                entityInfo.copy(
-                    type = expandJsonLdTerm(entityInfo.type, contexts)
+            entities = entities?.map { entitySelector ->
+                entitySelector.copy(
+                    typeSelection = expandTypeSelection(entitySelector.typeSelection, contexts)!!
                 )
             }?.toSet(),
             notification = notification.copy(
@@ -85,7 +83,7 @@ data class Subscription(
     fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities?.map {
-                EntityInfo(it.id, it.idPattern, compactTerm(it.type, contexts))
+                EntitySelector(it.id, it.idPattern, compactTypeSelection(it.typeSelection, contexts))
             }?.toSet(),
             notification = notification.copy(
                 attributes = notification.attributes?.map { compactTerm(it, contexts) }
@@ -188,3 +186,19 @@ fun List<Subscription>.serialize(
     }.let {
         serializeObject(it)
     }
+
+fun List<Subscription>.mergeEntitySelectorsOnSubscriptions() =
+    this.groupBy { t: Subscription -> t.id }
+        .mapValues { grouped ->
+            grouped.value.reduce { t: Subscription, u: Subscription ->
+                t.copy(entities = mergeEntitySelectors(t.entities, u.entities))
+            }
+        }.values.toList()
+
+private fun mergeEntitySelectors(
+    target: Set<EntitySelector>?,
+    source: Set<EntitySelector>?
+): Set<EntitySelector>? =
+    if (target == null) source
+    else if (source == null) target
+    else target.plus(source)

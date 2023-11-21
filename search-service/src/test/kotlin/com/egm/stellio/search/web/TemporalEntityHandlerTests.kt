@@ -796,7 +796,7 @@ class TemporalEntityHandlerTests {
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.type == BEEHIVE_TYPE &&
+                        temporalEntitiesQuery.entitiesQuery.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },

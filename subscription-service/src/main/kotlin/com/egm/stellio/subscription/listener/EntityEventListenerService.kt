@@ -126,7 +126,6 @@ class EntityEventListenerService(
         mono {
             notificationService.notifyMatchingSubscribers(
                 jsonLdEntity,
-                jsonLdEntity.toNgsiLdEntity().bind(),
                 updatedAttributes,
                 notificationTrigger
             )

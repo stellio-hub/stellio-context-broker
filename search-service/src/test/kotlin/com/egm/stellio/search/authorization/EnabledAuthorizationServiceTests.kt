@@ -342,7 +342,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQuery(
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),
@@ -396,7 +396,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQuery(
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),

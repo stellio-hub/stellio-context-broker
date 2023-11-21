@@ -6,10 +6,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -153,12 +150,17 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
-fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
-    parseAndExpandTypeSelection(type, listOf(contextLink))
+fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contextLink: String): EntityTypeSelection? =
+    expandTypeSelection(entityTypeSelection, listOf(contextLink))
 
-fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
-    type?.replace(typeSelectionRegex) {
+fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contexts: List<String>): EntityTypeSelection? =
+    entityTypeSelection?.replace(typeSelectionRegex) {
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+    }
+
+fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: List<String>): EntityTypeSelection =
+    entityTypeSelection.replace(typeSelectionRegex) {
+        JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =

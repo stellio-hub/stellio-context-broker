@@ -33,7 +33,7 @@ class EntitiesQueryUtilsTests {
             APIC_COMPOUND_CONTEXT
         ).shouldSucceedAndResult()
 
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.type)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.typeSelection)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), entitiesQuery.attrs)
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
@@ -83,7 +83,7 @@ class EntitiesQueryUtilsTests {
             NGSILD_CORE_CONTEXT
         ).shouldSucceedAndResult()
 
-        assertEquals(null, entitiesQuery.type)
+        assertEquals(null, entitiesQuery.typeSelection)
         assertEquals(emptySet<String>(), entitiesQuery.attrs)
         assertEquals(emptySet<URI>(), entitiesQuery.ids)
         assertEquals(null, entitiesQuery.idPattern)
@@ -146,7 +146,7 @@ class EntitiesQueryUtilsTests {
         ).shouldSucceedWith {
             assertEquals(setOf("urn:ngsi-ld:BeeHive:TESTC".toUri()), it.ids)
             assertEquals("urn:ngsi-ld:BeeHive:*", it.idPattern)
-            assertEquals(BEEHIVE_TYPE, it.type)
+            assertEquals(BEEHIVE_TYPE, it.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2"), it.attrs)
             assertEquals("temperature>32", it.q)
             assertEquals(GeoQuery.GeometryType.POINT, it.geoQuery?.geometry)
@@ -176,7 +176,7 @@ class EntitiesQueryUtilsTests {
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
         ).shouldSucceedWith {
-            assertEquals(BEEHIVE_TYPE, it.type)
+            assertEquals(BEEHIVE_TYPE, it.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertEquals("temperature>32", it.q)
         }
@@ -314,7 +314,7 @@ class EntitiesQueryUtilsTests {
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
             temporalEntitiesQuery.entitiesQuery.ids
         )
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.type)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.typeSelection)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
             TemporalQuery(

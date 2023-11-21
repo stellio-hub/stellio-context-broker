@@ -100,7 +100,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = types,
+                    typeSelection = types,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -128,7 +128,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     scopeQ = scopeQ,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
@@ -146,7 +146,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             entityPayloadService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri, entity01Uri),
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -161,7 +161,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     attrs = setOf(NGSILD_NAME_PROPERTY),
                     context = APIC_COMPOUND_CONTEXT
@@ -178,7 +178,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             entityPayloadService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri),
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -193,7 +193,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -207,7 +207,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
@@ -321,7 +321,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -346,7 +346,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -373,7 +373,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -397,7 +397,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should retrieve the count of entities`() = runTest {
         entityPayloadService.queryEntitiesCount(
             EntitiesQuery(
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             )
@@ -409,7 +409,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.queryEntitiesCount(
             EntitiesQuery(
                 ids = setOf(entity02Uri, entity01Uri),
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             )
@@ -423,7 +423,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
             entityPayloadService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri, entity01Uri),
-                    type = "https://ontology.eglobalmark.com/apic#UnknownType",
+                    typeSelection = "https://ontology.eglobalmark.com/apic#UnknownType",
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -437,7 +437,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     attrs = setOf("unknownAttribute"),
                     context = APIC_COMPOUND_CONTEXT

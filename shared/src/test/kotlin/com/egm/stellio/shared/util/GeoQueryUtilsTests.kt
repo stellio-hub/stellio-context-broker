@@ -34,6 +34,24 @@ class GeoQueryUtilsTests {
     }
 
     @Test
+    fun `it should parse URL encoded geo query parameters`() = runTest {
+        val requestParams = gimmeFullParamsMap(
+            georel = "near%3BmaxDistance%3D%3D1500"
+        ).plus("coordinates" to "[57.5522%2C%20-20.3484]")
+        val geoQueryParams =
+            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+
+        val geoQuery = GeoQuery(
+            georel = "near;maxDistance==1500",
+            geometry = GeometryType.POINT,
+            coordinates = "[57.5522, -20.3484]",
+            wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
+            geoproperty = NGSILD_LOCATION_PROPERTY
+        )
+        assertEquals(geoQuery, geoQueryParams)
+    }
+
+    @Test
     fun `it should parse geo query parameters with geoproperty operation space`() = runTest {
         val requestParams = gimmeFullParamsMap("operationSpace")
 

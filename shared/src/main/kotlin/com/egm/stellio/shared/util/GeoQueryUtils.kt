@@ -44,7 +44,7 @@ fun parseGeoQueryParameters(
     requestParams: Map<String, String>,
     contexts: List<String>
 ): Either<APIException, GeoQuery?> = either {
-    val georel = requestParams[GEO_QUERY_PARAM_GEOREL]?.also {
+    val georel = requestParams[GEO_QUERY_PARAM_GEOREL]?.decode()?.also {
         checkGeorelParam(it).bind()
     }
     val geometry = requestParams[GEO_QUERY_PARAM_GEOMETRY]?.let {

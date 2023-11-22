@@ -20,10 +20,10 @@ data class GeoQuery(
 
         companion object {
             fun isSupportedType(type: String): Boolean =
-                values().any { it.type == type }
+                entries.any { it.type == type }
 
             fun forType(type: String): GeometryType? =
-                values().find { it.type == type }
+                entries.find { it.type == type }
         }
     }
 }

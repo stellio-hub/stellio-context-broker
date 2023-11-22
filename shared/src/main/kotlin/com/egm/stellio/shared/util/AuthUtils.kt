@@ -128,7 +128,7 @@ enum class GlobalRole(val key: String) {
 
     companion object {
         fun forKey(key: String): Option<GlobalRole> =
-            values().find { it.key == key }.toOption()
+            entries.find { it.key == key }.toOption()
     }
 }
 
@@ -139,7 +139,7 @@ enum class AccessRight(val attributeName: String) {
 
     companion object {
         fun forAttributeName(attributeName: String): Option<AccessRight> =
-            values().find { it.attributeName == attributeName.removePrefix(AUTHORIZATION_ONTOLOGY) }.toOption()
+            entries.find { it.attributeName == attributeName.removePrefix(AUTHORIZATION_ONTOLOGY) }.toOption()
 
         fun forExpandedAttributeName(attributeName: ExpandedTerm): Option<AccessRight> =
             when (attributeName) {

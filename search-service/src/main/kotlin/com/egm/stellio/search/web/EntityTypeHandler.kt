@@ -25,7 +25,7 @@ class EntityTypeHandler(
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
         val availableEntityTypes: Any = if (detailedRepresentation)
@@ -49,7 +49,7 @@ class EntityTypeHandler(
         @PathVariable type: String
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val expandedType = expandJsonLdTerm(type.decode(), contextLink)
 
         val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(expandedType, listOf(contextLink)).bind()

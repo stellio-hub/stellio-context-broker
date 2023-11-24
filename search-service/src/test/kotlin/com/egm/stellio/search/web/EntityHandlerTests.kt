@@ -919,7 +919,6 @@ class EntityHandlerTests {
                 EntitiesQuery(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()

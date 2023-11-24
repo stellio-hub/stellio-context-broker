@@ -43,7 +43,6 @@ object TemporalEntityBuilder {
         )
 
         return entityTemporalResult.entityPayload.serializeProperties(
-            withSysAttrs = temporalEntitiesQuery.entitiesQuery.includeSysAttrs,
             withCompactTerms = true,
             contexts
         ).plus(temporalAttributes)
@@ -222,3 +221,15 @@ object TemporalEntityBuilder {
                 }
             }
 }
+
+/**
+ * A specific application of sysAttrs option to temporal entities, that only applies it to the entity and not to the
+ * attributes. Currently, this is not clear what should be done for attributes who already convey specifically asked
+ * temporal information.
+ */
+fun CompactedJsonLdEntity.applySysAttrs(includeSysAttrs: Boolean) =
+    this.let {
+        if (!includeSysAttrs)
+            it.minus(JsonLdUtils.NGSILD_SYSATTRS_TERMS)
+        else it
+    }

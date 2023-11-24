@@ -2,10 +2,34 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Either
 import com.egm.stellio.shared.model.APIException
+import com.fasterxml.jackson.core.filter.FilteringParserDelegate
+import com.fasterxml.jackson.core.filter.TokenFilter
 import org.junit.jupiter.api.Assertions.*
+import java.io.ByteArrayInputStream
 
-fun assertJsonPayloadsAreEqual(expectation: String, actual: String) =
-    assertEquals(mapper.readTree(expectation), mapper.readTree(actual))
+fun assertJsonPayloadsAreEqual(expectation: String, actual: String, ignoredKeys: Set<String> = emptySet()) {
+    val tokenFilter: TokenFilter = object : TokenFilter() {
+        override fun includeProperty(name: String): TokenFilter? =
+            if (ignoredKeys.contains(name)) null
+            else INCLUDE_ALL
+    }
+
+    val filteredExpectation = FilteringParserDelegate(
+        mapper.createParser(ByteArrayInputStream(expectation.toByteArray())),
+        tokenFilter,
+        TokenFilter.Inclusion.INCLUDE_ALL_AND_PATH,
+        true
+    )
+
+    val filteredActual = FilteringParserDelegate(
+        mapper.createParser(ByteArrayInputStream(actual.toByteArray())),
+        tokenFilter,
+        TokenFilter.Inclusion.INCLUDE_ALL_AND_PATH,
+        true
+    )
+
+    assertEquals(mapper.readTree(filteredExpectation), mapper.readTree(filteredActual))
+}
 
 fun <T> Either<APIException, T>.shouldSucceedWith(assertions: (T) -> Unit) =
     fold({

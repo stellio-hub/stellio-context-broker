@@ -44,21 +44,6 @@ class EntitiesQueryUtilsTests {
         assertEquals(true, entitiesQuery.paginationQuery.count)
         assertEquals(1, entitiesQuery.paginationQuery.offset)
         assertEquals(10, entitiesQuery.paginationQuery.limit)
-        assertEquals(true, entitiesQuery.useSimplifiedRepresentation)
-        assertEquals(false, entitiesQuery.includeSysAttrs)
-    }
-
-    @Test
-    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("options", "sysAttrs")
-        val queryParams = composeEntitiesQuery(
-            ApplicationProperties.Pagination(30, 100),
-            requestParams,
-            NGSILD_CORE_CONTEXT
-        ).shouldSucceedAndResult()
-
-        assertEquals(true, queryParams.includeSysAttrs)
     }
 
     @Test
@@ -91,8 +76,6 @@ class EntitiesQueryUtilsTests {
         assertEquals(false, entitiesQuery.paginationQuery.count)
         assertEquals(0, entitiesQuery.paginationQuery.offset)
         assertEquals(30, entitiesQuery.paginationQuery.limit)
-        assertEquals(false, entitiesQuery.useSimplifiedRepresentation)
-        assertEquals(false, entitiesQuery.includeSysAttrs)
     }
 
     private fun gimmeEntitiesQueryParams(): LinkedMultiValueMap<String, String> {

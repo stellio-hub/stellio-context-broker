@@ -5,12 +5,12 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.toKeyValues
 import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.compact
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
-import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
@@ -41,7 +41,7 @@ class NotificationService(
             .map {
                 val filteredEntity =
                     filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
-                val compactedEntity = compact(
+                val compactedEntity = compactEntity(
                     JsonLdEntity(filteredEntity, it.contexts),
                     it.contexts,
                     MediaType.valueOf(it.notification.endpoint.accept.accept)

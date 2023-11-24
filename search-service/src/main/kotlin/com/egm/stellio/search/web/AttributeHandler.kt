@@ -23,7 +23,7 @@ class AttributeHandler(
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
         val availableAttribute: Any = if (detailedRepresentation)
@@ -46,7 +46,7 @@ class AttributeHandler(
         @PathVariable attrId: String
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val expandedAttribute = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)
 
         val attributeTypeInfo =

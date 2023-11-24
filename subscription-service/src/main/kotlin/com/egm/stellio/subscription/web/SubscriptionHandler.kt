@@ -68,7 +68,7 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -107,7 +107,7 @@ class SubscriptionHandler(
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         checkSubscriptionExists(subscriptionId).bind()
 

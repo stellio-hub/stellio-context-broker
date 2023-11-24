@@ -22,7 +22,7 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
+import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
@@ -43,7 +43,7 @@ class EntityHandler(
     /**
      * Implements 6.4.3.1 - Create Entity
      */
-    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping(consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
@@ -81,7 +81,7 @@ class EntityHandler(
     /**
      * Implements 6.5.3.4 - Merge Entity
      */
-    @PatchMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PatchMapping("/{entityId}", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun merge(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
@@ -135,7 +135,7 @@ class EntityHandler(
     /**
      * Implements 6.5.3.3 - Replace Entity
      */
-    @PutMapping("/{entityId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PutMapping("/{entityId}", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun replace(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
@@ -181,12 +181,12 @@ class EntityHandler(
     /**
      * Implements 6.4.3.2 - Query Entities
      */
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
@@ -204,14 +204,16 @@ class EntityHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             filteredEntities,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(
+            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
+            mediaType
+        )
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndEntities.second,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
@@ -227,13 +229,13 @@ class EntityHandler(
     /**
      * Implements 6.5.3.1 - Retrieve Entity
      */
-    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping("/{entityId}", produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
@@ -255,16 +257,14 @@ class EntityHandler(
             JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, queryParams.attrs),
             jsonLdEntity.contexts
         )
-        val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
+        val compactedEntity = JsonLdUtils.compactEntity(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-        prepareGetSuccessResponse(mediaType, contextLink).body(
-            serializeObject(
-                compactedEntity.toFinalRepresentation(
-                    queryParams.includeSysAttrs,
-                    queryParams.useSimplifiedRepresentation
-                )
-            )
+        val ngsiLdDataRepresentation = parseRepresentations(
+            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
+            mediaType
         )
+        prepareGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -302,7 +302,7 @@ class EntityHandler(
      * Implements 6.6.3.1 - Append Entity Attributes
      *
      */
-    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping("/{entityId}/attrs", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun appendEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
@@ -356,7 +356,7 @@ class EntityHandler(
      */
     @PatchMapping(
         "/{entityId}/attrs",
-        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+        consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -406,7 +406,7 @@ class EntityHandler(
      */
     @PatchMapping(
         "/{entityId}/attrs/{attrId}",
-        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+        consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun partialAttributeUpdate(
         @RequestHeader httpHeaders: HttpHeaders,

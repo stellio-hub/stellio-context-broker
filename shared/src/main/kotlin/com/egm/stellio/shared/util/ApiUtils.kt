@@ -15,7 +15,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
 import org.springframework.util.MultiValueMap
-import org.springframework.web.server.NotAcceptableStatusException
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -24,6 +23,7 @@ import java.util.regex.Pattern
 
 const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
+const val GEO_JSON_CONTENT_TYPE = "application/geo+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 const val QUERY_PARAM_COUNT: String = "count"
 const val QUERY_PARAM_OFFSET: String = "offset"
@@ -40,6 +40,7 @@ const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
+val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
@@ -169,6 +170,21 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
             JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
         }.toSet()
 
+fun parseRepresentations(
+    optionsParam: List<String>,
+    acceptMediaType: MediaType
+): NgsiLdDataRepresentation {
+    val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+    val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+        .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+
+    return NgsiLdDataRepresentation(
+        EntityRepresentation.forMediaType(acceptMediaType),
+        attributeRepresentation,
+        includeSysAttrs
+    )
+}
+
 fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
     idPattern?.let {
         runCatching {
@@ -200,26 +216,24 @@ fun parsePaginationParameters(
     return PaginationQuery(offset, limit, count).right()
 }
 
-fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
+fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, MediaType> =
     httpHeaders.accept.getApplicable()
 
 /**
- * Return the applicable media type among JSON_LD_MEDIA_TYPE and MediaType.APPLICATION_JSON.
- *
- * @throws NotAcceptableStatusException if none of the above media types are applicable
+ * Return the applicable media type among JSON_LD_MEDIA_TYPE, GEO_JSON_MEDIA_TYPE and MediaType.APPLICATION_JSON.
  */
-fun List<MediaType>.getApplicable(): MediaType {
+fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     if (this.isEmpty())
-        return MediaType.APPLICATION_JSON
+        return MediaType.APPLICATION_JSON.right()
     MimeTypeUtils.sortBySpecificity(this)
     val mediaType = this.find {
-        it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE)
-    } ?: throw NotAcceptableStatusException(listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE))
+        it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE) || it.includes(GEO_JSON_MEDIA_TYPE)
+    } ?: return NotAcceptableException("Unsupported Accept header value: ${this.joinToString(",")}").left()
     // as per 6.3.4, application/json has a higher precedence than application/ld+json
     return if (mediaType.includes(MediaType.APPLICATION_JSON))
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON.right()
     else
-        JSON_LD_MEDIA_TYPE
+        JSON_LD_MEDIA_TYPE.right()
 }
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =

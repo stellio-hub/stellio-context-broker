@@ -28,10 +28,6 @@ fun composeEntitiesQuery(
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
-    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -48,8 +44,6 @@ fun composeEntitiesQuery(
         scopeQ = scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
-        includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation,
         geoQuery = geoQuery,
         context = contextLink
     )
@@ -99,10 +93,6 @@ fun composeEntitiesQueryFromPostRequest(
         parseGeoQueryParameters(geoQueryElements, contextLink).bind()
     } else null
 
-    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -117,8 +107,6 @@ fun composeEntitiesQueryFromPostRequest(
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
-        includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation,
         geoQuery = geoQuery,
         context = contextLink
     )

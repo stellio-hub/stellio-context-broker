@@ -18,6 +18,7 @@ data class AccessDeniedException(override val message: String) : APIException(me
 data class NotImplementedException(override val message: String) : APIException(message)
 data class LdContextNotAvailableException(override val message: String) : APIException(message)
 data class NonexistentTenantException(override val message: String) : APIException(message)
+data class NotAcceptableException(override val message: String) : APIException(message)
 
 fun Throwable.toAPIException(fallbackMessage: String = ""): APIException =
     when (this) {

@@ -21,19 +21,8 @@ class EntityModelTests {
     )
 
     @Test
-    fun `it should serialize entityPayload without createdAt and modifiedAt if not specified`() {
-        val serializedEntity = entityPayload.serializeProperties(false)
-        assertFalse(serializedEntity.contains(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertFalse(serializedEntity.contains(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
-        assertFalse(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
-        assertEquals(setOf(JsonLdUtils.JSONLD_ID, JsonLdUtils.JSONLD_TYPE), serializedEntity.keys)
-        assertEquals("urn:ngsi-ld:beehive:01", serializedEntity[JsonLdUtils.JSONLD_ID])
-        assertEquals(listOf(BEEHIVE_TYPE), serializedEntity[JsonLdUtils.JSONLD_TYPE])
-    }
-
-    @Test
-    fun `it should serialize entityPayload with createdAt and modifiedAt if specified`() {
-        val serializedEntity = entityPayload.serializeProperties(true)
+    fun `it should serialize entityPayload with createdAt and modifiedAt`() {
+        val serializedEntity = entityPayload.serializeProperties()
         assertTrue(serializedEntity.contains(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
         assertTrue(serializedEntity.contains(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
         assertFalse(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
@@ -52,7 +41,6 @@ class EntityModelTests {
         val entityPayloadWithSAP =
             entityPayload.copy(specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
         val serializedEntity = entityPayloadWithSAP.serializeProperties(
-            withSysAttrs = false,
             withCompactTerms = true,
             contexts = listOf(APIC_COMPOUND_CONTEXT)
         )

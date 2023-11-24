@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.util.applySysAttrs
 import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
@@ -35,7 +36,7 @@ class TemporalEntityOperationsHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromPostRequest(
@@ -46,10 +47,14 @@ class TemporalEntityOperationsHandler(
             ).bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+
+        val includeSysAttrs = params.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
-        ).bind()
+        ).bind().let {
+            Pair(it.first.map { it.applySysAttrs(includeSysAttrs) }, it.second)
+        }
 
         buildQueryResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),

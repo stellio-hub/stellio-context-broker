@@ -386,6 +386,7 @@ class QueryServiceTests {
                     {
                         "id": "urn:ngsi-ld:BeeHive:TESTC",
                         "type": "BeeHive",
+                        "createdAt": "$now",
                         "incoming": {
                             "type": "Property",
                             "avg": []

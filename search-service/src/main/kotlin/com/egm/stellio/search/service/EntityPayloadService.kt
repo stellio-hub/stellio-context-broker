@@ -650,7 +650,7 @@ class EntityPayloadService(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         entityPayload: EntityPayload
     ): Map<String, Any> {
-        val entityCoreAttributes = entityPayload.serializeProperties(withSysAttrs = true)
+        val entityCoreAttributes = entityPayload.serializeProperties()
         val expandedAttributes = temporalEntityAttributes
             .groupBy { tea ->
                 tea.attributeName

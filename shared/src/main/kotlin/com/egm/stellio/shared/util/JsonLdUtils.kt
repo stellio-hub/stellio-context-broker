@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -374,7 +373,7 @@ object JsonLdUtils {
         } else it.value
     }
 
-    fun compact(
+    fun compactEntity(
         jsonLdEntity: JsonLdEntity,
         context: String? = null,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
@@ -392,7 +391,7 @@ object JsonLdUtils {
                 .mapValues(restoreGeoPropertyValue())
     }
 
-    fun compact(
+    fun compactEntity(
         jsonLdEntity: JsonLdEntity,
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
@@ -412,20 +411,11 @@ object JsonLdUtils {
 
     fun compactEntities(
         entities: List<JsonLdEntity>,
-        useSimplifiedRepresentation: Boolean,
-        includeSysAttrs: Boolean,
         context: String,
         mediaType: MediaType
     ): List<CompactedJsonLdEntity> =
         entities.map {
-            if (useSimplifiedRepresentation)
-                compact(it, context, mediaType).toKeyValues()
-            else
-                compact(it, context, mediaType)
-        }.map {
-            if (!includeSysAttrs)
-                it.withoutSysAttrs()
-            else it
+            compactEntity(it, context, mediaType)
         }
 
     fun compactTerms(terms: List<ExpandedTerm>, contexts: List<String>): List<String> =
@@ -669,62 +659,6 @@ fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     return this[0]
 }
 
-fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> =
-    this.mapValues { (_, value) -> simplifyRepresentation(value) }
-
-private fun simplifyRepresentation(value: Any): Any {
-    return when (value) {
-        // entity property value is always a Map
-        is Map<*, *> -> simplifyValue(value as Map<String, Any>)
-        is List<*> -> value.map {
-            when (it) {
-                is Map<*, *> -> simplifyValue(it as Map<String, Any>)
-                // we keep @context value as it is (List<String>)
-                else -> it
-            }
-        }
-        // we keep id and type values as they are (String)
-        else -> value
-    }
-}
-
-private fun simplifyValue(value: Map<String, Any>): Any {
-    return when (value["type"]) {
-        "Property", "GeoProperty" -> value.getOrDefault("value", value)
-        "Relationship" -> value.getOrDefault("object", value)
-        else -> value
-    }
-}
-
-fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
-    this.filter {
-        !NGSILD_SYSATTRS_TERMS.contains(it.key)
-    }.mapValues {
-        when (it.value) {
-            is Map<*, *> -> (it.value as Map<*, *>).minus(NGSILD_SYSATTRS_TERMS)
-            is List<*> -> (it.value as List<*>).map { valueInstance ->
-                when (valueInstance) {
-                    is Map<*, *> -> valueInstance.minus(NGSILD_SYSATTRS_TERMS)
-                    // we keep @context value as it is (List<String>)
-                    else -> valueInstance
-                }
-            }
-            else -> it.value
-        }
-    }
-
-fun CompactedJsonLdEntity.toFinalRepresentation(
-    includeSysAttrs: Boolean,
-    useSimplifiedRepresentation: Boolean
-): CompactedJsonLdEntity =
-    this.let {
-        if (!includeSysAttrs) it.withoutSysAttrs()
-        else it
-    }.let {
-        if (useSimplifiedRepresentation) it.toKeyValues()
-        else it
-    }
-
 fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
         if (jsonFragment.containsKey(geoProperty)) {
@@ -746,11 +680,6 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
     }
     return jsonFragment
 }
-
-fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
-    if (dateTime != null)
-        this.plus(propertyKey to buildNonReifiedDateTime(dateTime))
-    else this
 
 fun Map<String, Any>.addSysAttrs(
     withSysAttrs: Boolean,

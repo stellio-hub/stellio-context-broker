@@ -80,4 +80,71 @@ data class JsonLdEntity(
         (members[JSONLD_TYPE] ?: InternalErrorException("Could not extract type from JSON-LD entity"))
             as List<ExpandedTerm>
     }
+
+    private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
+        if (dateTime != null)
+            this.plus(propertyKey to JsonLdUtils.buildNonReifiedDateTime(dateTime))
+        else this
 }
+
+fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> =
+    this.mapValues { (_, value) -> simplifyRepresentation(value) }
+
+private fun simplifyRepresentation(value: Any): Any {
+    return when (value) {
+        // entity property value is always a Map
+        is Map<*, *> -> simplifyValue(value as Map<String, Any>)
+        is List<*> -> value.map {
+            when (it) {
+                is Map<*, *> -> simplifyValue(it as Map<String, Any>)
+                // we keep @context value as it is (List<String>)
+                else -> it
+            }
+        }
+        // we keep id and type values as they are (String)
+        else -> value
+    }
+}
+
+private fun simplifyValue(value: Map<String, Any>): Any {
+    return when (value["type"]) {
+        "Property", "GeoProperty" -> value.getOrDefault("value", value)
+        "Relationship" -> value.getOrDefault("object", value)
+        else -> value
+    }
+}
+
+fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
+    this.filter {
+        !JsonLdUtils.NGSILD_SYSATTRS_TERMS.contains(it.key)
+    }.mapValues {
+        when (it.value) {
+            is Map<*, *> -> (it.value as Map<*, *>).minus(JsonLdUtils.NGSILD_SYSATTRS_TERMS)
+            is List<*> -> (it.value as List<*>).map { valueInstance ->
+                when (valueInstance) {
+                    is Map<*, *> -> valueInstance.minus(JsonLdUtils.NGSILD_SYSATTRS_TERMS)
+                    // we keep @context value as it is (List<String>)
+                    else -> valueInstance
+                }
+            }
+            else -> it.value
+        }
+    }
+
+fun CompactedJsonLdEntity.toFinalRepresentation(
+    ngsiLdDataRepresentation: NgsiLdDataRepresentation
+): CompactedJsonLdEntity =
+    this.let {
+        if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs()
+        else it
+    }.let {
+        if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED) it.toKeyValues()
+        else it
+    }
+
+fun List<CompactedJsonLdEntity>.toFinalRepresentation(
+    ngsiLdDataRepresentation: NgsiLdDataRepresentation
+): List<CompactedJsonLdEntity> =
+    this.map {
+        it.toFinalRepresentation(ngsiLdDataRepresentation)
+    }

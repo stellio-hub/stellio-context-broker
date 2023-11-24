@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.*
+import com.egm.stellio.search.util.applySysAttrs
 import com.egm.stellio.search.util.composeTemporalEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -137,16 +138,20 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(applicationProperties.pagination, params, contextLink, true).bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
+
+        val includeSysAttrs = params.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
-        ).bind()
+        ).bind().let {
+            Pair(it.first.map { it.applySysAttrs(includeSysAttrs) }, it.second)
+        }
 
         buildQueryResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
@@ -176,18 +181,20 @@ class TemporalEntityHandler(
         entityPayloadService.checkEntityExistence(entityId).bind()
 
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(applicationProperties.pagination, requestParams, contextLink).bind()
 
+        val includeSysAttrs = requestParams.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val temporalEntity = queryService.queryTemporalEntity(
             entityId,
             temporalEntitiesQuery,
             contextLink
         ).bind()
+            .applySysAttrs(includeSysAttrs)
 
         prepareGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))

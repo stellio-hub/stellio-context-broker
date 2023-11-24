@@ -260,7 +260,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQueryFromPostRequest(
             applicationProperties.pagination,
@@ -277,14 +277,16 @@ class EntityOperationHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             filteredEntities,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(
+            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
+            mediaType
+        )
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndEntities.second,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,

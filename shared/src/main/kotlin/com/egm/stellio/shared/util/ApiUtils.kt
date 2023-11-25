@@ -8,6 +8,7 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
@@ -34,6 +35,7 @@ const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
 const val QUERY_PARAM_ATTRS: String = "attrs"
 const val QUERY_PARAM_Q: String = "q"
 const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
+const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
@@ -171,17 +173,24 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
         }.toSet()
 
 fun parseRepresentations(
-    optionsParam: List<String>,
+    requestParams: MultiValueMap<String, String>,
     acceptMediaType: MediaType
 ): NgsiLdDataRepresentation {
+    val optionsParam = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
     val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
     val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+    val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
+    val geometryProperty =
+        if (entityRepresentation == EntityRepresentation.GEO_JSON)
+            requestParams.getFirst(QUERY_PARAM_GEOMETRY_PROPERTY) ?: NGSILD_LOCATION_TERM
+        else null
 
     return NgsiLdDataRepresentation(
-        EntityRepresentation.forMediaType(acceptMediaType),
+        entityRepresentation,
         attributeRepresentation,
-        includeSysAttrs
+        includeSysAttrs,
+        geometryProperty
     )
 }
 
@@ -233,7 +242,7 @@ fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     return if (mediaType.includes(MediaType.APPLICATION_JSON))
         MediaType.APPLICATION_JSON.right()
     else
-        JSON_LD_MEDIA_TYPE.right()
+        mediaType.right()
 }
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =

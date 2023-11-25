@@ -181,7 +181,7 @@ class EntityHandler(
     /**
      * Implements 6.4.3.2 - Query Entities
      */
-    @GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun getEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
@@ -208,10 +208,7 @@ class EntityHandler(
             mediaType
         )
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndEntities.second,
@@ -259,10 +256,7 @@ class EntityHandler(
         )
         val compactedEntity = JsonLdUtils.compactEntity(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(

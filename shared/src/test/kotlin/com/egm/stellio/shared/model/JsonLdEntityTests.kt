@@ -3,6 +3,7 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -301,5 +302,212 @@ class JsonLdEntityTests {
         )
 
         assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a normalized GeoJSON entity on location attribute`() {
+        val inputEntity = normalizedJson.deserializeAsMap()
+
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Feature",
+                "geometry": {
+                     "type": "Point",
+                     "coordinates": [ 24.30623, 60.07966 ]
+                },
+                "properties": {
+                    "type": "Vehicle",
+                    "brandName": {
+                        "type": "Property",
+                        "value": "Mercedes"
+                    },
+                    "isParked": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
+                        "observedAt": "2017-07-29T12:00:04Z",
+                        "providedBy": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Person:Bob"
+                        }
+                    },
+                   "location": {
+                      "type": "GeoProperty",
+                      "value": {
+                         "type": "Point",
+                         "coordinates": [
+                            24.30623,
+                            60.07966
+                         ]
+                      }
+                   },
+                    "@context": [
+                        "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                        "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                        "https://example.org/ngsi-ld/latest/parking.jsonld",
+                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+                    ]
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val actualEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.GEO_JSON,
+                AttributeRepresentation.NORMALIZED,
+                includeSysAttrs = false,
+                geometryProperty = NGSILD_LOCATION_TERM
+            )
+        )
+
+        assertEquals(expectedEntity, actualEntity)
+    }
+
+    @Test
+    fun `it should return a simplified GeoJSON entity on location attribute`() {
+        val inputEntity = normalizedJson.deserializeAsMap()
+
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Feature",
+                "geometry": {
+                     "type": "Point",
+                     "coordinates": [ 24.30623, 60.07966 ]
+                },
+                "properties": {
+                    "type": "Vehicle",
+                    "brandName": "Mercedes",
+                    "isParked": "urn:ngsi-ld:OffStreetParking:Downtown1",
+                    "location": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    },
+                    "@context": [
+                        "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                        "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                        "https://example.org/ngsi-ld/latest/parking.jsonld",
+                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+                    ]
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.GEO_JSON,
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false,
+                geometryProperty = NGSILD_LOCATION_TERM
+            )
+        )
+
+        assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a GeoJSON entity with a null geometry if the GeoProperty does not exist`() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Vehicle",
+                "brandName": {
+                    "type": "Property",
+                    "value": "Mercedes"
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Feature",
+                "geometry": null,
+                "properties": {
+                    "type": "Vehicle",
+                    "brandName": "Mercedes"
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.GEO_JSON,
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false,
+                geometryProperty = NGSILD_LOCATION_TERM
+            )
+        )
+
+        assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return simplified GeoJSON entities`() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Vehicle",
+                "location": {
+                    "type": "GeoProperty",
+                    "value": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    }
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val expectedEntities =
+            """
+            {
+                "type": "FeatureCollection",
+                "features": [{
+                    "id": "urn:ngsi-ld:Vehicle:A4567",
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    },
+                    "properties": {
+                        "type": "Vehicle",
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [ 24.30623, 60.07966 ]
+                        }
+                    }
+                }, {
+                    "id": "urn:ngsi-ld:Vehicle:A4567",
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    },
+                    "properties": {
+                        "type": "Vehicle",
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [ 24.30623, 60.07966 ]
+                        }                        
+                    }
+                }]
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val actualEntities = listOf(inputEntity, inputEntity).toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.GEO_JSON,
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false,
+                NGSILD_LOCATION_TERM
+            )
+        )
+
+        assertEquals(expectedEntities, actualEntities)
     }
 }

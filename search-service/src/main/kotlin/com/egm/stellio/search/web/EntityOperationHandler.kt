@@ -252,7 +252,7 @@ class EntityOperationHandler(
     /**
      * Implements 6.23.3.1 - Query Entities via POST
      */
-    @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
@@ -281,10 +281,7 @@ class EntityOperationHandler(
             mediaType
         )
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndEntities.second,

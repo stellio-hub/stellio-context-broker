@@ -5,7 +5,10 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.castAttributeValue
@@ -114,6 +117,21 @@ private fun simplifyValue(value: Map<String, Any>): Any {
     }
 }
 
+fun CompactedJsonLdEntity.toGeoJson(geometryProperty: String): Any {
+    val geometryAttributeContent = this[geometryProperty] as? Map<String, Any>
+    val geometryPropertyValue = geometryAttributeContent?.let {
+        if (it.containsKey(JSONLD_VALUE_TERM)) it[JSONLD_VALUE_TERM]
+        else it
+    }
+
+    return mapOf(
+        JSONLD_ID_TERM to this[JSONLD_ID_TERM]!!,
+        JSONLD_TYPE_TERM to FEATURE_TYPE,
+        GEOMETRY_PROPERTY_TERM to geometryPropertyValue,
+        PROPERTIES_PROPERTY_TERM to this.filter { it.key != JSONLD_ID_TERM }
+    )
+}
+
 fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
     this.filter {
         !JsonLdUtils.NGSILD_SYSATTRS_TERMS.contains(it.key)
@@ -133,18 +151,30 @@ fun CompactedJsonLdEntity.withoutSysAttrs(): Map<String, Any> =
 
 fun CompactedJsonLdEntity.toFinalRepresentation(
     ngsiLdDataRepresentation: NgsiLdDataRepresentation
-): CompactedJsonLdEntity =
+): Any =
     this.let {
         if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs()
         else it
     }.let {
         if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED) it.toKeyValues()
         else it
+    }.let {
+        if (ngsiLdDataRepresentation.entityRepresentation == EntityRepresentation.GEO_JSON)
+            // geometryProperty is not null when GeoJSON representation is asked (defaults to location)
+            it.toGeoJson(ngsiLdDataRepresentation.geometryProperty!!)
+        else it
     }
 
 fun List<CompactedJsonLdEntity>.toFinalRepresentation(
     ngsiLdDataRepresentation: NgsiLdDataRepresentation
-): List<CompactedJsonLdEntity> =
+): Any =
     this.map {
         it.toFinalRepresentation(ngsiLdDataRepresentation)
+    }.let {
+        if (ngsiLdDataRepresentation.entityRepresentation == EntityRepresentation.GEO_JSON) {
+            mapOf(
+                JSONLD_TYPE_TERM to FEATURE_COLLECTION_TYPE,
+                FEATURES_PROPERTY_TERM to it
+            )
+        } else it
     }

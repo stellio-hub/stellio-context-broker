@@ -14,6 +14,12 @@ import org.locationtech.jts.io.WKTWriter
 import org.locationtech.jts.io.geojson.GeoJsonReader
 import org.locationtech.jts.io.geojson.GeoJsonWriter
 
+const val FEATURE_TYPE = "Feature"
+const val FEATURE_COLLECTION_TYPE = "FeatureCollection"
+const val GEOMETRY_PROPERTY_TERM = "geometry"
+const val PROPERTIES_PROPERTY_TERM = "properties"
+const val FEATURES_PROPERTY_TERM = "features"
+
 fun geoJsonToWkt(geometryType: GeoQuery.GeometryType, coordinates: String): Either<APIException, WKTCoordinates> =
     geoJsonToWkt(
         """

@@ -75,10 +75,7 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndAuthorizedEntities.first,
@@ -126,10 +123,7 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndGroupEntities.first,
@@ -178,10 +172,7 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        val ngsiLdDataRepresentation = parseRepresentations(
-            params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList()),
-            mediaType
-        )
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndUserEntities.first,

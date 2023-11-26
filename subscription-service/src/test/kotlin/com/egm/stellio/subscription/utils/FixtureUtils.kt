@@ -33,7 +33,7 @@ fun gimmeSubscriptionFromMembers(
 
 fun gimmeRawSubscription(
     withQueryAndGeoQuery: Pair<Boolean, Boolean> = Pair(true, true),
-    withEndpointInfo: Boolean = true,
+    withEndpointReceiverInfo: Boolean = true,
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within",
@@ -59,8 +59,8 @@ fun gimmeRawSubscription(
         else
             null
 
-    val endpointInfo =
-        if (withEndpointInfo)
+    val endpointReceiverInfo =
+        if (withEndpointReceiverInfo)
             listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
         else
             null
@@ -81,7 +81,7 @@ fun gimmeRawSubscription(
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
-                info = endpointInfo
+                receiverInfo = endpointReceiverInfo
             )
         ),
         contexts = contexts

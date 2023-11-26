@@ -30,7 +30,7 @@
     "endpoint": {
       "uri": "http://localhost:8084",
       "accept": "application/json",
-      "info": [
+      "receiverInfo": [
         { "key": "Authorization-token", "value": "Authorization-token-value" }
       ]
     }

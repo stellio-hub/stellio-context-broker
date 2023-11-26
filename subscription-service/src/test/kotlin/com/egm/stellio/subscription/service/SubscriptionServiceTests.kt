@@ -721,7 +721,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             "endpoint" to mapOf(
                 "accept" to "application/ld+json",
                 "uri" to "http://localhost:8080",
-                "info" to listOf(
+                "receiverInfo" to listOf(
                     mapOf("key" to "Authorization-token", "value" to "Authorization-token-newValue")
                 )
             )
@@ -736,10 +736,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.notification.format.name == "KEY_VALUES" &&
                     it.notification.endpoint.accept.name == "JSONLD" &&
                     it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
-                    it.notification.endpoint.info == listOf(
+                    it.notification.endpoint.receiverInfo == listOf(
                         EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                    ) &&
-                    it.notification.endpoint.info!!.size == 1
+                    )
             }
     }
 

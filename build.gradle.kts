@@ -1,4 +1,3 @@
-
 import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
@@ -42,7 +41,7 @@ subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_17
+    java.sourceCompatibility = JavaVersion.VERSION_21
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -88,7 +87,7 @@ subprojects {
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn")
-            jvmTarget = "${JavaVersion.VERSION_17}"
+            jvmTarget = "${JavaVersion.VERSION_21}"
         }
     }
     tasks.withType<Test> {

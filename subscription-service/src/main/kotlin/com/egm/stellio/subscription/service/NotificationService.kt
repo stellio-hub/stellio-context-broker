@@ -69,7 +69,7 @@ class NotificationService(
                 }
                 if (tenantUri != DEFAULT_TENANT_URI)
                     it.set(NGSILD_TENANT_HEADER, tenantUri.toString())
-                subscription.notification.endpoint.info?.forEach { endpointInfo ->
+                subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
                     it.set(endpointInfo.key, endpointInfo.value)
                 }
             }

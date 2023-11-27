@@ -127,15 +127,18 @@ class SubscriptionService(
             if (subscription.geoQ != null)
                 parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
             else null
+        val endpoint = subscription.notification.endpoint
 
         val insertStatement =
             """
             INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                 notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
-                endpoint_accept, endpoint_info, times_sent, is_active, expires_at, sub, contexts)
+                endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
+                expires_at, sub, contexts)
             VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                 :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
-                :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
+                :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
+                :expires_at, :sub, :contexts)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -151,9 +154,10 @@ class SubscriptionService(
             .bind("scope_q", subscription.scopeQ)
             .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
-            .bind("endpoint_uri", subscription.notification.endpoint.uri)
-            .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
-            .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
+            .bind("endpoint_uri", endpoint.uri)
+            .bind("endpoint_accept", endpoint.accept.name)
+            .bind("endpoint_receiver_info", Json.of(endpointInfoToString(endpoint.receiverInfo)))
+            .bind("endpoint_notifier_info", Json.of(endpointInfoToString(endpoint.notifierInfo)))
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
@@ -226,10 +230,10 @@ class SubscriptionService(
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
                 modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
-                notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
-                last_notification, last_failure, last_success, entity_selector.id as entity_id, id_pattern,
-                entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
-                geoproperty, scope_q, expires_at, contexts
+                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
+                times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
+                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -427,12 +431,14 @@ class SubscriptionService(
                         Endpoint.AcceptType.JSON.name
                     else
                         Endpoint.AcceptType.JSONLD.name
-                val endpointInfo = endpoint["info"] as? List<Map<String, String>>
+                val endpointReceiverInfo = endpoint["receiverInfo"] as? List<Map<String, String>>
+                val endpointNotifierInfo = endpoint["notifierInfo"] as? List<Map<String, String>>
 
                 listOf(
                     Pair("endpoint_uri", endpoint["uri"]),
                     Pair("endpoint_accept", accept),
-                    Pair("endpoint_info", Json.of(endpointInfoMapToString(endpointInfo)))
+                    Pair("endpoint_receiver_info", Json.of(endpointInfoMapToString(endpointReceiverInfo))),
+                    Pair("endpoint_notifier_info", Json.of(endpointInfoMapToString(endpointNotifierInfo)))
                 )
             }
             else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
@@ -470,10 +476,10 @@ class SubscriptionService(
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
                 modified_At, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes, 
-                notif_format, endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, 
-                last_notification, last_failure, last_success, entity_selector.id as entity_id, id_pattern, 
-                entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
-                geoproperty, scope_q, expires_at, contexts
+                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
+                times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
+                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -515,7 +521,7 @@ class SubscriptionService(
                    entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
-                   endpoint_info, contexts
+                   endpoint_receiver_info, endpoint_notifier_info, contexts
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -653,7 +659,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    info = parseEndpointInfo(toJsonString(row["endpoint_info"]))
+                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -682,7 +689,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    info = parseEndpointInfo(toJsonString(row["endpoint_info"]))
+                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,
@@ -723,10 +731,10 @@ class SubscriptionService(
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
                 modified_At, expires_at, description, watched_attributes, notification_trigger, time_interval, q, 
-                scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, 
-                times_sent, last_notification, last_failure, last_success, is_active, entity_selector.id as entity_id, 
-                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates,
-                pgis_geometry, geoproperty, contexts
+                scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info,
+                endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
+                entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
+                geometry, coordinates, pgis_geometry, geoproperty, contexts
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

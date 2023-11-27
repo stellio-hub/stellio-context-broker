@@ -17,7 +17,7 @@ import org.springframework.http.MediaType
 
 class SubscriptionTest {
 
-    private val endpointInfo =
+    private val endpointReceiverInfo =
         listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
 
     private val subscription = Subscription(
@@ -44,7 +44,7 @@ class SubscriptionTest {
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
-                info = endpointInfo
+                receiverInfo = endpointReceiverInfo
             )
         ),
         contexts = listOf(APIC_COMPOUND_CONTEXT)

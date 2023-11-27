@@ -158,7 +158,7 @@ class TimeIntervalNotificationJobTest {
 
     @Test
     fun `it should not return twice the same entity if there is overlap between 2 entity infos`() {
-        val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
+        val subscription = gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
             entities = setOf(
                 EntitySelector(
                     id = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -226,7 +226,7 @@ class TimeIntervalNotificationJobTest {
     @Test
     fun `it should notify the recurring subscriptions that have reached the time interval`() = runTest {
         val entity = loadSampleData("beehive.jsonld")
-        val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
+        val subscription = gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
             entities = setOf(
                 EntitySelector(
                     id = null,

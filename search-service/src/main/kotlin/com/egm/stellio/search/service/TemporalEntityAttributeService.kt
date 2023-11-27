@@ -4,13 +4,17 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AttributeType
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
@@ -655,6 +659,11 @@ class TemporalEntityAttributeService(
             if (exists) {
                 // first update payload in temporal entity attribute
                 val tea = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
+                attributeValues[JSONLD_TYPE]?.let {
+                    ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + tea.attributeType))) {
+                        BadRequestDataException("The type of the attribute has to be the same as the existing one")
+                    }
+                }
                 val (jsonTargetObject, updatedAttributeInstance) = mergeAttributePayload(tea, attributeValues)
                 val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
                 val attributeValueType = guessAttributeValueType(tea.attributeType, attributeValues)

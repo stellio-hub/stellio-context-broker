@@ -10,7 +10,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2022.0.2"
+extra["springCloudVersion"] = "2023.0.0-RC1"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -24,7 +24,7 @@ plugins {
     kotlin("jvm") version "1.9.21" apply false
     kotlin("plugin.spring") version "1.9.21" apply false
     id("com.google.cloud.tools.jib") version "3.4.0" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.3" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.4" apply false
     id("org.sonarqube") version "4.4.1.3373"
     jacoco
 }
@@ -102,7 +102,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.10")
+                useVersion("1.9.21")
             }
         }
     }
@@ -126,7 +126,7 @@ subprojects {
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
     jacoco {
-        toolVersion = "0.8.7"
+        toolVersion = "0.8.9"
     }
     tasks.test {
         finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run

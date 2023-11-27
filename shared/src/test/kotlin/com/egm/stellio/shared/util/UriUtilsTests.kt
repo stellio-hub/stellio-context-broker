@@ -29,7 +29,7 @@ class UriUtilsTests {
         }
         Assertions.assertEquals(
             "The supplied identifier was expected to be an URI but it is not: https://just\\AString " +
-                "(cause was: java.net.URISyntaxException: Illegal character in authority at index 8: " +
+                "(cause was: java.net.URISyntaxException: Illegal character in authority at index 12: " +
                 "https://just\\AString)",
             exception.message
         )

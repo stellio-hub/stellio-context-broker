@@ -136,6 +136,21 @@ object JsonLdUtils {
     ): Map<String, Any> =
         doJsonLdExpansion(deserializedPayload, contexts)
 
+    suspend fun expandJsonLdEntityF(
+        input: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, JsonLdEntity> =
+        runCatching {
+            doJsonLdExpansion(input, contexts)
+        }.fold({
+            JsonLdEntity(it, contexts).right()
+        }, {
+            it.toAPIException().left()
+        })
+
+    suspend fun expandJsonLdEntityF(input: Map<String, Any>): Either<APIException, JsonLdEntity> =
+        expandJsonLdEntityF(input, extractContextFromInput(input))
+
     suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
         JsonLdEntity(doJsonLdExpansion(input, contexts), contexts)
 
@@ -146,16 +161,6 @@ object JsonLdUtils {
         val jsonInput = input.deserializeAsMap()
         return expandJsonLdEntity(jsonInput, extractContextFromInput(jsonInput))
     }
-
-    suspend fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> =
-        entities.map {
-            expandJsonLdEntity(it, extractContextFromInput(it))
-        }
-
-    suspend fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> =
-        entities.map {
-            expandJsonLdEntity(it, contexts)
-        }
 
     fun expandJsonLdTerms(terms: List<String>, contexts: List<String>): List<ExpandedTerm> =
         terms.map {

@@ -1,10 +1,7 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
-import arrow.core.Option
-import arrow.core.left
+import arrow.core.*
 import arrow.core.raise.either
-import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
@@ -309,21 +306,18 @@ class EntityOperationHandler(
         contentType: MediaType?
     ): BatchEntityPreparation =
         payload.map {
-            if (contentType == JSON_LD_MEDIA_TYPE)
-                expandJsonLdEntityF(it).mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
-            else
-                expandJsonLdEntityF(it, listOf(context ?: NGSILD_CORE_CONTEXT))
-                    .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
-        }.map {
-            when (it) {
-                is Either.Left -> it.value.left()
-                is Either.Right -> {
-                    when (val result = it.value.toNgsiLdEntity()) {
-                        is Either.Left -> Pair(it.value.id, result.value).left()
-                        is Either.Right -> Pair(it.value, result.value).right()
-                    }
+            val jsonLdExpansionResult =
+                if (contentType == JSON_LD_MEDIA_TYPE)
+                    expandJsonLdEntityF(it)
+                else
+                    expandJsonLdEntityF(it, listOf(context ?: NGSILD_CORE_CONTEXT))
+            jsonLdExpansionResult
+                .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+                .flatMap { jsonLdEntity ->
+                    jsonLdEntity.toNgsiLdEntity()
+                        .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+                        .map { ngsiLdEntity -> Pair(jsonLdEntity, ngsiLdEntity) }
                 }
-            }
         }.fold(BatchEntityPreparation()) { acc, entry ->
             when (entry) {
                 is Either.Left -> acc.copy(errors = acc.errors.plus(entry.value))

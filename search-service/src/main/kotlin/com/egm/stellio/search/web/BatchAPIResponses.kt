@@ -56,6 +56,8 @@ typealias JsonLdNgsiLdEntity = Pair<JsonLdEntity, NgsiLdEntity>
 fun List<JsonLdNgsiLdEntity>.extractNgsiLdEntities(): List<NgsiLdEntity> = this.map { it.second }
 fun JsonLdNgsiLdEntity.entityId(): URI = this.second.id
 
+// a temporary data class to hold the result of deserializing, expanding and transforming to NGSI-LD entities
+// the entities received in a batch operation
 data class BatchEntityPreparation(
     val success: List<JsonLdNgsiLdEntity> = emptyList(),
     val errors: List<Pair<String, APIException>> = emptyList()

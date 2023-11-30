@@ -1,0 +1,15 @@
+[
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+    "type": "Sensor",
+    "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature",
+    "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld"
+    ]
+  }
+]

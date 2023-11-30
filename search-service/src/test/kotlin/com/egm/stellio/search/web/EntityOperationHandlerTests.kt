@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
@@ -198,6 +199,42 @@ class EntityOperationHandlerTests {
                         }
                     ], 
                     "success": [] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `update batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/two_sensors_one_invalid.jsonld")
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+            emptyList()
+        )
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
+            mutableListOf()
+        )
+
+        webClient.post()
+            .uri(batchUpdateEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
+                            "error": [ "Unable to expand input payload" ] 
+                        }
+                    ], 
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+                    ] 
                 }
                 """.trimIndent()
             )

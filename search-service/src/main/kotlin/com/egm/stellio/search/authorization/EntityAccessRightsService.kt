@@ -6,9 +6,7 @@ import com.egm.stellio.search.authorization.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CLIENT_ID
@@ -163,9 +161,9 @@ class EntityAccessRightsService(
     suspend fun getSubjectAccessRights(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
-        type: String? = null,
-        limit: Int,
-        offset: Int
+        type: EntityTypeSelection? = null,
+        ids: Set<URI>? = null,
+        paginationQuery: PaginationQuery,
     ): Either<APIException, List<EntityAccessRights>> = either {
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
@@ -177,15 +175,16 @@ class EntityAccessRightsService(
                 FROM entity_access_rights ear
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
-                ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
                 ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
+                ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
                 OFFSET :offset;
                 """.trimIndent()
             )
-            .bind("limit", limit)
-            .bind("offset", offset)
+            .bind("limit", paginationQuery.limit)
+            .bind("offset", paginationQuery.offset)
             .let {
                 if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
@@ -194,6 +193,11 @@ class EntityAccessRightsService(
             .let {
                 if (accessRights.isNotEmpty())
                     it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .let {
+                if (!ids.isNullOrEmpty())
+                    it.bind("entities_ids", ids)
                 else it
             }
             .allToMappedList { rowToEntityAccessControl(it, isStellioAdmin) }
@@ -214,7 +218,8 @@ class EntityAccessRightsService(
     suspend fun getSubjectAccessRightsCount(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
-        type: String? = null
+        type: EntityTypeSelection? = null,
+        ids: Set<URI>? = null
     ): Either<APIException, Int> = either {
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
@@ -226,8 +231,9 @@ class EntityAccessRightsService(
                 FROM entity_access_rights ear
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
-                ${if (accessRights.isNotEmpty()) " AND access_right in (:access_rights)" else ""}
+                ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
                 ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
+                ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
                 """.trimIndent()
             )
             .let {
@@ -238,6 +244,11 @@ class EntityAccessRightsService(
             .let {
                 if (accessRights.isNotEmpty())
                     it.bind("access_rights", accessRights.map { it.attributeName })
+                else it
+            }
+            .let {
+                if (!ids.isNullOrEmpty())
+                    it.bind("entities_ids", ids)
                 else it
             }
             .oneToResult { toInt(it["count"]) }

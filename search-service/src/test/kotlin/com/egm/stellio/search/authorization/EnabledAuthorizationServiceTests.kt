@@ -335,7 +335,9 @@ class EnabledAuthorizationServiceTests {
                 right = AccessRight.R_CAN_WRITE
             )
         ).right()
-        coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns emptyMap<URI, Map<AccessRight, List<SubjectRightInfo>>>().right()
@@ -380,7 +382,9 @@ class EnabledAuthorizationServiceTests {
                 right = AccessRight.R_CAN_WRITE
             )
         ).right()
-        coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns mapOf(

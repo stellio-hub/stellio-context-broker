@@ -25,8 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryService::class])
@@ -49,7 +47,7 @@ class QueryServiceTests {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 

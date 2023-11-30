@@ -145,7 +145,8 @@ object JsonLdUtils {
         }.fold({
             JsonLdEntity(it, contexts).right()
         }, {
-            it.toAPIException().left()
+            if (it is APIException) it.left()
+            else it.toAPIException().left()
         })
 
     suspend fun expandJsonLdEntityF(input: Map<String, Any>): Either<APIException, JsonLdEntity> =

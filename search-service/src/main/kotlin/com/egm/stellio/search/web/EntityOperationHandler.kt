@@ -56,7 +56,7 @@ class EntityOperationHandler(
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
             authorizationService.userCanCreateEntities(sub).isLeft()
@@ -97,7 +97,7 @@ class EntityOperationHandler(
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
 
         val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
@@ -163,7 +163,7 @@ class EntityOperationHandler(
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
@@ -304,7 +304,7 @@ class EntityOperationHandler(
         payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?
-    ): BatchEntityPreparation =
+    ): Either<APIException, BatchEntityPreparation> =
         payload.map {
             val jsonLdExpansionResult =
                 if (contentType == JSON_LD_MEDIA_TYPE)
@@ -323,6 +323,10 @@ class EntityOperationHandler(
                 is Either.Left -> acc.copy(errors = acc.errors.plus(entry.value))
                 is Either.Right -> acc.copy(success = acc.success.plus(entry.value))
             }
+        }.let { batchEntityPreparation ->
+            // fail fast for LdContextNotAvailableException errors
+            batchEntityPreparation.errors.find { it.second is LdContextNotAvailableException }?.second?.left()
+                ?: batchEntityPreparation.right()
         }
 
     private suspend fun doBatchCreation(

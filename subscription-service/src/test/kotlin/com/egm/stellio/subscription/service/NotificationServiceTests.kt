@@ -22,7 +22,6 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
@@ -34,7 +33,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [NotificationService::class])
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")

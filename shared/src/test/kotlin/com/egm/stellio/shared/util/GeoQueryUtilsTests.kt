@@ -6,14 +6,12 @@ import com.egm.stellio.shared.model.GeoQuery.GeometryType
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class GeoQueryUtilsTests {
 

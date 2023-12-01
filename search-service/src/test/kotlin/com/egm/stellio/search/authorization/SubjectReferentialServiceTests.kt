@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -21,7 +20,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.util.UUID
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class SubjectReferentialServiceTests : WithTimescaleContainer {

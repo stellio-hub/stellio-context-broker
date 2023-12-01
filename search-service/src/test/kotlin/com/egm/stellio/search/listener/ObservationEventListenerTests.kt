@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -20,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ObservationEventListener::class])
 @ActiveProfiles("test")
 class ObservationEventListenerTests {

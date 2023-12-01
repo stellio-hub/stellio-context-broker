@@ -16,7 +16,6 @@ import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -33,7 +32,6 @@ import java.time.Instant
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {

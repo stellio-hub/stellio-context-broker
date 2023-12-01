@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -30,7 +29,6 @@ import org.springframework.data.relational.core.query.Update
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {

@@ -7,7 +7,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.http.MediaType
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class JsonLdEntityTests {
 
     private val normalizedJson =

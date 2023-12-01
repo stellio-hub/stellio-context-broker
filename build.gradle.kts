@@ -86,7 +86,7 @@ subprojects {
 
     tasks.withType<KotlinCompile> {
         kotlinOptions {
-            freeCompilerArgs = listOf("-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn")
+            freeCompilerArgs = listOf("-Xjsr305=strict")
             jvmTarget = "${JavaVersion.VERSION_21}"
         }
     }

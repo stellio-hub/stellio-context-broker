@@ -9,7 +9,6 @@ import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -25,7 +24,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.util.stream.Stream
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {

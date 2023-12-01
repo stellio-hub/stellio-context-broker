@@ -1,10 +1,7 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
-import arrow.core.Option
-import arrow.core.left
+import arrow.core.*
 import arrow.core.raise.either
-import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
@@ -15,7 +12,9 @@ import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntitiesOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import kotlinx.coroutines.reactive.awaitFirst
@@ -56,18 +55,19 @@ class EntityOperationHandler(
         checkBatchRequestBody(body).bind()
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-        val (expandedEntities, ngsiLdEntities) =
+        val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
             authorizationService.userCanCreateEntities(sub).isLeft()
         }
         val batchOperationResult = BatchOperationResult().apply {
-            addEntitiesToErrors(existingEntities, ENTITY_ALREADY_EXISTS_MESSAGE)
-            addEntitiesToErrors(unauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
+            addEntitiesToErrors(unparsableEntities)
+            addEntitiesToErrors(existingEntities.extractNgsiLdEntities(), ENTITY_ALREADY_EXISTS_MESSAGE)
+            addEntitiesToErrors(unauthorizedEntities.extractNgsiLdEntities(), ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
 
-        doBatchCreation(authorizedEntities, expandedEntities, batchOperationResult, sub)
+        doBatchCreation(authorizedEntities, batchOperationResult, sub)
 
         if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
@@ -96,43 +96,44 @@ class EntityOperationHandler(
         checkContext(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
 
-        val (expandedEntities, ngsiLdEntities) =
+        val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
             authorizationService.userCanCreateEntities(sub).isLeft()
         }
         val batchOperationResult = BatchOperationResult().apply {
-            addEntitiesToErrors(newUnauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
+            addEntitiesToErrors(unparsableEntities)
+            addEntitiesToErrors(newUnauthorizedEntities.extractNgsiLdEntities(), ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
 
-        doBatchCreation(newAuthorizedEntities, expandedEntities, batchOperationResult, sub)
+        doBatchCreation(newAuthorizedEntities, batchOperationResult, sub)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
-            existingEntities.partition { authorizationService.userCanUpdateEntity(it.id, sub).isLeft() }
-        batchOperationResult.addEntitiesToErrors(existingEntitiesUnauthorized, ENTITY_UPDATE_FORBIDDEN_MESSAGE)
+            existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
+        batchOperationResult.addEntitiesToErrors(
+            existingEntitiesUnauthorized.extractNgsiLdEntities(),
+            ENTITY_UPDATE_FORBIDDEN_MESSAGE
+        )
 
         if (existingEntitiesAuthorized.isNotEmpty()) {
-            val entitiesToUpdate = existingEntitiesAuthorized.map { ngsiLdEntity ->
-                Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
-            }
             val updateOperationResult = when (options) {
-                "update" -> entityOperationService.update(entitiesToUpdate, false, sub.getOrNull())
-                else -> entityOperationService.replace(entitiesToUpdate, sub.getOrNull())
+                "update" -> entityOperationService.update(existingEntitiesAuthorized, false, sub.getOrNull())
+                else -> entityOperationService.replace(existingEntitiesAuthorized, sub.getOrNull())
             }
 
             if (options == "update")
-                publishUpdateEvents(sub.getOrNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
+                publishUpdateEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
             else
-                publishReplaceEvents(sub.getOrNull(), updateOperationResult, ngsiLdEntities)
+                publishReplaceEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
 
         if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
-            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
+            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.entityId() })
         else if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
@@ -161,26 +162,24 @@ class EntityOperationHandler(
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        val (expandedEntities, ngsiLdEntities) =
+        val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
-            existingEntities.partition { authorizationService.userCanUpdateEntity(it.id, sub).isLeft() }
+            existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
 
         val batchOperationResult = BatchOperationResult().apply {
-            addEntitiesToErrors(newEntities, ENTITY_DOES_NOT_EXIST_MESSAGE)
-            addEntitiesToErrors(existingEntitiesUnauthorized, ENTITY_UPDATE_FORBIDDEN_MESSAGE)
+            addEntitiesToErrors(unparsableEntities)
+            addEntitiesToErrors(newEntities.extractNgsiLdEntities(), ENTITY_DOES_NOT_EXIST_MESSAGE)
+            addEntitiesToErrors(existingEntitiesUnauthorized.extractNgsiLdEntities(), ENTITY_UPDATE_FORBIDDEN_MESSAGE)
         }
 
         if (existingEntitiesAuthorized.isNotEmpty()) {
-            val entitiesToUpdate = existingEntitiesAuthorized.map { ngsiLdEntity ->
-                Pair(ngsiLdEntity, expandedEntities.find { ngsiLdEntity.id.toString() == it.id }!!)
-            }
             val updateOperationResult =
-                entityOperationService.update(entitiesToUpdate, disallowOverwrite, sub.getOrNull())
+                entityOperationService.update(existingEntitiesAuthorized, disallowOverwrite, sub.getOrNull())
 
-            publishUpdateEvents(sub.getOrNull(), updateOperationResult, expandedEntities, ngsiLdEntities)
+            publishUpdateEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -225,15 +224,13 @@ class EntityOperationHandler(
         }
 
         if (entitiesUserCanAdmin.isNotEmpty()) {
-            val deleteOperationResult =
-                entityOperationService.delete(entitiesUserCanAdmin.map { it.entityId }.toSet())
+            val deleteOperationResult = entityOperationService.delete(entitiesUserCanAdmin.map { it.entityId }.toSet())
 
             deleteOperationResult.success.map { it.entityId }.forEach { uri ->
                 val entity = entitiesBeforeDelete.find { it.entityId == uri }!!
                 entityEventService.publishEntityDeleteEvent(
                     sub.getOrNull(),
-                    entity.entityId,
-                    entity.types,
+                    entity,
                     entity.contexts
                 )
             }
@@ -254,7 +251,7 @@ class EntityOperationHandler(
     /**
      * Implements 6.23.3.1 - Query Entities via POST
      */
-    @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
@@ -262,7 +259,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQueryFromPostRequest(
             applicationProperties.pagination,
@@ -279,14 +276,13 @@ class EntityOperationHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             filteredEntities,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndEntities.second,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
@@ -308,36 +304,48 @@ class EntityOperationHandler(
         payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?
-    ): Either<APIException, Pair<List<JsonLdEntity>, List<NgsiLdEntity>>> = either {
-        payload
-            .let {
+    ): Either<APIException, BatchEntityPreparation> =
+        payload.map {
+            val jsonLdExpansionResult =
                 if (contentType == JSON_LD_MEDIA_TYPE)
-                    expandJsonLdEntities(it)
+                    expandJsonLdEntityF(it)
                 else
-                    expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT))
+                    expandJsonLdEntityF(it, listOf(context ?: NGSILD_CORE_CONTEXT))
+            jsonLdExpansionResult
+                .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+                .flatMap { jsonLdEntity ->
+                    jsonLdEntity.toNgsiLdEntity()
+                        .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+                        .map { ngsiLdEntity -> Pair(jsonLdEntity, ngsiLdEntity) }
+                }
+        }.fold(BatchEntityPreparation()) { acc, entry ->
+            when (entry) {
+                is Either.Left -> acc.copy(errors = acc.errors.plus(entry.value))
+                is Either.Right -> acc.copy(success = acc.success.plus(entry.value))
             }
-            .let { jsonLdEntities ->
-                Pair(jsonLdEntities, jsonLdEntities.map { it.toNgsiLdEntity().bind() })
-            }
-    }
+        }.let { batchEntityPreparation ->
+            // fail fast for LdContextNotAvailableException errors
+            batchEntityPreparation.errors.find { it.second is LdContextNotAvailableException }?.second?.left()
+                ?: batchEntityPreparation.right()
+        }
 
     private suspend fun doBatchCreation(
-        entitiesToCreate: List<NgsiLdEntity>,
-        jsonLdEntities: List<JsonLdEntity>,
+        entitiesToCreate: List<JsonLdNgsiLdEntity>,
         batchOperationResult: BatchOperationResult,
         sub: Option<Sub>
     ) {
         if (entitiesToCreate.isNotEmpty()) {
-            val createOperationResult = entityOperationService.create(entitiesToCreate, jsonLdEntities, sub.getOrNull())
+            val createOperationResult = entityOperationService.create(entitiesToCreate, sub.getOrNull())
             authorizationService.createAdminRights(createOperationResult.getSuccessfulEntitiesIds(), sub)
             entitiesToCreate
-                .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
+                .filter { it.second.id in createOperationResult.getSuccessfulEntitiesIds() }
                 .forEach {
+                    val ngsiLdEntity = it.second
                     entityEventService.publishEntityCreateEvent(
                         sub.getOrNull(),
-                        it.id,
-                        it.types,
-                        it.contexts
+                        ngsiLdEntity.id,
+                        ngsiLdEntity.types,
+                        ngsiLdEntity.contexts
                     )
                 }
             batchOperationResult.errors.addAll(createOperationResult.errors)
@@ -348,26 +356,26 @@ class EntityOperationHandler(
     private suspend fun publishReplaceEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
-        ngsiLdEntities: List<NgsiLdEntity>
-    ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
+        jsonLdNgsiLdEntities: List<JsonLdNgsiLdEntity>
+    ) = jsonLdNgsiLdEntities.filter { it.entityId() in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
             entityEventService.publishEntityReplaceEvent(
                 sub,
-                it.id,
-                it.types,
-                it.contexts
+                it.entityId(),
+                it.second.types,
+                it.second.contexts
             )
         }
 
     private suspend fun publishUpdateEvents(
         sub: String?,
         updateBatchOperationResult: BatchOperationResult,
-        jsonLdEntities: List<JsonLdEntity>,
-        ngsiLdEntities: List<NgsiLdEntity>
+        jsonLdNgsiLdEntities: List<JsonLdNgsiLdEntity>
     ) {
         updateBatchOperationResult.success.forEach {
-            val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
-            val ngsiLdEntity = ngsiLdEntities.find { ngsiLdEntity -> ngsiLdEntity.id == it.entityId }!!
+            val (jsonLdEntity, ngsiLdEntity) = jsonLdNgsiLdEntities.find { jsonLdNgsiLdEntity ->
+                jsonLdNgsiLdEntity.entityId() == it.entityId
+            }!!
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 it.entityId,

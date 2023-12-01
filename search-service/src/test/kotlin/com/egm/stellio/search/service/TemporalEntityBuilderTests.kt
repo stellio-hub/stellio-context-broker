@@ -8,6 +8,7 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -54,7 +55,8 @@ class TemporalEntityBuilderTests {
         )
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
-            serializeObject(temporalEntity)
+            serializeObject(temporalEntity),
+            setOf(NGSILD_CREATED_AT_TERM)
         )
     }
 
@@ -86,7 +88,7 @@ class TemporalEntityBuilderTests {
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
+        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
     }
 
     @ParameterizedTest
@@ -108,7 +110,7 @@ class TemporalEntityBuilderTests {
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
+        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
     }
 
     @Test
@@ -187,7 +189,8 @@ class TemporalEntityBuilderTests {
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
-            serializeObject(temporalEntity)
+            serializeObject(temporalEntity),
+            setOf(NGSILD_CREATED_AT_TERM)
         )
     }
 }

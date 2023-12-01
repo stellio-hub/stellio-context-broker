@@ -33,7 +33,7 @@ class EntitiesQueryUtilsTests {
             APIC_COMPOUND_CONTEXT
         ).shouldSucceedAndResult()
 
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.type)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.typeSelection)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), entitiesQuery.attrs)
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
@@ -44,21 +44,6 @@ class EntitiesQueryUtilsTests {
         assertEquals(true, entitiesQuery.paginationQuery.count)
         assertEquals(1, entitiesQuery.paginationQuery.offset)
         assertEquals(10, entitiesQuery.paginationQuery.limit)
-        assertEquals(true, entitiesQuery.useSimplifiedRepresentation)
-        assertEquals(false, entitiesQuery.includeSysAttrs)
-    }
-
-    @Test
-    fun `it should set includeSysAttrs at true if options contains includeSysAttrs query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("options", "sysAttrs")
-        val queryParams = composeEntitiesQuery(
-            ApplicationProperties.Pagination(30, 100),
-            requestParams,
-            NGSILD_CORE_CONTEXT
-        ).shouldSucceedAndResult()
-
-        assertEquals(true, queryParams.includeSysAttrs)
     }
 
     @Test
@@ -83,7 +68,7 @@ class EntitiesQueryUtilsTests {
             NGSILD_CORE_CONTEXT
         ).shouldSucceedAndResult()
 
-        assertEquals(null, entitiesQuery.type)
+        assertEquals(null, entitiesQuery.typeSelection)
         assertEquals(emptySet<String>(), entitiesQuery.attrs)
         assertEquals(emptySet<URI>(), entitiesQuery.ids)
         assertEquals(null, entitiesQuery.idPattern)
@@ -91,8 +76,6 @@ class EntitiesQueryUtilsTests {
         assertEquals(false, entitiesQuery.paginationQuery.count)
         assertEquals(0, entitiesQuery.paginationQuery.offset)
         assertEquals(30, entitiesQuery.paginationQuery.limit)
-        assertEquals(false, entitiesQuery.useSimplifiedRepresentation)
-        assertEquals(false, entitiesQuery.includeSysAttrs)
     }
 
     private fun gimmeEntitiesQueryParams(): LinkedMultiValueMap<String, String> {
@@ -146,7 +129,7 @@ class EntitiesQueryUtilsTests {
         ).shouldSucceedWith {
             assertEquals(setOf("urn:ngsi-ld:BeeHive:TESTC".toUri()), it.ids)
             assertEquals("urn:ngsi-ld:BeeHive:*", it.idPattern)
-            assertEquals(BEEHIVE_TYPE, it.type)
+            assertEquals(BEEHIVE_TYPE, it.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2"), it.attrs)
             assertEquals("temperature>32", it.q)
             assertEquals(GeoQuery.GeometryType.POINT, it.geoQuery?.geometry)
@@ -176,7 +159,7 @@ class EntitiesQueryUtilsTests {
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXT
         ).shouldSucceedWith {
-            assertEquals(BEEHIVE_TYPE, it.type)
+            assertEquals(BEEHIVE_TYPE, it.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertEquals("temperature>32", it.q)
         }
@@ -314,7 +297,7 @@ class EntitiesQueryUtilsTests {
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
             temporalEntitiesQuery.entitiesQuery.ids
         )
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.type)
+        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.typeSelection)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
             TemporalQuery(

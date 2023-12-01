@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -94,19 +95,24 @@ object JsonUtils {
 
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->
-            val valueKeys = when (entry.value) {
-                is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
-                is List<*> ->
-                    (entry.value as List<Any>).map {
-                        // type value can be a list, not interested in it here
-                        if (it is Map<*, *>)
-                            (it as Map<String, Any>).getAllKeys()
-                        else emptySet()
-                    }.flatten().toSet()
-                // if it is not a list or an object, it is a value (and thus not a key)
-                else -> emptySet()
+            // what is inside the value of a property is not a key
+            if (entry.key == JSONLD_VALUE_TERM)
+                acc.plus(entry.key)
+            else {
+                val valueKeys = when (entry.value) {
+                    is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
+                    is List<*> ->
+                        (entry.value as List<Any>).map {
+                            // type value can be a list, not interested in it here
+                            if (it is Map<*, *>)
+                                (it as Map<String, Any>).getAllKeys()
+                            else emptySet()
+                        }.flatten().toSet()
+                    // if it is not a list or an object, it is a value (and thus not a key)
+                    else -> emptySet()
+                }
+                acc.plus(entry.key).plus(valueKeys)
             }
-            acc.plus(entry.key).plus(valueKeys)
         }
 
     fun Map<String, Any>.getAllValues(): Set<Any?> =

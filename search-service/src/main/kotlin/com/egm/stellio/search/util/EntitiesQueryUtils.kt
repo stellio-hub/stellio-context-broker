@@ -18,7 +18,7 @@ fun composeEntitiesQuery(
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val type = parseAndExpandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val typeSelection = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
 
     /**
@@ -28,10 +28,6 @@ fun composeEntitiesQuery(
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
-    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -42,14 +38,12 @@ fun composeEntitiesQuery(
 
     EntitiesQuery(
         ids = ids,
-        type = type,
+        typeSelection = typeSelection,
         idPattern = idPattern,
         q = q,
         scopeQ = scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
-        includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation,
         geoQuery = geoQuery,
         context = contextLink
     )
@@ -59,7 +53,7 @@ fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException,
     if (
         geoQuery == null &&
         q.isNullOrEmpty() &&
-        type.isNullOrEmpty() &&
+        typeSelection.isNullOrEmpty() &&
         attrs.isEmpty()
     )
         return@either BadRequestDataException(
@@ -86,8 +80,7 @@ fun composeEntitiesQueryFromPostRequest(
     contextLink: String
 ): Either<APIException, EntitiesQuery> = either {
     val entitySelector = query.entities?.get(0)
-    val id = entitySelector?.id?.toUri()
-    val type = parseAndExpandTypeSelection(entitySelector?.type, contextLink)
+    val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contextLink)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
     val geoQuery = if (query.geoQ != null) {
@@ -100,10 +93,6 @@ fun composeEntitiesQueryFromPostRequest(
         parseGeoQueryParameters(geoQueryElements, contextLink).bind()
     } else null
 
-    val includeSysAttrs = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val useSimplifiedRepresentation = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-        .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -111,15 +100,13 @@ fun composeEntitiesQueryFromPostRequest(
     ).bind()
 
     EntitiesQuery(
-        ids = setOfNotNull(id),
-        type = type,
+        ids = setOfNotNull(entitySelector?.id),
+        typeSelection = typeSelection,
         idPattern = idPattern,
         q = query.q?.decode(),
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
-        includeSysAttrs = includeSysAttrs,
-        useSimplifiedRepresentation = useSimplifiedRepresentation,
         geoQuery = geoQuery,
         context = contextLink
     )

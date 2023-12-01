@@ -131,13 +131,14 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should serialize an event of type ENTITY_DELETE`() {
+    fun `it should serialize an event of type ENTITY_DELETE`() = runTest {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
                 null,
                 DEFAULT_TENANT_URI,
                 entityId,
                 listOf(BEEHIVE_TYPE),
+                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )

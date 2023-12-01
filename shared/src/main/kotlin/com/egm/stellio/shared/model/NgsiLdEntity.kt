@@ -333,7 +333,7 @@ private fun getNonCoreAttributes(parsedKeys: Map<String, Any>, keysToFilter: Lis
         !keysToFilter.contains(it)
     }
 
-suspend fun checkInstancesAreOfSameType(
+fun checkInstancesAreOfSameType(
     name: String,
     values: ExpandedAttributeInstances,
     type: AttributeType
@@ -343,7 +343,7 @@ suspend fun checkInstancesAreOfSameType(
     }
 }
 
-suspend fun checkAttributeDefaultInstance(
+fun checkAttributeDefaultInstance(
     name: String,
     instances: List<NgsiLdAttributeInstance>
 ): Either<APIException, Unit> = either {

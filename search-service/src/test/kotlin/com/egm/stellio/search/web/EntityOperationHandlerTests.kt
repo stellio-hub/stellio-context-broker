@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.service.EntityEventService
@@ -134,7 +135,11 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+            ),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -163,7 +168,10 @@ class EntityOperationHandlerTests {
         )
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+            ),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -197,6 +205,42 @@ class EntityOperationHandlerTests {
     }
 
     @Test
+    fun `update batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/two_sensors_one_invalid.jsonld")
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+            emptyList()
+        )
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
+            mutableListOf()
+        )
+
+        webClient.post()
+            .uri(batchUpdateEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
+                            "error": [ "Unable to expand input payload" ] 
+                        }
+                    ], 
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+                    ] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `update batch entity should return a 400 if JSON-LD payload is not correct`() {
         shouldReturn400WithBadPayload("update")
     }
@@ -206,7 +250,10 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+            ),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -231,8 +278,8 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity),
-            listOf(mockedDeviceEntity)
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+            listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity))
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -263,7 +310,7 @@ class EntityOperationHandlerTests {
     @Test
     fun `create batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val capturedExpandedEntities = slot<List<NgsiLdEntity>>()
+        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityTypes = slot<List<String>>()
 
@@ -271,7 +318,7 @@ class EntityOperationHandlerTests {
             entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities))
         } answers { Pair(emptyList(), capturedExpandedEntities.captured) }
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
@@ -294,7 +341,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(allEntitiesUris.map { it.toString() })
 
-        assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.id })
+        assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.entityId() })
 
         coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
         coVerify(timeout = 1000, exactly = 3) {
@@ -315,12 +362,15 @@ class EntityOperationHandlerTests {
             entityOperationService.splitEntitiesByExistence(any())
         } answers {
             Pair(
-                listOf(mockedTemperatureSensorEntity),
-                listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity)
+                listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+                listOf(
+                    Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+                    Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+                )
             )
         }
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
@@ -370,7 +420,7 @@ class EntityOperationHandlerTests {
 
         coEvery {
             entityOperationService.splitEntitiesByExistence(any())
-        } returns Pair(emptyList(), listOf(mockedDeviceEntity))
+        } returns Pair(emptyList(), listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)))
         coEvery {
             authorizationService.userCanCreateEntities(sub)
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
@@ -436,11 +486,14 @@ class EntityOperationHandlerTests {
         )
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedDissolvedOxygenSensorEntity, mockedDeviceEntity),
-            listOf(mockedTemperatureSensorEntity)
+            listOf(
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+            ),
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity))
         )
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns createdBatchResult
+        coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
@@ -484,7 +537,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity),
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -512,11 +565,14 @@ class EntityOperationHandlerTests {
         )
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
-            listOf(mockedDeviceEntity)
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+            ),
+            listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity))
         )
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityOperationService.create(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
             arrayListOf()
         )
@@ -561,7 +617,10 @@ class EntityOperationHandlerTests {
         val entitiesIds = arrayListOf(temperatureSensorUri, dissolvedOxygenSensorUri)
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedDissolvedOxygenSensorEntity, mockedTemperatureSensorEntity),
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+            ),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -577,7 +636,7 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify { entityOperationService.create(any(), any(), any()) wasNot Called }
+        coVerify { entityOperationService.create(any(), any()) wasNot Called }
         coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
         coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
         coVerify(timeout = 1000, exactly = 2) {
@@ -596,7 +655,7 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
-            listOf(mockedTemperatureSensorEntity)
+            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity))
         )
         coEvery {
             authorizationService.userCanCreateEntities(sub)
@@ -630,7 +689,10 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(mockedTemperatureSensorEntity, mockedDissolvedOxygenSensorEntity),
+            listOf(
+                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+            ),
             emptyList()
         )
         coEvery {
@@ -730,7 +792,7 @@ class EntityOperationHandlerTests {
                     every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
                 }
             )
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
@@ -741,8 +803,7 @@ class EntityOperationHandlerTests {
         coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
                 eq(sub.value),
-                match { it in allEntitiesUris },
-                match { it[0] in listOf(SENSOR_TYPE, DEVICE_TYPE) },
+                any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -843,7 +904,7 @@ class EntityOperationHandlerTests {
                 match {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.typeSelection == BEEHIVE_TYPE &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
                 any()

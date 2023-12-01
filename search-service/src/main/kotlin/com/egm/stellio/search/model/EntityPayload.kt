@@ -10,7 +10,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
@@ -33,7 +35,6 @@ data class EntityPayload(
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
     fun serializeProperties(
-        withSysAttrs: Boolean,
         withCompactTerms: Boolean = false,
         contexts: List<String> = emptyList()
     ): Map<String, Any> {
@@ -56,6 +57,11 @@ data class EntityPayload(
                     JSONLD_VALUE_TERM to this
                 )
             }
+
+            resultEntity[NGSILD_CREATED_AT_TERM] = createdAt
+            modifiedAt?.run {
+                resultEntity[NGSILD_MODIFIED_AT_TERM] = this
+            }
         } else {
             resultEntity[JSONLD_ID] = entityId.toString()
             resultEntity[JSONLD_TYPE] = types
@@ -67,14 +73,13 @@ data class EntityPayload(
             specificAccessPolicy?.run {
                 resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedProperty(this)
             }
-            if (withSysAttrs) {
-                resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedDateTime(createdAt)
 
-                modifiedAt?.run {
-                    resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedDateTime(this)
-                }
+            resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedDateTime(createdAt)
+            modifiedAt?.run {
+                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedDateTime(this)
             }
         }
+
         return resultEntity
     }
 }

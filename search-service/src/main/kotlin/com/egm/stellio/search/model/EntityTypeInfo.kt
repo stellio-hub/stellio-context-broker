@@ -25,6 +25,6 @@ enum class AttributeType(val key: String) {
 
     companion object {
         fun forKey(key: String): AttributeType =
-            values().find { it.key == key }!!
+            entries.find { it.key == key }!!
     }
 }

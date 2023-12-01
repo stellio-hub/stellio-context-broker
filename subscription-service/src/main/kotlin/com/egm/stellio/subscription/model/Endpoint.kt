@@ -7,7 +7,8 @@ import java.net.URI
 data class Endpoint(
     val uri: URI,
     val accept: AcceptType = JSON,
-    val info: List<EndpointInfo>? = null
+    val receiverInfo: List<EndpointInfo>? = null,
+    val notifierInfo: List<EndpointInfo>? = null
 ) {
 
     enum class AcceptType(val accept: String) {

@@ -917,9 +917,8 @@ class EntityHandlerTests {
         coEvery {
             queryService.queryEntities(
                 EntitiesQuery(
-                    type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
+                    typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    includeSysAttrs = true,
                     context = NGSILD_CORE_CONTEXT
                 ),
                 any()
@@ -1053,7 +1052,7 @@ class EntityHandlerTests {
             queryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(beehiveId),
-                    type = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -2145,7 +2144,7 @@ class EntityHandlerTests {
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -2163,8 +2162,7 @@ class EntityHandlerTests {
         coVerify {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(beehiveId),
-                eq(listOf(BEEHIVE_TYPE)),
+                eq(entity),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }

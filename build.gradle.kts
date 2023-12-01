@@ -20,10 +20,10 @@ plugins {
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.1.5" apply false
-    id("io.spring.dependency-management") version "1.1.3" apply false
+    id("io.spring.dependency-management") version "1.1.4" apply false
     id("org.graalvm.buildtools.native") version "0.9.28"
-    kotlin("jvm") version "1.9.20" apply false
-    kotlin("plugin.spring") version "1.9.20" apply false
+    kotlin("jvm") version "1.9.21" apply false
+    kotlin("plugin.spring") version "1.9.21" apply false
     id("com.google.cloud.tools.jib") version "3.4.0" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.3" apply false
     id("org.sonarqube") version "4.4.1.3373"
@@ -64,7 +64,7 @@ subprojects {
         implementation("org.springframework.kafka:spring-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-        implementation("com.github.jsonld-java:jsonld-java:0.13.5")
+        implementation("com.github.jsonld-java:jsonld-java:0.13.6")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:1.2.1")
 

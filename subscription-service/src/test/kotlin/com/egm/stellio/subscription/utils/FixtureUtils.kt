@@ -1,16 +1,39 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import java.time.Instant
 import java.time.ZoneOffset
 
+fun loadAndDeserializeSubscription(filename: String, context: String = APIC_COMPOUND_CONTEXT): Subscription {
+    val subscriptionPayload = loadSampleData(filename)
+    return ParsingUtils.parseSubscription(subscriptionPayload.deserializeAsMap(), listOf(context))
+        .shouldSucceedAndResult()
+}
+
+fun gimmeSubscriptionFromMembers(
+    additionalMembers: Map<String, Any>,
+    contexts: List<String> = listOf(APIC_COMPOUND_CONTEXT)
+): Subscription {
+    val payload = mapOf(
+        "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+        "type" to NGSILD_SUBSCRIPTION_TERM,
+        "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+    ).plus(additionalMembers)
+
+    return ParsingUtils.parseSubscription(payload, contexts).shouldSucceedAndResult()
+}
+
 fun gimmeRawSubscription(
     withQueryAndGeoQuery: Pair<Boolean, Boolean> = Pair(true, true),
-    withEndpointInfo: Boolean = true,
+    withEndpointReceiverInfo: Boolean = true,
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within",
@@ -36,8 +59,8 @@ fun gimmeRawSubscription(
         else
             null
 
-    val endpointInfo =
-        if (withEndpointInfo)
+    val endpointReceiverInfo =
+        if (withEndpointReceiverInfo)
             listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
         else
             null
@@ -58,7 +81,7 @@ fun gimmeRawSubscription(
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
-                info = endpointInfo
+                receiverInfo = endpointReceiverInfo
             )
         ),
         contexts = contexts

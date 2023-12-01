@@ -6,11 +6,9 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
@@ -18,7 +16,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
 import org.springframework.util.MultiValueMap
-import org.springframework.web.server.NotAcceptableStatusException
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -27,6 +24,7 @@ import java.util.regex.Pattern
 
 const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
+const val GEO_JSON_CONTENT_TYPE = "application/geo+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 const val QUERY_PARAM_COUNT: String = "count"
 const val QUERY_PARAM_OFFSET: String = "offset"
@@ -37,12 +35,14 @@ const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
 const val QUERY_PARAM_ATTRS: String = "attrs"
 const val QUERY_PARAM_Q: String = "q"
 const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
+const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
+val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
@@ -153,12 +153,17 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
-fun parseAndExpandTypeSelection(type: String?, contextLink: String): String? =
-    parseAndExpandTypeSelection(type, listOf(contextLink))
+fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contextLink: String): EntityTypeSelection? =
+    expandTypeSelection(entityTypeSelection, listOf(contextLink))
 
-fun parseAndExpandTypeSelection(type: String?, contexts: List<String>): String? =
-    type?.replace(typeSelectionRegex) {
+fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contexts: List<String>): EntityTypeSelection? =
+    entityTypeSelection?.replace(typeSelectionRegex) {
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+    }
+
+fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: List<String>): EntityTypeSelection =
+    entityTypeSelection.replace(typeSelectionRegex) {
+        JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
@@ -166,6 +171,28 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
         .map {
             JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
         }.toSet()
+
+fun parseRepresentations(
+    requestParams: MultiValueMap<String, String>,
+    acceptMediaType: MediaType
+): NgsiLdDataRepresentation {
+    val optionsParam = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+    val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+    val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+        .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+    val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
+    val geometryProperty =
+        if (entityRepresentation == EntityRepresentation.GEO_JSON)
+            requestParams.getFirst(QUERY_PARAM_GEOMETRY_PROPERTY) ?: NGSILD_LOCATION_TERM
+        else null
+
+    return NgsiLdDataRepresentation(
+        entityRepresentation,
+        attributeRepresentation,
+        includeSysAttrs,
+        geometryProperty
+    )
+}
 
 fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
     idPattern?.let {
@@ -198,26 +225,24 @@ fun parsePaginationParameters(
     return PaginationQuery(offset, limit, count).right()
 }
 
-fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
+fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, MediaType> =
     httpHeaders.accept.getApplicable()
 
 /**
- * Return the applicable media type among JSON_LD_MEDIA_TYPE and MediaType.APPLICATION_JSON.
- *
- * @throws NotAcceptableStatusException if none of the above media types are applicable
+ * Return the applicable media type among JSON_LD_MEDIA_TYPE, GEO_JSON_MEDIA_TYPE and MediaType.APPLICATION_JSON.
  */
-fun List<MediaType>.getApplicable(): MediaType {
+fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     if (this.isEmpty())
-        return MediaType.APPLICATION_JSON
+        return MediaType.APPLICATION_JSON.right()
     MimeTypeUtils.sortBySpecificity(this)
     val mediaType = this.find {
-        it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE)
-    } ?: throw NotAcceptableStatusException(listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE))
+        it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE) || it.includes(GEO_JSON_MEDIA_TYPE)
+    } ?: return NotAcceptableException("Unsupported Accept header value: ${this.joinToString(",")}").left()
     // as per 6.3.4, application/json has a higher precedence than application/ld+json
     return if (mediaType.includes(MediaType.APPLICATION_JSON))
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON.right()
     else
-        JSON_LD_MEDIA_TYPE
+        mediaType.right()
 }
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =

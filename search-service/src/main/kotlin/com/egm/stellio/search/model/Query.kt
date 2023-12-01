@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.JsonUtils
 
 /**
@@ -43,12 +44,6 @@ data class Query private constructor(
         }
     }
 }
-
-data class EntitySelector(
-    val id: String? = null,
-    val idPattern: String? = null,
-    val type: String? = null
-)
 
 data class UnparsedTemporalQuery(
     val timerel: String? = null,

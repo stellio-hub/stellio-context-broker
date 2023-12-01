@@ -117,12 +117,14 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_DELETE event`() = runTest {
+        val entityPayload = mockk<EntityPayload>(relaxed = true) {
+            every { entityId } returns breedingServiceUri
+        }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityDeleteEvent(
             null,
-            breedingServiceUri,
-            listOf(breedingServiceType),
+            entityPayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
         ).join()
 

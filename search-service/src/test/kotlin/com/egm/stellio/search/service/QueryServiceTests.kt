@@ -25,8 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryService::class])
@@ -49,7 +47,7 @@ class QueryServiceTests {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -295,7 +293,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -313,7 +311,7 @@ class QueryServiceTests {
             temporalEntityAttributeService.getForTemporalEntities(
                 listOf(entityUri),
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 )
@@ -329,7 +327,7 @@ class QueryServiceTests {
             )
             entityPayloadService.queryEntitiesCount(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -363,7 +361,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
-                    type = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     context = APIC_COMPOUND_CONTEXT
                 ),
@@ -386,6 +384,7 @@ class QueryServiceTests {
                     {
                         "id": "urn:ngsi-ld:BeeHive:TESTC",
                         "type": "BeeHive",
+                        "createdAt": "$now",
                         "incoming": {
                             "type": "Property",
                             "avg": []

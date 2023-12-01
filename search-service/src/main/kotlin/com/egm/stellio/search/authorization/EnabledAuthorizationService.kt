@@ -102,9 +102,9 @@ class EnabledAuthorizationService(
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,
-            entitiesQuery.type,
-            entitiesQuery.paginationQuery.limit,
-            entitiesQuery.paginationQuery.offset
+            entitiesQuery.typeSelection,
+            entitiesQuery.ids,
+            entitiesQuery.paginationQuery
         ).bind()
 
         // for each entity user is admin of, retrieve the full details of rights other users have on it
@@ -133,7 +133,8 @@ class EnabledAuthorizationService(
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
             accessRights,
-            entitiesQuery.type
+            entitiesQuery.typeSelection,
+            entitiesQuery.ids
         ).bind()
 
         Pair(count, entitiesAccessControlWithSubjectRights)

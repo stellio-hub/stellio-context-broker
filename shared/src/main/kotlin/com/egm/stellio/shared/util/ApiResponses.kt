@@ -98,7 +98,7 @@ fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
 }
 
 fun buildQueryResponse(
-    entities: List<CompactedJsonLdEntity>,
+    entities: Any,
     count: Int,
     resourceUrl: String,
     paginationQuery: PaginationQuery,

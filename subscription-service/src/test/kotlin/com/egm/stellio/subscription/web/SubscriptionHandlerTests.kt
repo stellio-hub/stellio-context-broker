@@ -11,7 +11,10 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Called
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
@@ -170,7 +173,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `create subscription should return a 201 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
@@ -186,7 +189,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `create subscription should return a 409 if the subscription already exists`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns true.right()
@@ -205,7 +208,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `create subscription should return a 500 error if internal server Error`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
@@ -250,7 +253,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `create subscription should return a 415 if the content type is not correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -269,7 +272,7 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery {
             subscriptionService.create(any(), any())
-        } returns BadRequestDataException("You can't use 'timeInterval' with 'watchedAttributes' in conjunction").left()
+        } returns BadRequestDataException("You can't use 'timeInterval' in conjunction with 'watchedAttributes'").left()
 
         @Suppress("MaxLineLength")
         webClient.post()
@@ -282,7 +285,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
+                    "detail":"You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
                 } 
                 """.trimIndent()
             )
@@ -482,7 +485,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
         val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
@@ -505,7 +508,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `update subscription should return a 500 if update in DB failed`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
         val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
@@ -537,7 +540,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `update subscription should return a 404 if subscription to be updated has not been found`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
 
         coEvery { subscriptionService.exists(any()) } returns false.right()
@@ -558,8 +561,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `update subscription should return a 400 if JSON-LD context is not correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update_incorrect_payload.json")
-        val subscriptionId = subscriptionId
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
@@ -586,7 +588,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `update subscription should return a 403 if subscription does not belong to the user`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
 
         coEvery { subscriptionService.exists(any()) } returns true.right()

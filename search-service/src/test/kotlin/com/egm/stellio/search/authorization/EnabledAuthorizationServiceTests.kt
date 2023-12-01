@@ -335,14 +335,16 @@ class EnabledAuthorizationServiceTests {
                 right = AccessRight.R_CAN_WRITE
             )
         ).right()
-        coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns emptyMap<URI, Map<AccessRight, List<SubjectRightInfo>>>().right()
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQuery(
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),
@@ -380,7 +382,9 @@ class EnabledAuthorizationServiceTests {
                 right = AccessRight.R_CAN_WRITE
             )
         ).right()
-        coEvery { entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any()) } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns mapOf(
@@ -396,7 +400,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQuery(
-                type = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 context = APIC_COMPOUND_CONTEXT
             ),

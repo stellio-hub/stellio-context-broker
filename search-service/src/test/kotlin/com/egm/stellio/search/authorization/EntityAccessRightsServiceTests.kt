@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
@@ -260,8 +261,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            limit = 100,
-            offset = 0
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -292,8 +292,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             emptyList(),
-            limit = 100,
-            offset = 0
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(2, it.size)
             it.forEach { entityAccessControl ->
@@ -325,8 +324,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             Some(subjectUuid),
             emptyList(),
             BEEHIVE_TYPE,
-            100,
-            0
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -338,6 +336,72 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             Some(subjectUuid),
             emptyList(),
             BEEHIVE_TYPE
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    @Test
+    fun `it should get all entities an user has access to wrt ids`() = runTest {
+        val entityId03 = "urn:ngsi-ld:Entity:03".toUri()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId03, setOf(APIARY_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            null,
+            setOf(entityId01, entityId02),
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            assertEquals(entityId01, it[0].id)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(subjectUuid),
+            emptyList(),
+            BEEHIVE_TYPE,
+            setOf(entityId01, entityId03)
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    @Test
+    fun `it should get all entities an user has access to wrt ids and types`() = runTest {
+        val entityId03 = "urn:ngsi-ld:Entity:03".toUri()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId03, setOf(APIARY_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+            .shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(subjectUuid),
+            emptyList(),
+            BEEHIVE_TYPE,
+            setOf(entityId01, entityId03),
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            assertEquals(entityId01, it[0].id)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(subjectUuid),
+            emptyList(),
+            BEEHIVE_TYPE,
+            setOf(entityId01, entityId03)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -358,8 +422,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
             listOf(AccessRight.R_CAN_WRITE),
-            limit = 100,
-            offset = 0
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -388,8 +451,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             Some(subjectUuid),
             emptyList(),
             BEEHIVE_TYPE,
-            100,
-            0
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]

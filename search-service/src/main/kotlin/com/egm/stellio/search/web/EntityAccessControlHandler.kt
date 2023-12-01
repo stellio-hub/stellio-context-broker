@@ -46,7 +46,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
@@ -71,14 +71,13 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndAuthorizedEntities.second,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndAuthorizedEntities.first,
             "/ngsi-ld/v1/entityAccessControl/entities",
             entitiesQuery.paginationQuery,
@@ -99,7 +98,7 @@ class EntityAccessControlHandler(
         val sub = getSubFromSecurityContext()
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
@@ -120,14 +119,13 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndGroupEntities.second,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndGroupEntities.first,
             "/ngsi-ld/v1/entityAccessControl/groups",
             entitiesQuery.paginationQuery,
@@ -150,7 +148,7 @@ class EntityAccessControlHandler(
         authorizationService.userIsAdmin(sub).bind()
 
         val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        val mediaType = getApplicableMediaType(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
@@ -170,14 +168,13 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndUserEntities.second,
-            entitiesQuery.useSimplifiedRepresentation,
-            entitiesQuery.includeSysAttrs,
             contextLink,
             mediaType
         )
 
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
-            compactedEntities,
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             countAndUserEntities.first,
             "/ngsi-ld/v1/entityAccessControl/users",
             entitiesQuery.paginationQuery,

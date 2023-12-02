@@ -335,7 +335,7 @@ class EntityPayloadService(
             if (!entitiesQuery.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
             else null
-        val formattedType = entitiesQuery.typeSelection?.let { buildTypeQuery(it) }
+        val formattedType = entitiesQuery.typeSelection?.let { "(" + buildTypeQuery(it) + ")" }
         val formattedAttrs =
             if (entitiesQuery.attrs.isNotEmpty())
                 entitiesQuery.attrs.joinToString(

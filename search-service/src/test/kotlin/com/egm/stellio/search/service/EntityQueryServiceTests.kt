@@ -141,19 +141,35 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should retrieve entities according to ids and types and attrs`() = runTest {
+    fun `it should retrieve entities according to ids and a type`() = runTest {
         val entitiesIds =
             entityPayloadService.queryEntities(
                 EntitiesQuery(
-                    ids = setOf(entity02Uri, entity01Uri),
+                    ids = setOf(entity02Uri),
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     context = APIC_COMPOUND_CONTEXT
                 )
             ) { null }
 
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity02Uri)
+    }
+
+    @Test
+    fun `it should retrieve entities according to ids and a selection of types`() = runTest {
+        val entitiesIds =
+            entityPayloadService.queryEntities(
+                EntitiesQuery(
+                    ids = setOf(entity02Uri, entity05Uri),
+                    typeSelection = "$APIARY_TYPE|$BEEHIVE_TYPE",
+                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
+                    context = APIC_COMPOUND_CONTEXT
+                )
+            ) { null }
+
         assertEquals(2, entitiesIds.size)
-        assertThat(entitiesIds).contains(entity01Uri, entity02Uri)
+        assertThat(entitiesIds).contains(entity02Uri, entity05Uri)
     }
 
     @Test

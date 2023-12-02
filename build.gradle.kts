@@ -139,7 +139,7 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "eclipse-temurin:17-jre")
+    project.ext.set("jibFromImage", "eclipse-temurin:21-jre")
     project.ext.set(
         "jibFromPlatforms",
         listOf(
@@ -163,7 +163,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_17}"
+            "com.java.version" to "${JavaVersion.VERSION_21}"
         )
     )
 }

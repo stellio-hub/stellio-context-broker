@@ -391,7 +391,8 @@ class QueryServiceTests {
                         }
                     }
                     """.trimIndent(),
-                    JsonUtils.serializeObject(it.first[0])
+                    JsonUtils.serializeObject(it.first[0]),
+                    setOf(NGSILD_CREATED_AT_TERM)
                 )
             })
     }

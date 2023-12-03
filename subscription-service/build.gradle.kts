@@ -21,7 +21,7 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.8.0")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.4")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

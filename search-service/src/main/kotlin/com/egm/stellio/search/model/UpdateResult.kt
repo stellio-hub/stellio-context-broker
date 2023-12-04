@@ -20,6 +20,10 @@ data class UpdateResult(
             updated = this.updated.plus(other.updated),
             notUpdated = this.notUpdated.plus(other.notUpdated)
         )
+
+    @JsonIgnore
+    fun hasSuccessfulUpdate(): Boolean =
+        this.updated.isNotEmpty()
 }
 
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
@@ -48,7 +52,8 @@ data class UpdateAttributeResult(
         this.updateOperationResult in listOf(
             UpdateOperationResult.APPENDED,
             UpdateOperationResult.REPLACED,
-            UpdateOperationResult.UPDATED
+            UpdateOperationResult.UPDATED,
+            UpdateOperationResult.IGNORED
         )
 }
 
@@ -61,9 +66,6 @@ enum class UpdateOperationResult {
 
     fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED).contains(this)
 }
-
-fun UpdateResult.hasSuccessfulUpdate(): Boolean =
-    this.updated.isNotEmpty()
 
 fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
     val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }

@@ -287,10 +287,6 @@ class EntityHandler(
         { it }
     )
 
-    @DeleteMapping("/", "")
-    fun handleMissingEntityIdOnDelete(): ResponseEntity<*> =
-        missingPathErrorResponse("Missing entity id when trying to delete an entity")
-
     /**
      * Implements 6.6.3.1 - Append Entity Attributes
      *
@@ -488,7 +484,7 @@ class EntityHandler(
         { it }
     )
 
-    @DeleteMapping("/attrs/{attrId}", "/{entityId}/attrs")
+    @DeleteMapping("/attrs/{attrId}")
     fun handleMissingEntityIdOrAttributeOnDeleteAttribute(): ResponseEntity<*> =
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
 

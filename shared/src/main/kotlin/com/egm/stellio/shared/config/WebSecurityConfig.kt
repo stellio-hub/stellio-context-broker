@@ -7,12 +7,12 @@ import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.web.server.SecurityWebFilterChain
 
 @Configuration
+@ConditionalOnProperty("application.authentication.enabled")
 class WebSecurityConfig(
     private val tenantAuthenticationManagerResolver: TenantAuthenticationManagerResolver
 ) {
 
     @Bean
-    @ConditionalOnProperty("application.authentication.enabled")
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http
             // disable CSRF as it does not fit with an HTTP REST API
@@ -25,20 +25,6 @@ class WebSecurityConfig(
             }
             .oauth2ResourceServer { oauth2ResourceServer ->
                 oauth2ResourceServer.authenticationManagerResolver(tenantAuthenticationManagerResolver)
-            }
-
-        return http.build()
-    }
-
-    @Bean
-    @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
-    fun springNoSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
-        http
-            // disable CSRF as it does not fit with an HTTP REST API
-            .csrf { csrf -> csrf.disable() }
-            // explicitly disable authentication to override Spring Security defaults
-            .authorizeExchange { exchanges ->
-                exchanges.pathMatchers("/**").permitAll()
             }
 
         return http.build()

@@ -16,6 +16,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
@@ -36,6 +38,7 @@ class NgsiLdEntity private constructor(
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
     val geoProperties: List<NgsiLdGeoProperty>,
+    val jsonProperties: List<NgsiLdJsonProperty>,
     val contexts: List<String>
 ) {
     companion object {
@@ -58,18 +61,19 @@ class NgsiLdEntity private constructor(
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            val jsonProperties = getAttributesOfType<NgsiLdJsonProperty>(attributes, NGSILD_JSONPROPERTY_TYPE).bind()
             val geoProperties = getAttributesOfType<NgsiLdGeoProperty>(attributes, NGSILD_GEOPROPERTY_TYPE).bind()
-            ensure(attributes.size == relationships.size + properties.size + geoProperties.size) {
-                val attributesWithUnknownTypes =
-                    attributes.keys.minus(setOf(relationships, properties, geoProperties).flatten().map { it.name })
+            ensure(attributes.size == relationships.size + properties.size + geoProperties.size + jsonProperties.size) {
+                val allAttributes = setOf(relationships, properties, geoProperties, jsonProperties)
+                val attributesWithUnknownTypes = attributes.keys.minus(allAttributes.flatten().map { it.name })
                 BadRequestDataException("Entity has attribute(s) with an unknown type: $attributesWithUnknownTypes")
             }
 
-            NgsiLdEntity(id, types, scopes, relationships, properties, geoProperties, contexts)
+            NgsiLdEntity(id, types, scopes, relationships, properties, geoProperties, jsonProperties, contexts)
         }
     }
 
-    val attributes: List<NgsiLdAttribute> = properties.plus(relationships).plus(geoProperties)
+    val attributes: List<NgsiLdAttribute> = properties.plus(relationships).plus(geoProperties).plus(jsonProperties)
 }
 
 sealed class NgsiLdAttribute(val name: String) {
@@ -149,6 +153,31 @@ class NgsiLdGeoProperty private constructor(
     }
 
     override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
+}
+
+class NgsiLdJsonProperty private constructor(
+    name: String,
+    val instances: List<NgsiLdJsonPropertyInstance>
+) : NgsiLdAttribute(name) {
+    companion object {
+        suspend fun create(
+            name: String,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdJsonProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_JSONPROPERTY_TYPE).bind()
+
+            val ngsiLdJsonPropertyInstances = instances.parMap { instance ->
+                NgsiLdJsonPropertyInstance.create(name, instance).bind()
+            }
+
+            checkAttributeDefaultInstance(name, ngsiLdJsonPropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdJsonPropertyInstances).bind()
+
+            NgsiLdJsonProperty(name, ngsiLdJsonPropertyInstances)
+        }
+    }
+
+    override fun getAttributeInstances(): List<NgsiLdJsonPropertyInstance> = instances
 }
 
 sealed class NgsiLdAttributeInstance(
@@ -293,6 +322,55 @@ class NgsiLdGeoPropertyInstance(
     override fun toString(): String = "NgsiLdGeoPropertyInstance(coordinates=$coordinates)"
 }
 
+class NgsiLdJsonPropertyInstance private constructor(
+    val json: Map<String, Any>,
+    createdAt: ZonedDateTime?,
+    modifiedAt: ZonedDateTime?,
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    properties: List<NgsiLdProperty>,
+    relationships: List<NgsiLdRelationship>
+) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
+    companion object {
+        suspend fun create(
+            name: String,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
+            val json = values.getMemberValue(NGSILD_JSONPROPERTY_VALUE)
+            ensureNotNull(json) {
+                BadRequestDataException("Property $name has an instance without a json")
+            }
+            ensure(json is Map<*, *>) {
+                BadRequestDataException("Property $name has a json member that is not a map")
+            }
+
+            val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val datasetId = values.getDatasetId()
+
+            val attributes = getNonCoreAttributes(values, NGSILD_JSONPROPERTIES_CORE_MEMBERS)
+            val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE).bind()
+            val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE).bind()
+            ensure(attributes.size == relationships.size + properties.size) {
+                BadRequestDataException("Property $name has unknown attributes types: $attributes")
+            }
+
+            NgsiLdJsonPropertyInstance(
+                json as Map<String, Any>,
+                createdAt,
+                modifiedAt,
+                observedAt,
+                datasetId,
+                properties,
+                relationships
+            )
+        }
+    }
+
+    override fun toString(): String = "NgsiLdJsonPropertyInstance(json=$json)"
+}
+
 @JvmInline
 value class WKTCoordinates(val value: String)
 
@@ -321,6 +399,7 @@ private suspend inline fun <reified T : NgsiLdAttribute> getAttributesOfType(
                 NGSILD_PROPERTY_TYPE -> NgsiLdProperty.create(it.key, it.value).bind() as T
                 NGSILD_RELATIONSHIP_TYPE -> NgsiLdRelationship.create(it.key, it.value).bind() as T
                 NGSILD_GEOPROPERTY_TYPE -> NgsiLdGeoProperty.create(it.key, it.value).bind() as T
+                NGSILD_JSONPROPERTY_TYPE -> NgsiLdJsonProperty.create(it.key, it.value).bind() as T
                 else -> BadRequestDataException("Unrecognized type: $type").left().bind<T>()
             }
         }
@@ -419,4 +498,8 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
 
 val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
     NGSILD_GEOPROPERTY_VALUE
+).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
+
+val NGSILD_JSONPROPERTIES_CORE_MEMBERS = listOf(
+    NGSILD_JSONPROPERTY_VALUE
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)

@@ -2,6 +2,7 @@ package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import io.r2dbc.postgresql.codec.Json
@@ -38,13 +39,15 @@ data class TemporalEntityAttribute(
     enum class AttributeType {
         Property,
         Relationship,
-        GeoProperty;
+        GeoProperty,
+        JsonProperty;
 
         fun toExpandedName(): String =
             when (this) {
                 Property -> NGSILD_PROPERTY_TYPE.uri
                 Relationship -> NGSILD_RELATIONSHIP_TYPE.uri
                 GeoProperty -> NGSILD_GEOPROPERTY_TYPE.uri
+                JsonProperty -> NGSILD_JSONPROPERTY_TYPE.uri
             }
     }
 }

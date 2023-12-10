@@ -272,6 +272,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             is NgsiLdPropertyInstance -> guessPropertyValueType(ngsiLdAttributeInstance).first
             is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeValueType.URI
             is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
+            is NgsiLdJsonPropertyInstance -> TemporalEntityAttribute.AttributeValueType.OBJECT
         }
 
         jdbcTemplate.execute(

@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -865,6 +866,12 @@ class TemporalEntityAttributeService(
                     null,
                     null,
                     WKTCoordinates(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!! as String)
+                )
+            TemporalEntityAttribute.AttributeType.JsonProperty ->
+                Triple(
+                    valueToStringOrNull(getPropertyValueFromMap(attributePayload, NGSILD_JSONPROPERTY_VALUE)!!),
+                    null,
+                    null
                 )
         }
 

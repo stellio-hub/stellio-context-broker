@@ -122,6 +122,7 @@ object TemporalEntityBuilder {
                     TemporalEntityAttribute.AttributeType.Property -> "values"
                     TemporalEntityAttribute.AttributeType.Relationship -> "objects"
                     TemporalEntityAttribute.AttributeType.GeoProperty -> "values"
+                    TemporalEntityAttribute.AttributeType.JsonProperty -> "jsons"
                 }
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult

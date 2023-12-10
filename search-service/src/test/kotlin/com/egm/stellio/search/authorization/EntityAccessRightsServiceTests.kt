@@ -8,7 +8,6 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
@@ -544,7 +543,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     ) {
         val rawEntity =
             if (specificAccessPolicy != null)
-                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
             else loadMinimalEntity(entityId, types)
         rawEntity.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(

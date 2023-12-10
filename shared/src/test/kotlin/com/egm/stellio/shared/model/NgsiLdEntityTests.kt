@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -28,7 +29,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS)
 
         assertEquals("urn:ngsi-ld:Device:01234", ngsiLdEntity.id)
-        assertEquals(listOf("https://uri.fiware.org/ns/data-models#Device"), ngsiLdEntity.types)
+        assertEquals(listOf("https://uri.etsi.org/ngsi-ld/default-context/Device"), ngsiLdEntity.types)
     }
 
     @Test
@@ -82,7 +83,7 @@ class NgsiLdEntityTests {
         expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Entity has attribute(s) with an unknown type: [https://uri.fiware.org/ns/data-models#deviceState]",
+                "Entity has attribute(s) with an unknown type: [${NGSILD_DEFAULT_VOCAB}deviceState]",
                 it.message
             )
         }
@@ -106,7 +107,7 @@ class NgsiLdEntityTests {
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
-        assertEquals("https://uri.fiware.org/ns/data-models#deviceState", ngsiLdProperty.name)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}deviceState", ngsiLdProperty.name)
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
@@ -135,7 +136,7 @@ class NgsiLdEntityTests {
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
-        assertEquals("https://uri.fiware.org/ns/data-models#deviceState", ngsiLdProperty.name)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}deviceState", ngsiLdProperty.name)
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertTrue(ngsiLdPropertyInstance.value is Map<*, *>)
@@ -219,7 +220,7 @@ class NgsiLdEntityTests {
         expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Property https://uri.fiware.org/ns/data-models#deviceState has an instance without a value",
+                "Property ${NGSILD_DEFAULT_VOCAB}deviceState has an instance without a value",
                 it.message
             )
         }
@@ -276,7 +277,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#deviceState instances must have the same type",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState instances must have the same type",
                 it.message
             )
         }
@@ -314,7 +315,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#deviceState " +
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState " +
                     "can't have more than one instance with the same datasetId",
                 it.message
             )
@@ -347,7 +348,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#deviceState can't have more than one default instance",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState can't have more than one default instance",
                 it.message
             )
         }
@@ -397,7 +398,7 @@ class NgsiLdEntityTests {
 
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
-        assertEquals("https://uri.fiware.org/ns/data-models#refDeviceModel", ngsiLdRelationship.name)
+        assertEquals("https://uri.etsi.org/ngsi-ld/default-context/refDeviceModel", ngsiLdRelationship.name)
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
         assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
@@ -480,7 +481,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel can't have more " +
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel can't have more " +
                     "than one default instance",
                 it.message
             )
@@ -510,7 +511,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel " +
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel " +
                     "can't have more than one instance with the same datasetId",
                 it.message
             )
@@ -544,7 +545,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel instances must have the same type",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel instances must have the same type",
                 it.message
             )
         }

@@ -16,19 +16,11 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.confirmVerified
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -377,9 +369,10 @@ class TemporalEntityHandlerTests {
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedJsonLdEntity.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -566,9 +559,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedJsonLdEntity.right()
 
         webClient.get()
             .uri(
@@ -600,9 +594,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedJsonLdEntity.right()
 
         webClient.get()
             .uri(
@@ -620,9 +615,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedJsonLdEntity.right()
 
         webClient.get()
             .uri(
@@ -639,7 +635,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution`() {
+    fun `it should return an entity with two temporal properties evolution`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(false)
@@ -661,7 +657,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a json entity with two temporal properties evolution`() {
+    fun `it should return a json entity with two temporal properties evolution`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(false)
@@ -685,7 +681,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
+    fun `it should return an entity with two temporal properties evolution with temporalValues option`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(true)
@@ -702,11 +698,11 @@ class TemporalEntityHandlerTests {
             .jsonPath("$.id").exists()
             .jsonPath("$.type").exists()
             .jsonPath("$..observedAt").doesNotExist()
-            .jsonPath("$.incoming[0].values.length()").isEqualTo(2)
-            .jsonPath("$.outgoing[0].values.length()").isEqualTo(2)
+            .jsonPath("$.incoming.values.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.values.length()").isEqualTo(2)
     }
 
-    private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
+    private suspend fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
         val entityTemporalProperties = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             .map {
                 TemporalEntityAttribute(
@@ -722,7 +718,7 @@ class TemporalEntityHandlerTests {
         else
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
-        val entityWith2temporalEvolutions = deserializeObject(loadSampleData(entityFileName))
+        val entityWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
@@ -808,11 +804,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return 200 with jsonld response body for query temporal entities`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `it should return 200 with jsonld response body for query temporal entities`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -836,11 +830,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return 200 with json response body for query temporal entities`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `it should return 200 with json response body for query temporal entities`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -866,11 +858,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with prev link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with prev link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -928,11 +918,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with next link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with next link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -957,11 +945,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with prev and next link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with prev and next link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -1165,7 +1151,7 @@ class TemporalEntityHandlerTests {
     fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -1542,7 +1528,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
         coEvery {
             entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
@@ -1599,7 +1585,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery {
             entityPayloadService.checkEntityExistence(any())

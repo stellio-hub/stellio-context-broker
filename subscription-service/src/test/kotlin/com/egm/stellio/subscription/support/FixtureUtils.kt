@@ -1,12 +1,8 @@
 package com.egm.stellio.subscription.support
 
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.shouldSucceedAndResult
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.utils.ParsingUtils
@@ -41,7 +37,7 @@ fun gimmeRawSubscription(
     geometry: String = "Polygon",
     coordinates: String = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
     timeInterval: Int? = null,
-    contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
+    contexts: List<String> = listOf(NGSILD_TEST_CORE_CONTEXT)
 ): Subscription {
     val q =
         if (withQueryAndGeoQuery.first)

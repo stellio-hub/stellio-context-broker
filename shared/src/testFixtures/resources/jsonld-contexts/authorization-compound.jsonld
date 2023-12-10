@@ -1,0 +1,6 @@
+{
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/authorization.jsonld",
+        "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    ]
+}

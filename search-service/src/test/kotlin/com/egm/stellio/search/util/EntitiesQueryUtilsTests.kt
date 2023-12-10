@@ -6,7 +6,6 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
 import io.mockk.every
@@ -51,7 +50,7 @@ class EntitiesQueryUtilsTests {
         val entitiesQuery = composeEntitiesQuery(
             ApplicationProperties.Pagination(30, 100),
             requestParams,
-            NGSILD_CORE_CONTEXT
+            NGSILD_TEST_CORE_CONTEXT
         ).shouldSucceedAndResult()
 
         assertEquals("speed>50;foodName==dietary fibres", entitiesQuery.q)
@@ -63,7 +62,7 @@ class EntitiesQueryUtilsTests {
         val entitiesQuery = composeEntitiesQuery(
             ApplicationProperties.Pagination(30, 100),
             requestParams,
-            NGSILD_CORE_CONTEXT
+            NGSILD_TEST_CORE_CONTEXT
         ).shouldSucceedAndResult()
 
         assertEquals(null, entitiesQuery.typeSelection)

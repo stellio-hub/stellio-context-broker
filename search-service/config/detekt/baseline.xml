@@ -10,6 +10,7 @@
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
+    <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should return an empty list for an attribute if it has no temporal values`()</ID>
     <ID>LongMethod:TemporalEntityBuilderTests.kt$TemporalEntityBuilderTests$@Test fun `it should return a temporal entity with values aggregated`()</ID>
     <ID>LongMethod:TemporalScopeBuilderTests.kt$TemporalScopeBuilderTests$@Test fun `it should build an aggregated temporal representation of scopes`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>

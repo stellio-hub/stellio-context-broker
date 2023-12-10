@@ -3,13 +3,12 @@ package com.egm.stellio.subscription.service
 import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
@@ -28,7 +27,6 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -58,15 +56,6 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
-
-    private lateinit var jsonldEntity: JsonLdEntity
-
-    @BeforeAll
-    fun loadTestEntity() {
-        runBlocking {
-            jsonldEntity = JsonLdUtils.expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
-        }
-    }
 
     @AfterEach
     fun deleteSubscriptions() {
@@ -940,6 +929,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should not return a subscription if q query is invalid`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -954,6 +944,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matches q query`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -968,6 +959,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should not return a subscription if entity doesn't match q query`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -982,6 +974,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matches a complex q query`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -996,6 +989,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matches a complex q query with AND logical operator`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1010,6 +1004,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matches a complex q query with OR logical operator`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1024,6 +1019,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matched a q query with a boolean value`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1038,6 +1034,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a subscription if entity matches a scope query`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1052,6 +1049,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should not return a subscription if entity does not match a scope query`() = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1083,6 +1081,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coordinates: String,
         expectedSize: Int
     ) = runTest {
+        val jsonldEntity = expandJsonLdEntity(entity, listOf(APIC_COMPOUND_CONTEXT))
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
@@ -1183,7 +1182,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should return a link to contexts endpoint if subscription has more than one context`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json").copy(
-            contexts = listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT)
+            contexts = listOf(APIC_COMPOUND_CONTEXT, NGSILD_TEST_CORE_CONTEXT)
         )
 
         val contextLink = subscriptionService.getContextsLink(subscription)

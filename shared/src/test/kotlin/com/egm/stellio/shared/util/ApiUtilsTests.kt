@@ -52,12 +52,12 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return an singleton list if there is one provided attrs param`() {
-        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_CORE_CONTEXT).size)
+        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_TEST_CORE_CONTEXT).size)
     }
 
     @Test
     fun `it should return a list with two elements if there are two provided attrs param`() {
-        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_CORE_CONTEXT).size)
+        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXT).size)
     }
 
     @Test
@@ -181,7 +181,7 @@ class ApiUtilsTests {
     fun `it should parse and expand entity type selection query`() {
         val query = "(TypeA|TypeB);(TypeC,TypeD)"
         val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
-        val expandedQuery = expandTypeSelection(query, NGSILD_CORE_CONTEXT)
+        val expandedQuery = expandTypeSelection(query, NGSILD_TEST_CORE_CONTEXT)
         val expectedExpandTypeSelection =
             "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
         assertEquals(expectedExpandTypeSelection, expandedQuery)

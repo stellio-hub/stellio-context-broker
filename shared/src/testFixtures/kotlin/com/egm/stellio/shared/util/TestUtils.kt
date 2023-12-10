@@ -5,7 +5,7 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import org.springframework.core.io.ClassPathResource
 import java.net.URI
 
@@ -14,10 +14,15 @@ fun loadSampleData(filename: String = "beehive.jsonld"): String {
     return String(sampleData.inputStream.readAllBytes())
 }
 
+suspend fun loadAndExpandSampleData(filename: String = "beehive.jsonld"): JsonLdEntity {
+    val sampleData = ClassPathResource("/ngsild/$filename")
+    return expandJsonLdEntity(String(sampleData.inputStream.readAllBytes()))
+}
+
 fun loadMinimalEntity(
     entityId: URI,
     entityTypes: Set<String>,
-    contexts: Set<String> = setOf(NGSILD_CORE_CONTEXT)
+    contexts: Set<String> = setOf(NGSILD_TEST_CORE_CONTEXT)
 ): String =
     """
         {
@@ -31,7 +36,7 @@ fun loadMinimalEntityWithSap(
     entityId: URI,
     entityTypes: Set<String>,
     specificAccessPolicy: AuthContextModel.SpecificAccessPolicy,
-    contexts: Set<String> = setOf(NGSILD_CORE_CONTEXT)
+    contexts: Set<String> = setOf(NGSILD_TEST_CORE_CONTEXT)
 ): String =
     """
         {
@@ -46,7 +51,7 @@ fun loadMinimalEntityWithSap(
     """.trimIndent()
 
 suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<JsonLdEntity, NgsiLdEntity>> {
-    val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(this)
+    val jsonLdEntity = expandJsonLdEntity(this)
     return when (val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()) {
         is Either.Left -> BadRequestDataException("Invalid NGSI-LD input for sample data: $this").left()
         is Either.Right -> Pair(jsonLdEntity, ngsiLdEntity.value).right()

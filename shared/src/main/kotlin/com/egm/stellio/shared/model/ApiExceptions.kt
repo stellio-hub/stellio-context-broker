@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.model
 
-import com.github.jsonldjava.core.JsonLdError
+import com.apicatalog.jsonld.JsonLdError
+import com.apicatalog.jsonld.JsonLdErrorCode
 
 sealed class APIException(
     override val message: String
@@ -22,8 +23,9 @@ data class NotAcceptableException(override val message: String) : APIException(m
 
 fun Throwable.toAPIException(fallbackMessage: String = ""): APIException =
     when (this) {
+        is APIException -> this
         is JsonLdError ->
-            if (this.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
+            if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED)
                 LdContextNotAvailableException("Unable to load remote context (cause was: $this)")
             else BadRequestDataException("Unexpected error while parsing payload (cause was: $this)")
         else -> BadRequestDataException(this.message ?: fallbackMessage)

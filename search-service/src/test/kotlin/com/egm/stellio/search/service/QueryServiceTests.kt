@@ -11,6 +11,7 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -382,17 +383,28 @@ class QueryServiceTests {
                 assertJsonPayloadsAreEqual(
                     """
                     {
-                        "id": "urn:ngsi-ld:BeeHive:TESTC",
-                        "type": "BeeHive",
-                        "createdAt": "$now",
-                        "incoming": {
-                            "type": "Property",
-                            "avg": []
-                        }
+                        "@id": "urn:ngsi-ld:BeeHive:TESTC",
+                        "@type": [
+                            "https://ontology.eglobalmark.com/apic#BeeHive"
+                        ],
+                        "https://uri.etsi.org/ngsi-ld/createdAt": [
+                            {
+                                "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+                                "@value": "$now"
+                            }
+                        ],
+                        "https://ontology.eglobalmark.com/apic#incoming":[
+                            {
+                                "@type": [
+                                    "https://uri.etsi.org/ngsi-ld/Property"
+                                ],
+                                "avg": []
+                            }
+                        ]
                     }
                     """.trimIndent(),
-                    JsonUtils.serializeObject(it.first[0]),
-                    setOf(NGSILD_CREATED_AT_TERM)
+                    JsonUtils.serializeObject(it.first[0].members),
+                    setOf(NGSILD_CREATED_AT_PROPERTY)
                 )
             })
     }

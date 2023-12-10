@@ -29,6 +29,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import java.net.URI
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZonedDateTime
 
 class NgsiLdEntity private constructor(
@@ -399,8 +401,24 @@ fun ExpandedAttributeInstance.getScopes(): List<String>? =
         else -> null
     }
 
-fun ExpandedAttributeInstance.getPropertyValue(): Any =
-    (this[NGSILD_PROPERTY_VALUE]!![0] as Map<String, Any>)[JSONLD_VALUE]!!
+fun ExpandedAttributeInstance.getPropertyValue(): Any {
+    val hasValueEntry = this[NGSILD_PROPERTY_VALUE]!!
+
+    return if (hasValueEntry.size == 1 && (hasValueEntry[0] as Map<String, Any>).containsKey(JSONLD_VALUE)) {
+        val rawValue = (hasValueEntry[0] as Map<String, Any>)[JSONLD_VALUE]!!
+        if (rawValue is String) {
+            when {
+                rawValue.isURI() -> rawValue.toUri()
+                rawValue.isTime() -> LocalTime.parse(rawValue)
+                rawValue.isDate() -> LocalDate.parse(rawValue)
+                rawValue.isDateTime() -> ZonedDateTime.parse(rawValue)
+                else -> rawValue
+            }
+        } else rawValue
+    } else if (hasValueEntry.size == 1)
+        hasValueEntry[0] as Map<String, Any>
+    else hasValueEntry.map { (it as Map<String, Any>)[JSONLD_VALUE]!! }
+}
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
     this.flatMap { ngsiLdAttribute ->

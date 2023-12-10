@@ -1,29 +1,112 @@
 {
-  "id" : "urn:ngsi-ld:BeeHive:TESTC",
-  "type" : "BeeHive",
-  "incoming" : [ {
-    "type" : "Property",
-    "datasetId" : "urn:ngsi-ld:Dataset:01234",
-    "value" : 550.0,
-    "instanceId" : "urn:ngsi-ld:Instance:01234",
-    "observedAt" : "2020-03-25T08:29:17.965206Z"
-  }, {
-    "type" : "Property",
-    "datasetId" : "urn:ngsi-ld:Dataset:01234",
-    "value" : 650.0,
-    "instanceId" : "urn:ngsi-ld:Instance:01235",
-    "observedAt" : "2020-03-25T08:33:17.965206Z"
-  }, {
-    "type" : "Property",
-    "datasetId" : "urn:ngsi-ld:Dataset:45678",
-    "value" : 487.0,
-    "instanceId" : "urn:ngsi-ld:Instance:45678",
-    "observedAt" : "2020-03-25T08:29:17.965206Z"
-  }, {
-    "type" : "Property",
-    "datasetId" : "urn:ngsi-ld:Dataset:45678",
-    "value" : 698.0,
-    "instanceId" : "urn:ngsi-ld:Instance:45679",
-    "observedAt" : "2020-03-25T08:33:17.965206Z"
-  } ]
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#incoming": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:29:17.965206Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/instanceId": [
+        {
+          "@id": "urn:ngsi-ld:Instance:01234"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:01234"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 550.0
+        }
+      ]
+    },
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:33:17.965206Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/instanceId": [
+        {
+          "@id": "urn:ngsi-ld:Instance:01235"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:01234"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 650.0
+        }
+      ]
+    },
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:29:17.965206Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/instanceId": [
+        {
+          "@id": "urn:ngsi-ld:Instance:45678"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:45678"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 487.0
+        }
+      ]
+    },
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:33:17.965206Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/instanceId": [
+        {
+          "@id": "urn:ngsi-ld:Instance:45679"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:45678"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 698.0
+        }
+      ]
+    }
+  ]
 }

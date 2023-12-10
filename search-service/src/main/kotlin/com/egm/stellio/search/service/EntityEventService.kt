@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ExpandedAttributes
 import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
@@ -254,7 +255,11 @@ class EntityEventService(
         when (attributeName) {
             JSONLD_TYPE -> Pair(JSONLD_TYPE, serializeObject(jsonLdAttributes[JSONLD_TYPE]!!))
             else -> {
-                val extractedPayload = getAttributeFromExpandedAttributes(jsonLdAttributes, attributeName, datasetId)!!
+                val extractedPayload = getAttributeFromExpandedAttributes(
+                    jsonLdAttributes as ExpandedAttributes,
+                    attributeName,
+                    datasetId
+                )!!
                 Pair(attributeName, serializeObject(extractedPayload))
             }
         }

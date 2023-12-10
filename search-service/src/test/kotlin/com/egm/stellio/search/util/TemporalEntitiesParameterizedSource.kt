@@ -12,7 +12,7 @@ import java.util.UUID
 import java.util.stream.Stream
 
 @Suppress("unused", "UtilityClassWithPublicConstructor")
-class QueryParameterizedTests {
+class TemporalEntitiesParameterizedSource {
 
     companion object {
         private val now = Instant.now().atZone(ZoneOffset.UTC)

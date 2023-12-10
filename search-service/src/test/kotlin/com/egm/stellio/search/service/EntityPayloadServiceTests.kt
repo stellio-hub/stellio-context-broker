@@ -2,19 +2,14 @@ package com.egm.stellio.search.service
 
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.support.EMPTY_PAYLOAD
-import com.egm.stellio.search.support.WithKafkaContainer
-import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.support.buildSapAttribute
+import com.egm.stellio.search.support.*
 import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -84,7 +79,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from string with specificAccessPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -93,7 +88,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     now
                 )
             }
-        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -434,14 +429,14 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
-                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
+                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_TEST_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
             }
     }
 
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -712,7 +707,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should remove a specific access policy from a entity payload`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(

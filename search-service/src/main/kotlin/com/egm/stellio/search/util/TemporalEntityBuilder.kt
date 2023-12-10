@@ -2,14 +2,20 @@ package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.TemporalScopeBuilder
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
+import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.wktToGeoJson
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
@@ -20,7 +26,7 @@ object TemporalEntityBuilder {
         queryResult: List<EntityTemporalResult>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): List<CompactedJsonLdEntity> =
+    ): List<JsonLdEntity> =
         queryResult.map {
             buildTemporalEntity(it, temporalEntitiesQuery, contexts)
         }
@@ -29,11 +35,10 @@ object TemporalEntityBuilder {
         entityTemporalResult: EntityTemporalResult,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): CompactedJsonLdEntity {
+    ): JsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
             entityTemporalResult.teaInstancesResult,
-            temporalEntitiesQuery,
-            contexts
+            temporalEntitiesQuery
         )
 
         val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
@@ -42,69 +47,47 @@ object TemporalEntityBuilder {
             temporalEntitiesQuery
         )
 
-        return entityTemporalResult.entityPayload.serializeProperties(
-            withCompactTerms = true,
-            contexts
-        ).plus(temporalAttributes)
+        val expandedTemporalEntity = entityTemporalResult.entityPayload.serializeProperties()
+            .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
+        return JsonLdEntity(expandedTemporalEntity, contexts)
     }
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        contexts: List<String>
     ): Map<String, Any> =
         if (temporalEntitiesQuery.withTemporalValues) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
-                .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
-                .mapValues {
-                    if (it.value.size == 1) it.value.first()
-                    else it.value
-                }
         } else if (temporalEntitiesQuery.withAggregatedValues) {
             val attributes = buildAttributesAggregatedRepresentation(
                 attributeAndResultsMap,
                 temporalEntitiesQuery.temporalQuery.aggrMethods!!
             )
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
-                .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
-                .mapValues {
-                    if (it.value.size == 1) it.value.first()
-                    else it.value
-                }
         } else {
             mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
-                .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
                 .mapValues { (_, attributeInstanceResults) ->
                     attributeInstanceResults.map { attributeInstanceResult ->
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
                             .let { instancePayload ->
                                 injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
                             }.let { instancePayload ->
-                                compactAttributeInstance(instancePayload, contexts)
-                            }.let { instancePayload ->
                                 convertGeoProperty(instancePayload)
                             }.plus(
-                                attributeInstanceResult.timeproperty to attributeInstanceResult.time.toNgsiLdFormat()
+                                Pair(
+                                    NGSILD_PREFIX + attributeInstanceResult.timeproperty,
+                                    buildNonReifiedTemporalValue(attributeInstanceResult.time)
+                                )
                             )
                     }
                 }
         }
 
-    // FIXME in the history of attributes, we have a mix of
-    //   - compacted fragments (before v2)
-    //   - expanded fragments (since v2)
-    //  to avoid un-necessary (expensive) compactions, quick check to see if the fragment
-    //  is already compacted
-    private fun compactAttributeInstance(instancePayload: Map<String, Any>, contexts: List<String>): Map<String, Any> =
-        if (instancePayload.containsKey(JSONLD_TYPE))
-            compactFragment(instancePayload, contexts).minus(JSONLD_CONTEXT)
-        else instancePayload
-
     private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =
-        if (instancePayload[JSONLD_TYPE_TERM] == "GeoProperty")
-            instancePayload.plus(JSONLD_VALUE_TERM to wktToGeoJson(instancePayload[JSONLD_VALUE_TERM]!! as String))
+        if (instancePayload[JSONLD_TYPE] == NGSILD_GEOPROPERTY_TYPE.uri)
+            instancePayload.plus(JSONLD_VALUE to wktToGeoJson(instancePayload[JSONLD_VALUE_TERM]!! as String))
         else instancePayload
 
     private fun injectSub(
@@ -113,7 +96,7 @@ object TemporalEntityBuilder {
         instancePayload: Map<String, Any>
     ): Map<String, Any> =
         if (temporalEntitiesQuery.withAudit && attributeInstanceResult.sub != null)
-            instancePayload.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
+            instancePayload.plus(Pair(AUTH_PROP_SUB, buildExpandedPropertyValue(attributeInstanceResult.sub)))
         else instancePayload
 
     /**
@@ -129,9 +112,11 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE_TERM to it.key.attributeType.toString()
+                JSONLD_TYPE to listOf(it.key.attributeType.toNgsiLdExpanded())
             )
-            it.key.datasetId?.let { datasetId -> attributeInstance["datasetId"] = datasetId }
+            it.key.datasetId?.let { datasetId ->
+                attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
+            }
             val valuesKey =
                 when (it.key.attributeType) {
                     TemporalEntityAttribute.AttributeType.Property -> "values"
@@ -160,21 +145,24 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE_TERM to it.key.attributeType.toString()
+                JSONLD_TYPE to listOf(it.key.attributeType.toNgsiLdExpanded())
             )
-            it.key.datasetId?.let { datasetId -> attributeInstance["datasetId"] = datasetId }
+            it.key.datasetId?.let { datasetId ->
+                attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
+            }
+
+            val aggregatedResultsForTEA = it.value
+                .map { attributeInstanceResult ->
+                    attributeInstanceResult as AggregatedAttributeInstanceResult
+                    attributeInstanceResult.values
+                }
+                .flatten()
 
             aggrMethods.forEach { aggregate ->
-                val valuesForAggregate = it.value
-                    .map { attributeInstanceResult ->
-                        attributeInstanceResult as AggregatedAttributeInstanceResult
-                        attributeInstanceResult.values
-                    }
-                    .flatten()
-                    .filter { aggregateResult ->
-                        aggregateResult.aggregate == aggregate
-                    }
-                attributeInstance[aggregate.method] = valuesForAggregate.map { aggregateResult ->
+                val resultsForAggregate = aggregatedResultsForTEA.filter { aggregateResult ->
+                    aggregateResult.aggregate.method == aggregate.method
+                }
+                attributeInstance[aggregate.method] = resultsForAggregate.map { aggregateResult ->
                     listOf(aggregateResult.value, aggregateResult.startDateTime, aggregateResult.endDateTime)
                 }
             }
@@ -221,15 +209,3 @@ object TemporalEntityBuilder {
                 }
             }
 }
-
-/**
- * A specific application of sysAttrs option to temporal entities, that only applies it to the entity and not to the
- * attributes. Currently, this is not clear what should be done for attributes who already convey specifically asked
- * temporal information.
- */
-fun CompactedJsonLdEntity.applySysAttrs(includeSysAttrs: Boolean) =
-    this.let {
-        if (!includeSysAttrs)
-            it.minus(JsonLdUtils.NGSILD_SYSATTRS_TERMS)
-        else it
-    }

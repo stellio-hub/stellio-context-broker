@@ -1,14 +1,12 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
-import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
-import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -55,13 +53,13 @@ class TemporalEntityBuilderTests {
         )
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
-            serializeObject(temporalEntity),
-            setOf(NGSILD_CREATED_AT_TERM)
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.util.TemporalEntityParameterizedSource#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
@@ -88,11 +86,15 @@ class TemporalEntityBuilderTests {
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
+        assertJsonPayloadsAreEqual(
+            expectation,
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
+        )
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
     fun `it should correctly build temporal entities`(
         entityTemporalResults: List<EntityTemporalResult>,
         withTemporalValues: Boolean,
@@ -110,7 +112,11 @@ class TemporalEntityBuilderTests {
             ),
             listOf(APIC_COMPOUND_CONTEXT)
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
+        assertJsonPayloadsAreEqual(
+            expectation,
+            serializeObject(temporalEntity.map { it.members }),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
+        )
     }
 
     @Test
@@ -189,8 +195,8 @@ class TemporalEntityBuilderTests {
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
-            serializeObject(temporalEntity),
-            setOf(NGSILD_CREATED_AT_TERM)
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 }

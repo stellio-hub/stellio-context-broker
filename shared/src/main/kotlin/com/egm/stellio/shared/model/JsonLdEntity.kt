@@ -117,7 +117,7 @@ private fun simplifyValue(value: Map<String, Any>): Any {
     }
 }
 
-fun CompactedJsonLdEntity.toGeoJson(geometryProperty: String): Any {
+fun CompactedJsonLdEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
     val geometryAttributeContent = this[geometryProperty] as? Map<String, Any>
     val geometryPropertyValue = geometryAttributeContent?.let {
         if (it.containsKey(JSONLD_VALUE_TERM)) it[JSONLD_VALUE_TERM]

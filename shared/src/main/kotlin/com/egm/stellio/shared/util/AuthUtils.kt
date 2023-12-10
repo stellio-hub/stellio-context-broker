@@ -9,7 +9,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -22,6 +21,7 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
+    private const val EGM_BASE_CONTEXT_URL = "https://easy-global-market.github.io/ngsild-api-data-models"
     const val AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
     const val AUTHORIZATION_COMPOUND_CONTEXT =
         "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization-compound.jsonld"
@@ -40,6 +40,7 @@ object AuthContextModel {
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 
     const val AUTH_TERM_SUB = "sub"
+    const val AUTH_PROP_SUB = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUB
     const val AUTH_TERM_CLIENT_ID = "clientId"
     const val AUTH_TERM_NAME = "name"
     const val AUTH_TERM_SID = "serviceAccountId"

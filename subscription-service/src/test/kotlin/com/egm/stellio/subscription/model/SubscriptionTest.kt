@@ -3,7 +3,6 @@ package com.egm.stellio.subscription.model
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_TERM
@@ -27,7 +26,7 @@ class SubscriptionTest {
             EntitySelector(
                 id = null,
                 idPattern = null,
-                typeSelection = BEEHIVE_COMPACT_TYPE
+                typeSelection = BEEHIVE_TYPE
             )
         ),
         geoQ = GeoQ(
@@ -35,11 +34,11 @@ class SubscriptionTest {
             geometry = "Polygon",
             coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
             pgisGeometry = "100000101000101010100010100054300",
-            geoproperty = "operationSpace"
+            geoproperty = NGSILD_OPERATION_SPACE_PROPERTY
         ),
-        watchedAttributes = listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY),
+        watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
         notification = NotificationParams(
-            attributes = listOf(INCOMING_COMPACT_PROPERTY),
+            attributes = listOf(INCOMING_PROPERTY),
             format = NotificationParams.FormatType.KEY_VALUES,
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
@@ -105,7 +104,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription as JSON and add the status attribute`() {
         val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
-        val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
+        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -117,7 +116,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription as JSON without createdAt and modifiedAt if not specified`() {
         val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
-        val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
+        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -129,7 +128,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription as JSON with createdAt and modifiedAt if specified`() {
         val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
-        val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
+        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -140,7 +139,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription with a context if JSON-LD media type is asked`() {
         val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
-        val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
+        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -151,7 +150,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription without context if JSON media type is asked`() {
         val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
 
-        val serializedSub = subscription.serialize(NGSILD_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
+        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -164,7 +163,7 @@ class SubscriptionTest {
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs =
-            listOf(subscription, otherSubscription).serialize(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
+            listOf(subscription, otherSubscription).serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 
@@ -182,7 +181,7 @@ class SubscriptionTest {
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs = listOf(subscription, otherSubscription)
-            .serialize(NGSILD_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
+            .serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 

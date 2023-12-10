@@ -3,7 +3,6 @@ package com.egm.stellio.subscription.service
 import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
@@ -164,7 +163,7 @@ class NotificationServiceTests {
                     accept = Endpoint.AcceptType.JSONLD
                 )
             ),
-            contexts = listOf(NGSILD_CORE_CONTEXT)
+            contexts = listOf(NGSILD_TEST_CORE_CONTEXT)
         )
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
 
@@ -189,7 +188,10 @@ class NotificationServiceTests {
             assertEquals(1, notificationResult.second.data.size)
             assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
             assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
-            assertEquals(listOf(NGSILD_CORE_CONTEXT), notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
+            assertEquals(
+                listOf(NGSILD_TEST_CORE_CONTEXT),
+                notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT]
+            )
             assertTrue(notificationResult.third)
         }
     }
@@ -333,7 +335,7 @@ class NotificationServiceTests {
             )
         )
 
-        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
         stubFor(
@@ -363,7 +365,7 @@ class NotificationServiceTests {
             )
         )
 
-        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
         stubFor(

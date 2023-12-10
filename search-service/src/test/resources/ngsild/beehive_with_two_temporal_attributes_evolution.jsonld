@@ -40,5 +40,8 @@
             "object": "urn:ngsi-ld:Sensor:IncomingSensor"
           }
       }
+  ],
+  "@context":[
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
   ]
 }

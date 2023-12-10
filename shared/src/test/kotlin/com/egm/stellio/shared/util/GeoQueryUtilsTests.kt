@@ -3,7 +3,6 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.GeoQuery.GeometryType
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import kotlinx.coroutines.test.runTest
@@ -19,7 +18,7 @@ class GeoQueryUtilsTests {
     fun `it should parse geo query parameters`() = runTest {
         val requestParams = gimmeFullParamsMap()
         val geoQueryParams =
-            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+            parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
@@ -37,7 +36,7 @@ class GeoQueryUtilsTests {
             georel = "near%3BmaxDistance%3D%3D1500"
         ).plus("coordinates" to "[57.5522%2C%20-20.3484]")
         val geoQueryParams =
-            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+            parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
@@ -54,7 +53,7 @@ class GeoQueryUtilsTests {
         val requestParams = gimmeFullParamsMap("operationSpace")
 
         val geoQueryParams =
-            parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldSucceedAndResult()
+            parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldSucceedAndResult()
 
         val geoQuery = GeoQuery(
             georel = "near;maxDistance==1500",
@@ -69,7 +68,7 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should fail to create a geoquery if georel has an invalid near clause`() = runTest {
         val requestParams = gimmeFullParamsMap(georel = "near;distance<100")
-        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+        parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("Invalid expression for 'near' georel: near;distance<100", it.message)
         }
@@ -78,7 +77,7 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should fail to create a geoquery if georel is not recognized`() = runTest {
         val requestParams = gimmeFullParamsMap(georel = "unrecognized")
-        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+        parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("Invalid 'georel' parameter provided: unrecognized", it.message)
         }
@@ -87,7 +86,7 @@ class GeoQueryUtilsTests {
     @Test
     fun `it should fail to create a geoquery if geometry is not recognized`() = runTest {
         val requestParams = gimmeFullParamsMap(geometry = "Unrecognized")
-        parseGeoQueryParameters(requestParams, NGSILD_CORE_CONTEXT).shouldFail {
+        parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXT).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("Unrecognized is not a recognized value for 'geometry' parameter", it.message)
         }
@@ -99,7 +98,7 @@ class GeoQueryUtilsTests {
             "geometry" to "Point",
             "coordinates" to "[57.5522,%20-20.3484]"
         )
-        parseGeoQueryParameters(geoQueryParameters, NGSILD_CORE_CONTEXT).shouldFail {
+        parseGeoQueryParameters(geoQueryParameters, NGSILD_TEST_CORE_CONTEXT).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Missing at least one geo parameter between 'geometry', 'georel' and 'coordinates'",
@@ -115,7 +114,7 @@ class GeoQueryUtilsTests {
             "geometry" to "Polygon",
             "coordinates" to "[57.5522,%20-20.3484]"
         )
-        parseGeoQueryParameters(geoQueryParameters, NGSILD_CORE_CONTEXT).shouldFail {
+        parseGeoQueryParameters(geoQueryParameters, NGSILD_TEST_CORE_CONTEXT).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEqualsIgnoringNoise(
                 """
@@ -145,7 +144,7 @@ class GeoQueryUtilsTests {
             """
             public.ST_disjoint(
                 public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))'), 
-                public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}',
+                public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}]}',
                     '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))
             )
             """,
@@ -169,7 +168,7 @@ class GeoQueryUtilsTests {
             """
             public.ST_Distance(
                 'SRID=4326;POINT(60.124.6)'::geography,
-                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
                 false
             ) <= 2000
             """,
@@ -193,7 +192,7 @@ class GeoQueryUtilsTests {
             """
             public.ST_Distance(
                 'SRID=4326;POINT(60.124.6)'::geography,
-                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}],"@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
                 false
             ) >= 15
             """,

@@ -150,7 +150,7 @@ class TemporalEntityAttributeService(
             .forEach {
                 val (expandedAttributeName, attributeMetadata) = it
                 val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdEntity.members,
+                    jsonLdEntity.getAttributes(),
                     expandedAttributeName,
                     attributeMetadata.datasetId
                 )!!

@@ -1,11 +1,13 @@
 package com.egm.stellio.shared.util
 
-val DEFAULT_CONTEXTS = listOf(
-    "https://fiware.github.io/data-models/context.jsonld",
-    JsonLdUtils.NGSILD_CORE_CONTEXT
-)
-const val AQUAC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/aquac/jsonld-contexts/aquac-compound.jsonld"
-const val APIC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/apic/jsonld-contexts/apic-compound.jsonld"
+const val EGM_TEST_BASE_CONTEXT_URL = "http://localhost:8093/jsonld-contexts"
+const val NGSILD_TEST_CORE_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/ngsi-ld-core-context-v1.8.jsonld"
+val DEFAULT_CONTEXTS = listOf(NGSILD_TEST_CORE_CONTEXT)
+const val NGSILD_EGM_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/egm.jsonld"
+const val AQUAC_COMPOUND_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/aquac-compound.jsonld"
+const val APIC_COMPOUND_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/apic-compound.jsonld"
+const val AUTHZ_TEST_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/authorization.jsonld"
+const val AUTHZ_TEST_COMPOUND_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/authorization-compound.jsonld"
 
 val APIC_HEADER_LINK = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 

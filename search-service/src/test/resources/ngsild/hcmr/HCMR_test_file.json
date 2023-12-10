@@ -11,7 +11,7 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld"
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
     ]
   },
   {
@@ -26,7 +26,7 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld"
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
     ]
   },
   {
@@ -37,7 +37,7 @@
       "value": "BIOCEANOR"
     },
     "@context": [
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld"
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
     ]
   }
 ]

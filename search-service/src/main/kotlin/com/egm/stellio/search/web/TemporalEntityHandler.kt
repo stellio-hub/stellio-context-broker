@@ -3,12 +3,10 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.*
-import com.egm.stellio.search.util.applySysAttrs
 import com.egm.stellio.search.util.composeTemporalEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -145,16 +143,20 @@ class TemporalEntityHandler(
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
 
-        val includeSysAttrs = params.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
-        ).bind().let {
-            Pair(it.first.map { it.applySysAttrs(includeSysAttrs) }, it.second)
-        }
+        ).bind()
 
+        val compactedEntities = JsonLdUtils.compactEntities(
+            temporalEntities,
+            contextLink,
+            mediaType
+        )
+
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
-            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery.entitiesQuery.paginationQuery,
@@ -174,7 +176,7 @@ class TemporalEntityHandler(
     suspend fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam requestParams: MultiValueMap<String, String>
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -186,18 +188,19 @@ class TemporalEntityHandler(
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQuery(applicationProperties.pagination, requestParams, contextLink).bind()
+            composeTemporalEntitiesQuery(applicationProperties.pagination, params, contextLink).bind()
 
-        val includeSysAttrs = requestParams.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val temporalEntity = queryService.queryTemporalEntity(
             entityId,
             temporalEntitiesQuery,
             contextLink
         ).bind()
-            .applySysAttrs(includeSysAttrs)
 
+        val compactedEntity = JsonLdUtils.compactEntity(temporalEntity, contextLink, mediaType).toMutableMap()
+
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
+            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
         { it.toErrorResponse() },
         { it }

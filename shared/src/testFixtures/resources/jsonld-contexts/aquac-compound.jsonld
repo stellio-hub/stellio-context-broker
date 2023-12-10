@@ -1,0 +1,7 @@
+{
+    "@context": [
+      "http://localhost:8093/jsonld-contexts/egm.jsonld",
+      "http://localhost:8093/jsonld-contexts/aquac.jsonld",
+      "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    ]
+  }

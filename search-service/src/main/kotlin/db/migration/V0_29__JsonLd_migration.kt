@@ -6,11 +6,8 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.guessPropertyValueType
 import com.egm.stellio.search.util.toTemporalAttributeMetadata
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.ExpandedAttributeInstance
-import com.egm.stellio.shared.util.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -23,7 +20,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
@@ -37,6 +33,8 @@ import java.util.UUID
 
 const val EGM_NO_BRANCH_BASE_CONTEXT_URL =
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models"
+
+const val EGM_BASE_CONTEXT_URL = "https://dataflow.stellio.io/jsonld-contexts"
 
 @Suppress("unused")
 class V0_29__JsonLd_migration : BaseJavaMigration() {
@@ -96,7 +94,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             // extract specific access policy (if any) from the payload to be able to store it in entity_payload
             // then remove it from the expanded payload
             val specificAccessPolicy =
-                getAttributeFromExpandedAttributes(originalExpandedEntity, AUTH_PROP_SAP, null)?.let {
+                getAttributeFromExpandedAttributes(
+                    originalExpandedEntity as ExpandedAttributes,
+                    AUTH_PROP_SAP,
+                    null
+                )?.let {
                     getPropertyValueFromMapAsString(it, NGSILD_PROPERTY_VALUE)
                 }?.let {
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
@@ -148,7 +150,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
                             val datasetId = ngsiLdAttributeInstance.datasetId
                             val attributePayload = getAttributeFromExpandedAttributes(
-                                jsonLdEntity.members,
+                                jsonLdEntity.getAttributes(),
                                 attributeName,
                                 datasetId
                             )!!

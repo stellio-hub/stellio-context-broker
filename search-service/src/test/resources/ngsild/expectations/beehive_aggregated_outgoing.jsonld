@@ -1,8 +1,18 @@
 {
-  "id": "urn:ngsi-ld:Beehive:1234",
-  "type": "BeeHive",
-  "outgoing": {
-    "type": "Property",
+  "@id": "urn:ngsi-ld:Beehive:1234",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://uri.etsi.org/ngsi-ld/createdAt": [
+    {
+      "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+      "@value": "$now"
+    }
+  ],
+  "https://ontology.eglobalmark.com/apic#outgoing": [{
+    "@type": [
+      "https://uri.etsi.org/ngsi-ld/Property"
+    ],
     "sum": [
       [
         12,
@@ -27,5 +37,5 @@
         "2020-03-25T12:29:17.965206Z"
       ]
     ]
-  }
+  }]
 }

@@ -1,9 +1,28 @@
 {
-  "id" : "urn:ngsi-ld:BeeHive:TESTC",
-  "type" : "BeeHive",
-  "incoming" : {
-    "type" : "Property",
-    "datasetId" : "urn:ngsi-ld:Dataset:45678",
-    "values" : [ ["Beehive_incoming_123","2020-03-25T08:29:17.965206Z"], ["Beehive_incoming_124","2020-03-25T08:33:17.965206Z"] ]
-  }
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#incoming": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:45678"
+        }
+      ],
+      "values": [
+        [
+          "Beehive_incoming_123",
+          "2020-03-25T08:29:17.965206Z"
+        ],
+        [
+          "Beehive_incoming_124",
+          "2020-03-25T08:33:17.965206Z"
+        ]
+      ]
+    }
+  ]
 }

@@ -3,7 +3,7 @@ package com.egm.stellio.search.authorization
 import arrow.core.None
 import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -47,7 +47,7 @@ class AuthorizationServiceTests {
         authorizationService.getGroupsMemberships(
             0,
             0,
-            AUTHORIZATION_COMPOUND_CONTEXT,
+            AUTHZ_TEST_COMPOUND_CONTEXT,
             None
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
@@ -60,7 +60,7 @@ class AuthorizationServiceTests {
         authorizationService.getUsers(
             0,
             0,
-            AUTHORIZATION_COMPOUND_CONTEXT
+            AUTHZ_TEST_COMPOUND_CONTEXT
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)

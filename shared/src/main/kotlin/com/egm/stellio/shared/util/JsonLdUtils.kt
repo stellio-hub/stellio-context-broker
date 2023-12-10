@@ -4,6 +4,11 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
+import com.apicatalog.jsonld.JsonLd
+import com.apicatalog.jsonld.JsonLdError
+import com.apicatalog.jsonld.JsonLdOptions
+import com.apicatalog.jsonld.context.cache.LruCache
+import com.apicatalog.jsonld.document.JsonDocument
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -15,13 +20,14 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.github.jsonldjava.core.JsonLdError
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import jakarta.json.Json
+import jakarta.json.JsonObject
+import jakarta.json.JsonStructure
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
+import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
@@ -33,10 +39,8 @@ value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-    const val EGM_BASE_CONTEXT_URL =
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
-    const val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
+    const val NGSILD_CORE_CONTEXT = "https://easy-global-market.github.io/ngsild-api-data-models/" +
+        "shared-jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
 
     const val NGSILD_PREFIX = "https://uri.etsi.org/ngsi-ld/"
     const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
@@ -100,18 +104,24 @@ object JsonLdUtils {
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    private val localCoreContextPayload =
-        ClassPathResource("/contexts/ngsi-ld-core-context-v1.7.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
-    private var BASE_CONTEXT: Map<String, Any> = mapOf()
+    private const val DEFAULT_CORE_CONTEXT_PATH = NGSILD_CORE_CONTEXT
 
-    init {
-        val coreContext: Map<String, Any> = deserializeObject(localCoreContextPayload)
-        BASE_CONTEXT = coreContext[JSONLD_CONTEXT] as Map<String, Any>
-        logger.info("Core context loaded")
+    private const val CONTEXT_CACHE_CAPACITY = 128
+    private const val DOCUMENT_CACHE_CAPACITY = 256
+
+    private val jsonLdOptions = JsonLdOptions().apply {
+        contextCache = LruCache(CONTEXT_CACHE_CAPACITY)
+        documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
     }
 
-    private fun addCoreContext(contexts: List<String>): List<Any> =
-        contexts.plus(BASE_CONTEXT)
+    private fun buildContextDocument(contexts: List<String>): JsonStructure {
+        val contextsArray = Json.createArrayBuilder()
+        contexts.forEach { contextsArray.add(it) }
+        return contextsArray.build()
+    }
+
+    private fun addCoreContext(contexts: List<String>): List<String> =
+        contexts.plus(DEFAULT_CORE_CONTEXT_PATH)
 
     internal fun addCoreContextIfMissing(contexts: List<String>): List<String> =
         when {
@@ -123,12 +133,6 @@ object JsonLdUtils {
             canExpandJsonLdKeyFromCore(contexts) -> contexts
             else -> contexts.plus(NGSILD_CORE_CONTEXT)
         }
-
-    private fun defaultJsonLdOptions(contexts: List<String>): JsonLdOptions =
-        JsonLdOptions()
-            .apply {
-                expandContext = mapOf(JSONLD_CONTEXT to addCoreContext(contexts))
-            }
 
     suspend fun expandDeserializedPayload(
         deserializedPayload: Map<String, Any>,
@@ -171,13 +175,29 @@ object JsonLdUtils {
     fun expandJsonLdTerm(term: String, context: String): String =
         expandJsonLdTerm(term, listOf(context))
 
-    fun expandJsonLdTerm(term: String, contexts: List<String>): String {
-        val expandedType = JsonLdProcessor.expand(mapOf(term to mapOf<String, Any>()), defaultJsonLdOptions(contexts))
-        return if (expandedType.isNotEmpty())
-            (expandedType[0] as Map<String, Any>).keys.first()
-        else
-            term
-    }
+    fun expandJsonLdTerm(term: String, contexts: List<String>): String =
+        try {
+            JsonLd.expand(
+                JsonDocument.of(
+                    serializeObject(
+                        mapOf(
+                            term to mapOf<String, Any>(),
+                            JSONLD_CONTEXT to addCoreContext(contexts)
+                        )
+                    ).byteInputStream()
+                )
+            )
+                .options(jsonLdOptions)
+                .get()
+                .let {
+                    if (it.isNotEmpty())
+                        (it[0] as JsonObject).keys.first()
+                    else term
+                }
+        } catch (e: JsonLdError) {
+            logger.error("Unable to expand term $term with context $contexts: ${e.message}")
+            throw e.toAPIException()
+        }
 
     suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
         doJsonLdExpansion(fragment, contexts) as Map<String, List<Any>>
@@ -224,25 +244,28 @@ object JsonLdUtils {
         val parsedFragment = geoPropertyToWKT(fragment)
 
         val usedContext = addCoreContext(contexts)
-        val jsonLdOptions = JsonLdOptions().apply { expandContext = mapOf(JSONLD_CONTEXT to usedContext) }
 
-        val expandedFragment = try {
-            // ensure there is no @context in the payload since it overrides the one from JsonLdOptions
-            JsonLdProcessor.expand(parsedFragment.minus(JSONLD_CONTEXT), jsonLdOptions)
+        try {
+            val expandedFragment = JsonLd.expand(
+                JsonDocument.of(
+                    serializeObject(parsedFragment.plus(JSONLD_CONTEXT to usedContext)).byteInputStream()
+                )
+            )
+                .options(jsonLdOptions)
+                .get()
+
+            if (expandedFragment.isEmpty())
+                throw BadRequestDataException("Unable to expand input payload")
+
+            val outputStream = ByteArrayOutputStream()
+            val jsonWriter = Json.createWriter(outputStream)
+            jsonWriter.write(expandedFragment.getJsonObject(0))
+            return deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
+            logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException()
         }
-        if (expandedFragment.isEmpty())
-            throw BadRequestDataException("Unable to expand input payload")
-
-        return expandedFragment[0] as Map<String, Any>
     }
-
-    fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =
-        if (mediaType == MediaType.APPLICATION_JSON)
-            element
-        else
-            element.plus(Pair(JSONLD_CONTEXT, contexts))
 
     fun extractContextFromInput(input: Map<String, Any>): List<String> {
         return if (!input.containsKey(JSONLD_CONTEXT))
@@ -331,29 +354,34 @@ object JsonLdUtils {
         String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
 
     fun getAttributeFromExpandedAttributes(
-        expandedAttributes: Map<String, Any>,
-        expandedAttributeName: String,
+        expandedAttributes: ExpandedAttributes,
+        expandedAttributeName: ExpandedTerm,
         datasetId: URI?
-    ): ExpandedAttributeInstance? {
-        if (!expandedAttributes.containsKey(expandedAttributeName))
-            return null
-
-        return (expandedAttributes[expandedAttributeName]!! as List<Map<String, List<Any>>>)
-            .find {
+    ): ExpandedAttributeInstance? =
+        expandedAttributes[expandedAttributeName]?.let { expandedAttributeInstances ->
+            expandedAttributeInstances.find { expandedAttributeInstance ->
                 if (datasetId == null)
-                    !it.containsKey(NGSILD_DATASET_ID_PROPERTY)
+                    !expandedAttributeInstance.containsKey(NGSILD_DATASET_ID_PROPERTY)
                 else
-                    getPropertyValueFromMap(it, NGSILD_DATASET_ID_PROPERTY) == datasetId.toString()
+                    getPropertyValueFromMap(
+                        expandedAttributeInstance,
+                        NGSILD_DATASET_ID_PROPERTY
+                    ) == datasetId.toString()
             }
-    }
+        }
 
     /**
      * Utility but basic method to find if given contexts can resolve a known term from the core context.
      */
     private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
-        val expandedType = JsonLdProcessor.expand(mapOf("datasetId" to mapOf<String, Any>()), jsonLdOptions)
+        val jsonDocument = JsonDocument.of(
+            serializeObject(
+                mapOf("datasetId" to mapOf<String, Any>(), JSONLD_CONTEXT to contexts)
+            ).byteInputStream()
+        )
+        val expandedType = JsonLd.expand(jsonDocument)
+            .options(jsonLdOptions)
+            .get()
         return expandedType.isNotEmpty() &&
             (expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false
     }
@@ -384,19 +412,8 @@ object JsonLdUtils {
         jsonLdEntity: JsonLdEntity,
         context: String? = null,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): CompactedJsonLdEntity {
-        val contexts = addCoreContextIfMissing(listOfNotNull(context))
-
-        return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
-                .minus(JSONLD_CONTEXT)
-                .mapValues(restoreGeoPropertyValue())
-        else
-            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
-                .minus(JSONLD_CONTEXT)
-                .plus(JSONLD_CONTEXT to contexts)
-                .mapValues(restoreGeoPropertyValue())
-    }
+    ): CompactedJsonLdEntity =
+        compactEntity(jsonLdEntity, context?.let { listOf(context) } ?: emptyList(), mediaType)
 
     fun compactEntity(
         jsonLdEntity: JsonLdEntity,
@@ -406,14 +423,33 @@ object JsonLdUtils {
         val allContexts = addCoreContextIfMissing(contexts)
 
         return if (mediaType == MediaType.APPLICATION_JSON)
-            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLd.compact(
+                JsonDocument.of(serializeObject(jsonLdEntity.members).byteInputStream()),
+                JsonDocument.of(buildContextDocument(allContexts))
+            )
+                .options(jsonLdOptions)
+                .get()
+                .toPrimitiveMap()
                 .minus(JSONLD_CONTEXT)
                 .mapValues(restoreGeoPropertyValue())
         else
-            JsonLdProcessor.compact(jsonLdEntity.members, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
+            JsonLd.compact(
+                JsonDocument.of(serializeObject(jsonLdEntity.members).byteInputStream()),
+                JsonDocument.of(buildContextDocument(allContexts))
+            )
+                .options(jsonLdOptions)
+                .get()
+                .toPrimitiveMap()
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
                 .mapValues(restoreGeoPropertyValue())
+    }
+
+    private fun JsonObject.toPrimitiveMap(): Map<String, Any> {
+        val outputStream = ByteArrayOutputStream()
+        val jsonWriter = Json.createWriter(outputStream)
+        jsonWriter.write(this)
+        return deserializeObject(outputStream.toString())
     }
 
     fun compactEntities(
@@ -433,24 +469,31 @@ object JsonLdUtils {
     /**
      * Compact a term (type, attribute name, ...) using the provided context.
      */
-    fun compactTerm(term: String, contexts: List<String>): String {
-        val compactedFragment =
-            JsonLdProcessor.compact(
-                mapOf(term to emptyMap<String, Any>()),
-                mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)),
-                JsonLdOptions()
-            )
-        return compactedFragment.keys.first()
-    }
+    fun compactTerm(term: String, contexts: List<String>): String =
+        JsonLd.compact(
+            JsonDocument.of(serializeObject(mapOf(term to emptyMap<String, Any>())).byteInputStream()),
+            JsonDocument.of(buildContextDocument(addCoreContextIfMissing(contexts)))
+        )
+            .options(jsonLdOptions)
+            .get()
+            .toPrimitiveMap()
+            .keys
+            .elementAtOrElse(0) { _ -> term }
 
     fun compactFragment(value: Map<String, Any>, contexts: List<String>): Map<String, Any> =
-        JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to addCoreContextIfMissing(contexts)), JsonLdOptions())
+        JsonLd.compact(
+            JsonDocument.of(serializeObject(value).byteInputStream()),
+            JsonDocument.of(buildContextDocument(addCoreContextIfMissing(contexts)))
+        )
+            .options(jsonLdOptions)
+            .get()
+            .toPrimitiveMap()
             .mapValues(restoreGeoPropertyValue())
 
     fun filterCompactedEntityOnAttributes(
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>
-    ): Map<String, Any> {
+    ): CompactedJsonLdEntity {
         val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
         return filterEntityOnAttributes(input, identity, includedAttributes, false)
     }
@@ -575,7 +618,7 @@ object JsonLdUtils {
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
                 NGSILD_PROPERTY_VALUE to listOf(
-                    expandJsonLdFragment(value, contexts).mapValues { it.value }
+                    expandJsonLdFragment(value, contexts)
                 )
             )
         )
@@ -653,7 +696,7 @@ fun ExpandedAttribute.toExpandedAttributes() =
 
 fun ExpandedAttributeInstances.addSubAttribute(
     subAttributeName: ExpandedTerm,
-    subAttributePayload: List<Map<String, Any>>
+    subAttributePayload: ExpandedAttributeInstances
 ): ExpandedAttributeInstances {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")

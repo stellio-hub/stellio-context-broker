@@ -43,13 +43,9 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = newEntityPayload(
-        "urn:ngsi-ld:BeeHive:TESTA",
-        listOf(BEEHIVE_TYPE, SENSOR_TYPE),
-        DEVICE_COMPACT_TYPE
-    )
-    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE), DEVICE_COMPACT_TYPE)
-    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE), DEVICE_COMPACT_TYPE)
+    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
+    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
+    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
     private val temporalEntityAttribute1 = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
@@ -242,12 +238,16 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .execute()
         }
 
-    private fun newEntityPayload(id: String, types: List<String>, contexts: String): EntityPayload =
+    private fun newEntityPayload(
+        id: String,
+        types: List<String>,
+        context: String = APIC_COMPOUND_CONTEXT
+    ): EntityPayload =
         EntityPayload(
             entityId = toUri(id),
             types = types,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(contexts)
+            contexts = listOf(context)
         )
 }

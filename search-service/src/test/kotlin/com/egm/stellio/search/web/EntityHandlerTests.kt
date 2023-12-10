@@ -89,13 +89,6 @@ class EntityHandlerTests {
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val fishSizeAttribute = "https://ontology.eglobalmark.com/aquac#fishSize"
-    private val hcmrContext = listOf(
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
-            "master/shared-jsonld-contexts/egm.jsonld",
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
-            "master/aquac/jsonld-contexts/aquac.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-    )
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
@@ -134,7 +127,7 @@ class EntityHandlerTests {
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
                 eq(listOf(breedingServiceType)),
-                eq(hcmrContext)
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
     }
@@ -320,7 +313,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -359,7 +352,7 @@ class EntityHandlerTests {
                     )
                 )
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -393,7 +386,7 @@ class EntityHandlerTests {
                     )
                 )
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -424,7 +417,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf(BEEHIVE_TYPE)
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
@@ -456,7 +449,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -499,7 +492,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -542,7 +535,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -582,7 +575,7 @@ class EntityHandlerTests {
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -623,7 +616,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -669,7 +662,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -715,7 +708,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -768,7 +761,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -808,7 +801,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -889,7 +882,7 @@ class EntityHandlerTests {
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             1
@@ -938,7 +931,7 @@ class EntityHandlerTests {
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             1
@@ -969,7 +962,7 @@ class EntityHandlerTests {
             listOf(
                 JsonLdEntity(
                     mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive")),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             3
@@ -1186,7 +1179,7 @@ class EntityHandlerTests {
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
                 eq(listOf(breedingServiceType)),
-                eq(hcmrContext)
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
     }
@@ -2073,7 +2066,7 @@ class EntityHandlerTests {
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable",
                     "title": "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
-                    "detail": "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: https://easyglobalmarket.com/contexts/diat.jsonld)"
+                    "detail": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED].])"
                 }
                 """.trimIndent()
             )

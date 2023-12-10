@@ -4,10 +4,10 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.addCoreContextIfMissing
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
@@ -94,8 +94,9 @@ class JsonLdUtilsTests {
                 expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
             }
             assertEquals(
-                "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
-                    "loading remote context failed: unknownContext)",
+                "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
+                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., " +
+                    "message=Context URI is not absolute [unknownContext].])",
                 exception.message
             )
         }
@@ -112,7 +113,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdFragment(rawEntity, listOf(NGSILD_CORE_CONTEXT))
+            expandJsonLdFragment(rawEntity, listOf(NGSILD_TEST_CORE_CONTEXT))
         }
         assertEquals(
             "Unable to expand input payload",
@@ -233,7 +234,7 @@ class JsonLdUtilsTests {
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
         val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS, MediaType.APPLICATION_JSON)
 
-        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(entity))
+        assertJsonPayloadsAreEqual(entity, mapper.writeValueAsString(compactedEntity))
     }
 
     @Test
@@ -251,8 +252,7 @@ class JsonLdUtilsTests {
                 "id":"urn:ngsi-ld:Device:01234",
                 "type":"Device",
                 "@context":[
-                    "https://fiware.github.io/data-models/context.jsonld",
-                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+                    "$NGSILD_TEST_CORE_CONTEXT"
                 ]
             }
             """.trimIndent()
@@ -260,7 +260,7 @@ class JsonLdUtilsTests {
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
         val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS)
 
-        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(expectedEntity))
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntity))
     }
 
     @Test
@@ -274,7 +274,7 @@ class JsonLdUtilsTests {
             }
             """.trimIndent()
 
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
         assertNull(getAttributeFromExpandedAttributes(expandedAttributes, "unknownAttribute", null))
     }
 
@@ -293,7 +293,7 @@ class JsonLdUtilsTests {
             }
             """.trimIndent()
 
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
         val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
@@ -323,7 +323,7 @@ class JsonLdUtilsTests {
             }
             """.trimIndent()
 
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
         val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
         val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
 

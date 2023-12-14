@@ -21,7 +21,6 @@ import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.ParsingUtils
 import com.egm.stellio.subscription.utils.gimmeSubscriptionFromMembers
 import com.egm.stellio.subscription.utils.loadAndDeserializeSubscription
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -43,7 +42,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.time.Duration
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])

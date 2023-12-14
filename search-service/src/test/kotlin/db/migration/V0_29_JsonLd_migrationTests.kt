@@ -4,13 +4,11 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.loadSampleData
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class V0_29_JsonLd_migrationTests {
 

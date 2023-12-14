@@ -4,7 +4,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -15,7 +14,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.Optional
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class ApiUtilsTests {
     private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(

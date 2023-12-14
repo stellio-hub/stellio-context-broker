@@ -4,7 +4,6 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.AbstractObjectAssert
 import org.assertj.core.api.Assertions
@@ -24,7 +23,6 @@ import java.time.OffsetTime
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {

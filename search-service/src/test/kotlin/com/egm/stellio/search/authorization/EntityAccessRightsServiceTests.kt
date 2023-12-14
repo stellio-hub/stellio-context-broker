@@ -19,7 +19,6 @@ import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -36,7 +35,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.util.UUID
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest
 @ActiveProfiles("test")
 class EntityAccessRightsServiceTests : WithTimescaleContainer {

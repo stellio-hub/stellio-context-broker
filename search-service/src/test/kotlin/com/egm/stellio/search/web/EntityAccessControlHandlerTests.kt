@@ -7,6 +7,7 @@ import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.User
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -34,13 +35,13 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -51,10 +52,10 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
 import java.time.Duration
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
+@Import(WebSecurityTestConfig::class)
 class EntityAccessControlHandlerTests {
 
     private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)

@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
 import io.mockk.every
 import io.mockk.mockkClass
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -20,7 +19,6 @@ import org.springframework.util.LinkedMultiValueMap
 import java.net.URI
 import java.time.ZonedDateTime
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class EntitiesQueryUtilsTests {
 

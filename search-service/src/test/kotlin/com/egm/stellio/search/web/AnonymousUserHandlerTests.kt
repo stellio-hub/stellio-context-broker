@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
@@ -23,6 +25,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @WebFluxTest(EntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 @Suppress("unused")
+@Import(WebSecurityTestConfig::class)
 class AnonymousUserHandlerTests {
 
     private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)

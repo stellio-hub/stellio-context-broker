@@ -81,7 +81,7 @@ The version number is obtained during the build process by using the `version` i
 ### Developing on a service
 
 Requirements:
-* Java 17 (we recommend using [sdkman!](https://sdkman.io/) to install and manage versions of the JDK)
+* Java 21 (we recommend using [sdkman!](https://sdkman.io/) to install and manage versions of the JDK)
 
 To develop on a specific service, you can use the provided `docker-compose.yml` file inside each service's directory, for instance:
 

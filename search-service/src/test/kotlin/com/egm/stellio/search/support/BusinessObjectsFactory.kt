@@ -19,11 +19,8 @@ fun gimmeAttributeInstance(
         type = TemporalEntityAttribute.AttributeType.Property,
         observedAt = ngsiLdDateTime()
     )
-    val payload = JsonLdUtils.buildExpandedProperty(attributeMetadata.measuredValue!!)
-        .addSubAttribute(
-            JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY,
-            JsonLdUtils.buildNonReifiedDateTime(attributeMetadata.observedAt!!)
-        )
+    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.measuredValue!!)
+        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
         .getSingleEntry()
 
     return AttributeInstance(

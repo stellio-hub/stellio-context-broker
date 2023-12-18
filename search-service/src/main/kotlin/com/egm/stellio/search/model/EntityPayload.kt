@@ -15,8 +15,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -71,12 +71,12 @@ data class EntityPayload(
                 }
             }
             specificAccessPolicy?.run {
-                resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedProperty(this)
+                resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedPropertyValue(this)
             }
 
-            resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedDateTime(createdAt)
+            resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedTemporalValue(createdAt)
             modifiedAt?.run {
-                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedDateTime(this)
+                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedTemporalValue(this)
             }
         }
 

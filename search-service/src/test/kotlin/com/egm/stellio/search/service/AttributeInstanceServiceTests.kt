@@ -11,8 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
@@ -249,8 +248,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 temporalEntityAttribute = temporalEntityAttribute2.id,
                 time = observedAt,
                 attributeMetadata = attributeMetadata,
-                payload = buildExpandedProperty(attributeMetadata.value!!)
-                    .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
+                payload = buildExpandedPropertyValue(attributeMetadata.value!!)
+                    .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_PROPERTY, observedAt)
                     .getSingleEntry()
             )
             attributeInstanceService.create(attributeInstance)

@@ -86,7 +86,7 @@ data class JsonLdEntity(
 
     private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
         if (dateTime != null)
-            this.plus(propertyKey to JsonLdUtils.buildNonReifiedDateTime(dateTime))
+            this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 }
 

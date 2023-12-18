@@ -15,7 +15,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEO_PROPERTIES_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -564,9 +565,9 @@ object JsonLdUtils {
     /**
      * Build the expanded payload of a property.
      *
-     * For instance:
+     * The returned value is the following:
      *
-     * "https://uri.etsi.org/ngsi-ld/default-context/aProperty": [
+     * [
      *   {
      *     "@type": [
      *       "https://uri.etsi.org/ngsi-ld/Property"
@@ -579,7 +580,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedProperty(value: Any): ExpandedAttributeInstances =
+    fun buildExpandedPropertyValue(value: Any): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
@@ -588,11 +589,11 @@ object JsonLdUtils {
         )
 
     /**
-     * Build an expanded JSON value for a property.
+     * Build the expanded payload of a property whose value is an object.
      *
-     * For instance:
+     * The returned value is the following:
      *
-     * "[
+     * [
      *   {
      *     "@type": [
      *       "https://uri.etsi.org/ngsi-ld/Property"
@@ -630,7 +631,9 @@ object JsonLdUtils {
     /**
      * Build the expanded payload of a relationship.
      *
-     * "https://uri.etsi.org/ngsi-ld/default-context/aRelationship": [
+     * The returned value is the following:
+     *
+     * [
      *   {
      *     "https://uri.etsi.org/ngsi-ld/hasObject": [
      *       {
@@ -643,7 +646,7 @@ object JsonLdUtils {
      *   }
      * ]
      */
-    fun buildExpandedRelationship(value: URI): ExpandedAttributeInstances =
+    fun buildExpandedRelationshipValue(value: URI): ExpandedAttributeInstances =
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
@@ -654,16 +657,16 @@ object JsonLdUtils {
     /**
      * Build the expanded payload of a non-reified temporal property (createdAt, modifiedAt,...).
      *
-     * For instance:
+     * The returned value is the following:
      *
-     * "https://uri.etsi.org/ngsi-ld/createdAt": [
+     * [
      *   {
      *     "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
      *     "@value": "2022-12-01T00:00:00Z"
      *   }
      * ]
      */
-    fun buildNonReifiedDateTime(value: ZonedDateTime): List<Map<String, Any>> =
+    fun buildNonReifiedTemporalValue(value: ZonedDateTime): ExpandedNonReifiedPropertyValue =
         listOf(
             mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
@@ -674,15 +677,15 @@ object JsonLdUtils {
     /**
      * Build the expanded payload of a non-reified core property.
      *
-     * For instance:
+     * The returned value is the following:
      *
-     * "https://uri.etsi.org/ngsi-ld/datasetId": [
+     * [
      *   {
      *     "@id": "urn:ngsi-ld:Dataset:01"
      *   }
      * ]
      */
-    fun buildNonReifiedProperty(value: String): List<Map<String, Any>> =
+    fun buildNonReifiedPropertyValue(value: String): ExpandedNonReifiedPropertyValue =
         listOf(
             mapOf(JSONLD_ID to value)
         )
@@ -694,6 +697,7 @@ typealias ExpandedAttributes = Map<ExpandedTerm, ExpandedAttributeInstances>
 typealias ExpandedAttribute = Pair<ExpandedTerm, ExpandedAttributeInstances>
 typealias ExpandedAttributeInstances = List<ExpandedAttributeInstance>
 typealias ExpandedAttributeInstance = Map<String, List<Any>>
+typealias ExpandedNonReifiedPropertyValue = List<Map<String, Any>>
 
 fun ExpandedAttribute.toExpandedAttributes() =
     mapOf(this.first to this.second)
@@ -705,6 +709,24 @@ fun ExpandedAttributeInstances.addSubAttribute(
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
     return listOf(this[0].plus(subAttributeName to subAttributePayload))
+}
+
+fun ExpandedAttributeInstances.addNonReifiedProperty(
+    subAttributeName: ExpandedTerm,
+    subAttributeValue: String
+): ExpandedAttributeInstances {
+    if (this.isEmpty() || this.size > 1)
+        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+    return listOf(this[0].plus(subAttributeName to buildNonReifiedPropertyValue(subAttributeValue)))
+}
+
+fun ExpandedAttributeInstances.addNonReifiedTemporalProperty(
+    subAttributeName: ExpandedTerm,
+    subAttributeValue: ZonedDateTime
+): ExpandedAttributeInstances {
+    if (this.isEmpty() || this.size > 1)
+        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+    return listOf(this[0].plus(subAttributeName to buildNonReifiedTemporalValue(subAttributeValue)))
 }
 
 fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
@@ -741,10 +763,10 @@ fun Map<String, Any>.addSysAttrs(
     modifiedAt: ZonedDateTime?
 ): Map<String, Any> =
     if (withSysAttrs)
-        this.plus(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY to buildNonReifiedDateTime(createdAt))
+        this.plus(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt))
             .let {
                 if (modifiedAt != null)
-                    it.plus(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
+                    it.plus(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
                 else it
             }
     else this

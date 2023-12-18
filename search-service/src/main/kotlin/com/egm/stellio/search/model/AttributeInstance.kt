@@ -4,8 +4,8 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
@@ -72,10 +72,10 @@ data class AttributeInstance private constructor(
             instanceId: URI,
             modifiedAt: ZonedDateTime? = null
         ): ExpandedAttributeInstance =
-            this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedProperty(instanceId.toString()))
+            this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString()))
                 .let {
                     if (modifiedAt != null)
-                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedDateTime(modifiedAt))
+                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
                     else it
                 }
 

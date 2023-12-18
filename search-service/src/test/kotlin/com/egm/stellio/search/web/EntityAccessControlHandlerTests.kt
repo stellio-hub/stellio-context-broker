@@ -29,7 +29,7 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
@@ -694,7 +694,7 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm")
+                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm")
                     ),
                     listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
@@ -734,8 +734,8 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm"),
-                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedProperty("true")
+                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm"),
+                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedPropertyValue("true")
                     ),
                     listOf(AUTHZ_TEST_CONTEXT)
                 )

@@ -17,7 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
@@ -926,7 +926,7 @@ class TemporalEntityAttributeService(
             !attributePayload.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
         ) {
             Pair(
-                attributePayload.plus(NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedDateTime(observedAt)),
+                attributePayload.plus(NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedTemporalValue(observedAt)),
                 attributeMetadata.copy(observedAt = observedAt)
             )
         } else Pair(attributePayload, attributeMetadata)

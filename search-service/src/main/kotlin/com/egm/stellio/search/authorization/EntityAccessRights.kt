@@ -11,10 +11,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyMapValue
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationship
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationshipValue
 import java.net.URI
 
 data class EntityAccessRights(
@@ -34,8 +33,8 @@ data class EntityAccessRights(
         val datasetId: URI = (DATASET_ID_PREFIX + uri.extractSub()).toUri()
 
         suspend fun serializeProperties(contextLink: String): ExpandedAttributeInstances =
-            buildExpandedRelationship(uri)
-                .addSubAttribute(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedProperty(datasetId.toString()))
+            buildExpandedRelationshipValue(uri)
+                .addNonReifiedProperty(NGSILD_DATASET_ID_PROPERTY, datasetId.toString())
                 .addSubAttribute(
                     AUTH_PROP_SUBJECT_INFO,
                     buildExpandedPropertyMapValue(subjectInfo, listOf(contextLink))
@@ -47,10 +46,10 @@ data class EntityAccessRights(
 
         resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = types
-        resultEntity[AUTH_PROP_RIGHT] = buildExpandedProperty(right.attributeName)
+        resultEntity[AUTH_PROP_RIGHT] = buildExpandedPropertyValue(right.attributeName)
 
         specificAccessPolicy?.run {
-            resultEntity[AUTH_PROP_SAP] = buildExpandedProperty(this)
+            resultEntity[AUTH_PROP_SAP] = buildExpandedPropertyValue(this)
         }
 
         rCanAdminUsers?.run {

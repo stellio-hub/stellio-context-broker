@@ -164,10 +164,6 @@ class SubscriptionHandler(
         { it }
     )
 
-    @PatchMapping("/", "")
-    fun handleMissingIdOnUpdate(): ResponseEntity<*> =
-        missingPathErrorResponse("Missing id when trying to update a subscription")
-
     /**
      * Implements 6.11.3.3 - Delete Subscription
      */
@@ -184,10 +180,6 @@ class SubscriptionHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    @DeleteMapping("/", "")
-    fun handleMissingIdOnDelete(): ResponseEntity<*> =
-        missingPathErrorResponse("Missing id when trying to delete a subscription")
 
     private suspend fun checkSubscriptionExists(subscriptionId: URI): Either<APIException, Unit> =
         subscriptionService.exists(subscriptionId)

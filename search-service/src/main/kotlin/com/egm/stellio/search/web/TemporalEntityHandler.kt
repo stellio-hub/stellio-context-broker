@@ -247,14 +247,11 @@ class TemporalEntityHandler(
 
     @PatchMapping(
         "/attrs/{attrId}/{instanceId}",
-        "/{entityId}/attrs/{instanceId}",
         "/attrs/{instanceId}",
-        "/{entityId}/attrs",
-        "/attrs"
     )
     fun handleMissingParametersOnModifyInstanceTemporal(): ResponseEntity<*> =
         missingPathErrorResponse(
-            "Missing some parameter(entity id, attribute id, instance id) when trying to modify temporal entity"
+            "Missing some parameter (entity id, attribute id, instance id) when trying to modify temporal entity"
         )
 
     /**
@@ -276,10 +273,6 @@ class TemporalEntityHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    @DeleteMapping("/", "")
-    fun handleMissingEntityIdOnDeleteTemporalEntity(): ResponseEntity<*> =
-        missingPathErrorResponse("Missing entity id when trying to delete temporal entity")
 
     /**
      * Implements 6.21.3.1 - Delete Attribute from Temporal Representation of an Entity

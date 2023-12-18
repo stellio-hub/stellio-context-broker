@@ -1256,20 +1256,11 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `delete temporal entity should return a 400 if entity id is missing`() {
+    fun `delete temporal entity should return a 405 if entity id is missing`() {
         webClient.delete()
             .uri("/ngsi-ld/v1/temporal/entities/")
             .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Missing entity id when trying to delete temporal entity"
-                }
-                """.trimIndent()
-            )
+            .expectStatus().isEqualTo(HttpStatus.METHOD_NOT_ALLOWED)
     }
 
     @Test

@@ -46,12 +46,16 @@ object JsonLdUtils {
     const val NGSILD_PREFIX = "https://uri.etsi.org/ngsi-ld/"
     const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
 
+    const val NGSILD_PROPERTY_TERM = "Property"
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
+    const val NGSILD_GEOPROPERTY_TERM = "GeoProperty"
     val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
     const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
+    const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
     val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
     const val NGSILD_JSONPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasJSON"
+    const val NGSILD_RELATIONSHIP_TERM = "Relationship"
     val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
     const val NGSILD_RELATIONSHIP_HAS_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
 
@@ -148,26 +152,26 @@ object JsonLdUtils {
     suspend fun expandJsonLdEntityF(
         input: Map<String, Any>,
         contexts: List<String>
-    ): Either<APIException, JsonLdEntity> =
+    ): Either<APIException, ExpandedEntity> =
         runCatching {
             doJsonLdExpansion(input, contexts)
         }.fold({
-            JsonLdEntity(it, contexts).right()
+            ExpandedEntity(it, contexts).right()
         }, {
             if (it is APIException) it.left()
             else it.toAPIException().left()
         })
 
-    suspend fun expandJsonLdEntityF(input: Map<String, Any>): Either<APIException, JsonLdEntity> =
+    suspend fun expandJsonLdEntityF(input: Map<String, Any>): Either<APIException, ExpandedEntity> =
         expandJsonLdEntityF(input, extractContextFromInput(input))
 
-    suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
-        JsonLdEntity(doJsonLdExpansion(input, contexts), contexts)
+    suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): ExpandedEntity =
+        ExpandedEntity(doJsonLdExpansion(input, contexts), contexts)
 
-    suspend fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity =
+    suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)
 
-    suspend fun expandJsonLdEntity(input: String): JsonLdEntity {
+    suspend fun expandJsonLdEntity(input: String): ExpandedEntity {
         val jsonInput = input.deserializeAsMap()
         return expandJsonLdEntity(jsonInput, extractContextFromInput(jsonInput))
     }
@@ -414,22 +418,22 @@ object JsonLdUtils {
     }
 
     fun compactEntity(
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         context: String? = null,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): CompactedJsonLdEntity =
-        compactEntity(jsonLdEntity, context?.let { listOf(context) } ?: emptyList(), mediaType)
+    ): CompactedEntity =
+        compactEntity(expandedEntity, context?.let { listOf(context) } ?: emptyList(), mediaType)
 
     fun compactEntity(
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
-    ): CompactedJsonLdEntity {
+    ): CompactedEntity {
         val allContexts = addCoreContextIfMissing(contexts)
 
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLd.compact(
-                JsonDocument.of(serializeObject(jsonLdEntity.members).byteInputStream()),
+                JsonDocument.of(serializeObject(expandedEntity.members).byteInputStream()),
                 JsonDocument.of(buildContextDocument(allContexts))
             )
                 .options(jsonLdOptions)
@@ -439,7 +443,7 @@ object JsonLdUtils {
                 .mapValues(restoreGeoPropertyValue())
         else
             JsonLd.compact(
-                JsonDocument.of(serializeObject(jsonLdEntity.members).byteInputStream()),
+                JsonDocument.of(serializeObject(expandedEntity.members).byteInputStream()),
                 JsonDocument.of(buildContextDocument(allContexts))
             )
                 .options(jsonLdOptions)
@@ -458,10 +462,10 @@ object JsonLdUtils {
     }
 
     fun compactEntities(
-        entities: List<JsonLdEntity>,
+        entities: List<ExpandedEntity>,
         context: String,
         mediaType: MediaType
-    ): List<CompactedJsonLdEntity> =
+    ): List<CompactedEntity> =
         entities.map {
             compactEntity(it, context, mediaType)
         }
@@ -496,27 +500,27 @@ object JsonLdUtils {
             .mapValues(restoreGeoPropertyValue())
 
     fun filterCompactedEntityOnAttributes(
-        input: CompactedJsonLdEntity,
+        input: CompactedEntity,
         includedAttributes: Set<String>
-    ): CompactedJsonLdEntity {
-        val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
+    ): CompactedEntity {
+        val identity: (CompactedEntity) -> CompactedEntity = { it }
         return filterEntityOnAttributes(input, identity, includedAttributes, false)
     }
 
     fun filterJsonLdEntitiesOnAttributes(
-        jsonLdEntities: List<JsonLdEntity>,
+        jsonLdEntities: List<ExpandedEntity>,
         includedAttributes: Set<String>
-    ): List<JsonLdEntity> =
+    ): List<ExpandedEntity> =
         jsonLdEntities.filter { it.containsAnyOf(includedAttributes) }
             .map {
-                JsonLdEntity(filterJsonLdEntityOnAttributes(it, includedAttributes), it.contexts)
+                ExpandedEntity(filterJsonLdEntityOnAttributes(it, includedAttributes), it.contexts)
             }
 
     fun filterJsonLdEntityOnAttributes(
-        input: JsonLdEntity,
+        input: ExpandedEntity,
         includedAttributes: Set<String>
     ): Map<String, Any> {
-        val inputToMap = { i: JsonLdEntity -> i.members }
+        val inputToMap = { i: ExpandedEntity -> i.members }
         return filterEntityOnAttributes(input, inputToMap, includedAttributes, true)
     }
 

@@ -122,10 +122,10 @@ class EntityEventListenerService(
         contexts: List<String>
     ): Either<APIException, Disposable> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
+        val expandedEntity = ExpandedEntity(entityPayload.deserializeAsMap(), contexts)
         mono {
             notificationService.notifyMatchingSubscribers(
-                jsonLdEntity,
+                expandedEntity,
                 updatedAttributes,
                 notificationTrigger
             )

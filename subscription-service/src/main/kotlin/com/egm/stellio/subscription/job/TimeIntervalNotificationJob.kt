@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.job
 
 import arrow.core.flatten
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
@@ -62,7 +62,7 @@ class TimeIntervalNotificationJob(
     }
 
     suspend fun sendNotification(
-        compactedEntity: CompactedJsonLdEntity,
+        compactedEntity: CompactedEntity,
         subscription: Subscription
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
@@ -74,7 +74,7 @@ class TimeIntervalNotificationJob(
         tenantUri: URI,
         subscription: Subscription,
         contextLink: String
-    ): Set<CompactedJsonLdEntity> =
+    ): Set<CompactedEntity> =
         // if a subscription has a "timeInterval" member defined, it has at least one "entities" member
         // because it can't have a "watchedAttributes" member
         subscription.entities!!
@@ -96,7 +96,7 @@ class TimeIntervalNotificationJob(
                     )
             }
 
-    suspend fun getEntities(tenantUri: URI, paramRequest: String, contextLink: String): List<CompactedJsonLdEntity> =
+    suspend fun getEntities(tenantUri: URI, paramRequest: String, contextLink: String): List<CompactedEntity> =
         webClient.get()
             .uri("/ngsi-ld/v1/entities$paramRequest")
             .header(HttpHeaders.LINK, contextLink)

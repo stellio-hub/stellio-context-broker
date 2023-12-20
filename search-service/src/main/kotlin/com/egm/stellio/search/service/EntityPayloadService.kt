@@ -49,17 +49,17 @@ class EntityPayloadService(
     @Transactional
     suspend fun createEntity(
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, jsonLdEntity, createdAt, sub = sub).bind()
+        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub = sub).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
-            jsonLdEntity,
+            expandedEntity,
             attributesMetadata,
             createdAt,
             sub
@@ -69,7 +69,7 @@ class EntityPayloadService(
     @Transactional
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
@@ -84,7 +84,7 @@ class EntityPayloadService(
             .bind("types", ngsiLdEntity.types.toTypedArray())
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
-            .bind("payload", Json.of(serializeObject(jsonLdEntity.populateCreationTimeDate(createdAt).members)))
+            .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
             .bind("contexts", ngsiLdEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
@@ -129,7 +129,7 @@ class EntityPayloadService(
     suspend fun replaceEntity(
         entityId: URI,
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val replacedAt = ngsiLdDateTime()
@@ -138,10 +138,10 @@ class EntityPayloadService(
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId)
 
-        replaceEntityPayload(ngsiLdEntity, jsonLdEntity, replacedAt, sub).bind()
+        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
         temporalEntityAttributeService.createEntityTemporalReferences(
             ngsiLdEntity,
-            jsonLdEntity,
+            expandedEntity,
             attributesMetadata,
             replacedAt,
             sub
@@ -151,14 +151,14 @@ class EntityPayloadService(
     @Transactional
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         replacedAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
         val serializedPayload =
-            serializeObject(jsonLdEntity.populateReplacementTimeDates(createdAt, replacedAt).members)
+            serializeObject(expandedEntity.populateReplacementTimeDates(createdAt, replacedAt).members)
 
         databaseClient.sql(
             """
@@ -177,7 +177,7 @@ class EntityPayloadService(
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("modified_at", replacedAt)
             .bind("payload", Json.of(serializedPayload))
-            .bind("contexts", jsonLdEntity.contexts.toTypedArray())
+            .bind("contexts", expandedEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {

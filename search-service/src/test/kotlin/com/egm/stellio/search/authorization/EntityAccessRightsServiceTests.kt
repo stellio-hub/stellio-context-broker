@@ -548,7 +548,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         rawEntity.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(
                 ngsiLdEntity = it.second,
-                jsonLdEntity = it.first,
+                expandedEntity = it.first,
                 createdAt = ngsiLdDateTime()
             )
         }

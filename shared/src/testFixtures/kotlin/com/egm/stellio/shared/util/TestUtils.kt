@@ -14,7 +14,7 @@ fun loadSampleData(filename: String = "beehive.jsonld"): String {
     return String(sampleData.inputStream.readAllBytes())
 }
 
-suspend fun loadAndExpandSampleData(filename: String = "beehive.jsonld"): JsonLdEntity {
+suspend fun loadAndExpandSampleData(filename: String = "beehive.jsonld"): ExpandedEntity {
     val sampleData = ClassPathResource("/ngsild/$filename")
     return expandJsonLdEntity(String(sampleData.inputStream.readAllBytes()))
 }
@@ -50,7 +50,7 @@ fun loadMinimalEntityWithSap(
         }
     """.trimIndent()
 
-suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<JsonLdEntity, NgsiLdEntity>> {
+suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<ExpandedEntity, NgsiLdEntity>> {
     val jsonLdEntity = expandJsonLdEntity(this)
     return when (val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()) {
         is Either.Left -> BadRequestDataException("Invalid NGSI-LD input for sample data: $this").left()

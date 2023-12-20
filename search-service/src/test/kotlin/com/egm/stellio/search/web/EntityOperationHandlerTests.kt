@@ -14,7 +14,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
@@ -70,9 +70,9 @@ class EntityOperationHandlerTests {
     private lateinit var mockedTemperatureSensorEntity: NgsiLdEntity
     private lateinit var mockedDissolvedOxygenSensorEntity: NgsiLdEntity
     private lateinit var mockedDeviceEntity: NgsiLdEntity
-    private lateinit var mockedTemperatureSensorJsonLdEntity: JsonLdEntity
-    private lateinit var mockedDissolvedOxygenSensorJsonLdEntity: JsonLdEntity
-    private lateinit var mockedDeviceJsonLdEntity: JsonLdEntity
+    private lateinit var mockedTemperatureSensorExpandedEntity: ExpandedEntity
+    private lateinit var mockedDissolvedOxygenSensorExpandedEntity: ExpandedEntity
+    private lateinit var mockedDeviceExpandedEntity: ExpandedEntity
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -93,7 +93,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(SENSOR_TYPE)
             every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
-        mockedTemperatureSensorJsonLdEntity = mockkClass(JsonLdEntity::class) {
+        mockedTemperatureSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns temperatureSensorUri.toString()
             every { members } returns emptyMap()
         }
@@ -102,7 +102,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(SENSOR_TYPE)
             every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
-        mockedDissolvedOxygenSensorJsonLdEntity = mockkClass(JsonLdEntity::class) {
+        mockedDissolvedOxygenSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns dissolvedOxygenSensorUri.toString()
             every { members } returns emptyMap()
         }
@@ -111,7 +111,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(DEVICE_TYPE)
             every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
-        mockedDeviceJsonLdEntity = mockkClass(JsonLdEntity::class) {
+        mockedDeviceExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns deviceUri.toString()
             every { members } returns emptyMap()
         }
@@ -137,9 +137,9 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
-                Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)
             ),
             emptyList()
         )
@@ -170,8 +170,8 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
             ),
             emptyList()
         )
@@ -210,7 +210,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/two_sensors_one_invalid.jsonld")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -252,8 +252,8 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
             ),
             emptyList()
         )
@@ -279,8 +279,8 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
-            listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity))
+            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
+            listOf(Pair(mockedDeviceExpandedEntity, mockedDeviceEntity))
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -363,10 +363,10 @@ class EntityOperationHandlerTests {
             entityOperationService.splitEntitiesByExistence(any())
         } answers {
             Pair(
-                listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+                listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
                 listOf(
-                    Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
-                    Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+                    Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
+                    Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)
                 )
             )
         }
@@ -421,7 +421,7 @@ class EntityOperationHandlerTests {
 
         coEvery {
             entityOperationService.splitEntitiesByExistence(any())
-        } returns Pair(emptyList(), listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)))
+        } returns Pair(emptyList(), listOf(Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)))
         coEvery {
             authorizationService.userCanCreateEntities(sub)
         } returns AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).left()
@@ -488,10 +488,10 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity),
-                Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity)
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
+                Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)
             ),
-            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity))
+            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity))
         )
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
@@ -538,7 +538,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity)),
+            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
             emptyList()
         )
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -567,10 +567,10 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity)
             ),
-            listOf(Pair(mockedDeviceJsonLdEntity, mockedDeviceEntity))
+            listOf(Pair(mockedDeviceExpandedEntity, mockedDeviceEntity))
         )
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
@@ -619,8 +619,8 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity)
             ),
             emptyList()
         )
@@ -656,7 +656,7 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
-            listOf(Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity))
+            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity))
         )
         coEvery {
             authorizationService.userCanCreateEntities(sub)
@@ -691,8 +691,8 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorJsonLdEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorJsonLdEntity, mockedDissolvedOxygenSensorEntity)
+                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
+                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity)
             ),
             emptyList()
         )
@@ -882,7 +882,7 @@ class EntityOperationHandlerTests {
     @Test
     fun `query entities should return a 200 if the query is correct`() = runTest {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         val query = """
             {

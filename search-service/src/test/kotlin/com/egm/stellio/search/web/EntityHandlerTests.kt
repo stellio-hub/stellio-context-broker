@@ -288,9 +288,9 @@ class EntityHandlerTests {
     fun `get entity by id should return 200 when entity exists`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        coEvery { queryService.queryEntity(any(), any()) } returns returnedJsonLdEntity.right()
-        every { returnedJsonLdEntity.checkContainsAnyOf(any()) } returns Unit.right()
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        coEvery { queryService.queryEntity(any(), any()) } returns returnedExpandedEntity.right()
+        every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -303,7 +303,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -335,7 +335,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly filter the asked attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -369,7 +369,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly return the simplified representation of an entity`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -412,7 +412,7 @@ class EntityHandlerTests {
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf(BEEHIVE_TYPE)
@@ -444,7 +444,7 @@ class EntityHandlerTests {
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
@@ -465,7 +465,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         mockkDefaultBehaviorForGetEntityById()
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -523,7 +523,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Date`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -563,7 +563,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Time`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -603,7 +603,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     mapOf(
@@ -640,7 +640,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     listOf(
@@ -693,7 +693,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -736,7 +736,7 @@ class EntityHandlerTests {
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -778,7 +778,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(
@@ -877,7 +877,7 @@ class EntityHandlerTests {
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
@@ -921,7 +921,7 @@ class EntityHandlerTests {
             )
         } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         NGSILD_CREATED_AT_PROPERTY to
                             mapOf(
@@ -960,7 +960,7 @@ class EntityHandlerTests {
     fun `get entities should return 200 with prev and next link header if exists`() {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive")),
                     listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
@@ -999,7 +999,7 @@ class EntityHandlerTests {
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
         coEvery {
             queryService.queryEntities(any(), any())
-        } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&offset=9")
@@ -1056,7 +1056,7 @@ class EntityHandlerTests {
             )
         } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
@@ -1088,7 +1088,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and the number of results`() {
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 3).right()
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 3).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&offset=1&count=true")
@@ -1117,7 +1117,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?attrs=myProp")

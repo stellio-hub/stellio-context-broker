@@ -557,7 +557,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?&limit=0&offset=1&count=true")
@@ -571,7 +571,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(0, emptyList<JsonLdEntity>()).right()
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=9")
@@ -660,7 +660,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities")
@@ -673,7 +673,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
         coEvery {
             authorizationService.getGroupsMemberships(any(), any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups?&limit=0&offset=1&count=true")
@@ -690,7 +690,7 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
@@ -730,7 +730,7 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
@@ -769,7 +769,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return 204 if authentication is not enabled`() {
         coEvery {
             authorizationService.getGroupsMemberships(any(), any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups")
@@ -796,7 +796,7 @@ class EntityAccessControlHandlerTests {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/users?&limit=0&offset=1&count=true")
@@ -811,7 +811,7 @@ class EntityAccessControlHandlerTests {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/users")
@@ -828,7 +828,7 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     User(
                         "1",
                         USER_TYPE,
@@ -870,9 +870,9 @@ class EntityAccessControlHandlerTests {
     private suspend fun createJsonLdEntity(
         entityAccessRights: EntityAccessRights,
         context: String = NGSILD_TEST_CORE_CONTEXT
-    ): JsonLdEntity {
+    ): ExpandedEntity {
         val earSerialized = entityAccessRights.serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXT)
-        return JsonLdEntity(earSerialized, listOf(context))
+        return ExpandedEntity(earSerialized, listOf(context))
     }
 
     private fun createEntityAccessRight(

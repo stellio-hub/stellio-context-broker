@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.Option
 import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
@@ -25,18 +25,18 @@ interface AuthorizationService {
         entitiesQuery: EntitiesQuery,
         contextLink: String,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 
     suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
         contextLink: String,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 
     suspend fun getUsers(
         offset: Int,
         limit: Int,
         contextLink: String,
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>>
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 }

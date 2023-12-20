@@ -2,7 +2,7 @@ package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.TemporalScopeBuilder
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
 import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -26,7 +26,7 @@ object TemporalEntityBuilder {
         queryResult: List<EntityTemporalResult>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): List<JsonLdEntity> =
+    ): List<ExpandedEntity> =
         queryResult.map {
             buildTemporalEntity(it, temporalEntitiesQuery, contexts)
         }
@@ -35,7 +35,7 @@ object TemporalEntityBuilder {
         entityTemporalResult: EntityTemporalResult,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contexts: List<String>
-    ): JsonLdEntity {
+    ): ExpandedEntity {
         val temporalAttributes = buildTemporalAttributes(
             entityTemporalResult.teaInstancesResult,
             temporalEntitiesQuery
@@ -50,7 +50,7 @@ object TemporalEntityBuilder {
         val expandedTemporalEntity = entityTemporalResult.entityPayload.serializeProperties()
             .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
-        return JsonLdEntity(expandedTemporalEntity, contexts)
+        return ExpandedEntity(expandedTemporalEntity, contexts)
     }
 
     private fun buildTemporalAttributes(

@@ -369,10 +369,10 @@ class TemporalEntityHandlerTests {
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns returnedJsonLdEntity.right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -559,10 +559,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns returnedJsonLdEntity.right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(
@@ -594,10 +594,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns returnedJsonLdEntity.right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(
@@ -615,10 +615,10 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns returnedJsonLdEntity.right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(

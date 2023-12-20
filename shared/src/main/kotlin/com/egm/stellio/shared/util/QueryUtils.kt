@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -106,7 +106,7 @@ fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String
         }
 
 // Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.
-fun buildQQuery(rawQuery: String, contexts: List<String>, target: JsonLdEntity? = null): String {
+fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity? = null): String {
     val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
 
     return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
@@ -221,7 +221,7 @@ private fun transformQQueryToSqlJsonPath(
         """.trimIndent()
 }
 
-fun buildScopeQQuery(scopeQQuery: String, target: JsonLdEntity? = null): String =
+fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
         when {
             matchResult.value.endsWith('#') ->

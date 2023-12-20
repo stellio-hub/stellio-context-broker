@@ -126,7 +126,7 @@ fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIEx
 suspend fun extractPayloadAndContexts(
     requestBody: Mono<String>,
     httpHeaders: HttpHeaders
-): Either<APIException, Pair<CompactedJsonLdEntity, List<String>>> = either {
+): Either<APIException, Pair<CompactedEntity, List<String>>> = either {
     val body = requestBody.awaitFirst().deserializeAsMap()
         .checkNamesAreNgsiLdSupported().bind()
         .checkContentIsNgsiLdSupported().bind()

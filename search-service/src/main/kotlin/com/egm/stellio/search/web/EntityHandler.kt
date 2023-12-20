@@ -249,11 +249,11 @@ class EntityHandler(
 
         jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
-        val filteredJsonLdEntity = JsonLdEntity(
+        val filteredExpandedEntity = ExpandedEntity(
             JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, queryParams.attrs),
             jsonLdEntity.contexts
         )
-        val compactedEntity = JsonLdUtils.compactEntity(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
+        val compactedEntity = JsonLdUtils.compactEntity(filteredExpandedEntity, contextLink, mediaType).toMutableMap()
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponse(mediaType, contextLink)

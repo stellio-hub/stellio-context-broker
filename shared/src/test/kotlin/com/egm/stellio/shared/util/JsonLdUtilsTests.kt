@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
@@ -64,7 +64,7 @@ class JsonLdUtilsTests {
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
 
         val resultMap = JsonLdUtils.filterCompactedEntityOnAttributes(
-            normalizedMap as CompactedJsonLdEntity,
+            normalizedMap as CompactedEntity,
             setOf("brandName", "location")
         )
 

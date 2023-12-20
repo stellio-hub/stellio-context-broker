@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.http.MediaType
 
-class JsonLdEntityTests {
+class ExpandedEntityTests {
 
     private val normalizedJson =
         """
@@ -120,12 +120,12 @@ class JsonLdEntityTests {
 
     @Test
     fun `it should find an expanded attribute contained in the entity`() {
-        val jsonLdEntity = JsonLdEntity(
+        val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to ""),
             DEFAULT_CONTEXTS
         )
 
-        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
 
         checkResult.fold({
             fail("it should have found one of the requested attributes")
@@ -134,12 +134,12 @@ class JsonLdEntityTests {
 
     @Test
     fun `it should not find an expanded attribute contained in the entity`() {
-        val jsonLdEntity = JsonLdEntity(
+        val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01"),
             DEFAULT_CONTEXTS
         )
 
-        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
 
         checkResult.fold({
             assertEquals(

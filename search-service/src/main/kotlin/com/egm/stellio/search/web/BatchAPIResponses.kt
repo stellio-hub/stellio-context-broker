@@ -2,7 +2,7 @@ package com.egm.stellio.search.web
 
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -51,7 +51,7 @@ data class BatchEntityError(
     val error: MutableList<String>
 )
 
-typealias JsonLdNgsiLdEntity = Pair<JsonLdEntity, NgsiLdEntity>
+typealias JsonLdNgsiLdEntity = Pair<ExpandedEntity, NgsiLdEntity>
 
 fun List<JsonLdNgsiLdEntity>.extractNgsiLdEntities(): List<NgsiLdEntity> = this.map { it.second }
 fun JsonLdNgsiLdEntity.entityId(): URI = this.second.id

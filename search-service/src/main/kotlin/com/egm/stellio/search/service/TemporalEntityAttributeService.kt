@@ -136,7 +136,7 @@ class TemporalEntityAttributeService(
     @Transactional
     suspend fun createEntityTemporalReferences(
         ngsiLdEntity: NgsiLdEntity,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
         createdAt: ZonedDateTime,
         sub: String? = null
@@ -150,7 +150,7 @@ class TemporalEntityAttributeService(
             .forEach {
                 val (expandedAttributeName, attributeMetadata) = it
                 val attributePayload = getAttributeFromExpandedAttributes(
-                    jsonLdEntity.getAttributes(),
+                    expandedEntity.getAttributes(),
                     expandedAttributeName,
                     attributeMetadata.datasetId
                 )!!

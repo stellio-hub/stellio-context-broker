@@ -137,7 +137,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 """.trimIndent()
             )
 
-            val jsonLdEntity = JsonLdEntity(expandedEntity, contexts)
+            val jsonLdEntity = ExpandedEntity(expandedEntity, contexts)
             val ngsiLdEntity = runBlocking {
                 jsonLdEntity.toNgsiLdEntity()
             }

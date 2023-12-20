@@ -388,7 +388,7 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
         else -> BadRequestDataException("Unrecognized type for $attributeName").left()
     }
 
-suspend fun JsonLdEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
+suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
     NgsiLdEntity.create(this.members, this.contexts)
 
 fun ExpandedAttributeInstance.getDatasetId(): URI? =

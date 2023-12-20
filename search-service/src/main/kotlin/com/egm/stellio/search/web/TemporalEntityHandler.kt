@@ -57,15 +57,15 @@ class TemporalEntityHandler(
             authorizationService.userCanCreateEntities(sub).bind()
 
             // create a view of the entity containing only the most recent instance of each attribute
-            val jsonLdEntity = JsonLdEntity(
+            val expandedEntity = ExpandedEntity(
                 sortedJsonLdInstances
                     .keepFirstInstances()
                     .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
                 contexts
             )
-            val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+            val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-            entityPayloadService.createEntity(ngsiLdEntity, jsonLdEntity, sub.getOrNull()).bind()
+            entityPayloadService.createEntity(ngsiLdEntity, expandedEntity, sub.getOrNull()).bind()
             entityPayloadService.upsertAttributes(
                 entityUri,
                 sortedJsonLdInstances.removeFirstInstances(),

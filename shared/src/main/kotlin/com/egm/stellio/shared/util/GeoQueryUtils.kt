@@ -109,7 +109,7 @@ private fun prepareGeorelQuery(georel: String): Triple<String, String?, String?>
         }
     } else Triple(georel, null, null)
 
-fun buildGeoQuery(geoQuery: GeoQuery, target: JsonLdEntity? = null): String {
+fun buildGeoQuery(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {
     val targetWKTCoordinates =
         """
         (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')

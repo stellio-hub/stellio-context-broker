@@ -7,7 +7,7 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -143,8 +143,8 @@ class ObservationEventListenerTests {
             ),
             emptyList()
         ).right()
-        val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
+        val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } returns Job()

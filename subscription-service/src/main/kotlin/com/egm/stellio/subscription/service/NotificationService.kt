@@ -3,8 +3,8 @@ package com.egm.stellio.subscription.service
 import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.toKeyValues
 import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
@@ -33,16 +33,16 @@ class NotificationService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun notifyMatchingSubscribers(
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
-        subscriptionService.getMatchingSubscriptions(jsonLdEntity, updatedAttributes, notificationTrigger).bind()
+        subscriptionService.getMatchingSubscriptions(expandedEntity, updatedAttributes, notificationTrigger).bind()
             .map {
                 val filteredEntity =
-                    filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
+                    filterJsonLdEntityOnAttributes(expandedEntity, it.notification.attributes?.toSet().orEmpty())
                 val compactedEntity = compactEntity(
-                    JsonLdEntity(filteredEntity, it.contexts),
+                    ExpandedEntity(filteredEntity, it.contexts),
                     it.contexts,
                     MediaType.valueOf(it.notification.endpoint.accept.accept)
                 )
@@ -52,7 +52,7 @@ class NotificationService(
 
     suspend fun callSubscriber(
         subscription: Subscription,
-        entity: CompactedJsonLdEntity
+        entity: CompactedEntity
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val tenantUri = getTenantFromContext()
@@ -93,7 +93,7 @@ class NotificationService(
     }
 
     private fun buildNotificationData(
-        compactedEntity: CompactedJsonLdEntity,
+        compactedEntity: CompactedEntity,
         subscription: Subscription
     ): List<Map<String, Any>> {
         val processedEntity = if (subscription.notification.format == NotificationParams.FormatType.KEY_VALUES)

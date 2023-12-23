@@ -9,7 +9,7 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery

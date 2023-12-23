@@ -17,10 +17,11 @@ import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.NotificationTrigger.*
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.support.WithKafkaContainer
 import com.egm.stellio.subscription.support.WithTimescaleContainer
+import com.egm.stellio.subscription.support.gimmeSubscriptionFromMembers
+import com.egm.stellio.subscription.support.loadAndDeserializeSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils
-import com.egm.stellio.subscription.utils.gimmeSubscriptionFromMembers
-import com.egm.stellio.subscription.utils.loadAndDeserializeSubscription
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -45,7 +46,7 @@ import kotlin.time.Duration
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-class SubscriptionServiceTests : WithTimescaleContainer {
+class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService

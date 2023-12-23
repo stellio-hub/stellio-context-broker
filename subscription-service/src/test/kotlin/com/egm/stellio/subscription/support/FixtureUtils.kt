@@ -1,4 +1,4 @@
-package com.egm.stellio.subscription.utils
+package com.egm.stellio.subscription.support
 
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
+import com.egm.stellio.subscription.utils.ParsingUtils
 import java.time.Instant
 import java.time.ZoneOffset
 

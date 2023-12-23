@@ -15,7 +15,7 @@ import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean

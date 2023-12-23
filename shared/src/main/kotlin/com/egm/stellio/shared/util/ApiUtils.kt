@@ -185,12 +185,14 @@ fun parseRepresentations(
         if (entityRepresentation == EntityRepresentation.GEO_JSON)
             requestParams.getFirst(QUERY_PARAM_GEOMETRY_PROPERTY) ?: NGSILD_LOCATION_TERM
         else null
+    val timeproperty = requestParams.getFirst("timeproperty")
 
     return NgsiLdDataRepresentation(
         entityRepresentation,
         attributeRepresentation,
         includeSysAttrs,
-        geometryProperty
+        geometryProperty,
+        timeproperty
     )
 }
 

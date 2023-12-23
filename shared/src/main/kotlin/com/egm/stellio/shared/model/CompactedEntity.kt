@@ -54,28 +54,31 @@ fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
     )
 }
 
-fun CompactedEntity.withoutSysAttrs(): Map<String, Any> =
-    this.filter {
-        !NGSILD_SYSATTRS_TERMS.contains(it.key)
+fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
+    val sysAttrsToRemove = NGSILD_SYSATTRS_TERMS.minus(sysAttrToKeep)
+    return this.filter {
+        !sysAttrsToRemove.contains(it.key)
     }.mapValues {
         when (it.value) {
-            is Map<*, *> -> (it.value as Map<*, *>).minus(NGSILD_SYSATTRS_TERMS)
+            is Map<*, *> -> (it.value as Map<*, *>).minus(sysAttrsToRemove)
             is List<*> -> (it.value as List<*>).map { valueInstance ->
                 when (valueInstance) {
-                    is Map<*, *> -> valueInstance.minus(NGSILD_SYSATTRS_TERMS)
+                    is Map<*, *> -> valueInstance.minus(sysAttrsToRemove)
                     // we keep @context value as it is (List<String>)
                     else -> valueInstance
                 }
             }
+
             else -> it.value
         }
     }
+}
 
 fun CompactedEntity.toFinalRepresentation(
     ngsiLdDataRepresentation: NgsiLdDataRepresentation
 ): Any =
     this.let {
-        if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs()
+        if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs(ngsiLdDataRepresentation.timeproperty)
         else it
     }.let {
         if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED) it.toKeyValues()

@@ -413,7 +413,7 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=0&offset=1&count=true")
+            .uri("/ngsi-ld/v1/subscriptions?limit=0&offset=1&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")

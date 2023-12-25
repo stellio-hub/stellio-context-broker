@@ -552,6 +552,7 @@ class TemporalEntityParameterizedSource {
                 beehivePropertyMultiInstancesTemporalValues,
                 beehivePropertyMultiInstancesStringValuesTemporalValues,
                 beehivePropertyMultiInstancesWithoutDatasetIdStringValuesTemporalValues,
+                beehiveRelationshipMultiInstancesTemporalValues,
                 beehiveScopeMultiInstancesTemporalValues,
                 beehiveScopeMultiInstances
             )

@@ -398,7 +398,11 @@ class QueryServiceTests {
                                 "@type": [
                                     "https://uri.etsi.org/ngsi-ld/Property"
                                 ],
-                                "avg": []
+                                "https://uri.etsi.org/ngsi-ld/avg":[
+                                    {
+                                        "@list":[]
+                                    }
+                                ]
                             }
                         ]
                     }

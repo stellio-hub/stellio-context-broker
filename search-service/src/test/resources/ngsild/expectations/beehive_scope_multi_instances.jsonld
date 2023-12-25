@@ -3,21 +3,41 @@
   "@type": [
     "https://ontology.eglobalmark.com/apic#BeeHive"
   ],
-  "scope": [
+  "https://uri.etsi.org/ngsi-ld/scope": [
     {
-      "type": "Property",
-      "value": [
-        "/A/B",
-        "/C/D"
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      "modifiedAt": "2020-03-25T08:29:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "/A/B"
+        },
+        {
+          "@value": "/C/D"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:29:17.965206Z"
+        }
+      ]
     },
     {
-      "type": "Property",
-      "value": [
-        "/C/D"
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      "modifiedAt": "2020-03-25T09:29:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "/C/D"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T09:29:17.965206Z"
+        }
+      ]
     }
   ]
 }

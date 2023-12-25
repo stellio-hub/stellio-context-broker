@@ -23,7 +23,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
@@ -381,7 +381,7 @@ class EntityHandlerTests {
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                    NGSILD_RELATIONSHIP_OBJECT to mapOf(
                         JSONLD_ID to "urn:ngsi-ld:Entity:1234"
                     )
                 )
@@ -698,7 +698,7 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
                         JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to mapOf(
                             JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                         ),
                         NGSILD_DATASET_ID_PROPERTY to mapOf(
@@ -741,7 +741,7 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
                         JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to mapOf(
                             JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                         ),
                         NGSILD_DATASET_ID_PROPERTY to mapOf(
@@ -784,13 +784,13 @@ class EntityHandlerTests {
                     listOf(
                         mapOf(
                             JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to mapOf(
                                 JSONLD_ID to "urn:ngsi-ld:Beekeeper:1229"
                             )
                         ),
                         mapOf(
                             JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to mapOf(
                                 JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                             ),
                             NGSILD_DATASET_ID_PROPERTY to mapOf(

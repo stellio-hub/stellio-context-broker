@@ -8,15 +8,31 @@
       "@type": [
         "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      "values": [
-        [
-          "Beehive_incoming_123",
-          "2020-03-25T08:29:17.965206Z"
-        ],
-        [
-          "Beehive_incoming_124",
-          "2020-03-25T08:33:17.965206Z"
-        ]
+      "https://uri.etsi.org/ngsi-ld/hasValues": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "@value": "Beehive_incoming_123"
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "@value": "Beehive_incoming_124"
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
       ]
     }
   ]

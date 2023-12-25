@@ -4,7 +4,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.util.regex.Pattern
 
@@ -191,7 +191,7 @@ private fun transformQQueryToSqlJsonPath(
     value.isURI() ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
+            '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
             '{ "value": ${value.quote()} }')
         """.trimIndent()
     value.isRange() -> {

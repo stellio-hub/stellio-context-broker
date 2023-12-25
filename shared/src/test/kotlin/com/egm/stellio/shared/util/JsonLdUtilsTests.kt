@@ -4,7 +4,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.addCoreContextIfMissing
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -137,7 +137,7 @@ class JsonLdUtilsTests {
     @Test
     fun `it should return an error if a relationship has an empty object`() {
         val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to emptyList<Any>()
+            NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>()
         )
 
         val result = extractRelationshipObject("isARelationship", relationshipValues)
@@ -150,7 +150,7 @@ class JsonLdUtilsTests {
     @Test
     fun `it should return an error if a relationship has an invalid object type`() {
         val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf("invalid")
+            NGSILD_RELATIONSHIP_OBJECT to listOf("invalid")
         )
 
         val result = extractRelationshipObject("isARelationship", relationshipValues)
@@ -163,7 +163,7 @@ class JsonLdUtilsTests {
     @Test
     fun `it should return an error if a relationship has object without id`() {
         val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
+            NGSILD_RELATIONSHIP_OBJECT to listOf(
                 mapOf("@value" to "urn:ngsi-ld:T:misplacedRelationshipObject")
             )
         )
@@ -179,7 +179,7 @@ class JsonLdUtilsTests {
     fun `it should extract the target object of a relationship`() {
         val relationshipObjectId = "urn:ngsi-ld:T:1"
         val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
+            NGSILD_RELATIONSHIP_OBJECT to listOf(
                 mapOf("@id" to relationshipObjectId)
             )
         )

@@ -1,20 +1,42 @@
 {
-  "scope": [
+  "https://uri.etsi.org/ngsi-ld/scope": [
     {
-      "type": "Property",
-      "value": [
-        "/A/B",
-        "/B/C"
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      "observedAt": "2020-03-25T08:29:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "/A/B"
+        },
+        {
+          "@value": "/B/C"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:29:17.965206Z"
+        }
+      ]
     },
     {
-      "type": "Property",
-      "value": [
-        "/B/C",
-        "/D/E"
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      "observedAt": "2020-03-25T08:30:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "/B/C"
+        },
+        {
+          "@value": "/D/E"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/observedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2020-03-25T08:30:17.965206Z"
+        }
+      ]
     }
   ]
 }

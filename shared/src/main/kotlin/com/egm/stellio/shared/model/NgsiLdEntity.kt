@@ -20,7 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
@@ -447,7 +447,7 @@ val NGSILD_PROPERTIES_CORE_MEMBERS = listOf(
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_HAS_OBJECT
+    NGSILD_RELATIONSHIP_OBJECT
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(

@@ -12,7 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
@@ -39,7 +39,7 @@ fun buildAttributeInstancePayload(
         if (attributeType == TemporalEntityAttribute.AttributeType.Property)
             put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE to value)))
         else
-            put(NGSILD_RELATIONSHIP_HAS_OBJECT, listOf(mapOf(JSONLD_ID to value.toString())))
+            put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID to value.toString())))
     }
 )
 

@@ -66,7 +66,7 @@ class TemporalScopeBuilderTests {
             aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG)
         )
 
-        val scopehHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
+        val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
@@ -80,7 +80,7 @@ class TemporalScopeBuilderTests {
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/scope_aggregated_instances.json"),
-            JsonUtils.serializeObject(scopehHistory)
+            JsonUtils.serializeObject(scopeHistory)
         )
     }
 
@@ -104,7 +104,7 @@ class TemporalScopeBuilderTests {
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
         )
 
-        val scopehHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
+        val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
@@ -118,7 +118,7 @@ class TemporalScopeBuilderTests {
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/scope_temporal_values_instances.json"),
-            JsonUtils.serializeObject(scopehHistory)
+            JsonUtils.serializeObject(scopeHistory)
         )
     }
 
@@ -144,7 +144,7 @@ class TemporalScopeBuilderTests {
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
         )
 
-        val scopehHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
+        val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
             TemporalEntitiesQuery(
@@ -158,7 +158,7 @@ class TemporalScopeBuilderTests {
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/scope_full_instances.json"),
-            JsonUtils.serializeObject(scopehHistory)
+            JsonUtils.serializeObject(scopeHistory)
         )
     }
 

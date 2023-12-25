@@ -54,7 +54,12 @@ object JsonLdUtils {
     const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
     const val NGSILD_RELATIONSHIP_TERM = "Relationship"
     val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
-    const val NGSILD_RELATIONSHIP_HAS_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
+    const val NGSILD_RELATIONSHIP_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
+
+    const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
+    const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
+    const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
+    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
 
     const val JSONLD_ID_TERM = "id"
     const val JSONLD_ID = "@id"
@@ -63,6 +68,7 @@ object JsonLdUtils {
     const val JSONLD_VALUE_TERM = "value"
     const val JSONLD_VALUE = "@value"
     const val JSONLD_OBJECT = "object"
+    const val JSONLD_LIST = "@list"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
@@ -540,9 +546,9 @@ object JsonLdUtils {
     fun extractRelationshipObject(name: String, values: Map<String, List<Any>>): Either<BadRequestDataException, URI> {
         return values.right()
             .flatMap {
-                if (!it.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
+                if (!it.containsKey(NGSILD_RELATIONSHIP_OBJECT))
                     BadRequestDataException("Relationship $name does not have an object field").left()
-                else it[NGSILD_RELATIONSHIP_HAS_OBJECT]!!.right()
+                else it[NGSILD_RELATIONSHIP_OBJECT]!!.right()
             }
             .flatMap {
                 if (it.isEmpty())
@@ -649,7 +655,7 @@ object JsonLdUtils {
         listOf(
             mapOf(
                 JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
-                NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(mapOf(JSONLD_ID to value.toString()))
+                NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf(JSONLD_ID to value.toString()))
             )
         )
 

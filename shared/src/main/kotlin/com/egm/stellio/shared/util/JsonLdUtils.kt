@@ -278,7 +278,7 @@ object JsonLdUtils {
             return deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
-            throw e.toAPIException()
+            throw e.toAPIException(e.cause?.cause?.message)
         }
     }
 

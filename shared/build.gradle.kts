@@ -16,6 +16,10 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
+    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testFixturesImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     testFixturesImplementation("org.springframework:spring-core")

@@ -177,7 +177,7 @@ class ScopeService(
             )
             .bind("entity_id", entityId)
             .bind("time_property", timeproperty.name)
-            .oneToResult { toZonedDateTime(it["first"]) }
+            .oneToResult { toOptionalZonedDateTime(it["first"]) }
             .getOrNull()
 
     private fun Json.replaceScopeValue(newScopeValue: Any): Map<String, Any> =

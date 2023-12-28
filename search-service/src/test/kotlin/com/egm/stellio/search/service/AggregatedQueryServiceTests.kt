@@ -349,7 +349,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `ìt should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
+    fun `it should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
         val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.NUMBER)
         (1..10).forEach { i ->
             val attributeInstance = gimmeAttributeInstance(teaUuid)
@@ -372,6 +372,35 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource(
+        "P1D, 10",
+        "PT48H, 6",
+        "PT24H, 10",
+        "PT12H, 10",
+        "P1W, 2",
+        "P2W, 1",
+        "P1M, 2"
+    )
+    fun `it should aggregate on the asked aggrPeriodDuration`(
+        aggrPeriodDuration: String,
+        expectedNumberOfBuckets: Int
+    ) = runTest {
+        val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.NUMBER)
+        val startTimestamp = ZonedDateTime.parse("2023-12-28T12:00:00Z")
+        (1..10).forEach { i ->
+            val attributeInstance = gimmeAttributeInstance(teaUuid)
+                .copy(time = startTimestamp.plusDays(i.toLong()))
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = createTemporalEntitiesQuery("avg", aggrPeriodDuration)
+        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, startTimestamp)
+            .shouldSucceedWith { results ->
+                assertEquals(expectedNumberOfBuckets, results.size)
+            }
+    }
+
     @Test
     fun `it should handle aggregates for an attribute having different types of values in history`() = runTest {
         val temporalEntityAttribute = createTemporalEntityAttribute(TemporalEntityAttribute.AttributeValueType.ARRAY)
@@ -388,7 +417,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, now)
             .shouldFail {
                 assertInstanceOf(OperationNotSupportedException::class.java, it)
-                assertEquals(INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE, it.message)
+                assertEquals("cannot get array length of a scalar", it.message)
             }
     }
 
@@ -407,12 +436,15 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         return temporalEntityAttribute
     }
 
-    private fun createTemporalEntitiesQuery(aggrMethod: String): TemporalEntitiesQuery =
+    private fun createTemporalEntitiesQuery(
+        aggrMethod: String,
+        aggrPeriodDuration: String = "P1D"
+    ): TemporalEntitiesQuery =
         gimmeTemporalEntitiesQuery(
             TemporalQuery(
                 timerel = TemporalQuery.Timerel.AFTER,
                 timeAt = now.minusHours(1),
-                aggrPeriodDuration = "P1D",
+                aggrPeriodDuration = aggrPeriodDuration,
                 aggrMethods = listOfNotNull(TemporalQuery.Aggregate.forMethod(aggrMethod))
             ),
             withAggregatedValues = true

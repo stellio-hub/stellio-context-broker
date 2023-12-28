@@ -375,6 +375,9 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @ParameterizedTest
     @CsvSource(
         "P1D, 10",
+        "PT48H, 6",
+        "PT24H, 10",
+        "PT12H, 10",
         "P1W, 2",
         "P2W, 1",
         "P1M, 2"

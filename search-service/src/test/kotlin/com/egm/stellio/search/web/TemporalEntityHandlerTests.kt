@@ -49,8 +49,6 @@ import java.util.UUID
 @Import(WebSecurityTestConfig::class)
 class TemporalEntityHandlerTests {
 
-    private lateinit var apicHeaderLink: String
-
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -75,8 +73,6 @@ class TemporalEntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-
         webClient = webClient.mutate()
             .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
             .apply(csrf())
@@ -105,7 +101,7 @@ class TemporalEntityHandlerTests {
 
         val data =
             loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, listOf(APIC_COMPOUND_CONTEXT))
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, APIC_COMPOUND_CONTEXTS)
         val expectedInstancesFilePath =
             "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
         val jsonInstances =
@@ -178,7 +174,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -205,7 +201,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -232,7 +228,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -259,7 +255,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -282,7 +278,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
@@ -311,7 +307,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -569,7 +565,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -584,7 +580,7 @@ class TemporalEntityHandlerTests {
                         !temporalEntitiesQuery.withTemporalValues &&
                         !temporalEntitiesQuery.withAudit
                 },
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
         confirmVerified(queryService)
@@ -604,7 +600,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -625,7 +621,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -645,7 +641,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
@@ -667,7 +663,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .header("Accept", MediaType.APPLICATION_JSON.toString())
             .exchange()
             .expectStatus().isOk
@@ -691,7 +687,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&options=temporalValues"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
@@ -782,7 +778,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -819,7 +815,7 @@ class TemporalEntityHandlerTests {
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -846,7 +842,7 @@ class TemporalEntityHandlerTests {
                     "type=BeeHive"
             )
             .header("Accept", MediaType.APPLICATION_JSON.toString())
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectHeader().exists("Link")
@@ -1069,7 +1065,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1100,7 +1096,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1130,7 +1126,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1163,7 +1159,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1541,7 +1537,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
@@ -1564,7 +1560,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -1601,7 +1597,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -1639,7 +1635,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(

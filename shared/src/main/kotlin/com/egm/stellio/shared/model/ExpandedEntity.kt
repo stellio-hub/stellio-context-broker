@@ -3,12 +3,13 @@ package com.egm.stellio.shared.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.castAttributeValue
+import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import java.time.ZonedDateTime
 
 data class ExpandedEntity(
@@ -24,7 +25,7 @@ data class ExpandedEntity(
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
     fun getAttributes(): ExpandedAttributes =
-        members.filter { !JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
+        members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
     fun getScopes(): List<String>? =
@@ -36,7 +37,7 @@ data class ExpandedEntity(
     fun populateCreationTimeDate(createdAt: ZonedDateTime): ExpandedEntity =
         ExpandedEntity(
             members = members.mapValues {
-                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
+                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
@@ -55,7 +56,7 @@ data class ExpandedEntity(
     fun populateReplacementTimeDates(createdAt: ZonedDateTime, replacedAt: ZonedDateTime): ExpandedEntity =
         ExpandedEntity(
             members = members.mapValues {
-                if (JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
+                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
@@ -83,4 +84,28 @@ data class ExpandedEntity(
         if (dateTime != null)
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
+
+    fun filterOnAttributes(includedAttributes: Set<String>): Map<String, Any> {
+        val inputToMap = { i: ExpandedEntity -> i.members }
+        return filterEntityOnAttributes(this, inputToMap, includedAttributes)
+    }
+
+    private fun <T> filterEntityOnAttributes(
+        input: T,
+        inputToMap: (T) -> Map<String, Any>,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
+        return if (includedAttributes.isEmpty()) {
+            inputToMap(input)
+        } else {
+            val includedKeys = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes)
+            inputToMap(input).filterKeys { includedKeys.contains(it) }
+        }
+    }
 }
+
+fun List<ExpandedEntity>.filterOnAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
+    this.filter { it.containsAnyOf(includedAttributes) }
+        .map {
+            ExpandedEntity(it.filterOnAttributes(includedAttributes), it.contexts)
+        }

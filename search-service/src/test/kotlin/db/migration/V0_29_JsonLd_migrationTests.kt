@@ -1,6 +1,6 @@
 package db.migration
 
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.loadSampleData
@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("test")
 class V0_29_JsonLd_migrationTests {
 
-    private val contexts = listOf(APIC_COMPOUND_CONTEXT)
+    private val contexts = APIC_COMPOUND_CONTEXTS
 
     @Test
     fun `it should remove instances when attribute has more than one instance with the same datasetId`() = runTest {

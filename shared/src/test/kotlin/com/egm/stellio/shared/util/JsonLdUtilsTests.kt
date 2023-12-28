@@ -1,80 +1,16 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.addCoreContextIfMissing
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
 
 class JsonLdUtilsTests {
-
-    private val normalizedJson =
-        """
-        {
-            "id": "urn:ngsi-ld:Vehicle:A4567",
-            "type": "Vehicle",
-            "brandName": {
-                "type": "Property",
-                "value": "Mercedes"
-            },
-            "isParked": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
-                "observedAt": "2017-07-29T12:00:04Z",
-                "providedBy": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:Person:Bob"
-                }
-            },
-           "location": {
-              "type": "GeoProperty",
-              "value": {
-                 "type": "Point",
-                 "coordinates": [
-                    24.30623,
-                    60.07966
-                 ]
-              }
-           },
-            "@context": [
-                "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                "https://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "https://example.org/ngsi-ld/latest/parking.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-            ]
-        }
-        """.trimIndent()
-
-    @Test
-    fun `it should filter a JSON-LD Map on the attributes specified as well as the mandatory attributes`() {
-        val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
-
-        val resultMap = JsonLdUtils.filterCompactedEntityOnAttributes(
-            normalizedMap as CompactedEntity,
-            setOf("brandName", "location")
-        )
-
-        assertTrue(resultMap.containsKey("id"))
-        assertTrue(resultMap.containsKey("type"))
-        assertTrue(resultMap.containsKey("@context"))
-        assertTrue(resultMap.containsKey("brandName"))
-        assertTrue(resultMap.containsKey("location"))
-        assertFalse(resultMap.containsKey("isParked"))
-    }
 
     @Test
     fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() =
@@ -122,123 +58,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has no object field`() {
-        val relationshipValues = mapOf(
-            "value" to listOf("something")
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship does not have an object field", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has an empty object`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>()
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship is empty", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has an invalid object type`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_OBJECT to listOf("invalid")
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship has an invalid object type: class java.lang.String", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has object without id`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_OBJECT to listOf(
-                mapOf("@value" to "urn:ngsi-ld:T:misplacedRelationshipObject")
-            )
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
-        }
-    }
-
-    @Test
-    fun `it should extract the target object of a relationship`() {
-        val relationshipObjectId = "urn:ngsi-ld:T:1"
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_OBJECT to listOf(
-                mapOf("@id" to relationshipObjectId)
-            )
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isRight())
-        result.map {
-            assertEquals(relationshipObjectId.toUri(), it)
-        }
-    }
-
-    @Test
-    fun `it should return the core context if the list of contexts is empty`() {
-        val contexts = addCoreContextIfMissing(emptyList())
-        assertEquals(1, contexts.size)
-        assertEquals(listOf(NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should move the core context at last position if it is not last in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(NGSILD_CORE_CONTEXT, APIC_COMPOUND_CONTEXT))
-        assertEquals(2, contexts.size)
-        assertEquals(listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should add the core context at last position if it is not in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(NGSILD_EGM_CONTEXT))
-        assertEquals(2, contexts.size)
-        assertEquals(listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should not add the core context if it resolvable from the provided contexts`() {
-        val contexts = addCoreContextIfMissing(
-            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld")
-        )
-        assertEquals(1, contexts.size)
-        assertEquals(listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"), contexts)
-    }
-
-    @Test
     fun `it should compact and return a JSON entity`() = runTest {
-        val entity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device"
-            }
-            """.trimIndent()
-
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
-        val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS, MediaType.APPLICATION_JSON)
-
-        assertJsonPayloadsAreEqual(entity, mapper.writeValueAsString(compactedEntity))
-    }
-
-    @Test
-    fun `it should compact and return a JSON-LD entity`() = runTest {
         val entity =
             """
             {
@@ -249,123 +69,15 @@ class JsonLdUtilsTests {
         val expectedEntity =
             """
             {
-                "id":"urn:ngsi-ld:Device:01234",
-                "type":"Device",
-                "@context":[
-                    "$NGSILD_TEST_CORE_CONTEXT"
-                ]
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
             }
             """.trimIndent()
 
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
-        val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS)
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntity = compactEntity(jsonLdEntity, NGSILD_TEST_CORE_CONTEXTS)
 
         assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntity))
-    }
-
-    @Test
-    fun `it should not find an unknown attribute instance in a list of attributes`() = runTest {
-        val entityFragment =
-            """
-            {
-                "brandName": {
-                    "value": "a new value"
-                }            
-            }
-            """.trimIndent()
-
-        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
-        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, "unknownAttribute", null))
-    }
-
-    @Test
-    fun `it should find an attribute instance from a list of attributes without multi-attributes`() = runTest {
-        val entityFragment =
-            """
-            {
-                "brandName": {
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z"
-                },
-                "name": {
-                    "value": 12
-                }
-            }
-            """.trimIndent()
-
-        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
-
-        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
-        assertNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId".toUri())
-        )
-    }
-
-    @Test
-    fun `it should find an attribute instance from a list of attributes with multi-attributes`() = runTest {
-        val entityFragment =
-            """
-            {
-                "brandName": [{
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z"
-                },
-                {
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z",
-                    "datasetId": "urn:datasetId:1"
-                }],
-                "name": {
-                    "value": 12,
-                    "datasetId": "urn:datasetId:1"
-                }
-            }
-            """.trimIndent()
-
-        val expandedAttributes = expandAttributes(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
-        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
-
-        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
-        assertNotNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:1".toUri())
-        )
-        assertNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:2".toUri())
-        )
-        assertNotNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedName, "urn:datasetId:1".toUri())
-        )
-        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedName, null))
-    }
-
-    @Test
-    fun `it should find a JSON-LD @context in an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1",
-            "@context" to "https://some.context"
-        )
-
-        assertEquals(listOf("https://some.context"), extractContextFromInput(input))
-    }
-
-    @Test
-    fun `it should find a list of JSON-LD @contexts in an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1",
-            "@context" to listOf("https://some.context", "https://some.context.2")
-        )
-
-        assertEquals(listOf("https://some.context", "https://some.context.2"), extractContextFromInput(input))
-    }
-
-    @Test
-    fun `it should return an empty list if no JSON-LD @context was found an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1"
-        )
-
-        assertEquals(emptyList<String>(), extractContextFromInput(input))
     }
 }

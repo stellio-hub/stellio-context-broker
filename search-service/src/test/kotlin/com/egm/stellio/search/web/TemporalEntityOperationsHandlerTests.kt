@@ -30,8 +30,6 @@ import java.time.ZonedDateTime
 @Import(WebSecurityTestConfig::class)
 class TemporalEntityOperationsHandlerTests {
 
-    private lateinit var apicHeaderLink: String
-
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -43,8 +41,6 @@ class TemporalEntityOperationsHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-
         webClient = webClient.mutate()
             .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
             .apply(csrf())
@@ -84,7 +80,7 @@ class TemporalEntityOperationsHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues")
             .bodyValue(query)
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -133,7 +129,7 @@ class TemporalEntityOperationsHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues&count=true")
             .bodyValue(query)
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")

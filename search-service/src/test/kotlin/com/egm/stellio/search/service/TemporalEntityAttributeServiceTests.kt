@@ -56,7 +56,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 entityId = beehiveTestCId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
-                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                contexts = APIC_COMPOUND_CONTEXTS,
                 payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
@@ -66,7 +66,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 entityId = beehiveTestDId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
-                contexts = listOf(APIC_COMPOUND_CONTEXT),
+                contexts = APIC_COMPOUND_CONTEXTS,
                 payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
@@ -93,7 +93,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
@@ -118,7 +118,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -170,7 +170,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
         val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
@@ -226,7 +226,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         assertThrows<RuntimeException>("it should have thrown a RuntimeException") {
             temporalEntityAttributeService.createEntityTemporalReferences(
                 rawEntity,
-                listOf(APIC_COMPOUND_CONTEXT)
+                APIC_COMPOUND_CONTEXTS
             ).shouldSucceed()
         }
 
@@ -240,7 +240,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val temporalEntityAttribute = temporalEntityAttributeService.getForEntityAndAttribute(
@@ -250,7 +250,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val createdAt = ngsiLdDateTime()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
-        val expandedAttribute = expandAttribute(newProperty, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(newProperty, APIC_COMPOUND_CONTEXTS)
         val newNgsiLdProperty = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
         temporalEntityAttributeService.replaceAttribute(
             temporalEntityAttribute,
@@ -288,7 +288,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val temporalEntityAttribute = temporalEntityAttributeService.getForEntityAndAttribute(
@@ -298,7 +298,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val mergedAt = ngsiLdDateTime()
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
-        val expandedAttribute = expandAttribute(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         temporalEntityAttributeService.mergeAttribute(
             temporalEntityAttribute,
             INCOMING_PROPERTY,
@@ -331,7 +331,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                     }
                 }
             """.trimIndent(),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         temporalEntityAttributeService.getForEntityAndAttribute(
@@ -352,12 +352,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val createdAt = ngsiLdDateTime()
         val attributesToMerge = loadSampleData("fragments/beehive_mergeAttributes.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(attributesToMerge, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttributes = JsonLdUtils.expandAttributes(attributesToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         temporalEntityAttributeService.mergeEntityAttributes(
             beehiveTestCId,
@@ -417,13 +417,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val createdAt = ngsiLdDateTime()
         val observedAt = ZonedDateTime.parse("2019-12-04T12:00:00.00Z")
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute_without_observedAt.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         temporalEntityAttributeService.mergeEntityAttributes(
             beehiveTestCId,
@@ -456,12 +456,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val replacedAt = ngsiLdDateTime()
         val propertyToReplace = loadSampleData("fragments/beehive_new_incoming_property.json")
-        val expandedAttribute = expandAttribute(propertyToReplace, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(propertyToReplace, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
 
         temporalEntityAttributeService.replaceEntityAttribute(
@@ -490,12 +490,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val replacedAt = ngsiLdDateTime()
         val propertyToReplace = loadSampleData("fragments/beehive_new_unknown_property.json")
-        val expandedAttribute = expandAttribute(propertyToReplace, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedAttribute = expandAttribute(propertyToReplace, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
 
         temporalEntityAttributeService.replaceEntityAttribute(
@@ -518,7 +518,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -532,7 +532,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -547,7 +547,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -565,7 +565,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.deleteTemporalAttribute(
             beehiveTestDId,
@@ -588,7 +588,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { attributeInstanceService.deleteAllInstancesOfAttribute(any(), any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.deleteTemporalAttribute(
             beehiveTestCId,
@@ -611,7 +611,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY)
             .shouldSucceed()
@@ -623,7 +623,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         val result = temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed")
 

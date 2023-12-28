@@ -12,10 +12,11 @@ import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
-import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntitiesOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -53,7 +54,7 @@ class EntityOperationHandler(
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
-        checkContext(httpHeaders, body).bind()
+        checkContentType(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
@@ -93,7 +94,7 @@ class EntityOperationHandler(
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
-        checkContext(httpHeaders, body).bind()
+        checkContentType(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
 
         val (parsedEntities, unparsableEntities) =
@@ -158,7 +159,7 @@ class EntityOperationHandler(
             .checkNamesAreNgsiLdSupported().bind()
             .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
-        checkContext(httpHeaders, body).bind()
+        checkContentType(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
@@ -258,37 +259,33 @@ class EntityOperationHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQueryFromPostRequest(
             applicationProperties.pagination,
             requestBody.awaitFirst(),
             params,
-            contextLink
+            contexts
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val countAndEntities = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
+        val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
 
-        val filteredEntities = filterJsonLdEntitiesOnAttributes(countAndEntities.first, entitiesQuery.attrs)
+        val filteredEntities = entities.filterOnAttributes(entitiesQuery.attrs)
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            filteredEntities,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(filteredEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            countAndEntities.second,
+            count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
             LinkedMultiValueMap(),
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -308,7 +305,7 @@ class EntityOperationHandler(
         payload.map {
             val jsonLdExpansionResult =
                 if (contentType == JSON_LD_MEDIA_TYPE)
-                    expandJsonLdEntityF(it)
+                    expandJsonLdEntityF(it.minus(JSONLD_CONTEXT), it.extractContexts())
                 else
                     expandJsonLdEntityF(it, listOf(context ?: NGSILD_CORE_CONTEXT))
             jsonLdExpansionResult

@@ -1,8 +1,8 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,7 +19,7 @@ class AttributeInstanceUtilsTests {
         val expandedStringProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to "A string"),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.STRING,
@@ -32,7 +32,7 @@ class AttributeInstanceUtilsTests {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20.0),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.NUMBER,
@@ -45,7 +45,7 @@ class AttributeInstanceUtilsTests {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.NUMBER,
@@ -58,7 +58,7 @@ class AttributeInstanceUtilsTests {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to true),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.BOOLEAN,
@@ -71,7 +71,7 @@ class AttributeInstanceUtilsTests {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("key1" to "value1", "key2" to "value3")),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.OBJECT,
@@ -84,7 +84,7 @@ class AttributeInstanceUtilsTests {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to listOf("A", "B")),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.ARRAY,
@@ -97,7 +97,7 @@ class AttributeInstanceUtilsTests {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to LocalTime.now()),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.TIME,
@@ -110,7 +110,7 @@ class AttributeInstanceUtilsTests {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("@type" to "DateTime", "@value" to ngsiLdDateTime())),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.DATETIME,
@@ -123,7 +123,7 @@ class AttributeInstanceUtilsTests {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to "urn:ngsi-ld:uri"),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.URI,
@@ -139,7 +139,7 @@ class AttributeInstanceUtilsTests {
                 "type" to "GeoProperty",
                 "value" to mapOf("type" to "Point", "coordinates" to listOf(0, 0))
             ),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.GEOMETRY,
@@ -152,7 +152,7 @@ class AttributeInstanceUtilsTests {
         val expandedGeoRelationship = expandAttribute(
             "relationship",
             mapOf("type" to "Relationship", "value" to URI("urn:ngsi-ld")),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.URI,

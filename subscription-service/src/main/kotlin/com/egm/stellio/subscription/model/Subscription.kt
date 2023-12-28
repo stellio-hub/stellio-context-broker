@@ -177,12 +177,12 @@ fun Map<String, Any>.toFinalRepresentation(
     }
 
 fun List<Subscription>.serialize(
-    context: String,
+    contexts: List<String>,
     mediaType: MediaType = JSON_LD_MEDIA_TYPE,
     includeSysAttrs: Boolean = false
 ): String =
     this.map {
-        convertToMap(it.compact(context))
+        convertToMap(it.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
     }.let {
         serializeObject(it)

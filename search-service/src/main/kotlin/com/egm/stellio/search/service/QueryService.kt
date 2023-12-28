@@ -48,7 +48,7 @@ class QueryService(
 
         val entitiesPayloads =
             entityPayloadService.retrieve(entitiesIds)
-                .map { toJsonLdEntity(it, listOf(entitiesQuery.context)) }
+                .map { toJsonLdEntity(it, entitiesQuery.contexts) }
 
         Pair(entitiesPayloads, count).right().bind()
     }
@@ -56,7 +56,7 @@ class QueryService(
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        contextLink: String
+        contexts: List<String>
     ): Either<APIException, ExpandedEntity> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs).let {
@@ -84,7 +84,7 @@ class QueryService(
         TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, scopeHistory, temporalEntityAttributesWithInstances),
             temporalEntitiesQuery,
-            listOf(contextLink)
+            contexts
         )
     }
 
@@ -176,7 +176,7 @@ class QueryService(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
                 temporalEntitiesQuery,
-                listOf(temporalEntitiesQuery.entitiesQuery.context)
+                temporalEntitiesQuery.entitiesQuery.contexts
             ),
             count
         )

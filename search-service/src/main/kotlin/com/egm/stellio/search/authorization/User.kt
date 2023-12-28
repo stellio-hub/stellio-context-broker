@@ -23,7 +23,7 @@ data class User(
     val familyName: String? = null,
     val subjectInfo: Map<String, String>
 ) {
-    suspend fun serializeProperties(contextLink: String): Map<String, Any> {
+    suspend fun serializeProperties(contexts: List<String>): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = USER_ENTITY_PREFIX + id
         resultEntity[JSONLD_TYPE] = listOf(type)
@@ -43,7 +43,7 @@ data class User(
         }.run {
             if (this.isNotEmpty())
                 resultEntity[AUTH_PROP_SUBJECT_INFO] =
-                    buildExpandedPropertyMapValue(this, listOf(contextLink))
+                    buildExpandedPropertyMapValue(this, contexts)
         }
 
         return resultEntity

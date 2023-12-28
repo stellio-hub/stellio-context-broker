@@ -7,6 +7,7 @@ import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -33,7 +34,7 @@ class TemporalEntityOperationsHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
@@ -41,7 +42,7 @@ class TemporalEntityOperationsHandler(
                 applicationProperties.pagination,
                 requestBody.awaitFirst(),
                 params,
-                contextLink
+                contexts
             ).bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
@@ -51,11 +52,7 @@ class TemporalEntityOperationsHandler(
             accessRightFilter
         ).bind()
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            temporalEntities,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(temporalEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
 
@@ -66,7 +63,7 @@ class TemporalEntityOperationsHandler(
             temporalEntitiesQuery.entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },

@@ -15,10 +15,10 @@ import java.util.Optional
 fun composeEntitiesQuery(
     defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String
+    contexts: List<String>
 ): Either<APIException, EntitiesQuery> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
-    val typeSelection = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val typeSelection = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contexts)
     val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
 
     /**
@@ -27,14 +27,14 @@ fun composeEntitiesQuery(
      */
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
-    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
+    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contexts)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
         defaultPagination.limitMax
     ).bind()
 
-    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contextLink).bind()
+    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contexts).bind()
 
     EntitiesQuery(
         ids = ids,
@@ -45,7 +45,7 @@ fun composeEntitiesQuery(
         paginationQuery = paginationQuery,
         attrs = attrs,
         geoQuery = geoQuery,
-        context = contextLink
+        contexts = contexts
     )
 }
 
@@ -67,22 +67,22 @@ fun composeEntitiesQueryFromPostRequest(
     defaultPagination: ApplicationProperties.Pagination,
     requestBody: String,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String
+    contexts: List<String>
 ): Either<APIException, EntitiesQuery> = either {
     val query = Query(requestBody).bind()
-    composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contextLink).bind()
+    composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contexts).bind()
 }
 
 fun composeEntitiesQueryFromPostRequest(
     defaultPagination: ApplicationProperties.Pagination,
     query: Query,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String
+    contexts: List<String>
 ): Either<APIException, EntitiesQuery> = either {
     val entitySelector = query.entities?.get(0)
-    val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contextLink)
+    val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contexts)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
-    val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contextLink)
+    val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contexts)
     val geoQuery = if (query.geoQ != null) {
         val geoQueryElements = mapOf(
             "geometry" to query.geoQ.geometry,
@@ -90,7 +90,7 @@ fun composeEntitiesQueryFromPostRequest(
             "georel" to query.geoQ.georel,
             "geoproperty" to query.geoQ.geoproperty
         )
-        parseGeoQueryParameters(geoQueryElements, contextLink).bind()
+        parseGeoQueryParameters(geoQueryElements, contexts).bind()
     } else null
 
     val paginationQuery = parsePaginationParameters(
@@ -108,20 +108,20 @@ fun composeEntitiesQueryFromPostRequest(
         paginationQuery = paginationQuery,
         attrs = attrs,
         geoQuery = geoQuery,
-        context = contextLink
+        contexts = contexts
     )
 }
 
 fun composeTemporalEntitiesQuery(
     defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String,
+    contexts: List<String>,
     inQueryEntities: Boolean = false
 ): Either<APIException, TemporalEntitiesQuery> = either {
     val entitiesQuery = composeEntitiesQuery(
         defaultPagination,
         requestParams,
-        contextLink
+        contexts
     ).bind()
 
     if (inQueryEntities)
@@ -154,14 +154,14 @@ fun composeTemporalEntitiesQueryFromPostRequest(
     defaultPagination: ApplicationProperties.Pagination,
     requestBody: String,
     requestParams: MultiValueMap<String, String>,
-    contextLink: String
+    contexts: List<String>
 ): Either<APIException, TemporalEntitiesQuery> = either {
     val query = Query(requestBody).bind()
     val entitiesQuery = composeEntitiesQueryFromPostRequest(
         defaultPagination,
         query,
         requestParams,
-        contextLink
+        contexts
     ).bind()
         .validateMinimalQueryEntitiesParameters().bind()
 

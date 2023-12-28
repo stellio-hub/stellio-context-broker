@@ -42,8 +42,6 @@ class AttributeHandlerTests {
     @MockkBean
     private lateinit var attributeService: AttributeService
 
-    private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-
     private val expectedAttributeDetails =
         """
         [
@@ -204,7 +202,7 @@ class AttributeHandlerTests {
 
     @Test
     fun `get attribute type information should correctly serialize an AttributeTypeInfo`() {
-        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), listOf(APIC_COMPOUND_CONTEXT)) } returns
+        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), APIC_COMPOUND_CONTEXTS) } returns
             AttributeTypeInfo(
                 id = TEMPERATURE_PROPERTY.toUri(),
                 type = "Attribute",
@@ -216,14 +214,14 @@ class AttributeHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/temperature")
-            .header(HttpHeaders.LINK, apicHeaderLink)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(expectedAttributeTypeInfo)
 
         coVerify {
-            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
+            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
         }
     }
 

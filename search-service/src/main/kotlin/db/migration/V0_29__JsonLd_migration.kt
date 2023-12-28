@@ -6,7 +6,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.guessPropertyValueType
 import com.egm.stellio.search.util.toTemporalAttributeMetadata
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -14,12 +14,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.extractContexts
+import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
@@ -75,7 +73,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         }.forEach { (entityId, payload) ->
             logger.debug("Migrating entity {}", entityId)
             val deserializedPayload = payload.deserializeAsMap()
-            val contexts = extractContextFromInput(deserializedPayload)
+            val contexts = deserializedPayload.extractContexts()
                 .map {
                     if (contextsToTransform.containsKey(it)) {
                         contextsToTransform[it]!!
@@ -94,12 +92,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             // extract specific access policy (if any) from the payload to be able to store it in entity_payload
             // then remove it from the expanded payload
             val specificAccessPolicy =
-                getAttributeFromExpandedAttributes(
-                    originalExpandedEntity as ExpandedAttributes,
+                (originalExpandedEntity as ExpandedAttributes).getAttributeFromExpandedAttributes(
                     AUTH_PROP_SAP,
                     null
                 )?.let {
-                    getPropertyValueFromMapAsString(it, NGSILD_PROPERTY_VALUE)
+                    it.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
                 }?.let {
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
                 }
@@ -113,8 +110,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             // as a property of the entity node, so we give them the creation date of the entity
             val entityCreationDate =
                 try {
-                    getPropertyValueFromMapAsDateTime(
-                        expandedEntity as Map<String, List<Any>>,
+                    (expandedEntity as Map<String, List<Any>>).getMemberValueAsDateTime(
                         NGSILD_CREATED_AT_PROPERTY
                     ) ?: defaultZonedDateTime
                 } catch (e: DateTimeParseException) {
@@ -149,8 +145,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                         val attributeName = ngsiLdAttribute.name
                         ngsiLdAttribute.getAttributeInstances().forEach { ngsiLdAttributeInstance ->
                             val datasetId = ngsiLdAttributeInstance.datasetId
-                            val attributePayload = getAttributeFromExpandedAttributes(
-                                jsonLdEntity.getAttributes(),
+                            val attributePayload = jsonLdEntity.getAttributes().getAttributeFromExpandedAttributes(
                                 attributeName,
                                 datasetId
                             )!!

@@ -46,12 +46,12 @@ class SubscriptionTest {
                 receiverInfo = endpointReceiverInfo
             )
         ),
-        contexts = listOf(APIC_COMPOUND_CONTEXT)
+        contexts = APIC_COMPOUND_CONTEXTS
     )
 
     @Test
     fun `it should expand a subscription`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         assertThat(subscription)
             .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
@@ -75,7 +75,7 @@ class SubscriptionTest {
                     typeSelection = "($BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE);$BEEKEEPER_COMPACT_TYPE"
                 )
             )
-        ).expand(listOf(APIC_COMPOUND_CONTEXT))
+        ).expand(APIC_COMPOUND_CONTEXTS)
 
         assertThat(subscription.entities)
             .allMatch { it.typeSelection == "($BEEHIVE_TYPE,$APIARY_TYPE);$BEEKEEPER_TYPE" }
@@ -84,9 +84,9 @@ class SubscriptionTest {
 
     @Test
     fun `it should compact a subscription`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val compactedSubscription = subscription.compact(APIC_COMPOUND_CONTEXT)
+        val compactedSubscription = subscription.compact(APIC_COMPOUND_CONTEXTS)
 
         assertThat(compactedSubscription)
             .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
@@ -102,7 +102,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON and add the status attribute`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
@@ -114,7 +114,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON without createdAt and modifiedAt if not specified`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
@@ -126,7 +126,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription as JSON with createdAt and modifiedAt if specified`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
 
@@ -137,7 +137,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription with a context if JSON-LD media type is asked`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
 
@@ -148,7 +148,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a subscription without context if JSON media type is asked`() {
-        val subscription = subscription.copy().expand(listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
 
@@ -163,7 +163,7 @@ class SubscriptionTest {
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs =
-            listOf(subscription, otherSubscription).serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
+            listOf(subscription, otherSubscription).serialize(NGSILD_TEST_CORE_CONTEXTS, includeSysAttrs = true)
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 
@@ -181,7 +181,7 @@ class SubscriptionTest {
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs = listOf(subscription, otherSubscription)
-            .serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
+            .serialize(NGSILD_TEST_CORE_CONTEXTS, mediaType = MediaType.APPLICATION_JSON)
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 

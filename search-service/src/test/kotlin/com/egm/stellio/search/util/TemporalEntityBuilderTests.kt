@@ -38,7 +38,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
@@ -49,7 +49,7 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
@@ -72,7 +72,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -84,7 +84,7 @@ class TemporalEntityBuilderTests {
                 withAudit,
                 false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -110,7 +110,7 @@ class TemporalEntityBuilderTests {
                 withAudit,
                 false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -178,7 +178,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -190,7 +190,7 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = true
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         assertJsonPayloadsAreEqual(

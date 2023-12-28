@@ -26,10 +26,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
@@ -208,15 +204,15 @@ class NgsiLdPropertyInstance private constructor(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdPropertyInstance> = either {
-            val value = getPropertyValueFromMap(values, NGSILD_PROPERTY_VALUE)
+            val value = values.getMemberValue(NGSILD_PROPERTY_VALUE)
             ensureNotNull(value) {
                 BadRequestDataException("Property $name has an instance without a value")
             }
 
-            val unitCode = getPropertyValueFromMapAsString(values, NGSILD_UNIT_CODE_PROPERTY)
-            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
-            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
-            val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
+            val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_PROPERTY)
+            val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
             val attributes = getNonCoreAttributes(values, NGSILD_PROPERTIES_CORE_MEMBERS)
@@ -256,10 +252,10 @@ class NgsiLdRelationshipInstance private constructor(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
-            val objectId = extractRelationshipObject(name, values).bind()
-            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
-            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
-            val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
+            val objectId = values.extractRelationshipObject(name).bind()
+            val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
             val attributes = getNonCoreAttributes(values, NGSILD_RELATIONSHIPS_CORE_MEMBERS)
@@ -298,9 +294,9 @@ class NgsiLdGeoPropertyInstance(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdGeoPropertyInstance> = either {
-            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
-            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
-            val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
+            val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
             val wktValue = (values[NGSILD_GEOPROPERTY_VALUE]!![0] as Map<String, String>)[JSONLD_VALUE] as String
@@ -340,7 +336,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
-            val json = getPropertyValueFromMap(values, NGSILD_JSONPROPERTY_VALUE)
+            val json = values.getMemberValue(NGSILD_JSONPROPERTY_VALUE)
             ensureNotNull(json) {
                 BadRequestDataException("Property $name has an instance without a json")
             }
@@ -348,9 +344,9 @@ class NgsiLdJsonPropertyInstance private constructor(
                 BadRequestDataException("Property $name has a json member that is not a map")
             }
 
-            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
-            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
-            val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
+            val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
             val attributes = getNonCoreAttributes(values, NGSILD_JSONPROPERTIES_CORE_MEMBERS)
@@ -393,7 +389,7 @@ private suspend inline fun <reified T : NgsiLdAttribute> getAttributesOfType(
 ): Either<APIException, List<T>> = either {
     attributes
         .mapValues {
-            JsonLdUtils.castAttributeValue(it.value)
+            castAttributeValue(it.value)
         }.filter {
             // only check the first entry, multi-attribute consistency is later checked by each attribute
             isAttributeOfType(it.value[0], type)
@@ -474,7 +470,7 @@ fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
 fun ExpandedAttributeInstance.getScopes(): List<String>? =
-    when (val rawScopes = getPropertyValueFromMap(this, NGSILD_SCOPE_PROPERTY)) {
+    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {
         is String -> listOf(rawScopes)
         is List<*> -> rawScopes as List<String>
         else -> null

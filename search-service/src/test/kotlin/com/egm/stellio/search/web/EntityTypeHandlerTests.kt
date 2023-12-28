@@ -40,8 +40,6 @@ class EntityTypeHandlerTests {
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
 
-    private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val sensorType = "https://ontology.eglobalmark.com/egm#Sensor"
 
@@ -261,7 +259,7 @@ class EntityTypeHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/types/BeeHive")
-            .header(HttpHeaders.LINK, apicHeaderLink)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -270,7 +268,7 @@ class EntityTypeHandlerTests {
         coVerify {
             entityTypeService.getEntityTypeInfoByType(
                 "https://ontology.eglobalmark.com/apic#BeeHive",
-                listOf(APIC_COMPOUND_CONTEXT)
+                APIC_COMPOUND_CONTEXTS
             )
         }
     }

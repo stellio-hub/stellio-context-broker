@@ -250,7 +250,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -275,7 +275,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountGroups(any()) } returns Either.Right(1)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
             .shouldSucceedWith {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)
@@ -309,7 +309,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getUsersCount() } returns Either.Right(2)
 
-        enabledAuthorizationService.getUsers(0, 2, AUTHZ_TEST_COMPOUND_CONTEXT)
+        enabledAuthorizationService.getUsers(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -343,9 +343,9 @@ class EnabledAuthorizationServiceTests {
             EntitiesQuery(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
-                context = APIC_COMPOUND_CONTEXT
+                contexts = APIC_COMPOUND_CONTEXTS
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
+            contexts = APIC_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
             assertEquals(1, it.first)
@@ -399,9 +399,9 @@ class EnabledAuthorizationServiceTests {
             EntitiesQuery(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
-                context = APIC_COMPOUND_CONTEXT
+                contexts = APIC_COMPOUND_CONTEXTS
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
+            contexts = APIC_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
             assertEquals(1, it.first)

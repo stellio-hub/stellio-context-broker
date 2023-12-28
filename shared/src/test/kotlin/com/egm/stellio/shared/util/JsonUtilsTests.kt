@@ -121,8 +121,8 @@ class JsonUtilsTests {
                 DEFAULT_TENANT_URI,
                 entityId,
                 listOf(BEEHIVE_TYPE),
-                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
-                listOf(APIC_COMPOUND_CONTEXT)
+                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
+                APIC_COMPOUND_CONTEXTS
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityCreateEvent.json"), event)
@@ -136,8 +136,8 @@ class JsonUtilsTests {
                 DEFAULT_TENANT_URI,
                 entityId,
                 listOf(BEEHIVE_TYPE),
-                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
-                listOf(APIC_COMPOUND_CONTEXT)
+                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
+                APIC_COMPOUND_CONTEXTS
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityDeleteEvent.json"), event)

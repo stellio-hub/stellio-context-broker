@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
@@ -54,8 +55,6 @@ import java.time.*
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 @Import(WebSecurityTestConfig::class)
 class EntityHandlerTests {
-
-    private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -187,7 +186,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -204,7 +203,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(entityWithoutId)
             .exchange()
             .expectStatus().isBadRequest
@@ -221,7 +220,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(entityWithoutType)
             .exchange()
             .expectStatus().isBadRequest
@@ -325,7 +324,7 @@ class EntityHandlerTests {
                 """
                 {
                     "createdAt": "2015-10-18T11:20:30.000001Z",
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -402,7 +401,7 @@ class EntityHandlerTests {
                     "type": "Beehive",
                     "prop1": "some value",
                     "rel1": "urn:ngsi-ld:Entity:1234",
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -457,7 +456,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"@context":["$NGSILD_CORE_CONTEXT"]}""")
+            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }
@@ -513,7 +512,7 @@ class EntityHandlerTests {
                         "createdAt":"2015-10-18T11:20:30.000001Z",
                         "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -553,7 +552,7 @@ class EntityHandlerTests {
                             "@value":"2015-10-18"
                         }
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -593,7 +592,7 @@ class EntityHandlerTests {
                             "@value":"11:20:30"
                         }
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -630,7 +629,7 @@ class EntityHandlerTests {
                     "id":"urn:ngsi-ld:Beehive:4567",
                     "type":"Beehive",
                     "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -683,7 +682,7 @@ class EntityHandlerTests {
                             "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -726,7 +725,7 @@ class EntityHandlerTests {
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -825,7 +824,7 @@ class EntityHandlerTests {
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
                     ],
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -859,7 +858,7 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
@@ -899,7 +898,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -915,7 +914,7 @@ class EntityHandlerTests {
                 EntitiesQuery(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    context = NGSILD_CORE_CONTEXT
+                    contexts = NGSILD_CORE_CONTEXTS
                 ),
                 any()
             )
@@ -949,7 +948,7 @@ class EntityHandlerTests {
                         "id": "$beehiveId",
                         "type": "Beehive",
                         "createdAt":"2015-10-18T11:20:30.000001Z",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -988,7 +987,7 @@ class EntityHandlerTests {
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "Beehive",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -1050,7 +1049,7 @@ class EntityHandlerTests {
                     ids = setOf(beehiveId),
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 any()
             )
@@ -1061,7 +1060,7 @@ class EntityHandlerTests {
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(APIC_COMPOUND_CONTEXT)
+                    APIC_COMPOUND_CONTEXTS
                 )
             ),
             1
@@ -1079,7 +1078,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": ["$APIC_COMPOUND_CONTEXT"]
+                        "@context": "$APIC_COMPOUND_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -1301,7 +1300,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1351,7 +1350,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1402,7 +1401,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1449,7 +1448,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1489,7 +1488,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
@@ -1530,7 +1529,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(invalidPayload)
             .exchange()
@@ -1559,7 +1558,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1605,7 +1604,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", aquacHeaderLink)
+            .header("Link", AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1640,7 +1639,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1670,7 +1669,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1695,7 +1694,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1750,7 +1749,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1804,7 +1803,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId?observedAt=2019-12-04T12:00:00.00Z")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1842,7 +1841,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId?observedAt=notDateTime")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1894,7 +1893,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1916,7 +1915,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1957,7 +1956,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2003,7 +2002,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2030,7 +2029,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2113,7 +2112,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2136,7 +2135,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
+        every { entity.contexts } returns APIC_COMPOUND_CONTEXTS
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
@@ -2159,7 +2158,7 @@ class EntityHandlerTests {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entity),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2277,7 +2276,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2312,7 +2311,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(true),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2347,7 +2346,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }

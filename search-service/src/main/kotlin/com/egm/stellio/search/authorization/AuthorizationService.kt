@@ -23,20 +23,20 @@ interface AuthorizationService {
 
     suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQuery,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 
     suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 
     suspend fun getUsers(
         offset: Int,
         limit: Int,
-        contextLink: String,
+        contexts: List<String>,
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>>
 }

@@ -544,7 +544,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     ) {
         val rawEntity =
             if (specificAccessPolicy != null)
-                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
+                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, AUTHZ_TEST_COMPOUND_CONTEXTS)
             else loadMinimalEntity(entityId, types)
         rawEntity.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(

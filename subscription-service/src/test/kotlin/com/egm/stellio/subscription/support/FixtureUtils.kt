@@ -9,15 +9,15 @@ import com.egm.stellio.subscription.utils.ParsingUtils
 import java.time.Instant
 import java.time.ZoneOffset
 
-fun loadAndDeserializeSubscription(filename: String, context: String = APIC_COMPOUND_CONTEXT): Subscription {
+fun loadAndDeserializeSubscription(filename: String, contexts: List<String> = APIC_COMPOUND_CONTEXTS): Subscription {
     val subscriptionPayload = loadSampleData(filename)
-    return ParsingUtils.parseSubscription(subscriptionPayload.deserializeAsMap(), listOf(context))
+    return ParsingUtils.parseSubscription(subscriptionPayload.deserializeAsMap(), contexts)
         .shouldSucceedAndResult()
 }
 
 fun gimmeSubscriptionFromMembers(
     additionalMembers: Map<String, Any>,
-    contexts: List<String> = listOf(APIC_COMPOUND_CONTEXT)
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
 ): Subscription {
     val payload = mapOf(
         "id" to "urn:ngsi-ld:Subscription:01".toUri(),

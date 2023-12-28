@@ -2,7 +2,10 @@ package com.egm.stellio.search.service
 
 import arrow.core.right
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.support.*
+import com.egm.stellio.search.support.EMPTY_PAYLOAD
+import com.egm.stellio.search.support.WithKafkaContainer
+import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -79,7 +82,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from string with specificAccessPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -88,7 +91,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     now
                 )
             }
-        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -147,13 +150,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+                assertEquals(APIC_COMPOUND_CONTEXTS, it.contexts)
             }
 
         coVerify {
@@ -205,7 +208,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -265,13 +268,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
             loadSampleData("fragments/beehive_merge_entity_multiple_types.jsonld"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.mergeEntity(
@@ -309,13 +312,13 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
             loadSampleData("fragments/beehive_merge_entity_multiple_types_and_scopes.jsonld"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.mergeEntity(
@@ -352,7 +355,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.createEntity(
             createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -398,7 +401,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val expandedAttribute = expandAttribute(
             loadSampleData("fragments/beehive_new_incoming_property.json"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.replaceAttribute(beehiveTestCId, expandedAttribute, "0123456789-1234-5678-987654321")
@@ -436,7 +439,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -707,7 +710,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should remove a specific access policy from a entity payload`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHZ_TEST_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(

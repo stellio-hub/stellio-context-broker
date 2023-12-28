@@ -1,6 +1,9 @@
 package com.egm.stellio.search.web
 
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.*
 import com.egm.stellio.search.util.composeTemporalEntitiesQuery
@@ -352,4 +355,35 @@ class TemporalEntityHandler(
         missingPathErrorResponse(
             "Missing entity, attribute or instance id when trying to delete an attribute instance"
         )
+
+    private fun ExpandedAttributes.checkTemporalAttributeInstance(): Either<APIException, Unit> =
+        this.values.all { expandedInstances ->
+            expandedInstances.all { expandedAttributePayloadEntry ->
+                JsonLdUtils.getPropertyValueFromMapAsDateTime(
+                    expandedAttributePayloadEntry,
+                    JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+                ) != null
+            }
+        }.let {
+            if (it) Unit.right()
+            else BadRequestDataException(invalidTemporalInstanceMessage()).left()
+        }
+
+    private fun ExpandedAttributes.sorted(): ExpandedAttributes =
+        this.mapValues {
+            it.value.sortedByDescending { expandedAttributePayloadEntry ->
+                JsonLdUtils.getPropertyValueFromMapAsDateTime(
+                    expandedAttributePayloadEntry,
+                    JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+                )
+            }
+        }
+
+    private fun ExpandedAttributes.keepFirstInstances(): ExpandedAttributes =
+        this.mapValues { listOf(it.value.first()) }
+
+    private fun ExpandedAttributes.removeFirstInstances(): ExpandedAttributes =
+        this.mapValues {
+            it.value.drop(1)
+        }
 }

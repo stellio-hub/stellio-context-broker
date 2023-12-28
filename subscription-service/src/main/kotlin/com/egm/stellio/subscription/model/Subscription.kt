@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS

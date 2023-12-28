@@ -1,11 +1,11 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
@@ -26,7 +26,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS)
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS)
 
         assertEquals("urn:ngsi-ld:Device:01234", ngsiLdEntity.id)
         assertEquals(listOf("https://uri.etsi.org/ngsi-ld/default-context/Device"), ngsiLdEntity.types)
@@ -41,7 +41,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("The provided NGSI-LD entity does not contain an id property", it.message)
         }
@@ -60,7 +60,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("The provided NGSI-LD entity does not contain a type property", it.message)
         }
@@ -80,7 +80,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Entity has attribute(s) with an unknown type: [${NGSILD_DEFAULT_VOCAB}deviceState]",
@@ -103,7 +103,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -132,7 +133,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -172,7 +174,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
@@ -197,7 +200,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals(ZonedDateTime.parse("2022-01-19T00:00:00Z"), ngsiLdPropertyInstance.createdAt)
@@ -217,7 +221,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldFail {
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Property ${NGSILD_DEFAULT_VOCAB}deviceState has an instance without a value",
@@ -246,7 +250,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
@@ -274,7 +279,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState instances must have the same type",
@@ -312,7 +317,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState " +
@@ -345,7 +350,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState can't have more than one default instance",
@@ -370,7 +375,7 @@ class NgsiLdEntityTests {
             """.trimIndent()
 
         val ngsiLdAttributes =
-            expandAttributes(rawProperty, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldSucceedAndResult()
+            expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdAttributes.size)
         val ngsiLdAttribute = ngsiLdAttributes[0]
@@ -394,7 +399,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
@@ -422,7 +428,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
         assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
@@ -452,7 +459,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
@@ -478,7 +486,7 @@ class NgsiLdEntityTests {
 
             """.trimIndent()
 
-        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel can't have more " +
@@ -508,7 +516,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel " +
@@ -542,7 +550,7 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        expandAttributes(rawRelationship, DEFAULT_CONTEXTS).toNgsiLdAttributes().shouldFail {
+        expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel instances must have the same type",
@@ -574,7 +582,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)
@@ -618,7 +627,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)
@@ -656,7 +666,8 @@ class NgsiLdEntityTests {
             }
             """.trimIndent()
 
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
 
         val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
         assertNotNull(location)

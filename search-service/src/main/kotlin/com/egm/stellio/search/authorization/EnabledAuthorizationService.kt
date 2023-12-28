@@ -95,7 +95,7 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQuery,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val accessRights = entitiesQuery.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
@@ -127,8 +127,8 @@ class EnabledAuthorizationService(
                     )
                 } else entityAccessControl
             }
-            .map { it.serializeProperties(contextLink) }
-            .map { ExpandedEntity(it, listOf(contextLink)) }
+            .map { it.serializeProperties(contexts) }
+            .map { ExpandedEntity(it, contexts) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
@@ -143,7 +143,7 @@ class EnabledAuthorizationService(
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val groups =
@@ -162,10 +162,7 @@ class EnabledAuthorizationService(
             }
 
         val jsonLdEntities = groups.second.map {
-            ExpandedEntity(
-                it.serializeProperties(),
-                listOf(contextLink)
-            )
+            ExpandedEntity(it.serializeProperties(), contexts)
         }
 
         Pair(groups.first, jsonLdEntities)
@@ -174,16 +171,13 @@ class EnabledAuthorizationService(
     override suspend fun getUsers(
         offset: Int,
         limit: Int,
-        contextLink: String
+        contexts: List<String>,
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val users = subjectReferentialService.getUsers(offset, limit)
         val usersCount = subjectReferentialService.getUsersCount().bind()
 
         val jsonLdEntities = users.map {
-            ExpandedEntity(
-                it.serializeProperties(contextLink),
-                listOf(contextLink)
-            )
+            ExpandedEntity(it.serializeProperties(contexts), contexts)
         }
 
         Pair(usersCount, jsonLdEntities)

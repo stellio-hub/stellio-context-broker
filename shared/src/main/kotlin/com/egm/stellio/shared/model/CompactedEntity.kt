@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -74,9 +75,14 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
     }
 }
 
+/**
+ * Create the final representation of the entity, taking into account the options parameter and the Accept header.
+ *
+ * As a GeoJSON representation may have a null value for a key, returns a Map<String, Any?> instead of CompactedEntity.
+ */
 fun CompactedEntity.toFinalRepresentation(
     ngsiLdDataRepresentation: NgsiLdDataRepresentation
-): Any =
+): Map<String, Any?> =
     this.let {
         if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs(ngsiLdDataRepresentation.timeproperty)
         else it
@@ -84,12 +90,21 @@ fun CompactedEntity.toFinalRepresentation(
         if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED) it.toKeyValues()
         else it
     }.let {
-        if (ngsiLdDataRepresentation.entityRepresentation == EntityRepresentation.GEO_JSON)
-            // geometryProperty is not null when GeoJSON representation is asked (defaults to location)
-            it.toGeoJson(ngsiLdDataRepresentation.geometryProperty!!)
-        else it
+        when (ngsiLdDataRepresentation.entityRepresentation) {
+            EntityRepresentation.GEO_JSON ->
+                // geometryProperty is not null when GeoJSON representation is asked (defaults to location)
+                it.toGeoJson(ngsiLdDataRepresentation.geometryProperty!!)
+            EntityRepresentation.JSON -> it.minus(JSONLD_CONTEXT)
+            EntityRepresentation.JSON_LD -> it
+        }
     }
 
+/**
+ * Create the final representation of a list of entities, taking into account the options parameter
+ * and the Accept header.
+ *
+ * For a GeoJSON representation, the result is a map containing a list of GeoJson objects.
+ */
 fun List<CompactedEntity>.toFinalRepresentation(
     ngsiLdDataRepresentation: NgsiLdDataRepresentation
 ): Any =

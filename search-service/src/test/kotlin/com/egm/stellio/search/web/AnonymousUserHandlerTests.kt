@@ -8,8 +8,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.ninjasquad.springmockk.MockkBean
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,8 +26,6 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @Suppress("unused")
 @Import(WebSecurityTestConfig::class)
 class AnonymousUserHandlerTests {
-
-    private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -54,7 +51,7 @@ class AnonymousUserHandlerTests {
         webClient
             .get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .exchange()
             .expectStatus().isUnauthorized
     }

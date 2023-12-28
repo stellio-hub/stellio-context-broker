@@ -4,7 +4,9 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -43,7 +45,7 @@ fun gimmeTemporalEntitiesQuery(
     TemporalEntitiesQuery(
         entitiesQuery = EntitiesQuery(
             paginationQuery = PaginationQuery(limit = 50, offset = 0),
-            context = APIC_COMPOUND_CONTEXT
+            contexts = APIC_COMPOUND_CONTEXTS
         ),
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
@@ -54,5 +56,5 @@ fun gimmeTemporalEntitiesQuery(
 fun buildDefaultQueryParams(): EntitiesQuery =
     EntitiesQuery(
         paginationQuery = PaginationQuery(limit = 50, offset = 0),
-        context = APIC_COMPOUND_CONTEXT
+        contexts = APIC_COMPOUND_CONTEXTS
     )

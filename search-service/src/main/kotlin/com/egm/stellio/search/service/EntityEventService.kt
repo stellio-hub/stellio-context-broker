@@ -7,7 +7,6 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
@@ -253,8 +252,7 @@ class EntityEventService(
         when (attributeName) {
             JSONLD_TYPE -> Pair(JSONLD_TYPE, serializeObject(jsonLdAttributes[JSONLD_TYPE]!!))
             else -> {
-                val extractedPayload = getAttributeFromExpandedAttributes(
-                    jsonLdAttributes as ExpandedAttributes,
+                val extractedPayload = (jsonLdAttributes as ExpandedAttributes).getAttributeFromExpandedAttributes(
                     attributeName,
                     datasetId
                 )!!

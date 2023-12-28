@@ -7,7 +7,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
@@ -68,9 +67,7 @@ class NotificationServiceTests {
                  ]
               }
            },
-           "@context":[
-              "$APIC_COMPOUND_CONTEXT"                  
-           ]
+           "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         } 
         """.trimIndent()
 
@@ -118,7 +115,7 @@ class NotificationServiceTests {
                 FormatType.NORMALIZED,
                 listOf(NGSILD_NAME_PROPERTY, NGSILD_LOCATION_PROPERTY)
             ),
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
         val jsonLdEntity = expandJsonLdEntity(rawEntity)
 
@@ -188,10 +185,7 @@ class NotificationServiceTests {
             assertEquals(1, notificationResult.second.data.size)
             assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
             assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
-            assertEquals(
-                listOf(NGSILD_TEST_CORE_CONTEXT),
-                notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT]
-            )
+            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
             assertTrue(notificationResult.third)
         }
     }

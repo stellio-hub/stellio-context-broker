@@ -5,7 +5,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -122,7 +121,7 @@ class ExpandedEntityTests {
     fun `it should find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to ""),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
 
         val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
@@ -136,7 +135,7 @@ class ExpandedEntityTests {
     fun `it should not find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01"),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
 
         val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))

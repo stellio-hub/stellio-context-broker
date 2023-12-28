@@ -3,8 +3,11 @@ package com.egm.stellio.subscription.job
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.ApplicationProperties.TenantConfiguration
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.Notification
@@ -117,7 +120,7 @@ class TimeIntervalNotificationJobTest {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
                 DEFAULT_TENANT_URI,
                 query,
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(1, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
@@ -142,7 +145,7 @@ class TimeIntervalNotificationJobTest {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
                 DEFAULT_TENANT_URI,
                 "?type=BeeHive",
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(2, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
@@ -191,7 +194,7 @@ class TimeIntervalNotificationJobTest {
             val compactedEntities = timeIntervalNotificationJob.getEntitiesToNotify(
                 DEFAULT_TENANT_URI,
                 subscription,
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(2, compactedEntities.size)
             assertTrue(

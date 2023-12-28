@@ -94,7 +94,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return an EntityTypeList`() = runTest {
-        val entityTypes = entityTypeService.getEntityTypeList(listOf(APIC_COMPOUND_CONTEXT))
+        val entityTypes = entityTypeService.getEntityTypeList(APIC_COMPOUND_CONTEXTS)
 
         assertTrue(
             entityTypes.typeList == listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
@@ -111,7 +111,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a list of EntityType`() = runTest {
-        val entityTypes = entityTypeService.getEntityTypes(listOf(APIC_COMPOUND_CONTEXT))
+        val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
 
         assertTrue(entityTypes.size == 3)
         assertTrue(
@@ -153,7 +153,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return an EntityTypeInfo for a specific type`() = runTest {
         val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(
             BEEHIVE_TYPE,
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityTypeInfo.shouldSucceedWith {
@@ -180,7 +180,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should error when type doesn't exist`() = runTest {
         val entityTypeInfo =
-            entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
+            entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
 
         entityTypeInfo.shouldFail {
             assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
@@ -241,13 +241,13 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private fun newEntityPayload(
         id: String,
         types: List<String>,
-        context: String = APIC_COMPOUND_CONTEXT
+        contexts: List<String> = APIC_COMPOUND_CONTEXTS
     ): EntityPayload =
         EntityPayload(
             entityId = toUri(id),
             types = types,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(context)
+            contexts = contexts
         )
 }

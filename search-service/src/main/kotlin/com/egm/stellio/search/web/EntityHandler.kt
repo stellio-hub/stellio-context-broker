@@ -13,10 +13,12 @@ import com.egm.stellio.search.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
@@ -188,34 +190,30 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contextLink
+            contexts
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val countAndEntities = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
+        val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
 
-        val filteredEntities = JsonLdUtils.filterJsonLdEntitiesOnAttributes(countAndEntities.first, entitiesQuery.attrs)
+        val filteredEntities = entities.filterOnAttributes(entitiesQuery.attrs)
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            filteredEntities,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(filteredEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            countAndEntities.second,
+            count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -234,29 +232,29 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val queryParams = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contextLink
+            contexts
         ).bind()
 
         entityPayloadService.checkEntityExistence(entityId).bind()
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
-        val jsonLdEntity = queryService.queryEntity(entityId, listOf(contextLink)).bind()
+        val jsonLdEntity = queryService.queryEntity(entityId, contexts).bind()
 
         jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
         val filteredExpandedEntity = ExpandedEntity(
-            JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, queryParams.attrs),
+            jsonLdEntity.filterOnAttributes(queryParams.attrs),
             jsonLdEntity.contexts
         )
-        val compactedEntity = JsonLdUtils.compactEntity(filteredExpandedEntity, contextLink, mediaType).toMutableMap()
+        val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
         { it.toErrorResponse() },
@@ -411,7 +409,7 @@ class EntityHandler(
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
         val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
 
-        val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
+        val expandedAttribute = expandAttribute(attrId, body, contexts)
 
         entityPayloadService.partialUpdateAttribute(
             entityId,
@@ -458,8 +456,8 @@ class EntityHandler(
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
-        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders).bind())
-        val expandedAttrId = JsonLdUtils.expandJsonLdTerm(attrId, contexts)
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
@@ -504,7 +502,7 @@ class EntityHandler(
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val expandedAttribute = expandAttribute(attrId, removeContextFromInput(body), contexts)
+        val expandedAttribute = expandAttribute(attrId, body, contexts)
 
         entityPayloadService.replaceAttribute(entityId, expandedAttribute, sub.getOrNull()).bind()
             .let {

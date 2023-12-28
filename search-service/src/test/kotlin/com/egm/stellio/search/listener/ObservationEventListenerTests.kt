@@ -49,7 +49,7 @@ class ObservationEventListenerTests {
         coVerify {
             entityPayloadService.createEntity(
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
+                APIC_COMPOUND_CONTEXTS,
                 eq("0123456789-1234-5678-987654321")
             )
         }
@@ -59,7 +59,7 @@ class ObservationEventListenerTests {
                 eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
                 eq(listOf(BEEHIVE_TYPE)),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -106,7 +106,7 @@ class ObservationEventListenerTests {
                         it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -173,7 +173,7 @@ class ObservationEventListenerTests {
                         it.updated[0].datasetId == expectedTemperatureDatasetId
                 },
                 eq(true),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }

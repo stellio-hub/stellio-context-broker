@@ -5,7 +5,9 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.core.io.ClassPathResource
 import java.net.URI
 
@@ -36,7 +38,7 @@ fun loadMinimalEntityWithSap(
     entityId: URI,
     entityTypes: Set<String>,
     specificAccessPolicy: AuthContextModel.SpecificAccessPolicy,
-    contexts: Set<String> = setOf(NGSILD_TEST_CORE_CONTEXT)
+    contexts: List<String> = NGSILD_TEST_CORE_CONTEXTS
 ): String =
     """
         {
@@ -56,6 +58,11 @@ suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<Expande
         is Either.Left -> BadRequestDataException("Invalid NGSI-LD input for sample data: $this").left()
         is Either.Right -> Pair(jsonLdEntity, ngsiLdEntity.value).right()
     }
+}
+
+suspend fun expandJsonLdEntity(input: String): ExpandedEntity {
+    val jsonInput = input.deserializeAsMap()
+    return expandJsonLdEntity(jsonInput.minus(JSONLD_CONTEXT), jsonInput.extractContexts())
 }
 
 fun String.removeNoise(): String =

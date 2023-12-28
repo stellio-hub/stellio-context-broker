@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
 import io.mockk.verify
@@ -548,10 +547,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsList())
+        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(

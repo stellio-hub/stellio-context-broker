@@ -168,6 +168,6 @@ class TemporalScopeBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
 }

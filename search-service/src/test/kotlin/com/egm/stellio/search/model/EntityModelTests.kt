@@ -18,7 +18,7 @@ class EntityModelTests {
         createdAt = now,
         modifiedAt = now,
         payload = EMPTY_JSON_PAYLOAD,
-        contexts = DEFAULT_CONTEXTS
+        contexts = NGSILD_TEST_CORE_CONTEXTS
     )
 
     @Test

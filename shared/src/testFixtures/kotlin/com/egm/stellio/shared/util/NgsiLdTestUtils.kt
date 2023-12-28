@@ -25,20 +25,20 @@ suspend fun gimmeSimpleEntityWithGeoProperty(
         }
         """.trimIndent()
 
-    return JsonLdUtils.expandJsonLdEntity(entityWithLocation, DEFAULT_CONTEXTS)
+    return JsonLdUtils.expandJsonLdEntity(entityWithLocation, NGSILD_TEST_CORE_CONTEXTS)
 }
 
 suspend fun gimmeSimpleEntityWithAttributes(
     id: String,
     type: String,
-    contexts: List<String> = listOf(APIC_COMPOUND_CONTEXT)
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
 ): ExpandedEntity =
     gimmeSimpleEntityWithAttributes(id, listOf(type), contexts)
 
 suspend fun gimmeSimpleEntityWithAttributes(
     id: String,
     types: List<String>,
-    contexts: List<String> = listOf(APIC_COMPOUND_CONTEXT)
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
 ): ExpandedEntity {
     val entity = mapOf(
         "id" to id,

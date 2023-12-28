@@ -47,17 +47,17 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return an empty list if no attrs param is provided`() {
-        assertTrue(parseAndExpandRequestParameter(null, "").isEmpty())
+        assertTrue(parseAndExpandRequestParameter(null, emptyList()).isEmpty())
     }
 
     @Test
     fun `it should return an singleton list if there is one provided attrs param`() {
-        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_TEST_CORE_CONTEXT).size)
+        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test
     fun `it should return a list with two elements if there are two provided attrs param`() {
-        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXT).size)
+        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test
@@ -82,7 +82,7 @@ class ApiUtilsTests {
 
     @Test
     fun `it should extract a @context from a valid Link header`() = runTest {
-        getContextFromLinkHeader(listOf(buildContextLinkHeader(APIC_COMPOUND_CONTEXT))).shouldSucceedWith {
+        getContextFromLinkHeader(listOf(APIC_HEADER_LINK)).shouldSucceedWith {
             assertNotNull(it)
             assertEquals(APIC_COMPOUND_CONTEXT, it)
         }
@@ -97,7 +97,7 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return a BadRequestData error if @context provided in Link header is invalid`() = runTest {
-        getContextFromLinkHeader(listOf(APIC_COMPOUND_CONTEXT)).shouldFail {
+        getContextFromLinkHeader(APIC_COMPOUND_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Badly formed Link header: $APIC_COMPOUND_CONTEXT",
@@ -110,7 +110,7 @@ class ApiUtilsTests {
     fun `it should return the default @context if no Link header was provided and default is asked`() = runTest {
         val httpHeaders = HttpHeaders()
         getContextFromLinkHeaderOrDefault(httpHeaders).shouldSucceedWith {
-            assertEquals(NGSILD_CORE_CONTEXT, it)
+            assertEquals(listOf(NGSILD_CORE_CONTEXT), it)
         }
     }
 
@@ -122,12 +122,12 @@ class ApiUtilsTests {
         val jsonLdInput = mapOf(
             "id" to "urn:ngsi-ld:Building:farm001",
             "type" to "Building",
-            "@context" to "https://fiware.github.io/data-models/context.jsonld"
+            "@context" to NGSILD_TEST_CORE_CONTEXT
         )
 
         checkAndGetContext(httpHeaders, jsonLdInput).shouldSucceedWith {
             assertEquals(1, it.size)
-            assertEquals("https://fiware.github.io/data-models/context.jsonld", it[0])
+            assertEquals(NGSILD_TEST_CORE_CONTEXT, it[0])
         }
     }
 
@@ -178,10 +178,69 @@ class ApiUtilsTests {
     }
 
     @Test
+    fun `it should find a JSON-LD @context in an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1",
+            "@context" to "https://some.context"
+        )
+
+        assertEquals(listOf("https://some.context"), input.extractContexts())
+    }
+
+    @Test
+    fun `it should find a list of JSON-LD @contexts in an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1",
+            "@context" to listOf("https://some.context", "https://some.context.2")
+        )
+
+        assertEquals(listOf("https://some.context", "https://some.context.2"), input.extractContexts())
+    }
+
+    @Test
+    fun `it should return an empty list if no JSON-LD @context was found an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1"
+        )
+
+        assertEquals(emptyList<String>(), input.extractContexts())
+    }
+
+    @Test
+    fun `it should return the core context if the list of contexts is empty`() {
+        val contexts = addCoreContextIfMissing(emptyList())
+        assertEquals(1, contexts.size)
+        assertEquals(listOf(NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should move the core context at last position if it is not last in the list of contexts`() {
+        val contexts = addCoreContextIfMissing(listOf(NGSILD_CORE_CONTEXT).plus(APIC_COMPOUND_CONTEXTS))
+        assertEquals(2, contexts.size)
+        assertEquals(APIC_COMPOUND_CONTEXTS.plus(NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should add the core context at last position if it is not in the list of contexts`() {
+        val contexts = addCoreContextIfMissing(listOf(APIC_CONTEXT))
+        assertEquals(2, contexts.size)
+        assertEquals(listOf(APIC_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
+    }
+
+    @Test
+    fun `it should not add the core context if it resolvable from the provided contexts`() {
+        val contexts = addCoreContextIfMissing(
+            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld")
+        )
+        assertEquals(1, contexts.size)
+        assertEquals(listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"), contexts)
+    }
+
+    @Test
     fun `it should parse and expand entity type selection query`() {
         val query = "(TypeA|TypeB);(TypeC,TypeD)"
         val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
-        val expandedQuery = expandTypeSelection(query, NGSILD_TEST_CORE_CONTEXT)
+        val expandedQuery = expandTypeSelection(query, NGSILD_TEST_CORE_CONTEXTS)
         val expectedExpandTypeSelection =
             "(${defaultExpand}TypeA|${defaultExpand}TypeB);(${defaultExpand}TypeC,${defaultExpand}TypeD)"
         assertEquals(expectedExpandTypeSelection, expandedQuery)

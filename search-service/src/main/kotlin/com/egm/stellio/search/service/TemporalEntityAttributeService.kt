@@ -19,9 +19,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
@@ -149,8 +146,7 @@ class TemporalEntityAttributeService(
             }
             .forEach {
                 val (expandedAttributeName, attributeMetadata) = it
-                val attributePayload = getAttributeFromExpandedAttributes(
-                    expandedEntity.getAttributes(),
+                val attributePayload = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(
                     expandedAttributeName,
                     attributeMetadata.datasetId
                 )!!
@@ -535,8 +531,7 @@ class TemporalEntityAttributeService(
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
             val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-            val attributePayload = getAttributeFromExpandedAttributes(
-                expandedAttributes,
+            val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
@@ -601,8 +596,7 @@ class TemporalEntityAttributeService(
                     .fold({ null }, { it })
             if (currentTea != null) {
                 val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-                val attributePayload = getAttributeFromExpandedAttributes(
-                    expandedAttributes,
+                val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId
                 )!!
@@ -711,8 +705,7 @@ class TemporalEntityAttributeService(
             getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                 .fold({ null }, { it })
         val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-        val attributePayload = getAttributeFromExpandedAttributes(
-            expandedAttributes,
+        val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
             ngsiLdAttribute.name,
             ngsiLdAttributeInstance.datasetId
         )!!
@@ -757,8 +750,7 @@ class TemporalEntityAttributeService(
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
             val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-            val attributePayload = getAttributeFromExpandedAttributes(
-                expandedAttributes,
+            val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
@@ -850,13 +842,13 @@ class TemporalEntityAttributeService(
         when (tea.attributeType) {
             TemporalEntityAttribute.AttributeType.Property ->
                 Triple(
-                    valueToStringOrNull(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!!),
-                    valueToDoubleOrNull(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!!),
+                    valueToStringOrNull(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!!),
+                    valueToDoubleOrNull(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!!),
                     null
                 )
             TemporalEntityAttribute.AttributeType.Relationship ->
                 Triple(
-                    getPropertyValueFromMap(attributePayload, NGSILD_RELATIONSHIP_OBJECT)!! as String,
+                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT)!! as String,
                     null,
                     null
                 )
@@ -864,7 +856,7 @@ class TemporalEntityAttributeService(
                 Triple(
                     null,
                     null,
-                    WKTCoordinates(getPropertyValueFromMap(attributePayload, NGSILD_PROPERTY_VALUE)!! as String)
+                    WKTCoordinates(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!! as String)
                 )
         }
 
@@ -893,7 +885,7 @@ class TemporalEntityAttributeService(
         val timeAndProperty =
             if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
                 Pair(
-                    getPropertyValueFromMapAsDateTime(expandedAttributeInstance, NGSILD_OBSERVED_AT_PROPERTY)!!,
+                    expandedAttributeInstance.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)!!,
                     AttributeInstance.TemporalProperty.OBSERVED_AT
                 )
             else

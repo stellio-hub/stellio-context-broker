@@ -307,7 +307,7 @@ class EntityPayloadService(
             accessRightFilter
         ).let {
             if (entitiesQuery.q != null)
-                it.wrapToAndClause(buildQQuery(entitiesQuery.q, listOf(entitiesQuery.context)))
+                it.wrapToAndClause(buildQQuery(entitiesQuery.q, entitiesQuery.contexts))
             else it
         }.let {
             if (entitiesQuery.scopeQ != null)

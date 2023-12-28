@@ -152,9 +152,12 @@ enum class AccessRight(val attributeName: String) {
     }
 }
 
-fun getAuthzContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, String> =
+fun getAuthzContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, List<String>> =
     getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
-        .map { it ?: AUTHORIZATION_COMPOUND_CONTEXT }
+        .map {
+            if (it != null) listOf(it).plus(AUTHORIZATION_COMPOUND_CONTEXT)
+            else listOf(AUTHORIZATION_COMPOUND_CONTEXT)
+        }
 
 fun List<String>.replaceDefaultContextToAuthzContext() =
     if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)

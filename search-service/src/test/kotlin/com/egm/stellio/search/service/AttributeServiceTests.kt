@@ -94,7 +94,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return an AttributeList`() = runTest {
-        val attributeNames = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
+        val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
         assertTrue(
             attributeNames.attributeList == listOf(
                 INCOMING_COMPACT_PROPERTY,
@@ -109,13 +109,13 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return an empty list of attributes if no attributes was found`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
-        val attributeNames = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
+        val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
         assert(attributeNames.attributeList.isEmpty())
     }
 
     @Test
     fun `it should return a list of AttributeDetails`() = runTest {
-        val attributeDetails = attributeService.getAttributeDetails(listOf(APIC_COMPOUND_CONTEXT))
+        val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
         assertEquals(4, attributeDetails.size)
         assertTrue(
             attributeDetails.containsAll(
@@ -149,14 +149,14 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return an empty list of AttributeDetails if no attribute was found`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
-        val attributeDetails = attributeService.getAttributeDetails(listOf(APIC_COMPOUND_CONTEXT))
+        val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
         assertTrue(attributeDetails.isEmpty())
     }
 
     @Test
     fun `it should return an attribute Information by specific attribute`() = runTest {
         val attributeTypeInfo =
-            attributeService.getAttributeTypeInfoByAttribute(INCOMING_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
+            attributeService.getAttributeTypeInfoByAttribute(INCOMING_PROPERTY, APIC_COMPOUND_CONTEXTS)
 
         attributeTypeInfo.shouldSucceedWith {
             AttributeTypeInfo(
@@ -172,7 +172,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should error when type doesn't exist`() = runTest {
         val attributeTypeInfo =
-            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, listOf(APIC_COMPOUND_CONTEXT))
+            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
 
         attributeTypeInfo.shouldFail {
             assertEquals(ResourceNotFoundException(attributeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
@@ -233,13 +233,13 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private fun newEntityPayload(
         id: String,
         types: List<String>,
-        context: String = APIC_COMPOUND_CONTEXT
+        contexts: List<String> = APIC_COMPOUND_CONTEXTS
     ): EntityPayload =
         EntityPayload(
             entityId = toUri(id),
             types = types,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(context)
+            contexts = contexts
         )
 }

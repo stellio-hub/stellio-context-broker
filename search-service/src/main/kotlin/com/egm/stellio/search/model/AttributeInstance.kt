@@ -1,7 +1,7 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.util.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue

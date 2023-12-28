@@ -2,7 +2,10 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.*
+import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
+import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE

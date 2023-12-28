@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.shared.util.ExpandedTerm
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE

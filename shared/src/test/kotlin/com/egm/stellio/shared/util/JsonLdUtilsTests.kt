@@ -368,30 +368,4 @@ class JsonLdUtilsTests {
 
         assertEquals(emptyList<String>(), extractContextFromInput(input))
     }
-
-    @Test
-    fun `it should add createdAt information into an attribute`() {
-        val attrPayload = mapOf(
-            "type" to "Property",
-            "value" to 12.0
-        )
-
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
-
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertFalse(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
-    }
-
-    @Test
-    fun `it should add createdAt and modifiedAt information into an attribute`() {
-        val attrPayload = mapOf(
-            "type" to "Property",
-            "value" to 12.0
-        )
-
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
-
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
-    }
 }

@@ -2,6 +2,8 @@ package com.egm.stellio.search.support
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
+import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
 import java.util.UUID
 import kotlin.random.Random

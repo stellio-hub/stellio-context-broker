@@ -1,5 +1,9 @@
 package com.egm.stellio.search.authorization
 
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.addNonReifiedProperty
+import com.egm.stellio.shared.model.addSubAttribute
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP

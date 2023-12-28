@@ -3,8 +3,8 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.TemporalScopeBuilder
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE

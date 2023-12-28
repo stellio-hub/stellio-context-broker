@@ -6,6 +6,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.deserializeAsMap
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*

@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -13,10 +13,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
@@ -188,6 +189,35 @@ fun ExpandedAttributeInstance.extractRelationshipObject(name: String): Either<Ba
                 BadRequestDataException("Relationship $name has an invalid or no object id: $it").left()
             else it.toUri().right()
         }
+
+fun ExpandedAttributeInstance.getDatasetId(): URI? =
+    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+
+fun ExpandedAttributeInstance.getScopes(): List<String>? =
+    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {
+        is String -> listOf(rawScopes)
+        is List<*> -> rawScopes as List<String>
+        else -> null
+    }
+
+fun ExpandedAttributeInstance.getPropertyValue(): Any {
+    val hasValueEntry = this[NGSILD_PROPERTY_VALUE]!!
+
+    return if (hasValueEntry.size == 1 && (hasValueEntry[0] as Map<String, Any>).containsKey(JSONLD_VALUE)) {
+        val rawValue = (hasValueEntry[0] as Map<String, Any>)[JSONLD_VALUE]!!
+        if (rawValue is String) {
+            when {
+                rawValue.isURI() -> rawValue.toUri()
+                rawValue.isTime() -> LocalTime.parse(rawValue)
+                rawValue.isDate() -> LocalDate.parse(rawValue)
+                rawValue.isDateTime() -> ZonedDateTime.parse(rawValue)
+                else -> rawValue
+            }
+        } else rawValue
+    } else if (hasValueEntry.size == 1)
+        hasValueEntry[0] as Map<String, Any>
+    else hasValueEntry.map { (it as Map<String, Any>)[JSONLD_VALUE]!! }
+}
 
 fun castAttributeValue(value: Any): ExpandedAttributeInstances =
     value as List<Map<String, List<Any>>>

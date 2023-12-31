@@ -8,7 +8,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -24,9 +24,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toUri
 import java.net.URI
-import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZonedDateTime
 
 class NgsiLdEntity private constructor(
@@ -386,35 +386,6 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
 
 suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
     NgsiLdEntity.create(this.members, this.contexts)
-
-fun ExpandedAttributeInstance.getDatasetId(): URI? =
-    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
-
-fun ExpandedAttributeInstance.getScopes(): List<String>? =
-    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {
-        is String -> listOf(rawScopes)
-        is List<*> -> rawScopes as List<String>
-        else -> null
-    }
-
-fun ExpandedAttributeInstance.getPropertyValue(): Any {
-    val hasValueEntry = this[NGSILD_PROPERTY_VALUE]!!
-
-    return if (hasValueEntry.size == 1 && (hasValueEntry[0] as Map<String, Any>).containsKey(JSONLD_VALUE)) {
-        val rawValue = (hasValueEntry[0] as Map<String, Any>)[JSONLD_VALUE]!!
-        if (rawValue is String) {
-            when {
-                rawValue.isURI() -> rawValue.toUri()
-                rawValue.isTime() -> LocalTime.parse(rawValue)
-                rawValue.isDate() -> LocalDate.parse(rawValue)
-                rawValue.isDateTime() -> ZonedDateTime.parse(rawValue)
-                else -> rawValue
-            }
-        } else rawValue
-    } else if (hasValueEntry.size == 1)
-        hasValueEntry[0] as Map<String, Any>
-    else hasValueEntry.map { (it as Map<String, Any>)[JSONLD_VALUE]!! }
-}
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
     this.flatMap { ngsiLdAttribute ->

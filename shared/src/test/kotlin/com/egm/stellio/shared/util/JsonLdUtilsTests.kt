@@ -2,11 +2,26 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
+import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -58,7 +73,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return a JSON entity`() = runTest {
+    fun `it should compact and return an entity`() = runTest {
         val entity =
             """
             {
@@ -75,9 +90,210 @@ class JsonLdUtilsTests {
             }
             """.trimIndent()
 
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
-        val compactedEntity = compactEntity(jsonLdEntity, NGSILD_TEST_CORE_CONTEXTS)
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
 
         assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntity))
+    }
+
+    @Test
+    fun `it should compact and return a list of one entity`() = runTest {
+        val entity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
+            }
+            """.trimIndent()
+        val expectedEntity =
+            """
+            [{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            }]
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntities = compactEntities(listOf(expandedEntity), NGSILD_TEST_CORE_CONTEXTS)
+
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntities))
+    }
+
+    @Test
+    fun `it should compact and return a list of entities`() = runTest {
+        val entity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
+            }
+            """.trimIndent()
+        val expectedEntity =
+            """
+            [{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            },{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            }]
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntities = compactEntities(listOf(expandedEntity, expandedEntity), NGSILD_TEST_CORE_CONTEXTS)
+
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntities))
+    }
+
+    @Test
+    fun `it should expand an attribute from a fragment`() = runTest {
+        val fragment =
+            """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": "something"
+                    }
+                }
+            """.trimIndent()
+
+        val expandedAttribute = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
+    }
+
+    @Test
+    fun `it should expand an attribute from a name and a string payload`() = runTest {
+        val payload =
+            """
+                {
+                    "type": "Property",
+                    "value": "something"
+                }
+            """.trimIndent()
+
+        val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
+    }
+
+    @Test
+    fun `it should expand an attribute from a name and a map payload`() = runTest {
+        val payload = mapOf(
+            "type" to "Property",
+            "value" to "something"
+        )
+
+        val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
+    }
+
+    @Test
+    fun `it should correctly transform geoproperties`() = runTest {
+        val payload =
+            """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "location": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Point",
+                            "coordinates": [ 100.12, 0.23 ]
+                        }
+                    },
+                    "observationSpace": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [100.12, 0.23],
+                                [101.12, 0.23], 
+                                [101.12, 1.23],
+                                [100.12, 1.23],
+                                [100.12, 0.23]
+                            ]]
+                        }
+                    }
+                }
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntityF(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+
+        val location = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(NGSILD_LOCATION_PROPERTY, null)
+        assertNotNull(location)
+        assertEquals(
+            "POINT (100.12 0.23)",
+            location!!.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
+        )
+
+        val observationSpace = expandedEntity.getAttributes()
+            .getAttributeFromExpandedAttributes(NGSILD_OBSERVATION_SPACE_PROPERTY, null)
+        assertNotNull(observationSpace)
+        assertEquals(
+            "POLYGON ((100.12 0.23, 101.12 0.23, 101.12 1.23, 100.12 1.23, 100.12 0.23))",
+            observationSpace!!.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
+        )
+    }
+
+    @Test
+    fun `it should correctly transform and restore geoproperties`() = runTest {
+        val payload =
+            """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "location": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Point",
+                            "coordinates": [ 100.12, 0.23 ]
+                        }
+                    },
+                    "observationSpace": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [100.12, 0.23],
+                                [101.12, 0.23], 
+                                [101.12, 1.23],
+                                [100.12, 1.23],
+                                [100.12, 0.23]
+                            ]]
+                        }
+                    }
+                }
+            """.trimIndent()
+
+        val deserializedPayload = payload.deserializeAsMap()
+        val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
+        assertJsonPayloadsAreEqual(
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(compactedEntity)
+        )
+    }
+
+    @Test
+    fun `it should correctly compact a term if it is in the provided contexts`() = runTest {
+        assertEquals(
+            INCOMING_COMPACT_PROPERTY,
+            compactTerm(INCOMING_PROPERTY, APIC_COMPOUND_CONTEXTS)
+        )
+    }
+
+    @Test
+    fun `it should return the input term if it was not able to compact it`() = runTest {
+        assertEquals(
+            INCOMING_PROPERTY,
+            compactTerm(INCOMING_PROPERTY, NGSILD_TEST_CORE_CONTEXTS)
+        )
     }
 }

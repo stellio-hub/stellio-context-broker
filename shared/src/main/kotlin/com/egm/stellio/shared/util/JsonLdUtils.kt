@@ -48,7 +48,7 @@ object JsonLdUtils {
     const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
     const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
 
-    const val JSONLD_GRAPH = "@graph"
+    private const val JSONLD_GRAPH = "@graph"
     const val JSONLD_ID_TERM = "id"
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE_TERM = "type"
@@ -215,14 +215,12 @@ object JsonLdUtils {
     private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
         // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
-        val parsedFragment = geoPropertyToWKT(fragment)
+        val preparedFragment = fragment
+            .mapValues(transformGeoPropertyToWKT())
+            .plus(JSONLD_CONTEXT to contexts)
 
         try {
-            val expandedFragment = JsonLd.expand(
-                JsonDocument.of(
-                    serializeObject(parsedFragment.plus(JSONLD_CONTEXT to contexts)).byteInputStream()
-                )
-            )
+            val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
                 .options(jsonLdOptions)
                 .get()
 
@@ -239,29 +237,26 @@ object JsonLdUtils {
         }
     }
 
-    private fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> {
-        for (geoProperty in NGSILD_GEO_PROPERTIES_TERMS) {
-            if (jsonFragment.containsKey(geoProperty)) {
-                // when creating a temporal entity, a geoproperty can be represented as a list of instances
-                val geoAttributes =
-                    if (jsonFragment[geoProperty] is MutableMap<*, *>)
-                        listOf(jsonFragment[geoProperty] as MutableMap<String, Any>)
-                    else
-                        jsonFragment[geoProperty] as List<MutableMap<String, Any>>
-                geoAttributes.forEach { geoAttribute ->
-                    val geoJsonAsString = geoAttribute[JSONLD_VALUE_TERM]
-                    val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
-                        .fold({
-                            throw BadRequestDataException(it.message)
-                        }, { it })
-                    geoAttribute[JSONLD_VALUE_TERM] = wktGeom
+    private fun transformGeoPropertyToWKT(): (Map.Entry<String, Any>) -> Any = {
+        if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
+            when (it.value) {
+                is Map<*, *> -> {
+                    val geoProperty = it.value as MutableMap<String, Any>
+                    val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM]!! as Map<String, Any>)
+                    geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                 }
+                is List<*> -> {
+                    (it.value as List<Map<String, Any>>).map { geoProperty ->
+                        val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM] as Map<String, Any>)
+                        geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
+                    }
+                }
+                else -> it.value
             }
-        }
-        return jsonFragment
+        } else it.value
     }
 
-    private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
+    private fun restoreGeoPropertyFromWKT(): (Map.Entry<String, Any>) -> Any = {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
             when (it.value) {
                 is Map<*, *> -> {
@@ -294,7 +289,7 @@ object JsonLdUtils {
             .options(jsonLdOptions)
             .get()
             .toPrimitiveMap()
-            .mapValues(restoreGeoPropertyValue())
+            .mapValues(restoreGeoPropertyFromWKT())
 
     private fun JsonObject.toPrimitiveMap(): Map<String, Any> {
         val outputStream = ByteArrayOutputStream()
@@ -318,7 +313,7 @@ object JsonLdUtils {
             .get()
 
         return if (entities.size == 1)
-            listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyValue()))
+            listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyFromWKT()))
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
             val context: Any = when (jsonObject[JSONLD_CONTEXT]) {
@@ -328,7 +323,7 @@ object JsonLdUtils {
             // extract compacted entities from the @graph key
             (jsonObject[JSONLD_GRAPH] as JsonArray).toPrimitiveListOfObjects()
                 .map {
-                    it.mapValues(restoreGeoPropertyValue())
+                    it.mapValues(restoreGeoPropertyFromWKT())
                         .plus(JSONLD_CONTEXT to context)
                 }
         }

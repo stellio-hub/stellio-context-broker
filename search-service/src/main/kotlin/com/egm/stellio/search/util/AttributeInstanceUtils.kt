@@ -83,7 +83,7 @@ fun guessAttributeValueType(
 ): AttributeValueType =
     when (attributeType) {
         TemporalEntityAttribute.AttributeType.Property ->
-            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()).first
+            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
         TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
         TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
     }
@@ -106,6 +106,5 @@ fun guessPropertyValueType(
         is LocalDate -> Pair(AttributeValueType.DATE, Triple(value.toString(), null, null))
         is ZonedDateTime -> Pair(AttributeValueType.DATETIME, Triple(value.toString(), null, null))
         is LocalTime -> Pair(AttributeValueType.TIME, Triple(value.toString(), null, null))
-        is URI -> Pair(AttributeValueType.URI, Triple(value.toString(), null, null))
         else -> Pair(AttributeValueType.STRING, Triple(value.toString(), null, null))
     }

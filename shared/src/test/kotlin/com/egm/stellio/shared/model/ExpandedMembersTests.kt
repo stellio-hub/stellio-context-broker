@@ -1,14 +1,11 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
-import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationshipValue
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
@@ -163,26 +160,20 @@ class ExpandedMembersTests {
             )
         )
 
-        val result = relationshipValues.extractRelationshipObject("isARelationship")
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
-        }
+        relationshipValues.extractRelationshipObject("isARelationship")
+            .shouldFail {
+                assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
+            }
     }
 
     @Test
     fun `it should extract the target object of a relationship`() {
         val relationshipObjectId = "urn:ngsi-ld:T:1"
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_OBJECT to listOf(
-                mapOf(JSONLD_ID to relationshipObjectId)
-            )
-        )
+        val relationshipValues = buildExpandedRelationshipValue(relationshipObjectId.toUri())
 
-        val result = relationshipValues.extractRelationshipObject("isARelationship")
-        assertTrue(result.isRight())
-        result.map {
-            assertEquals(relationshipObjectId.toUri(), it)
-        }
+        relationshipValues[0].extractRelationshipObject("isARelationship")
+            .shouldSucceedWith {
+                assertEquals(relationshipObjectId.toUri(), it)
+            }
     }
 }

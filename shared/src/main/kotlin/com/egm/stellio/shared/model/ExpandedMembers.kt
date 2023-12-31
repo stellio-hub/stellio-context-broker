@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -17,7 +16,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
@@ -47,7 +48,7 @@ fun ExpandedAttributes.getAttributeFromExpandedAttributes(
             if (datasetId == null)
                 !expandedAttributeInstance.containsKey(NGSILD_DATASET_ID_PROPERTY)
             else
-                expandedAttributeInstance.getMemberValue(NGSILD_DATASET_ID_PROPERTY) == datasetId.toString()
+                expandedAttributeInstance.getDatasetId() == datasetId
         }
     }
 
@@ -69,7 +70,7 @@ fun ExpandedAttributeInstances.addNonReifiedProperty(
 ): ExpandedAttributeInstances {
     if (this.isEmpty() || this.size > 1)
         throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
-    return listOf(this[0].plus(subAttributeName to JsonLdUtils.buildNonReifiedPropertyValue(subAttributeValue)))
+    return listOf(this[0].plus(subAttributeName to buildNonReifiedPropertyValue(subAttributeValue)))
 }
 
 fun ExpandedAttributeInstances.addNonReifiedTemporalProperty(
@@ -161,6 +162,9 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
     }
 }
 
+fun ExpandedAttributeInstance.getPropertyValue(): Any? =
+    getMemberValue(NGSILD_PROPERTY_VALUE)
+
 fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm): ZonedDateTime? =
     ZonedDateTime::class.safeCast(this.getMemberValue(memberName))
 
@@ -199,25 +203,6 @@ fun ExpandedAttributeInstance.getScopes(): List<String>? =
         is List<*> -> rawScopes as List<String>
         else -> null
     }
-
-fun ExpandedAttributeInstance.getPropertyValue(): Any {
-    val hasValueEntry = this[NGSILD_PROPERTY_VALUE]!!
-
-    return if (hasValueEntry.size == 1 && (hasValueEntry[0] as Map<String, Any>).containsKey(JSONLD_VALUE)) {
-        val rawValue = (hasValueEntry[0] as Map<String, Any>)[JSONLD_VALUE]!!
-        if (rawValue is String) {
-            when {
-                rawValue.isURI() -> rawValue.toUri()
-                rawValue.isTime() -> LocalTime.parse(rawValue)
-                rawValue.isDate() -> LocalDate.parse(rawValue)
-                rawValue.isDateTime() -> ZonedDateTime.parse(rawValue)
-                else -> rawValue
-            }
-        } else rawValue
-    } else if (hasValueEntry.size == 1)
-        hasValueEntry[0] as Map<String, Any>
-    else hasValueEntry.map { (it as Map<String, Any>)[JSONLD_VALUE]!! }
-}
 
 fun castAttributeValue(value: Any): ExpandedAttributeInstances =
     value as List<Map<String, List<Any>>>

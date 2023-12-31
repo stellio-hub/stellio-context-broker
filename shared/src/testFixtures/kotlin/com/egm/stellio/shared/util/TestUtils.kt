@@ -52,6 +52,26 @@ fun loadMinimalEntityWithSap(
         }
     """.trimIndent()
 
+suspend fun loadAndExpandMinimalEntity(
+    id: String,
+    type: String,
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
+): ExpandedEntity =
+    loadAndExpandMinimalEntity(id, listOf(type), contexts)
+
+suspend fun loadAndExpandMinimalEntity(
+    id: String,
+    types: List<String>,
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
+): ExpandedEntity {
+    val entity = mapOf(
+        "id" to id,
+        "type" to types
+    )
+
+    return expandJsonLdEntity(entity, contexts)
+}
+
 suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<ExpandedEntity, NgsiLdEntity>> {
     val jsonLdEntity = expandJsonLdEntity(this)
     return when (val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity()) {

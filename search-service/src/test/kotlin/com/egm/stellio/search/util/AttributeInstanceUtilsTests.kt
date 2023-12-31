@@ -96,7 +96,7 @@ class AttributeInstanceUtilsTests {
     fun `it should guess the value type of a time property`() = runTest {
         val expandedTimeProperty = expandAttribute(
             "property",
-            mapOf("type" to "Property", "value" to LocalTime.now()),
+            mapOf("type" to "Property", "value" to mapOf("@type" to "Time", "@value" to LocalTime.now())),
             NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
@@ -114,19 +114,6 @@ class AttributeInstanceUtilsTests {
         )
         assertEquals(
             TemporalEntityAttribute.AttributeValueType.DATETIME,
-            guessAttributeValueType(TemporalEntityAttribute.AttributeType.Property, expandedTimeProperty.second[0])
-        )
-    }
-
-    @Test
-    fun `it should guess the value type of an URI property`() = runTest {
-        val expandedTimeProperty = expandAttribute(
-            "property",
-            mapOf("type" to "Property", "value" to "urn:ngsi-ld:uri"),
-            NGSILD_TEST_CORE_CONTEXTS
-        )
-        assertEquals(
-            TemporalEntityAttribute.AttributeValueType.URI,
             guessAttributeValueType(TemporalEntityAttribute.AttributeType.Property, expandedTimeProperty.second[0])
         )
     }

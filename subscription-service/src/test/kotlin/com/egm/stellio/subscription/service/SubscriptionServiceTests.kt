@@ -388,7 +388,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:12345678", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:12345678", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -409,7 +409,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:3456789", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:3456789", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -430,7 +430,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -451,7 +451,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -472,7 +472,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -489,7 +489,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(TEMPERATURE_PROPERTY),
@@ -510,7 +510,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:01", SENSOR_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", SENSOR_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -532,7 +532,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),
@@ -551,7 +551,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(INCOMING_PROPERTY),
@@ -570,7 +570,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(TEMPERATURE_PROPERTY),
@@ -590,7 +590,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(TEMPERATURE_PROPERTY),
@@ -610,7 +610,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(TEMPERATURE_PROPERTY),
@@ -630,7 +630,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             setOf(TEMPERATURE_PROPERTY),
@@ -651,7 +651,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             )
             subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-            val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
+            val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
             subscriptionService.getMatchingSubscriptions(
                 jsonLdEntity,
                 setOf(TEMPERATURE_PROPERTY),
@@ -919,7 +919,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val jsonLdEntity = gimmeSimpleEntityWithAttributes("urn:ngsi-ld:Beehive:1234567890", types.split(","))
+        val jsonLdEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", types.split(","))
         subscriptionService.getMatchingSubscriptions(
             jsonLdEntity,
             emptySet(),

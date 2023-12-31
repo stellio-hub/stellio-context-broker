@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -842,8 +841,8 @@ class TemporalEntityAttributeService(
         when (tea.attributeType) {
             TemporalEntityAttribute.AttributeType.Property ->
                 Triple(
-                    valueToStringOrNull(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!!),
-                    valueToDoubleOrNull(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!!),
+                    valueToStringOrNull(attributePayload.getPropertyValue()!!),
+                    valueToDoubleOrNull(attributePayload.getPropertyValue()!!),
                     null
                 )
             TemporalEntityAttribute.AttributeType.Relationship ->
@@ -856,7 +855,7 @@ class TemporalEntityAttributeService(
                 Triple(
                     null,
                     null,
-                    WKTCoordinates(attributePayload.getMemberValue(NGSILD_PROPERTY_VALUE)!! as String)
+                    WKTCoordinates(attributePayload.getPropertyValue()!! as String)
                 )
         }
 

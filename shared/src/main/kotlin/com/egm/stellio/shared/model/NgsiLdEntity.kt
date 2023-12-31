@@ -175,7 +175,7 @@ class NgsiLdPropertyInstance private constructor(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdPropertyInstance> = either {
-            val value = values.getMemberValue(NGSILD_PROPERTY_VALUE)
+            val value = values.getPropertyValue()
             ensureNotNull(value) {
                 BadRequestDataException("Property $name has an instance without a value")
             }

@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -69,7 +70,7 @@ class EntityAccessControlHandler(
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(entities, contexts)
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
@@ -113,7 +114,7 @@ class EntityAccessControlHandler(
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(entities, contexts)
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
@@ -158,7 +159,7 @@ class EntityAccessControlHandler(
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(entities, contexts)
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(

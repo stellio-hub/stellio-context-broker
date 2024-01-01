@@ -51,15 +51,15 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
-        val jsonLdEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
         authorizationService.userCanCreateEntities(sub).bind()
         entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
 
         entityPayloadService.createEntity(
             ngsiLdEntity,
-            jsonLdEntity,
+            expandedEntity,
             sub.getOrNull()
         ).bind()
         authorizationService.createAdminRight(ngsiLdEntity.id, sub).bind()
@@ -145,8 +145,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
 
-        val jsonLdEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
@@ -158,7 +158,7 @@ class EntityHandler(
         entityPayloadService.replaceEntity(
             entityId,
             ngsiLdEntity,
-            jsonLdEntity,
+            expandedEntity,
             sub.getOrNull()
         ).bind()
 
@@ -243,13 +243,13 @@ class EntityHandler(
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
-        val jsonLdEntity = queryService.queryEntity(entityId, contexts).bind()
+        val expandedEntity = queryService.queryEntity(entityId, contexts).bind()
 
-        jsonLdEntity.checkContainsAnyOf(queryParams.attrs).bind()
+        expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
         val filteredExpandedEntity = ExpandedEntity(
-            jsonLdEntity.filterOnAttributes(queryParams.attrs),
-            jsonLdEntity.contexts
+            expandedEntity.filterOnAttributes(queryParams.attrs),
+            expandedEntity.contexts
         )
         val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 

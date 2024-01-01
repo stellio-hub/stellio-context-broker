@@ -103,6 +103,6 @@
     }
   },
   "@context": [
-    "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
   ]
 }

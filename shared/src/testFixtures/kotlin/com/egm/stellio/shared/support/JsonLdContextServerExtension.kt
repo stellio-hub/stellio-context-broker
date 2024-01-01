@@ -35,7 +35,7 @@ class JsonLdContextServerExtension : BeforeAllCallback, AfterAllCallback {
             .respond(
                 callback().withCallbackClass(JsonLdContextResponseCallback::class.java)
             )
-        logger.debug("WireMock server is started")
+        logger.debug("JSON-LD context server is started")
     }
 
     override fun afterAll(context: ExtensionContext) {

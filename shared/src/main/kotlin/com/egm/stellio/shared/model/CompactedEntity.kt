@@ -16,10 +16,11 @@ typealias CompactedEntity = Map<String, Any>
 fun CompactedEntity.toKeyValues(): Map<String, Any> =
     this.mapValues { (_, value) -> simplifyRepresentation(value) }
 
-private fun simplifyRepresentation(value: Any): Any {
-    return when (value) {
-        // entity property value is always a Map
+private fun simplifyRepresentation(value: Any): Any =
+    when (value) {
+        // an attribute with a single instance
         is Map<*, *> -> simplifyValue(value as Map<String, Any>)
+        // an attribute with multiple instances
         is List<*> -> value.map {
             when (it) {
                 is Map<*, *> -> simplifyValue(it as Map<String, Any>)
@@ -27,18 +28,16 @@ private fun simplifyRepresentation(value: Any): Any {
                 else -> it
             }
         }
-        // we keep id and type values as they are (String)
+        // keep id, type and other non-reified properties as they are (typically string or list)
         else -> value
     }
-}
 
-private fun simplifyValue(value: Map<String, Any>): Any {
-    return when (value[JSONLD_TYPE_TERM]) {
+private fun simplifyValue(value: Map<String, Any>): Any =
+    when (value[JSONLD_TYPE_TERM]) {
         NGSILD_PROPERTY_TERM, NGSILD_GEOPROPERTY_TERM -> value.getOrDefault(JSONLD_VALUE_TERM, value)
         NGSILD_RELATIONSHIP_TERM -> value.getOrDefault(JSONLD_OBJECT, value)
         else -> value
     }
-}
 
 fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
     val geometryAttributeContent = this[geometryProperty] as? Map<String, Any>

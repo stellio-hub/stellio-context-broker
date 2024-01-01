@@ -84,7 +84,6 @@ subprojects {
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-        testImplementation("org.wiremock:wiremock-standalone:3.3.1")
     }
 
     tasks.withType<KotlinCompile> {

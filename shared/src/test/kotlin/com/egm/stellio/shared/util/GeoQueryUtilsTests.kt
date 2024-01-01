@@ -137,9 +137,9 @@ class GeoQueryUtilsTests {
             "[[[0 1],[1, 1],[0, 1]]]",
             geoJsonToWkt(GeometryType.POLYGON, "[[[0 1],[1, 1],[0, 1]]]").getOrNull()!!
         )
-        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 24.30623, 60.07966)
+        val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 24.30623, 60.07966)
 
-        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -161,9 +161,9 @@ class GeoQueryUtilsTests {
             "[60.10000, 24.60000]",
             geoJsonToWkt(GeometryType.POINT, "[60.10000, 24.60000]").getOrNull()!!
         )
-        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 60.07966, 24.30623)
+        val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.07966, 24.30623)
 
-        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -185,9 +185,9 @@ class GeoQueryUtilsTests {
             "[60.10000, 24.60000]",
             geoJsonToWkt(GeometryType.POINT, "[60.10000, 24.60000]").getOrNull()!!
         )
-        val jsonLdEntity = gimmeSimpleEntityWithGeoProperty("location", 60.30623, 30.07966)
+        val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.30623, 30.07966)
 
-        val queryStatement = buildGeoQuery(geoQuery, jsonLdEntity)
+        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """

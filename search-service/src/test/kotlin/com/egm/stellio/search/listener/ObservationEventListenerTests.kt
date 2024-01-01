@@ -8,6 +8,7 @@ import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -40,7 +41,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityPayloadService.createEntity(any<String>(), any(), any())
+            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
@@ -48,8 +49,8 @@ class ObservationEventListenerTests {
 
         coVerify {
             entityPayloadService.createEntity(
+                any<NgsiLdEntity>(),
                 any(),
-                APIC_COMPOUND_CONTEXTS,
                 eq("0123456789-1234-5678-987654321")
             )
         }

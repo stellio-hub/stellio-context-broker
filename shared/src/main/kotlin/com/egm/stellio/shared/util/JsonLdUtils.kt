@@ -46,7 +46,6 @@ object JsonLdUtils {
     const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
-    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
 
     private const val JSONLD_GRAPH = "@graph"
     const val JSONLD_ID_TERM = "id"
@@ -151,16 +150,11 @@ object JsonLdUtils {
 
     fun expandJsonLdTerm(term: String, contexts: List<String>): String =
         try {
-            JsonLd.expand(
-                JsonDocument.of(
-                    serializeObject(
-                        mapOf(
-                            term to mapOf<String, Any>(),
-                            JSONLD_CONTEXT to contexts
-                        )
-                    ).byteInputStream()
-                )
+            val preparedTerm = mapOf(
+                term to mapOf<String, Any>(),
+                JSONLD_CONTEXT to contexts
             )
+            JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
                 .options(jsonLdOptions)
                 .get()
                 .let {

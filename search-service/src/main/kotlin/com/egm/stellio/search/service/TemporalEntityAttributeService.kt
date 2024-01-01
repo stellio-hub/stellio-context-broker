@@ -121,11 +121,11 @@ class TemporalEntityAttributeService(
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-        val jsonLdEntity = expandJsonLdEntity(payload, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
+        val expandedEntity = expandJsonLdEntity(payload, contexts)
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
         ngsiLdEntity.prepareTemporalAttributes()
             .map {
-                createEntityTemporalReferences(ngsiLdEntity, jsonLdEntity, it, createdAt, sub).bind()
+                createEntityTemporalReferences(ngsiLdEntity, expandedEntity, it, createdAt, sub).bind()
             }.bind()
     }
 

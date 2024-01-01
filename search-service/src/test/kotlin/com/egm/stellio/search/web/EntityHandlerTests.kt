@@ -91,7 +91,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
@@ -133,7 +133,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 409 if the entity already exists`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery {
@@ -156,7 +156,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 500 error if there is an internal server error`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
@@ -228,7 +228,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 400 if creation unexpectedly fails`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
@@ -255,7 +255,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 403 if user is not allowed to create entities`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery {
             authorizationService.userCanCreateEntities(sub)
@@ -1145,7 +1145,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 201 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
@@ -1185,7 +1185,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 403 if user is not allowed to update the entity`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
@@ -1211,7 +1211,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 404 if entity does not exist`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery {
@@ -1228,7 +1228,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 400 if id contained in payload is different from the one in URL`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0215".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()

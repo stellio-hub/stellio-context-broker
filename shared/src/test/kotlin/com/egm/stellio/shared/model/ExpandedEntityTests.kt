@@ -202,9 +202,9 @@ class ExpandedEntityTests {
         }
         """.trimIndent()
 
-        val jsonLdEntity = expandJsonLdEntity(entity).populateCreationTimeDate(ngsiLdDateTime())
-        assertThat(jsonLdEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
-        val nameAttributeInstances = jsonLdEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
+        val expandedEntity = expandJsonLdEntity(entity).populateCreationTimeDate(ngsiLdDateTime())
+        assertThat(expandedEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
+        val nameAttributeInstances = expandedEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
         assertThat(nameAttributeInstances).hasSize(1)
         assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_PROPERTY)
     }

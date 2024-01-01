@@ -116,7 +116,7 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE to listOf(it.key.attributeType.toNgsiLdExpanded())
+                JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
             )
             it.key.datasetId?.let { datasetId ->
                 attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
@@ -158,7 +158,7 @@ object TemporalEntityBuilder {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE to listOf(it.key.attributeType.toNgsiLdExpanded())
+                JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
             )
             it.key.datasetId?.let { datasetId ->
                 attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())

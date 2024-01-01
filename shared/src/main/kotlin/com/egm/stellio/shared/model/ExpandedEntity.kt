@@ -70,13 +70,12 @@ data class ExpandedEntity(
             contexts = contexts
         )
 
-    // FIXME kinda hacky but we often just need the id or type... how can it be improved?
     val id by lazy {
-        (members[JSONLD_ID] ?: InternalErrorException("Could not extract id from JSON-LD entity")) as String
+        (members[JSONLD_ID] ?: throw BadRequestDataException("Could not extract id from JSON-LD entity")) as String
     }
 
     val types by lazy {
-        (members[JSONLD_TYPE] ?: InternalErrorException("Could not extract type from JSON-LD entity"))
+        (members[JSONLD_TYPE] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
             as List<ExpandedTerm>
     }
 

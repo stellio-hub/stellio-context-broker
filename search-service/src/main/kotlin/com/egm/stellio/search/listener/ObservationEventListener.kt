@@ -7,6 +7,7 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
@@ -63,10 +64,16 @@ class ObservationEventListener(
         tenantUri: URI,
         observationEvent: EntityCreateEvent
     ): Either<APIException, Unit> = either {
+        val expandedEntity = expandJsonLdEntity(
+            observationEvent.operationPayload,
+            observationEvent.contexts
+        )
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
+
         mono {
             entityPayloadService.createEntity(
-                observationEvent.operationPayload,
-                observationEvent.contexts,
+                ngsiLdEntity,
+                expandedEntity,
                 observationEvent.sub
             ).map {
                 entityEventService.publishEntityCreateEvent(

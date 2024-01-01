@@ -101,7 +101,7 @@ class TemporalEntityHandlerTests {
 
         val data =
             loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, APIC_COMPOUND_CONTEXTS)
+        val expandedEntity = JsonLdUtils.expandJsonLdEntity(data, APIC_COMPOUND_CONTEXTS)
         val expectedInstancesFilePath =
             "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
         val jsonInstances =
@@ -119,7 +119,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             entityPayloadService.createEntity(
                 any(),
-                eq(jsonLdEntity),
+                eq(expandedEntity),
                 eq(sub.value)
             )
         }

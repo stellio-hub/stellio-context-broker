@@ -146,11 +146,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
         } returns Unit.right()
 
-        val rawEntity = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            rawEntity,
-            APIC_COMPOUND_CONTEXTS,
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -204,11 +205,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            APIC_COMPOUND_CONTEXTS,
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -264,11 +266,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            APIC_COMPOUND_CONTEXTS,
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -308,11 +311,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            APIC_COMPOUND_CONTEXTS,
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -351,20 +355,21 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Unit.right()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            APIC_COMPOUND_CONTEXTS,
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        val (newExpandedEntity, newNgsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityPayloadService.replaceEntity(
             beehiveURI,
-            ngsiLdEntity,
-            jsonLdEntity,
+            newNgsiLdEntity,
+            newExpandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 

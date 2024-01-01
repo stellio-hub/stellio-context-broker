@@ -407,9 +407,9 @@ class EnabledAuthorizationServiceTests {
             assertEquals(1, it.first)
             assertEquals(2, it.second.size)
 
-            val jsonLdEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
-            assertEquals(4, jsonLdEntityWithOtherRights.members.size)
-            assertTrue(jsonLdEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
+            val expandedEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
+            assertEquals(4, expandedEntityWithOtherRights.members.size)
+            assertTrue(expandedEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
         }
 
         coVerify {

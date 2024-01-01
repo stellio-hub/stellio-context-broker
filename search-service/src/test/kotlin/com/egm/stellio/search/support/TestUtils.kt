@@ -30,7 +30,7 @@ fun buildAttributeInstancePayload(
     attributeType: TemporalEntityAttribute.AttributeType = TemporalEntityAttribute.AttributeType.Property
 ): String = serializeObject(
     mutableMapOf(
-        JSONLD_TYPE to listOf(attributeType.toNgsiLdExpanded()),
+        JSONLD_TYPE to listOf(attributeType.toExpandedName()),
         NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedTemporalValue(observedAt),
         NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString())
     ).apply {

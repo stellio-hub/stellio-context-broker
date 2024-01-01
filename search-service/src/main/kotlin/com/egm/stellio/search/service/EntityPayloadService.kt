@@ -36,18 +36,6 @@ class EntityPayloadService(
 
     @Transactional
     suspend fun createEntity(
-        payload: String,
-        contexts: List<String>,
-        sub: String? = null
-    ): Either<APIException, Unit> = either {
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts)
-        val ngsiLdEntity = jsonLdEntity.toNgsiLdEntity().bind()
-
-        createEntity(ngsiLdEntity, jsonLdEntity, sub).bind()
-    }
-
-    @Transactional
-    suspend fun createEntity(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
         sub: String? = null

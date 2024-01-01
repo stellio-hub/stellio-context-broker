@@ -40,7 +40,7 @@ data class TemporalEntityAttribute(
         Relationship,
         GeoProperty;
 
-        fun toNgsiLdExpanded(): String =
+        fun toExpandedName(): String =
             when (this) {
                 Property -> NGSILD_PROPERTY_TYPE.uri
                 Relationship -> NGSILD_RELATIONSHIP_TYPE.uri

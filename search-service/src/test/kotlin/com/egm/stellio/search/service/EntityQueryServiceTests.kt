@@ -59,11 +59,10 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
         runBlocking {
-            entityPayloadService.createEntity(firstRawEntity, APIC_COMPOUND_CONTEXTS)
-            entityPayloadService.createEntity(secondRawEntity, APIC_COMPOUND_CONTEXTS)
-            entityPayloadService.createEntity(thirdRawEntity, APIC_COMPOUND_CONTEXTS)
-            entityPayloadService.createEntity(fourthRawEntity, APIC_COMPOUND_CONTEXTS)
-            entityPayloadService.createEntity(fifthRawEntity, APIC_COMPOUND_CONTEXTS)
+            listOf(firstRawEntity, secondRawEntity, thirdRawEntity, fourthRawEntity, fifthRawEntity).forEach {
+                val (expandedEntity, ngsiLdEntity) = it.sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+                entityPayloadService.createEntity(ngsiLdEntity, expandedEntity)
+            }
         }
     }
 

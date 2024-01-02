@@ -395,7 +395,13 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         val temporalEntitiesQuery = createTemporalEntitiesQuery("avg", aggrPeriodDuration)
-        attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttribute, startTimestamp)
+        attributeInstanceService.search(
+            temporalEntitiesQuery.copy(
+                temporalQuery = temporalEntitiesQuery.temporalQuery.copy(timeAt = startTimestamp)
+            ),
+            temporalEntityAttribute,
+            startTimestamp
+        )
             .shouldSucceedWith { results ->
                 assertEquals(expectedNumberOfBuckets, results.size)
             }

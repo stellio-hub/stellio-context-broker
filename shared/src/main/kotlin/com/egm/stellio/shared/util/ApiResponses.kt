@@ -76,6 +76,8 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
             generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message))
         is BadRequestDataException ->
             generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message))
+        is OperationNotSupportedException ->
+            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message))
         is AccessDeniedException ->
             generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message))
         is NotImplementedException ->

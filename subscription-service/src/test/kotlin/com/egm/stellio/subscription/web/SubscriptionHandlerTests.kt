@@ -9,13 +9,12 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -32,7 +31,6 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(SubscriptionHandler::class)
@@ -415,7 +413,7 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=0&offset=1&count=true")
+            .uri("/ngsi-ld/v1/subscriptions?limit=0&offset=1&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")

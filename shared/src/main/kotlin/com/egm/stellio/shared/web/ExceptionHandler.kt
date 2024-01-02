@@ -10,6 +10,7 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.MethodNotAllowedException
 import org.springframework.web.server.NotAcceptableStatusException
 import org.springframework.web.server.UnsupportedMediaTypeStatusException
 
@@ -65,6 +66,8 @@ class ExceptionHandler {
                 HttpStatus.NOT_ACCEPTABLE,
                 NotAcceptableResponse(cause.message)
             )
+            is MethodNotAllowedException ->
+                ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is NonexistentTenantException -> generateErrorResponse(
                 HttpStatus.NOT_FOUND,
                 NonexistentTenantResponse(cause.message)

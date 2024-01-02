@@ -689,7 +689,7 @@ class TemporalEntityAttributeService(
                 UpdateAttributeResult(
                     attributeName,
                     datasetId,
-                    UpdateOperationResult.IGNORED,
+                    UpdateOperationResult.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             }
@@ -819,7 +819,7 @@ class TemporalEntityAttributeService(
                 UpdateAttributeResult(
                     attributeName,
                     datasetId,
-                    UpdateOperationResult.IGNORED,
+                    UpdateOperationResult.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             } else {

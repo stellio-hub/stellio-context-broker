@@ -21,7 +21,7 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.8.0")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.4")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -31,6 +31,9 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
+    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 defaultTasks("bootRun")

@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -50,6 +52,7 @@ import java.time.*
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
+@Import(WebSecurityTestConfig::class)
 class EntityHandlerTests {
 
     private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)

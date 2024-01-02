@@ -18,7 +18,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -174,7 +173,11 @@ class AttributeInstanceService(
                 this.allToMappedList { rowToAttributeInstanceResult(it, temporalEntitiesQuery) }
             }.fold(
                 { it.right() },
-                { OperationNotSupportedException(INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE).left() }
+                {
+                    OperationNotSupportedException(
+                        it.cause?.message ?: INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+                    ).left()
+                }
             )
     }
 
@@ -275,7 +278,7 @@ class AttributeInstanceService(
                 if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
                     toZonedDateTime(row["endTime"])
                 else
-                    startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration))
+                    startDateTime.plus(temporalEntitiesQuery.computeAggrPeriodDuration())
             // in a row, there is the result for each requested aggregation method
             val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
                 val value = row["${it.method}_value"] ?: ""

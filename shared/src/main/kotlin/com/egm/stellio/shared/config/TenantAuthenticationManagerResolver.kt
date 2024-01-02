@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import jakarta.annotation.PostConstruct
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders
@@ -13,6 +14,7 @@ import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 
 @Component
+@ConditionalOnProperty("application.authentication.enabled")
 class TenantAuthenticationManagerResolver(
     private val applicationProperties: ApplicationProperties
 ) : ReactiveAuthenticationManagerResolver<ServerWebExchange> {

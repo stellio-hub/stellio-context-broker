@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeType
 import com.egm.stellio.search.service.EntityTypeService
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -29,6 +31,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(EntityTypeHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
+@Import(WebSecurityTestConfig::class)
 class EntityTypeHandlerTests {
 
     @Autowired

@@ -1,4 +1,3 @@
-
 import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
@@ -11,7 +10,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2022.0.2"
+extra["springCloudVersion"] = "2023.0.0"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -19,13 +18,13 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.1.5" apply false
+    id("org.springframework.boot") version "3.2.1" apply false
     id("io.spring.dependency-management") version "1.1.4" apply false
     id("org.graalvm.buildtools.native") version "0.9.28"
-    kotlin("jvm") version "1.9.21" apply false
-    kotlin("plugin.spring") version "1.9.21" apply false
+    kotlin("jvm") version "1.9.22" apply false
+    kotlin("plugin.spring") version "1.9.22" apply false
     id("com.google.cloud.tools.jib") version "3.4.0" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.3" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.4" apply false
     id("org.sonarqube") version "4.4.1.3373"
     jacoco
 }
@@ -42,7 +41,7 @@ subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_17
+    java.sourceCompatibility = JavaVersion.VERSION_21
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -72,7 +71,7 @@ subprojects {
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:5.0.0")
+        runtimeOnly("de.siegmar:logback-gelf:5.0.1")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
@@ -87,8 +86,8 @@ subprojects {
 
     tasks.withType<KotlinCompile> {
         kotlinOptions {
-            freeCompilerArgs = listOf("-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn")
-            jvmTarget = "${JavaVersion.VERSION_17}"
+            freeCompilerArgs = listOf("-Xjsr305=strict")
+            jvmTarget = "${JavaVersion.VERSION_21}"
         }
     }
     tasks.withType<Test> {
@@ -103,7 +102,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.10")
+                useVersion("1.9.21")
             }
         }
     }
@@ -127,7 +126,7 @@ subprojects {
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
     jacoco {
-        toolVersion = "0.8.7"
+        toolVersion = "0.8.9"
     }
     tasks.test {
         finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
@@ -140,7 +139,7 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "eclipse-temurin:17-jre")
+    project.ext.set("jibFromImage", "eclipse-temurin:21-jre")
     project.ext.set(
         "jibFromPlatforms",
         listOf(
@@ -164,7 +163,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_17}"
+            "com.java.version" to "${JavaVersion.VERSION_21}"
         )
     )
 }

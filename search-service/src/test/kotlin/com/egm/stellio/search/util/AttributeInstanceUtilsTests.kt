@@ -3,7 +3,6 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -11,7 +10,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.LocalTime
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @ActiveProfiles("test")
 class AttributeInstanceUtilsTests {
 

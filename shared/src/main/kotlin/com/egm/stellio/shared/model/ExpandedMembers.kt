@@ -171,7 +171,7 @@ fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm)
 fun ExpandedAttributeInstance.getMemberValueAsString(memberName: ExpandedTerm): String? =
     String::class.safeCast(this.getMemberValue(memberName))
 
-fun ExpandedAttributeInstance.extractRelationshipObject(name: String): Either<BadRequestDataException, URI> =
+fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadRequestDataException, URI> =
     this.right()
         .flatMap {
             if (!it.containsKey(NGSILD_RELATIONSHIP_OBJECT))

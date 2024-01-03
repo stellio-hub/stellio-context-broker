@@ -223,7 +223,7 @@ class NgsiLdRelationshipInstance private constructor(
             name: String,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
-            val objectId = values.extractRelationshipObject(name).bind()
+            val objectId = values.getRelationshipObject(name).bind()
             val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
             val modifiedAt = values.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)

@@ -94,11 +94,6 @@ object JsonLdUtils {
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
-    const val NGSILD_NAME_TERM = "name"
-    const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
-
-    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
-
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private const val CONTEXT_CACHE_CAPACITY = 128

@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.listener
 
 import arrow.core.right
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationTrigger

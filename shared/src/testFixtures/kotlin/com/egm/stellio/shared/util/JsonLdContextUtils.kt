@@ -36,3 +36,6 @@ const val TEMPERATURE_PROPERTY = "https://ontology.eglobalmark.com/apic#$TEMPERA
 
 const val MANAGED_BY_COMPACT_RELATIONSHIP = "managedBy"
 const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAGED_BY_COMPACT_RELATIONSHIP"
+
+const val NGSILD_NAME_TERM = "name"
+const val NGSILD_NAME_PROPERTY = "https://schema.org/name"

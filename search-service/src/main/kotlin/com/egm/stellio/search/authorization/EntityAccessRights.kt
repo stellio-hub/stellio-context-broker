@@ -12,7 +12,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
-import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY

@@ -39,10 +39,13 @@ object AuthContextModel {
     const val CLIENT_ENTITY_PREFIX = "urn:ngsi-ld:Client:"
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 
+    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
+
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_PROP_SUB = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUB
     const val AUTH_TERM_CLIENT_ID = "clientId"
     const val AUTH_TERM_NAME = "name"
+    const val AUTH_PROP_NAME = "https://schema.org/$AUTH_TERM_NAME"
     const val AUTH_TERM_SID = "serviceAccountId"
     const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
     const val AUTH_PROP_SUBJECT_INFO = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUBJECT_INFO

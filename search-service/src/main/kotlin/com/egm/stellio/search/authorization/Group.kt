@@ -1,10 +1,10 @@
 package com.egm.stellio.search.authorization
 
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 
 data class Group(
@@ -18,7 +18,7 @@ data class Group(
         resultEntity[JsonLdUtils.JSONLD_ID] = GROUP_ENTITY_PREFIX + id
         resultEntity[JsonLdUtils.JSONLD_TYPE] = listOf(type)
 
-        resultEntity[NGSILD_NAME_PROPERTY] = buildExpandedPropertyValue(name)
+        resultEntity[AUTH_PROP_NAME] = buildExpandedPropertyValue(name)
 
         isMember.run {
             resultEntity[AUTH_REL_IS_MEMBER_OF] = buildExpandedPropertyValue(isMember.toString())

@@ -11,9 +11,9 @@ import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery

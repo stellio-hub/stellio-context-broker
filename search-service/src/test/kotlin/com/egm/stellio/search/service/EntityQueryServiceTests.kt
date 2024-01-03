@@ -8,7 +8,6 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import kotlinx.coroutines.runBlocking

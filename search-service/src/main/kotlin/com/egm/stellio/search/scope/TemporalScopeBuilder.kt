@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 
 object TemporalScopeBuilder {
@@ -54,19 +55,14 @@ object TemporalScopeBuilder {
                 .filter { aggregateResult ->
                     aggregateResult.aggregate == aggregate
                 }
-            attributeInstance[NGSILD_PREFIX + aggregate.method] = listOf(
-                mapOf(
-                    JSONLD_LIST to valuesForAggregate.map { aggregateResult ->
-                        mapOf(
-                            JSONLD_LIST to listOf(
-                                mapOf(JSONLD_VALUE to aggregateResult.value),
-                                mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
-                                mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
-                            )
-                        )
-                    }
-                )
-            )
+            attributeInstance[NGSILD_PREFIX + aggregate.method] =
+                buildExpandedTemporalValue(valuesForAggregate) { aggregateResult ->
+                    listOf(
+                        mapOf(JSONLD_VALUE to aggregateResult.value),
+                        mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
+                        mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
+                    )
+                }
         }
 
         return mapOf(NGSILD_SCOPE_PROPERTY to attributeInstance.toMap())
@@ -77,21 +73,16 @@ object TemporalScopeBuilder {
     ): Map<String, Any> {
         val attributeInstance = mapOf(
             JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
-            NGSILD_PROPERTY_VALUES to listOf(
-                mapOf(
-                    JSONLD_LIST to scopeHistory.map { scopeInstanceResult ->
-                        scopeInstanceResult as SimplifiedScopeInstanceResult
+            NGSILD_PROPERTY_VALUES to
+                buildExpandedTemporalValue(scopeHistory) { scopeInstanceResult ->
+                    scopeInstanceResult as SimplifiedScopeInstanceResult
+                    listOf(
                         mapOf(
-                            JSONLD_LIST to listOf(
-                                mapOf(
-                                    JSONLD_LIST to scopeInstanceResult.scopes.map { mapOf(JSONLD_VALUE to it) }
-                                ),
-                                mapOf(JSONLD_VALUE to scopeInstanceResult.time)
-                            )
-                        )
-                    }
-                )
-            )
+                            JSONLD_LIST to scopeInstanceResult.scopes.map { mapOf(JSONLD_VALUE to it) }
+                        ),
+                        mapOf(JSONLD_VALUE to scopeInstanceResult.time)
+                    )
+                }
         )
 
         return mapOf(NGSILD_SCOPE_PROPERTY to attributeInstance)

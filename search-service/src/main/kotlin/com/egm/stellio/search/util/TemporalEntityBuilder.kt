@@ -5,7 +5,6 @@ import com.egm.stellio.search.scope.TemporalScopeBuilder
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
@@ -16,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils
@@ -127,19 +127,14 @@ object TemporalEntityBuilder {
                     TemporalEntityAttribute.AttributeType.Relationship -> NGSILD_RELATIONSHIP_OBJECTS
                     TemporalEntityAttribute.AttributeType.GeoProperty -> NGSILD_GEOPROPERTY_VALUES
                 }
-            attributeInstance[valuesKey] = listOf(
-                mapOf(
-                    JSONLD_LIST to it.value.map { attributeInstanceResult ->
-                        attributeInstanceResult as SimplifiedAttributeInstanceResult
-                        mapOf(
-                            JSONLD_LIST to listOf(
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.value),
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
-                            )
-                        )
-                    }
-                )
-            )
+            attributeInstance[valuesKey] =
+                buildExpandedTemporalValue(it.value) { attributeInstanceResult ->
+                    attributeInstanceResult as SimplifiedAttributeInstanceResult
+                    listOf(
+                        mapOf(JSONLD_VALUE to attributeInstanceResult.value),
+                        mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                    )
+                }
             attributeInstance.toMap()
         }
     }
@@ -175,19 +170,14 @@ object TemporalEntityBuilder {
                 val resultsForAggregate = aggregatedResultsForTEA.filter { aggregateResult ->
                     aggregateResult.aggregate.method == aggregate.method
                 }
-                attributeInstance[NGSILD_PREFIX + aggregate.method] = listOf(
-                    mapOf(
-                        JSONLD_LIST to resultsForAggregate.map { aggregateResult ->
-                            mapOf(
-                                JSONLD_LIST to listOf(
-                                    mapOf(JSONLD_VALUE to aggregateResult.value),
-                                    mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
-                                    mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
-                                )
-                            )
-                        }
-                    )
-                )
+                attributeInstance[NGSILD_PREFIX + aggregate.method] =
+                    buildExpandedTemporalValue(resultsForAggregate) { aggregateResult ->
+                        listOf(
+                            mapOf(JSONLD_VALUE to aggregateResult.value),
+                            mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
+                            mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
+                        )
+                    }
             }
 
             attributeInstance.toMap()

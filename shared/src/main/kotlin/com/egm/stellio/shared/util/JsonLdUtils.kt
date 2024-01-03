@@ -471,4 +471,16 @@ object JsonLdUtils {
         listOf(
             mapOf(JSONLD_ID to value)
         )
+
+    fun <T> buildExpandedTemporalValue(
+        values: List<T>,
+        transform: (T) -> List<Map<String, Any>>
+    ): List<Map<String, List<Any>>> =
+        listOf(
+            mapOf(
+                JSONLD_LIST to values.map { value ->
+                    mapOf(JSONLD_LIST to transform(value))
+                }
+            )
+        )
 }

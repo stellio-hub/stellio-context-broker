@@ -10,13 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
-import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
 val mapper: ObjectMapper =
     jacksonObjectMapper()
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
         .findAndRegisterModules()
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -87,9 +85,6 @@ object JsonUtils {
         )
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
-
-    fun convertToMap(input: Any): Map<String, Any> =
-        mapper.convertValue(input)
 
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->

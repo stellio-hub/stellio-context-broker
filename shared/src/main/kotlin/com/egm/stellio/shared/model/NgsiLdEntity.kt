@@ -338,7 +338,7 @@ class NgsiLdJsonPropertyInstance private constructor(
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
             val json = values.getMemberValue(NGSILD_JSONPROPERTY_VALUE)
             ensureNotNull(json) {
-                BadRequestDataException("Property $name has an instance without a json")
+                BadRequestDataException("Property $name has an instance without a json member")
             }
             ensure(json is Map<*, *>) {
                 BadRequestDataException("Property $name has a json member that is not a map")
@@ -376,7 +376,7 @@ value class WKTCoordinates(val value: String)
 
 /**
  * Given an entity's attribute, returns whether it is of the given attribute type
- * (i.e. property, geo property or relationship)
+ * (i.e. property, geo property, json property or relationship)
  */
 fun isAttributeOfType(attributeInstance: ExpandedAttributeInstance, type: AttributeType): Boolean =
     attributeInstance.containsKey(JSONLD_TYPE) &&
@@ -460,6 +460,8 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
             NgsiLdRelationship.create(attributeName, this)
         isAttributeOfType(this[0], NGSILD_GEOPROPERTY_TYPE) ->
             NgsiLdGeoProperty.create(attributeName, this)
+        isAttributeOfType(this[0], NGSILD_JSONPROPERTY_TYPE) ->
+            NgsiLdJsonProperty.create(attributeName, this)
         else -> BadRequestDataException("Unrecognized type for $attributeName").left()
     }
 

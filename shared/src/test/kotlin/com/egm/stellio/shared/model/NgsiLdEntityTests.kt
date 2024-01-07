@@ -209,7 +209,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without a property without a value`() = runTest {
+    fun `it should not parse an entity with a property without a value`() = runTest {
         val rawEntity =
             """
             {
@@ -527,7 +527,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with different type instances`() = runTest {
+    fun `it should not parse an attribute with different type instances`() = runTest {
         val rawRelationship =
             """
             {
@@ -675,5 +675,212 @@ class NgsiLdEntityTests {
         assertEquals(1, location?.instances?.size)
         val locationInstance = location?.instances?.get(0)
         assertEquals("POINT (24.30623 60.07966)", locationInstance?.coordinates?.value)
+    }
+
+    @Test
+    fun `it should parse an entity with a JsonProperty property`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "address": "Parc des Princes",
+                        "city": "Paris"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val jsonProperty = ngsiLdEntity.jsonProperties.first()
+        assertNotNull(jsonProperty)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}jsonProperty", jsonProperty.name)
+        assertEquals(1, jsonProperty.instances.size)
+        val jsonPropertyInstance = jsonProperty.instances[0]
+        assertEquals(
+            mapOf(
+                "address" to "Parc des Princes",
+                "city" to "Paris"
+            ),
+            jsonPropertyInstance.json
+        )
+    }
+
+    @Test
+    fun `it should parse an entity with a multi-attribute JsonProperty property`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": [{
+                    "type": "JsonProperty",
+                    "json": {
+                        "address": "Parc des Princes",
+                        "city": "Paris"
+                    },
+                    "datasetId": "urn:ngsi-ld:dataset:Parc-des-Princes"
+                }, {
+                    "type": "JsonProperty",
+                    "json": {
+                        "address": "Stade de la Beaujoire",
+                        "city": "Nantes"
+                    },
+                    "datasetId": "urn:ngsi-ld:dataset:Stade-de-la-Beaujoire"
+                }]
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val jsonProperty = ngsiLdEntity.jsonProperties.first()
+        assertEquals(2, jsonProperty.instances.size)
+    }
+
+    @Test
+    fun `it should parse an entity with a JsonProperty property having JSON-LD reserved names as keys`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "id": "Parc-des-Princes",
+                        "type": "Stadium"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val jsonPropertyInstance = ngsiLdEntity.jsonProperties.first().instances[0]
+        assertEquals(
+            mapOf(
+                "id" to "Parc-des-Princes",
+                "type" to "Stadium"
+            ),
+            jsonPropertyInstance.json
+        )
+    }
+
+    @Test
+    fun `it should parse an entity with a JsonProperty property having a null value in its JSON map`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "aNotNullMember": "notNull",
+                        "aNullMember": null
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val jsonPropertyInstance = ngsiLdEntity.jsonProperties.first().instances[0]
+        assertEquals(
+            mapOf(
+                "aNotNullMember" to "notNull",
+                "aNullMember" to null
+            ),
+            jsonPropertyInstance.json
+        )
+    }
+
+    @Test
+    fun `it should not parse an entity with a JsonProperty property without a json member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "value": {
+                        "id": "Parc-des-Princes"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has an instance without a json member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should not parse an entity with a JsonProperty property having a non-map json member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "json": "Parc-des-Princes"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has a json member that is not a map",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should parse a JsonProperty property`() = runTest {
+        val rawJsonProperty =
+            """
+            {
+                "jsonProperty": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "address": "Stade de la Beaujoire",
+                        "city": "Nantes"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdAttributes =
+            expandAttributes(rawJsonProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldSucceedAndResult()
+
+        assertEquals(1, ngsiLdAttributes.size)
+        val ngsiLdAttribute = ngsiLdAttributes[0]
+        assertTrue(ngsiLdAttribute is NgsiLdJsonProperty)
+        val ngsiLdJsonPropertyInstance = (ngsiLdAttribute as NgsiLdJsonProperty).instances[0]
+        assertEquals(
+            mapOf(
+                "address" to "Stade de la Beaujoire",
+                "city" to "Nantes"
+            ),
+            ngsiLdJsonPropertyInstance.json
+        )
     }
 }

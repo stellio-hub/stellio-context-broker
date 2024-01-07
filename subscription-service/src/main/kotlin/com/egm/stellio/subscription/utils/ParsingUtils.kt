@@ -10,11 +10,23 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Subscription
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.module.kotlin.convertValue
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 object ParsingUtils {
+
+    private val mapper: ObjectMapper =
+        jacksonObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         runCatching {
@@ -24,6 +36,12 @@ object ParsingUtils {
             { it.right() },
             { it.toAPIException("Failed to parse subscription").left() }
         )
+
+    fun convertToMap(input: Any): Map<String, Any> =
+        mapper.convertValue(input)
+
+    fun serializeSubscription(input: Any): String =
+        mapper.writeValueAsString(input)
 
     fun parseEntitySelector(input: Map<String, Any>, contexts: List<String>): EntitySelector {
         val entitySelector = mapper.convertValue(input, EntitySelector::class.java)

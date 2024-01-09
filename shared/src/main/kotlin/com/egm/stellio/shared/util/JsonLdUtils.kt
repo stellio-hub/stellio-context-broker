@@ -250,7 +250,8 @@ object JsonLdUtils {
             when (it.value) {
                 is Map<*, *> -> {
                     val geoValues = it.value as MutableMap<String, Any>
-                    if (geoValues.isNotEmpty()) {
+                    // in case of an aggregated or temporalValues query, there is no "value" member
+                    if (geoValues.isNotEmpty() && geoValues.containsKey(JSONLD_VALUE_TERM)) {
                         geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
                         geoValues
                     } else geoValues
@@ -259,8 +260,11 @@ object JsonLdUtils {
                 is List<*> ->
                     (it.value as List<Map<String, Any>>).map { geoInstance ->
                         val geoValues = geoInstance.toMutableMap()
-                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
-                        geoValues
+                        // in case of an aggregated or temporalValues query, there is no "value" member
+                        if (geoValues.containsKey(JSONLD_VALUE_TERM)) {
+                            geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
+                            geoValues
+                        } else geoValues
                     }
                 else -> it.value
             }

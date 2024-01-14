@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -25,15 +25,15 @@ class TenantAuthenticationManagerResolver(
         applicationProperties.tenants.forEach { tenantConfiguration ->
             val jwtDecoder = ReactiveJwtDecoders.fromIssuerLocation(tenantConfiguration.issuer)
             val jwtAuthenticationManager = JwtReactiveAuthenticationManager(jwtDecoder)
-            authenticationManagers[tenantConfiguration.uri.toString()] = jwtAuthenticationManager
+            authenticationManagers[tenantConfiguration.name] = jwtAuthenticationManager
         }
     }
 
     override fun resolve(exchange: ServerWebExchange): Mono<ReactiveAuthenticationManager> {
-        val tenantUri = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_URI.toString()
+        val tenantName = exchange.request.headers[NGSILD_TENANT_HEADER]?.first() ?: DEFAULT_TENANT_NAME
 
-        return authenticationManagers[tenantUri]?.let {
+        return authenticationManagers[tenantName]?.let {
             Mono.just(it)
-        } ?: Mono.error(NonexistentTenantException("Tenant $tenantUri does not exist"))
+        } ?: Mono.error(NonexistentTenantException("Tenant $tenantName does not exist"))
     }
 }

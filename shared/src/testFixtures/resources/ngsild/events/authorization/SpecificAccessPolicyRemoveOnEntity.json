@@ -1,6 +1,6 @@
 {
   "entityId": "urn:ngsi-ld:Beekeeper:01",
-  "tenantUri": "urn:ngsi-ld:tenant:default",
+  "tenantName": "urn:ngsi-ld:tenant:default",
   "entityTypes": ["Beekeeper"],
   "attributeName": "specificAccessPolicy",
   "updatedEntity": "",

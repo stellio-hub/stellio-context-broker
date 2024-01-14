@@ -3,7 +3,7 @@ package com.egm.stellio.shared.config
 import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
-import jakarta.annotation.PostConstruct
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
@@ -17,12 +17,11 @@ import reactor.core.publisher.Mono
 @ConditionalOnProperty("application.authentication.enabled")
 class TenantAuthenticationManagerResolver(
     private val applicationProperties: ApplicationProperties
-) : ReactiveAuthenticationManagerResolver<ServerWebExchange> {
+) : ReactiveAuthenticationManagerResolver<ServerWebExchange>, InitializingBean {
 
     private val authenticationManagers = mutableMapOf<String, JwtReactiveAuthenticationManager>()
 
-    @PostConstruct
-    fun initializeJwtAuthenticationManagers() {
+    override fun afterPropertiesSet() {
         applicationProperties.tenants.forEach { tenantConfiguration ->
             val jwtDecoder = ReactiveJwtDecoders.fromIssuerLocation(tenantConfiguration.issuer)
             val jwtAuthenticationManager = JwtReactiveAuthenticationManager(jwtDecoder)

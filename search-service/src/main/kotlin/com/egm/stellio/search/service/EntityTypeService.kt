@@ -8,8 +8,8 @@ import com.egm.stellio.search.util.allToMappedList
 import com.egm.stellio.search.util.toInt
 import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import com.egm.stellio.shared.util.typeNotFoundMessage

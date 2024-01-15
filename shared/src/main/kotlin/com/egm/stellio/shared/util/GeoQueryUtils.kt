@@ -37,11 +37,6 @@ private val georelNearRegex = "^near;(?:minDistance|maxDistance)==\\d+$".toRegex
 
 fun parseGeoQueryParameters(
     requestParams: Map<String, String>,
-    contextLink: String
-): Either<APIException, GeoQuery?> = parseGeoQueryParameters(requestParams, listOf(contextLink))
-
-fun parseGeoQueryParameters(
-    requestParams: Map<String, String>,
     contexts: List<String>
 ): Either<APIException, GeoQuery?> = either {
     val georel = requestParams[GEO_QUERY_PARAM_GEOREL]?.decode()?.also {
@@ -109,7 +104,7 @@ private fun prepareGeorelQuery(georel: String): Triple<String, String?, String?>
         }
     } else Triple(georel, null, null)
 
-fun buildGeoQuery(geoQuery: GeoQuery, target: JsonLdEntity? = null): String {
+fun buildGeoQuery(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {
     val targetWKTCoordinates =
         """
         (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')

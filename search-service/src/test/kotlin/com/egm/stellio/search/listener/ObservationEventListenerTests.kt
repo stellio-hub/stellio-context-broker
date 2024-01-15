@@ -7,7 +7,8 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -40,7 +41,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityPayloadService.createEntity(any<String>(), any(), any())
+            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
 
@@ -48,8 +49,8 @@ class ObservationEventListenerTests {
 
         coVerify {
             entityPayloadService.createEntity(
+                any<NgsiLdEntity>(),
                 any(),
-                listOf(APIC_COMPOUND_CONTEXT),
                 eq("0123456789-1234-5678-987654321")
             )
         }
@@ -59,7 +60,7 @@ class ObservationEventListenerTests {
                 eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
                 eq(listOf(BEEHIVE_TYPE)),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -106,7 +107,7 @@ class ObservationEventListenerTests {
                         it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -143,8 +144,8 @@ class ObservationEventListenerTests {
             ),
             emptyList()
         ).right()
-        val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        every { mockedJsonLdEntity.types } returns listOf(BEEHIVE_TYPE)
+        val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
         } returns Job()
@@ -173,7 +174,7 @@ class ObservationEventListenerTests {
                         it.updated[0].datasetId == expectedTemperatureDatasetId
                 },
                 eq(true),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }

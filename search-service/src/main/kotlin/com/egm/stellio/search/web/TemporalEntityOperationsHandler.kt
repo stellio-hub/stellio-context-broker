@@ -3,12 +3,11 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.util.applySysAttrs
 import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -35,7 +34,7 @@ class TemporalEntityOperationsHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
@@ -43,27 +42,28 @@ class TemporalEntityOperationsHandler(
                 applicationProperties.pagination,
                 requestBody.awaitFirst(),
                 params,
-                contextLink
+                contexts
             ).bind()
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
 
-        val includeSysAttrs = params.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
-        ).bind().let {
-            Pair(it.first.map { it.applySysAttrs(includeSysAttrs) }, it.second)
-        }
+        ).bind()
+
+        val compactedEntities = compactEntities(temporalEntities, contexts)
+
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
 
         buildQueryResponse(
-            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery.entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },

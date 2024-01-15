@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
@@ -23,7 +24,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
@@ -54,8 +55,6 @@ import java.time.*
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 @Import(WebSecurityTestConfig::class)
 class EntityHandlerTests {
-
-    private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -89,17 +88,10 @@ class EntityHandlerTests {
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val fishSizeAttribute = "https://ontology.eglobalmark.com/aquac#fishSize"
-    private val hcmrContext = listOf(
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
-            "master/shared-jsonld-contexts/egm.jsonld",
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
-            "master/aquac/jsonld-contexts/aquac.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-    )
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
@@ -134,14 +126,14 @@ class EntityHandlerTests {
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
                 eq(listOf(breedingServiceType)),
-                eq(hcmrContext)
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
     }
 
     @Test
     fun `create entity should return a 409 if the entity already exists`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery {
@@ -164,7 +156,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 500 error if there is an internal server error`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
@@ -194,7 +186,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -211,7 +203,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(entityWithoutId)
             .exchange()
             .expectStatus().isBadRequest
@@ -228,7 +220,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(entityWithoutType)
             .exchange()
             .expectStatus().isBadRequest
@@ -236,7 +228,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 400 if creation unexpectedly fails`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
@@ -263,7 +255,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 403 if user is not allowed to create entities`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery {
             authorizationService.userCanCreateEntities(sub)
@@ -295,9 +287,9 @@ class EntityHandlerTests {
     fun `get entity by id should return 200 when entity exists`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        coEvery { queryService.queryEntity(any(), any()) } returns returnedJsonLdEntity.right()
-        every { returnedJsonLdEntity.checkContainsAnyOf(any()) } returns Unit.right()
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        coEvery { queryService.queryEntity(any(), any()) } returns returnedExpandedEntity.right()
+        every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -310,7 +302,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -320,7 +312,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -332,7 +324,7 @@ class EntityHandlerTests {
                 """
                 {
                     "createdAt": "2015-10-18T11:20:30.000001Z",
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -342,7 +334,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly filter the asked attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -359,7 +351,7 @@ class EntityHandlerTests {
                     )
                 )
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -376,7 +368,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly return the simplified representation of an entity`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -388,12 +380,12 @@ class EntityHandlerTests {
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                    NGSILD_RELATIONSHIP_OBJECT to mapOf(
                         JSONLD_ID to "urn:ngsi-ld:Entity:1234"
                     )
                 )
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -409,7 +401,7 @@ class EntityHandlerTests {
                     "type": "Beehive",
                     "prop1": "some value",
                     "rel1": "urn:ngsi-ld:Entity:1234",
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -419,12 +411,12 @@ class EntityHandlerTests {
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf(BEEHIVE_TYPE)
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
@@ -451,12 +443,12 @@ class EntityHandlerTests {
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -464,7 +456,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"@context":["$NGSILD_CORE_CONTEXT"]}""")
+            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }
@@ -472,7 +464,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         mockkDefaultBehaviorForGetEntityById()
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -499,7 +491,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -520,7 +512,7 @@ class EntityHandlerTests {
                         "createdAt":"2015-10-18T11:20:30.000001Z",
                         "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -530,7 +522,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Date`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -542,7 +534,7 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -560,7 +552,7 @@ class EntityHandlerTests {
                             "@value":"2015-10-18"
                         }
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -570,7 +562,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Time`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -582,7 +574,7 @@ class EntityHandlerTests {
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -600,7 +592,7 @@ class EntityHandlerTests {
                             "@value":"11:20:30"
                         }
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 } 
                 """.trimIndent()
             )
@@ -610,7 +602,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     mapOf(
@@ -623,7 +615,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -637,7 +629,7 @@ class EntityHandlerTests {
                     "id":"urn:ngsi-ld:Beehive:4567",
                     "type":"Beehive",
                     "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -647,7 +639,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     listOf(
@@ -669,7 +661,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -690,7 +682,7 @@ class EntityHandlerTests {
                             "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -700,12 +692,12 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
                         JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to mapOf(
                             JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                         ),
                         NGSILD_DATASET_ID_PROPERTY to mapOf(
@@ -715,7 +707,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -733,7 +725,7 @@ class EntityHandlerTests {
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -743,12 +735,12 @@ class EntityHandlerTests {
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
                         JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to mapOf(
                             JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                         ),
                         NGSILD_DATASET_ID_PROPERTY to mapOf(
@@ -768,7 +760,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -785,19 +777,19 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns JsonLdEntity(
+        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(
                         mapOf(
                             JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to mapOf(
                                 JSONLD_ID to "urn:ngsi-ld:Beekeeper:1229"
                             )
                         ),
                         mapOf(
                             JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
-                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to mapOf(
                                 JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
                             ),
                             NGSILD_DATASET_ID_PROPERTY to mapOf(
@@ -808,7 +800,7 @@ class EntityHandlerTests {
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
             ),
-            listOf(NGSILD_CORE_CONTEXT)
+            listOf(NGSILD_TEST_CORE_CONTEXT)
         ).right()
 
         webClient.get()
@@ -832,7 +824,7 @@ class EntityHandlerTests {
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
                     ],
-                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                    "@context": "$NGSILD_CORE_CONTEXT"
                 }
                 """.trimIndent()
             )
@@ -866,7 +858,7 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
@@ -884,12 +876,12 @@ class EntityHandlerTests {
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             1
@@ -906,7 +898,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -922,13 +914,13 @@ class EntityHandlerTests {
                 EntitiesQuery(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    context = NGSILD_CORE_CONTEXT
+                    contexts = NGSILD_CORE_CONTEXTS
                 ),
                 any()
             )
         } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         NGSILD_CREATED_AT_PROPERTY to
                             mapOf(
@@ -938,7 +930,7 @@ class EntityHandlerTests {
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             1
@@ -956,7 +948,7 @@ class EntityHandlerTests {
                         "id": "$beehiveId",
                         "type": "Beehive",
                         "createdAt":"2015-10-18T11:20:30.000001Z",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -967,9 +959,9 @@ class EntityHandlerTests {
     fun `get entities should return 200 with prev and next link header if exists`() {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive")),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             ),
             3
@@ -995,7 +987,7 @@ class EntityHandlerTests {
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "Beehive",
-                        "@context": ["$NGSILD_CORE_CONTEXT"]
+                        "@context": "$NGSILD_CORE_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -1006,7 +998,7 @@ class EntityHandlerTests {
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
         coEvery {
             queryService.queryEntities(any(), any())
-        } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&offset=9")
@@ -1057,18 +1049,18 @@ class EntityHandlerTests {
                     ids = setOf(beehiveId),
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 any()
             )
         } returns Pair(
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
-                    listOf(APIC_COMPOUND_CONTEXT)
+                    APIC_COMPOUND_CONTEXTS
                 )
             ),
             1
@@ -1086,7 +1078,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": ["$APIC_COMPOUND_CONTEXT"]
+                        "@context": "$APIC_COMPOUND_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -1095,7 +1087,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and the number of results`() {
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 3).right()
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 3).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&offset=1&count=true")
@@ -1124,7 +1116,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<JsonLdEntity>(), 0).right()
+        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?attrs=myProp")
@@ -1153,7 +1145,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 201 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
@@ -1186,14 +1178,14 @@ class EntityHandlerTests {
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
                 eq(listOf(breedingServiceType)),
-                eq(hcmrContext)
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
     }
 
     @Test
     fun `replace entity should return a 403 if user is not allowed to update the entity`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
@@ -1219,7 +1211,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 404 if entity does not exist`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery {
@@ -1236,7 +1228,7 @@ class EntityHandlerTests {
 
     @Test
     fun `replace entity should return a 400 if id contained in payload is different from the one in URL`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0215".toUri()
 
         coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
@@ -1308,7 +1300,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1358,7 +1350,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1409,7 +1401,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1456,7 +1448,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1496,7 +1488,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
@@ -1537,7 +1529,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(invalidPayload)
             .exchange()
@@ -1566,7 +1558,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1612,7 +1604,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", aquacHeaderLink)
+            .header("Link", AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1647,7 +1639,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1677,7 +1669,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1702,7 +1694,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1757,7 +1749,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1811,7 +1803,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId?observedAt=2019-12-04T12:00:00.00Z")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1849,7 +1841,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId?observedAt=notDateTime")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1901,7 +1893,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1923,7 +1915,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1964,7 +1956,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2010,7 +2002,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2037,7 +2029,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2073,7 +2065,7 @@ class EntityHandlerTests {
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable",
                     "title": "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
-                    "detail": "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: https://easyglobalmarket.com/contexts/diat.jsonld)"
+                    "detail": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED].])"
                 }
                 """.trimIndent()
             )
@@ -2120,7 +2112,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -2143,7 +2135,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
+        every { entity.contexts } returns APIC_COMPOUND_CONTEXTS
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
@@ -2166,7 +2158,7 @@ class EntityHandlerTests {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entity),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2284,7 +2276,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2319,7 +2311,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
                 eq(true),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }
@@ -2354,7 +2346,7 @@ class EntityHandlerTests {
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
                 eq(false),
-                eq(listOf(APIC_COMPOUND_CONTEXT))
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
     }

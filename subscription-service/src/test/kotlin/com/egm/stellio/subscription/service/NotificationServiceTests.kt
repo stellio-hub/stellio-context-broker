@@ -3,12 +3,8 @@ package com.egm.stellio.subscription.service
 import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
@@ -69,16 +65,14 @@ class NotificationServiceTests {
                  ]
               }
            },
-           "@context":[
-              "$APIC_COMPOUND_CONTEXT"                  
-           ]
+           "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         } 
         """.trimIndent()
 
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
-        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val expandedEntity = expandJsonLdEntity(rawEntity)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -91,7 +85,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            jsonLdEntity,
+            expandedEntity,
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -103,7 +97,7 @@ class NotificationServiceTests {
 
         coVerify {
             subscriptionService.getMatchingSubscriptions(
-                jsonLdEntity,
+                expandedEntity,
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
             )
@@ -119,9 +113,9 @@ class NotificationServiceTests {
                 FormatType.NORMALIZED,
                 listOf(NGSILD_NAME_PROPERTY, NGSILD_LOCATION_PROPERTY)
             ),
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
-        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val expandedEntity = expandJsonLdEntity(rawEntity)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -134,7 +128,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            jsonLdEntity,
+            expandedEntity,
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -164,9 +158,9 @@ class NotificationServiceTests {
                     accept = Endpoint.AcceptType.JSONLD
                 )
             ),
-            contexts = listOf(NGSILD_CORE_CONTEXT)
+            contexts = listOf(NGSILD_TEST_CORE_CONTEXT)
         )
-        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val expandedEntity = expandJsonLdEntity(rawEntity)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -179,7 +173,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            jsonLdEntity,
+            expandedEntity,
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
@@ -189,7 +183,7 @@ class NotificationServiceTests {
             assertEquals(1, notificationResult.second.data.size)
             assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
             assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
-            assertEquals(listOf(NGSILD_CORE_CONTEXT), notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
+            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
             assertTrue(notificationResult.third)
         }
     }
@@ -200,7 +194,7 @@ class NotificationServiceTests {
             val subscription = gimmeRawSubscription(
                 withNotifParams = Pair(FormatType.KEY_VALUES, listOf(NGSILD_LOCATION_TERM))
             )
-            val jsonLdEntity = expandJsonLdEntity(rawEntity)
+            val expandedEntity = expandJsonLdEntity(rawEntity)
 
             coEvery {
                 subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -213,7 +207,7 @@ class NotificationServiceTests {
             )
 
             notificationService.notifyMatchingSubscribers(
-                jsonLdEntity,
+                expandedEntity,
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
@@ -225,7 +219,7 @@ class NotificationServiceTests {
 
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
-                    jsonLdEntity,
+                    expandedEntity,
                     setOf(NGSILD_NAME_PROPERTY),
                     ATTRIBUTE_UPDATED
                 )
@@ -238,7 +232,7 @@ class NotificationServiceTests {
     fun `it should notify the two subscribers`() = runTest {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
-        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val expandedEntity = expandJsonLdEntity(rawEntity)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -251,7 +245,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            jsonLdEntity,
+            expandedEntity,
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
@@ -260,7 +254,7 @@ class NotificationServiceTests {
 
         coVerify {
             subscriptionService.getMatchingSubscriptions(
-                jsonLdEntity,
+                expandedEntity,
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_DELETED
             )
@@ -284,7 +278,7 @@ class NotificationServiceTests {
                 )
             )
         val subscription2 = gimmeRawSubscription()
-        val jsonLdEntity = expandJsonLdEntity(rawEntity)
+        val expandedEntity = expandJsonLdEntity(rawEntity)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -297,7 +291,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            jsonLdEntity,
+            expandedEntity,
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
@@ -312,7 +306,7 @@ class NotificationServiceTests {
 
         coVerify {
             subscriptionService.getMatchingSubscriptions(
-                jsonLdEntity,
+                expandedEntity,
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_CREATED
             )
@@ -333,7 +327,7 @@ class NotificationServiceTests {
             )
         )
 
-        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
         stubFor(
@@ -363,7 +357,7 @@ class NotificationServiceTests {
             )
         )
 
-        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_CORE_CONTEXT)
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
         stubFor(

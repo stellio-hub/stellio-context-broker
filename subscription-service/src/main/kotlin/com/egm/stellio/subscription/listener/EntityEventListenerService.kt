@@ -3,7 +3,6 @@ package com.egm.stellio.subscription.listener
 import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_PROPERTIES
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -122,10 +121,10 @@ class EntityEventListenerService(
         contexts: List<String>
     ): Either<APIException, Disposable> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
+        val expandedEntity = ExpandedEntity(entityPayload.deserializeAsMap(), contexts)
         mono {
             notificationService.notifyMatchingSubscribers(
-                jsonLdEntity,
+                expandedEntity,
                 updatedAttributes,
                 notificationTrigger
             )

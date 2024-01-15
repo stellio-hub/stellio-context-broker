@@ -5,7 +5,7 @@ import arrow.core.Option
 import arrow.core.right
 import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -41,20 +41,20 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQuery,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = Pair(-1, emptyList<ExpandedEntity>()).right()
 
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = Pair(-1, emptyList<ExpandedEntity>()).right()
 
     override suspend fun getUsers(
         offset: Int,
         limit: Int,
-        contextLink: String,
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = Pair(-1, emptyList<JsonLdEntity>()).right()
+        contexts: List<String>,
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = Pair(-1, emptyList<ExpandedEntity>()).right()
 }

@@ -3,9 +3,16 @@ package com.egm.stellio.search.scope
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 
 object TemporalScopeBuilder {
 
@@ -19,40 +26,23 @@ object TemporalScopeBuilder {
             emptyMap()
         // if no history but entity has a scope, add an empty scope list (no history in the given time range)
         else if (scopeInstances.isEmpty())
-            mapOf(NGSILD_SCOPE_TERM to emptyList<String>())
+            mapOf(NGSILD_SCOPE_PROPERTY to emptyList<String>())
         else if (temporalEntitiesQuery.withAggregatedValues)
             buildScopeAggregatedRepresentation(
                 scopeInstances,
                 temporalEntitiesQuery.temporalQuery.aggrMethods!!
             )
         else if (temporalEntitiesQuery.withTemporalValues)
-            mapOf(
-                NGSILD_SCOPE_TERM to mapOf(
-                    JSONLD_TYPE_TERM to "Property",
-                    "values" to scopeInstances.map {
-                        it as SimplifiedScopeInstanceResult
-                        listOf(it.scopes, it.time)
-                    }
-                )
-            )
+            buildScopeSimplifiedRepresentation(scopeInstances)
         else
-            mapOf(
-                NGSILD_SCOPE_TERM to scopeInstances.map {
-                    it as FullScopeInstanceResult
-                    mapOf(
-                        JSONLD_TYPE_TERM to "Property",
-                        JSONLD_VALUE_TERM to it.scopes,
-                        it.timeproperty to it.time
-                    )
-                }
-            )
+            buildScopeFullRepresentation(scopeInstances)
 
     private fun buildScopeAggregatedRepresentation(
         scopeHistory: List<ScopeInstanceResult>,
         aggrMethods: List<TemporalQuery.Aggregate>
     ): Map<String, Any> {
         val attributeInstance = mutableMapOf<String, Any>(
-            JSONLD_TYPE_TERM to "Property"
+            JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri)
         )
 
         aggrMethods.forEach { aggregate ->
@@ -65,11 +55,51 @@ object TemporalScopeBuilder {
                 .filter { aggregateResult ->
                     aggregateResult.aggregate == aggregate
                 }
-            attributeInstance[aggregate.method] = valuesForAggregate.map { aggregateResult ->
-                listOf(aggregateResult.value, aggregateResult.startDateTime, aggregateResult.endDateTime)
-            }
+            attributeInstance[NGSILD_PREFIX + aggregate.method] =
+                buildExpandedTemporalValue(valuesForAggregate) { aggregateResult ->
+                    listOf(
+                        mapOf(JSONLD_VALUE to aggregateResult.value),
+                        mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
+                        mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
+                    )
+                }
         }
 
-        return mapOf(NGSILD_SCOPE_TERM to attributeInstance.toMap())
+        return mapOf(NGSILD_SCOPE_PROPERTY to attributeInstance.toMap())
     }
+
+    private fun buildScopeSimplifiedRepresentation(
+        scopeHistory: List<ScopeInstanceResult>
+    ): Map<String, Any> {
+        val attributeInstance = mapOf(
+            JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+            NGSILD_PROPERTY_VALUES to
+                buildExpandedTemporalValue(scopeHistory) { scopeInstanceResult ->
+                    scopeInstanceResult as SimplifiedScopeInstanceResult
+                    listOf(
+                        mapOf(
+                            JSONLD_LIST to scopeInstanceResult.scopes.map { mapOf(JSONLD_VALUE to it) }
+                        ),
+                        mapOf(JSONLD_VALUE to scopeInstanceResult.time)
+                    )
+                }
+        )
+
+        return mapOf(NGSILD_SCOPE_PROPERTY to attributeInstance)
+    }
+
+    private fun buildScopeFullRepresentation(
+        scopeHistory: List<ScopeInstanceResult>
+    ): Map<String, Any> =
+        mapOf(
+            NGSILD_SCOPE_PROPERTY to scopeHistory.map { scopeInstanceResult ->
+                scopeInstanceResult as FullScopeInstanceResult
+                mapOf(
+                    JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+                    NGSILD_PROPERTY_VALUE to scopeInstanceResult.scopes.map { mapOf(JSONLD_VALUE to it) },
+                    NGSILD_PREFIX + scopeInstanceResult.timeproperty to
+                        buildNonReifiedTemporalValue(scopeInstanceResult.time)
+                )
+            }
+        )
 }

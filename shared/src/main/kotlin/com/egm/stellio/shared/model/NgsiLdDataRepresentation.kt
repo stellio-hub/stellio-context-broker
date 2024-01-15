@@ -13,7 +13,9 @@ data class NgsiLdDataRepresentation(
     val includeSysAttrs: Boolean,
     // In the case of GeoJSON Entity representation,
     // this parameter indicates which GeoProperty to use for the toplevel geometry field
-    val geometryProperty: String? = null
+    val geometryProperty: String? = null,
+    // In the case of a temporal property, do not remove this property if sysAttrs is not asked
+    val timeproperty: String? = null
 )
 
 enum class AttributeRepresentation {

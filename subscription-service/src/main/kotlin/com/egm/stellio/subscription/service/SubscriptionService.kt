@@ -544,16 +544,16 @@ class SubscriptionService(
     }
 
     suspend fun getMatchingSubscriptions(
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Subscription>> = either {
         getMatchingSubscriptions(updatedAttributes, notificationTrigger)
             .filter {
-                val entitiesFilter = prepareEntitiesQuery(it.entities, jsonLdEntity)
-                val qFilter = prepareQQuery(it.q?.decode(), jsonLdEntity, it.contexts)
-                val scopeFilter = prepareScopeQQuery(it.scopeQ?.decode(), jsonLdEntity)
-                val geoQueryFilter = prepareGeoQuery(it.geoQ, jsonLdEntity)
+                val entitiesFilter = prepareEntitiesQuery(it.entities, expandedEntity)
+                val qFilter = prepareQQuery(it.q?.decode(), expandedEntity, it.contexts)
+                val scopeFilter = prepareScopeQQuery(it.scopeQ?.decode(), expandedEntity)
+                val geoQueryFilter = prepareGeoQuery(it.geoQ, expandedEntity)
 
                 val query = listOfNotNull(entitiesFilter, qFilter, scopeFilter, geoQueryFilter)
                 if (query.isEmpty())
@@ -568,19 +568,19 @@ class SubscriptionService(
 
     suspend fun prepareEntitiesQuery(
         entities: Set<EntitySelector>?,
-        jsonLdEntity: JsonLdEntity
+        expandedEntity: ExpandedEntity
     ): String? =
         if (entities.isNullOrEmpty()) null
         else {
-            val entityTypes = jsonLdEntity.types
+            val entityTypes = expandedEntity.types
             entities.joinToString(" OR ") {
                 val typeSelectionQuery = buildTypeQuery(it.typeSelection, entityTypes)
                 val idQuery =
                     if (it.id == null) null
-                    else " '${jsonLdEntity.id}' = '${it.id}' "
+                    else " '${expandedEntity.id}' = '${it.id}' "
                 val idPatternQuery =
                     if (it.idPattern == null) null
-                    else " '${jsonLdEntity.id}' ~ '${it.idPattern}' "
+                    else " '${expandedEntity.id}' ~ '${it.idPattern}' "
                 listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)
                     .joinToString(separator = " AND ", prefix = "(", postfix = ")")
             }
@@ -588,22 +588,22 @@ class SubscriptionService(
 
     suspend fun prepareQQuery(
         query: String?,
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         contexts: List<String>
     ): String? =
         if (query == null) null
-        else buildQQuery(query, contexts, jsonLdEntity)
+        else buildQQuery(query, contexts, expandedEntity)
 
     suspend fun prepareScopeQQuery(
         scopeQ: String?,
-        jsonLdEntity: JsonLdEntity
+        expandedEntity: ExpandedEntity
     ): String? =
         if (scopeQ == null) null
-        else buildScopeQQuery(scopeQ, jsonLdEntity)
+        else buildScopeQQuery(scopeQ, expandedEntity)
 
     suspend fun prepareGeoQuery(
         geoQ: GeoQ?,
-        jsonLdEntity: JsonLdEntity
+        expandedEntity: ExpandedEntity
     ): String? =
         if (geoQ == null) null
         else buildGeoQuery(
@@ -614,7 +614,7 @@ class SubscriptionService(
                 geoproperty = geoQ.geoproperty,
                 wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
             ),
-            jsonLdEntity
+            expandedEntity
         )
 
     suspend fun updateSubscriptionNotification(

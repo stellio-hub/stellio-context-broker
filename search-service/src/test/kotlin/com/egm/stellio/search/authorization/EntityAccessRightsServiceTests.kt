@@ -6,14 +6,14 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_NAME
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_ENTITY_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.egm.stellio.shared.util.JsonLdUtils.DATASET_ID_PREFIX
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.Called
 import io.mockk.coEvery
@@ -544,12 +544,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     ) {
         val rawEntity =
             if (specificAccessPolicy != null)
-                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+                loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, AUTHZ_TEST_COMPOUND_CONTEXTS)
             else loadMinimalEntity(entityId, types)
         rawEntity.sampleDataToNgsiLdEntity().map {
             entityPayloadService.createEntityPayload(
                 ngsiLdEntity = it.second,
-                jsonLdEntity = it.first,
+                expandedEntity = it.first,
                 createdAt = ngsiLdDateTime()
             )
         }

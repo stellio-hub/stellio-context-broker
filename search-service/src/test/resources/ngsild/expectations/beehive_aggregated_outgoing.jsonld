@@ -1,31 +1,83 @@
 {
-  "id": "urn:ngsi-ld:Beehive:1234",
-  "type": "BeeHive",
-  "outgoing": {
-    "type": "Property",
-    "sum": [
-      [
-        12,
-        "2020-03-25T08:29:17.965206Z",
-        "2020-03-25T10:29:17.965206Z"
+  "@id": "urn:ngsi-ld:Beehive:1234",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://uri.etsi.org/ngsi-ld/createdAt": [
+    {
+      "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+      "@value": "$now"
+    }
+  ],
+  "https://ontology.eglobalmark.com/apic#outgoing": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
       ],
-      [
-        14,
-        "2020-03-25T10:29:17.965206Z",
-        "2020-03-25T12:29:17.965206Z"
-      ]
-    ],
-    "avg": [
-      [
-        2,
-        "2020-03-25T08:29:17.965206Z",
-        "2020-03-25T10:29:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/sum": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "@value": 12
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                },
+                {
+                  "@value": "2020-03-25T10:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "@value": 14
+                },
+                {
+                  "@value": "2020-03-25T10:29:17.965206Z"
+                },
+                {
+                  "@value": "2020-03-25T12:29:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
       ],
-      [
-        2.5,
-        "2020-03-25T10:29:17.965206Z",
-        "2020-03-25T12:29:17.965206Z"
+      "https://uri.etsi.org/ngsi-ld/avg": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "@value": 2
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                },
+                {
+                  "@value": "2020-03-25T10:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "@value": 2.5
+                },
+                {
+                  "@value": "2020-03-25T10:29:17.965206Z"
+                },
+                {
+                  "@value": "2020-03-25T12:29:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
       ]
-    ]
-  }
+    }
+  ]
 }

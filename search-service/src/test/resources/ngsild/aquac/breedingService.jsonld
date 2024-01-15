@@ -1,0 +1,17 @@
+{
+   "id":"urn:ngsi-ld:BreedingService:0214",
+   "type":"BreedingService",
+   "location":{
+      "type":"GeoProperty",
+      "value":{
+         "type":"Point",
+         "coordinates":[
+            -8.5,
+            41.2
+         ]
+      }
+   },
+   "@context": [
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
+   ]
+}

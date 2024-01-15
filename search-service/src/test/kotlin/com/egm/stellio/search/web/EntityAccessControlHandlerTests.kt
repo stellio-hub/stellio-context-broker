@@ -13,7 +13,6 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
@@ -28,9 +27,7 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
@@ -57,8 +54,6 @@ import java.time.Duration
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 @Import(WebSecurityTestConfig::class)
 class EntityAccessControlHandlerTests {
-
-    private val authzHeaderLink = buildContextLinkHeader(AUTHORIZATION_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -99,7 +94,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Relationship",
                     "object": "$entityUri1"
                 },
-                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHZ_TEST_CONTEXT", "$NGSILD_TEST_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -145,7 +140,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Relationship",
                     "object": "$entityUri3"
                 },
-                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHZ_TEST_CONTEXT", "$NGSILD_TEST_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -199,7 +194,7 @@ class EntityAccessControlHandlerTests {
                     "object": "$entityUri2",
                     "datasetId": "$entityUri2"
                 }],
-                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHZ_TEST_CONTEXT", "$NGSILD_TEST_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -251,7 +246,7 @@ class EntityAccessControlHandlerTests {
                     "type": "Property",
                     "value": "$entityUri2"
                 },
-                "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                "@context": ["$AUTHZ_TEST_CONTEXT", "$NGSILD_TEST_CORE_CONTEXT"]
             }
             """.trimIndent()
 
@@ -324,7 +319,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .exchange()
             .expectStatus().isNoContent
 
@@ -386,7 +381,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -414,7 +409,7 @@ class EntityAccessControlHandlerTests {
             {
                 "type": "Property",
                 "value": "AUTH_READ",
-                "@context": ["$AUTHORIZATION_CONTEXT"]
+                "@context": ["$AUTHZ_TEST_CONTEXT"]
             }
             """.trimIndent()
 
@@ -491,7 +486,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -514,7 +509,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(requestPayload)
             .exchange()
@@ -529,7 +524,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue("{}")
             .exchange()
@@ -543,7 +538,7 @@ class EntityAccessControlHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
-            .header(HttpHeaders.LINK, buildContextLinkHeader(AUTHORIZATION_CONTEXT))
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
             .exchange()
             .expectStatus().isNoContent
 
@@ -558,7 +553,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?&limit=0&offset=1&count=true")
@@ -572,7 +567,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(0, emptyList<JsonLdEntity>()).right()
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=9")
@@ -619,7 +614,7 @@ class EntityAccessControlHandlerTests {
                     "id": "urn:ngsi-ld:Beehive:TESTC",
                     "type": "$BEEHIVE_TYPE",
                     "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
-                    "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
+                    "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
                 },
                 {
                     "id": "urn:ngsi-ld:Beehive:TESTD",
@@ -635,7 +630,7 @@ class EntityAccessControlHandlerTests {
                             "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
                          }
                     },
-                    "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
+                    "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
                 }]
                 """.trimMargin()
             )
@@ -661,7 +656,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
             authorizationService.getAuthorizedEntities(any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities")
@@ -674,7 +669,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
         coEvery {
             authorizationService.getGroupsMemberships(any(), any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups?&limit=0&offset=1&count=true")
@@ -691,13 +686,13 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm")
+                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm")
                     ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             )
         ).right()
@@ -715,7 +710,7 @@ class EntityAccessControlHandlerTests {
                         "id": "urn:ngsi-ld:group:1",
                         "type": "$GROUP_COMPACT_TYPE",
                         "name" : {"type":"Property", "value": "egm"},
-                        "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
+                        "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -731,21 +726,22 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedProperty("egm"),
-                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedProperty("true")
+                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm"),
+                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedPropertyValue("true")
                     ),
-                    listOf(AUTHORIZATION_CONTEXT)
+                    listOf(AUTHZ_TEST_COMPOUND_CONTEXT)
                 )
             )
         ).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups?count=true")
-            .header(HttpHeaders.LINK, authzHeaderLink)
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
@@ -757,7 +753,10 @@ class EntityAccessControlHandlerTests {
                         "type": "Group",
                         "name": {"type":"Property", "value": "egm"},
                         "isMemberOf": {"type":"Property", "value": "true"},
-                        "@context": ["$AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                        "@context": [
+                          "$AUTHZ_TEST_CONTEXT",
+                          "$AUTHORIZATION_COMPOUND_CONTEXT"
+                        ]
                     }
                 ]
                 """.trimMargin()
@@ -770,7 +769,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return 204 if authentication is not enabled`() {
         coEvery {
             authorizationService.getGroupsMemberships(any(), any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups")
@@ -797,7 +796,7 @@ class EntityAccessControlHandlerTests {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
-        } returns Pair(3, emptyList<JsonLdEntity>()).right()
+        } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/users?&limit=0&offset=1&count=true")
@@ -812,7 +811,7 @@ class EntityAccessControlHandlerTests {
         coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
-        } returns Pair(-1, emptyList<JsonLdEntity>()).right()
+        } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/users")
@@ -829,7 +828,7 @@ class EntityAccessControlHandlerTests {
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
+                ExpandedEntity(
                     User(
                         "1",
                         USER_TYPE,
@@ -837,8 +836,8 @@ class EntityAccessControlHandlerTests {
                         "givenName",
                         "familyName",
                         mapOf("profile" to "stellio-user", "username" to "username")
-                    ).serializeProperties(AUTHORIZATION_COMPOUND_CONTEXT),
-                    listOf(NGSILD_CORE_CONTEXT)
+                    ).serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXTS),
+                    listOf(NGSILD_TEST_CORE_CONTEXT)
                 )
             )
         ).right()
@@ -859,7 +858,7 @@ class EntityAccessControlHandlerTests {
                         "$AUTH_TERM_GIVEN_NAME" : { "type":"Property", "value": "givenName" },
                         "$AUTH_TERM_FAMILY_NAME" : { "type":"Property", "value": "familyName" },
                         "$AUTH_TERM_SUBJECT_INFO": { "type":"Property","value":{ "profile": "stellio-user" } },
-                        "@context": ["$AUTHORIZATION_COMPOUND_CONTEXT"]
+                        "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
                     }
                 ]
                 """.trimMargin()
@@ -870,10 +869,10 @@ class EntityAccessControlHandlerTests {
 
     private suspend fun createJsonLdEntity(
         entityAccessRights: EntityAccessRights,
-        context: String = NGSILD_CORE_CONTEXT
-    ): JsonLdEntity {
-        val earSerialized = entityAccessRights.serializeProperties(AUTHORIZATION_COMPOUND_CONTEXT)
-        return JsonLdEntity(earSerialized, listOf(context))
+        context: String = NGSILD_TEST_CORE_CONTEXT
+    ): ExpandedEntity {
+        val earSerialized = entityAccessRights.serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXTS)
+        return ExpandedEntity(earSerialized, listOf(context))
     }
 
     private fun createEntityAccessRight(

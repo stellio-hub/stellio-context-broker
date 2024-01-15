@@ -8,8 +8,9 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -51,12 +52,16 @@ val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
 /**
- * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
- * JSON-LD @context.
+ * As per 6.3.5, If the request verb is GET or DELETE, then the associated JSON-LD "@context" shall be obtained from a
+ * Link header as mandated by JSON-LD, section 6.2.extract @context from Link header.
+ * In the absence of such Link header, it returns the default JSON-LD @context.
  */
-fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, String> =
+fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, List<String>> =
     getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
-        .map { it ?: JsonLdUtils.NGSILD_CORE_CONTEXT }
+        .map {
+            if (it != null) addCoreContextIfMissing(listOf(it))
+            else listOf(NGSILD_CORE_CONTEXT)
+        }
 
 fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, String?> =
     if (linkHeader.isNotEmpty())
@@ -75,32 +80,31 @@ fun checkAndGetContext(
     httpHeaders: HttpHeaders,
     body: Map<String, Any>
 ): Either<APIException, List<String>> = either {
-    checkContext(httpHeaders, body).bind()
+    checkContentType(httpHeaders, body).bind()
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
-        listOf(contextLink)
+        getContextFromLinkHeaderOrDefault(httpHeaders).bind()
     } else {
-        val contexts = extractContextFromInput(body)
+        val contexts = body.extractContexts()
         // kind of duplicate what is checked in checkContext but a bit more sure
         ensure(contexts.isNotEmpty()) {
             BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
             )
         }
-        contexts
+        addCoreContextIfMissing(contexts)
     }
 }
 
-suspend fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
+suspend fun checkContentType(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
     either {
         body.parMap {
-            checkContext(httpHeaders, it).bind()
+            checkContentType(httpHeaders, it).bind()
         }
     }.map { Unit.right() }
 
-fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {
+fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
@@ -123,16 +127,53 @@ fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIEx
     return Unit.right()
 }
 
+/**
+ * Returns a pair comprised of the compacted input (without a @context entry) and the applicable JSON-LD contexts
+ * (with core @context added if it was missing)
+ */
 suspend fun extractPayloadAndContexts(
     requestBody: Mono<String>,
     httpHeaders: HttpHeaders
-): Either<APIException, Pair<CompactedJsonLdEntity, List<String>>> = either {
+): Either<APIException, Pair<CompactedEntity, List<String>>> = either {
     val body = requestBody.awaitFirst().deserializeAsMap()
         .checkNamesAreNgsiLdSupported().bind()
         .checkContentIsNgsiLdSupported().bind()
     val contexts = checkAndGetContext(httpHeaders, body).bind()
 
-    Pair(body, contexts)
+    Pair(body.minus(JSONLD_CONTEXT), contexts)
+}
+
+fun Map<String, Any>.extractContexts(): List<String> =
+    if (!this.containsKey(JSONLD_CONTEXT))
+        emptyList()
+    else if (this[JSONLD_CONTEXT] is List<*>)
+        this[JSONLD_CONTEXT] as List<String>
+    else if (this[JSONLD_CONTEXT] is String)
+        listOf(this[JSONLD_CONTEXT] as String)
+    else
+        emptyList()
+
+private val coreContextRegex = ".*ngsi-ld-core-context-v\\d+.\\d+.jsonld$".toRegex()
+
+internal fun addCoreContextIfMissing(contexts: List<String>): List<String> =
+    when {
+        contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
+        // to ensure that core @context, if present, comes last
+        contexts.any { it.matches(coreContextRegex) } -> {
+            val coreContext = contexts.find { it.matches(coreContextRegex) }!!
+            contexts.filter { !it.matches(coreContextRegex) }.plus(coreContext)
+        }
+        // to check if the core @context is included / embedded in one of the link
+        canExpandJsonLdKeyFromCore(contexts) -> contexts
+        else -> contexts.plus(NGSILD_CORE_CONTEXT)
+    }
+
+/**
+ * Utility but basic method to find if given contexts can resolve a known term from the core context.
+ */
+private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+    val expandedType = JsonLdUtils.expandJsonLdTerm("datasetId", contexts)
+    return expandedType == NGSILD_DATASET_ID_PROPERTY
 }
 
 enum class OptionsParamValue(val value: String) {
@@ -153,9 +194,6 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
         .orEmpty()
         .toSet()
 
-fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contextLink: String): EntityTypeSelection? =
-    expandTypeSelection(entityTypeSelection, listOf(contextLink))
-
 fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contexts: List<String>): EntityTypeSelection? =
     entityTypeSelection?.replace(typeSelectionRegex) {
         JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
@@ -166,10 +204,10 @@ fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: Lis
         JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
-fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
+fun parseAndExpandRequestParameter(requestParam: String?, contexts: List<String>): Set<String> =
     parseRequestParameter(requestParam)
         .map {
-            JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)
+            JsonLdUtils.expandJsonLdTerm(it.trim(), contexts)
         }.toSet()
 
 fun parseRepresentations(
@@ -185,12 +223,14 @@ fun parseRepresentations(
         if (entityRepresentation == EntityRepresentation.GEO_JSON)
             requestParams.getFirst(QUERY_PARAM_GEOMETRY_PROPERTY) ?: NGSILD_LOCATION_TERM
         else null
+    val timeproperty = requestParams.getFirst("timeproperty")
 
     return NgsiLdDataRepresentation(
         entityRepresentation,
         attributeRepresentation,
         includeSysAttrs,
-        geometryProperty
+        geometryProperty,
+        timeproperty
     )
 }
 
@@ -244,6 +284,13 @@ fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     else
         mediaType.right()
 }
+
+fun acceptToMediaType(accept: String): MediaType =
+    when (accept) {
+        JSON_LD_CONTENT_TYPE -> JSON_LD_MEDIA_TYPE
+        GEO_JSON_CONTENT_TYPE -> GEO_JSON_MEDIA_TYPE
+        else -> MediaType.APPLICATION_JSON
+    }
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     try {

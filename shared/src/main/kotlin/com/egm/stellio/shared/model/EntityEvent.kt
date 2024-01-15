@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonSubTypes

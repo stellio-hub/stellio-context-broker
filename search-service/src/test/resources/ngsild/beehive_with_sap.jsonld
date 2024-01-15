@@ -10,7 +10,7 @@
     "value": "AUTH_READ"
   },
   "@context": [
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+    "http://localhost:8093/jsonld-contexts/authorization.jsonld",
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
   ]
 }

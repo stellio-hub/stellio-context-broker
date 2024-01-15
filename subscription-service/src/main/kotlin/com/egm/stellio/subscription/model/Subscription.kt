@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -176,12 +177,12 @@ fun Map<String, Any>.toFinalRepresentation(
     }
 
 fun List<Subscription>.serialize(
-    context: String,
+    contexts: List<String>,
     mediaType: MediaType = JSON_LD_MEDIA_TYPE,
     includeSysAttrs: Boolean = false
 ): String =
     this.map {
-        convertToMap(it.compact(context))
+        convertToMap(it.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
     }.let {
         serializeObject(it)

@@ -6,6 +6,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.util.deserializeAsMap
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
@@ -97,7 +98,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "scope": [${inputScopes.joinToString(",") { "\"$it\"" } }]
             }
             """.trimIndent(),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         scopeService.update(
@@ -136,7 +137,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
                 withTemporalValues = false,
@@ -162,7 +163,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
@@ -192,7 +193,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
@@ -226,7 +227,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
@@ -261,7 +262,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 TemporalEntitiesQuery(
                     EntitiesQuery(
                         paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                        context = APIC_COMPOUND_CONTEXT
+                        contexts = APIC_COMPOUND_CONTEXTS
                     ),
                     TemporalQuery(
                         timeproperty = TemporalProperty.MODIFIED_AT,
@@ -302,7 +303,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(),
                 withTemporalValues = false,

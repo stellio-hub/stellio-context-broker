@@ -1,14 +1,12 @@
-package com.egm.stellio.search.service
+package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
-import com.egm.stellio.search.util.TemporalEntityAttributeInstancesResult
-import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -40,7 +38,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
@@ -51,17 +49,17 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
-            serializeObject(temporalEntity),
-            setOf(NGSILD_CREATED_AT_TERM)
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.util.TemporalEntityParameterizedSource#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
@@ -74,7 +72,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -86,13 +84,17 @@ class TemporalEntityBuilderTests {
                 withAudit,
                 false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
+        assertJsonPayloadsAreEqual(
+            expectation,
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
+        )
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
     fun `it should correctly build temporal entities`(
         entityTemporalResults: List<EntityTemporalResult>,
         withTemporalValues: Boolean,
@@ -108,9 +110,13 @@ class TemporalEntityBuilderTests {
                 withAudit,
                 false
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity), setOf(NGSILD_CREATED_AT_TERM))
+        assertJsonPayloadsAreEqual(
+            expectation,
+            serializeObject(temporalEntity.map { it.members }),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
+        )
     }
 
     @Test
@@ -172,7 +178,7 @@ class TemporalEntityBuilderTests {
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD,
-            contexts = listOf(APIC_COMPOUND_CONTEXT)
+            contexts = APIC_COMPOUND_CONTEXTS
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -184,13 +190,13 @@ class TemporalEntityBuilderTests {
                 withAudit = false,
                 withAggregatedValues = true
             ),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
-            serializeObject(temporalEntity),
-            setOf(NGSILD_CREATED_AT_TERM)
+            serializeObject(temporalEntity.members),
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 }

@@ -106,7 +106,7 @@ fun buildQueryResponse(
     paginationQuery: PaginationQuery,
     requestParams: MultiValueMap<String, String>,
     mediaType: MediaType,
-    contextLink: String
+    contexts: List<String>
 ): ResponseEntity<String> =
     buildQueryResponse(
         serializeObject(entities),
@@ -115,7 +115,7 @@ fun buildQueryResponse(
         paginationQuery,
         requestParams,
         mediaType,
-        contextLink
+        contexts
     )
 
 fun buildQueryResponse(
@@ -125,7 +125,7 @@ fun buildQueryResponse(
     paginationQuery: PaginationQuery,
     requestParams: MultiValueMap<String, String>,
     mediaType: MediaType,
-    contextLink: String
+    contexts: List<String>
 ): ResponseEntity<String> {
     val prevAndNextLinks = PagingUtils.getPagingLinks(
         resourceUrl,
@@ -136,31 +136,30 @@ fun buildQueryResponse(
     )
 
     val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .header(HttpHeaders.LINK, prevAndNextLinks.first)
             .header(HttpHeaders.LINK, prevAndNextLinks.second)
 
     else if (prevAndNextLinks.first != null)
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .header(HttpHeaders.LINK, prevAndNextLinks.first)
     else if (prevAndNextLinks.second != null)
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .header(HttpHeaders.LINK, prevAndNextLinks.second)
     else
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
 
     return if (paginationQuery.count) responseHeaders.header(RESULTS_COUNT_HEADER, count.toString()).body(body)
     else responseHeaders.body(body)
 }
 
-fun prepareGetSuccessResponse(mediaType: MediaType, contextLink: String): ResponseEntity.BodyBuilder {
-    return ResponseEntity.status(HttpStatus.OK)
+fun prepareGetSuccessResponseHeaders(mediaType: MediaType, contexts: List<String>): ResponseEntity.BodyBuilder =
+    ResponseEntity.status(HttpStatus.OK)
         .apply {
             if (mediaType == JSON_LD_MEDIA_TYPE) {
                 this.header(HttpHeaders.CONTENT_TYPE, JSON_LD_CONTENT_TYPE)
             } else {
-                this.header(HttpHeaders.LINK, buildContextLinkHeader(contextLink))
+                this.header(HttpHeaders.LINK, buildContextLinkHeader(contexts.first()))
                 this.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             }
         }
-}

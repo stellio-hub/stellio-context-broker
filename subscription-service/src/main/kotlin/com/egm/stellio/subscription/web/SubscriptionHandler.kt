@@ -67,7 +67,7 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
@@ -79,7 +79,7 @@ class SubscriptionHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val subscriptions = subscriptionService.getSubscriptions(paginationQuery.limit, paginationQuery.offset, sub)
-            .serialize(contextLink, mediaType, includeSysAttrs)
+            .serialize(contexts, mediaType, includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
 
         buildQueryResponse(
@@ -89,7 +89,7 @@ class SubscriptionHandler(
             paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -106,7 +106,7 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         checkSubscriptionExists(subscriptionId).bind()
@@ -115,8 +115,8 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionId, sub).bind()
         val subscription = subscriptionService.getById(subscriptionId)
 
-        prepareGetSuccessResponse(mediaType, contextLink)
-            .body(subscription.serialize(contextLink, mediaType, includeSysAttrs))
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
+            .body(subscription.serialize(contexts, mediaType, includeSysAttrs))
     }.fold(
         { it.toErrorResponse() },
         { it }

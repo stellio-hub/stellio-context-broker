@@ -1,9 +1,9 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.util.ExpandedTerm
 import java.net.URI
 
 data class EntitiesQuery(
@@ -15,5 +15,5 @@ data class EntitiesQuery(
     val paginationQuery: PaginationQuery,
     val attrs: Set<ExpandedTerm> = emptySet(),
     val geoQuery: GeoQuery? = null,
-    val context: String
+    val contexts: List<String>
 )

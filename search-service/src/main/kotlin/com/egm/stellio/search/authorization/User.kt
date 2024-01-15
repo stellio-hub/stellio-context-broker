@@ -12,8 +12,8 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyMapValue
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 
 data class User(
     val id: String,
@@ -23,19 +23,19 @@ data class User(
     val familyName: String? = null,
     val subjectInfo: Map<String, String>
 ) {
-    suspend fun serializeProperties(contextLink: String): Map<String, Any> {
+    suspend fun serializeProperties(contexts: List<String>): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = USER_ENTITY_PREFIX + id
         resultEntity[JSONLD_TYPE] = listOf(type)
 
-        resultEntity[AUTH_PROP_USERNAME] = buildExpandedProperty(username)
+        resultEntity[AUTH_PROP_USERNAME] = buildExpandedPropertyValue(username)
 
         givenName?.run {
-            resultEntity[AUTH_PROP_GIVEN_NAME] = buildExpandedProperty(givenName)
+            resultEntity[AUTH_PROP_GIVEN_NAME] = buildExpandedPropertyValue(givenName)
         }
 
         familyName?.run {
-            resultEntity[AUTH_PROP_FAMILY_NAME] = buildExpandedProperty(familyName)
+            resultEntity[AUTH_PROP_FAMILY_NAME] = buildExpandedPropertyValue(familyName)
         }
 
         subjectInfo.filterKeys {
@@ -43,7 +43,7 @@ data class User(
         }.run {
             if (this.isNotEmpty())
                 resultEntity[AUTH_PROP_SUBJECT_INFO] =
-                    buildExpandedPropertyMapValue(this, listOf(contextLink))
+                    buildExpandedPropertyMapValue(this, contexts)
         }
 
         return resultEntity

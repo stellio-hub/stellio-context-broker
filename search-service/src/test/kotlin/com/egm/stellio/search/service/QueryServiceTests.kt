@@ -11,6 +11,7 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -55,7 +56,7 @@ class QueryServiceTests {
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
 
-        queryService.queryEntity(entityUri, listOf(APIC_COMPOUND_CONTEXT))
+        queryService.queryEntity(entityUri, APIC_COMPOUND_CONTEXTS)
             .shouldSucceedWith {
                 assertEquals(entityUri.toString(), it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
@@ -67,7 +68,7 @@ class QueryServiceTests {
     fun `it should return an API exception if no entity exists with the given id`() = runTest {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns ResourceNotFoundException("").left()
 
-        queryService.queryEntity(entityUri, listOf(APIC_COMPOUND_CONTEXT))
+        queryService.queryEntity(entityUri, APIC_COMPOUND_CONTEXTS)
             .shouldFail {
                 assertTrue(it is ResourceNotFoundException)
             }
@@ -114,13 +115,13 @@ class QueryServiceTests {
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
             ),
-            APIC_COMPOUND_CONTEXT
+            APIC_COMPOUND_CONTEXTS
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
             assertEquals(
@@ -166,13 +167,13 @@ class QueryServiceTests {
                 ),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
             ),
-            APIC_COMPOUND_CONTEXT
+            APIC_COMPOUND_CONTEXTS
         )
 
         coVerify {
@@ -198,7 +199,7 @@ class QueryServiceTests {
                 temporalQuery = TemporalQuery(),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 withTemporalValues = false,
                 withAudit = false,
@@ -221,7 +222,7 @@ class QueryServiceTests {
                 ),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 withTemporalValues = false,
                 withAudit = false,
@@ -249,7 +250,7 @@ class QueryServiceTests {
                 temporalQuery = TemporalQuery(),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 withTemporalValues = false,
                 withAudit = false,
@@ -295,7 +296,7 @@ class QueryServiceTests {
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
@@ -313,7 +314,7 @@ class QueryServiceTests {
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 )
             )
             attributeInstanceService.search(
@@ -329,7 +330,7 @@ class QueryServiceTests {
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 any()
             )
@@ -363,7 +364,7 @@ class QueryServiceTests {
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    context = APIC_COMPOUND_CONTEXT
+                    contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 TemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
@@ -382,17 +383,32 @@ class QueryServiceTests {
                 assertJsonPayloadsAreEqual(
                     """
                     {
-                        "id": "urn:ngsi-ld:BeeHive:TESTC",
-                        "type": "BeeHive",
-                        "createdAt": "$now",
-                        "incoming": {
-                            "type": "Property",
-                            "avg": []
-                        }
+                        "@id": "urn:ngsi-ld:BeeHive:TESTC",
+                        "@type": [
+                            "https://ontology.eglobalmark.com/apic#BeeHive"
+                        ],
+                        "https://uri.etsi.org/ngsi-ld/createdAt": [
+                            {
+                                "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+                                "@value": "$now"
+                            }
+                        ],
+                        "https://ontology.eglobalmark.com/apic#incoming":[
+                            {
+                                "@type": [
+                                    "https://uri.etsi.org/ngsi-ld/Property"
+                                ],
+                                "https://uri.etsi.org/ngsi-ld/avg":[
+                                    {
+                                        "@list":[]
+                                    }
+                                ]
+                            }
+                        ]
                     }
                     """.trimIndent(),
-                    JsonUtils.serializeObject(it.first[0]),
-                    setOf(NGSILD_CREATED_AT_TERM)
+                    JsonUtils.serializeObject(it.first[0].members),
+                    setOf(NGSILD_CREATED_AT_PROPERTY)
                 )
             })
     }
@@ -402,7 +418,7 @@ class QueryServiceTests {
             entityId = entityUri,
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
-            contexts = listOf(APIC_COMPOUND_CONTEXT),
+            contexts = APIC_COMPOUND_CONTEXTS,
             payload = Json.of(loadSampleData("beehive_expanded.jsonld"))
         )
 }

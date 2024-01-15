@@ -1,80 +1,31 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.LdContextNotAvailableException
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.addCoreContextIfMissing
+import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
+import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.http.MediaType
 
 class JsonLdUtilsTests {
-
-    private val normalizedJson =
-        """
-        {
-            "id": "urn:ngsi-ld:Vehicle:A4567",
-            "type": "Vehicle",
-            "brandName": {
-                "type": "Property",
-                "value": "Mercedes"
-            },
-            "isParked": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
-                "observedAt": "2017-07-29T12:00:04Z",
-                "providedBy": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:Person:Bob"
-                }
-            },
-           "location": {
-              "type": "GeoProperty",
-              "value": {
-                 "type": "Point",
-                 "coordinates": [
-                    24.30623,
-                    60.07966
-                 ]
-              }
-           },
-            "@context": [
-                "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                "https://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "https://example.org/ngsi-ld/latest/parking.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-            ]
-        }
-        """.trimIndent()
-
-    @Test
-    fun `it should filter a JSON-LD Map on the attributes specified as well as the mandatory attributes`() {
-        val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
-
-        val resultMap = JsonLdUtils.filterCompactedEntityOnAttributes(
-            normalizedMap as CompactedJsonLdEntity,
-            setOf("brandName", "location")
-        )
-
-        assertTrue(resultMap.containsKey("id"))
-        assertTrue(resultMap.containsKey("type"))
-        assertTrue(resultMap.containsKey("@context"))
-        assertTrue(resultMap.containsKey("brandName"))
-        assertTrue(resultMap.containsKey("location"))
-        assertFalse(resultMap.containsKey("isParked"))
-    }
 
     @Test
     fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() =
@@ -94,8 +45,9 @@ class JsonLdUtilsTests {
                 expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
             }
             assertEquals(
-                "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
-                    "loading remote context failed: unknownContext)",
+                "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
+                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., " +
+                    "message=Context URI is not absolute [unknownContext].])",
                 exception.message
             )
         }
@@ -112,7 +64,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
-            expandJsonLdFragment(rawEntity, listOf(NGSILD_CORE_CONTEXT))
+            expandJsonLdFragment(rawEntity, listOf(NGSILD_TEST_CORE_CONTEXT))
         }
         assertEquals(
             "Unable to expand input payload",
@@ -121,123 +73,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has no object field`() {
-        val relationshipValues = mapOf(
-            "value" to listOf("something")
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship does not have an object field", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has an empty object`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to emptyList<Any>()
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship is empty", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has an invalid object type`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf("invalid")
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship has an invalid object type: class java.lang.String", it.message)
-        }
-    }
-
-    @Test
-    fun `it should return an error if a relationship has object without id`() {
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
-                mapOf("@value" to "urn:ngsi-ld:T:misplacedRelationshipObject")
-            )
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isLeft())
-        result.mapLeft {
-            assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
-        }
-    }
-
-    @Test
-    fun `it should extract the target object of a relationship`() {
-        val relationshipObjectId = "urn:ngsi-ld:T:1"
-        val relationshipValues = mapOf(
-            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
-                mapOf("@id" to relationshipObjectId)
-            )
-        )
-
-        val result = extractRelationshipObject("isARelationship", relationshipValues)
-        assertTrue(result.isRight())
-        result.map {
-            assertEquals(relationshipObjectId.toUri(), it)
-        }
-    }
-
-    @Test
-    fun `it should return the core context if the list of contexts is empty`() {
-        val contexts = addCoreContextIfMissing(emptyList())
-        assertEquals(1, contexts.size)
-        assertEquals(listOf(NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should move the core context at last position if it is not last in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(NGSILD_CORE_CONTEXT, APIC_COMPOUND_CONTEXT))
-        assertEquals(2, contexts.size)
-        assertEquals(listOf(APIC_COMPOUND_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should add the core context at last position if it is not in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(NGSILD_EGM_CONTEXT))
-        assertEquals(2, contexts.size)
-        assertEquals(listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
-    }
-
-    @Test
-    fun `it should not add the core context if it resolvable from the provided contexts`() {
-        val contexts = addCoreContextIfMissing(
-            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld")
-        )
-        assertEquals(1, contexts.size)
-        assertEquals(listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"), contexts)
-    }
-
-    @Test
-    fun `it should compact and return a JSON entity`() = runTest {
-        val entity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device"
-            }
-            """.trimIndent()
-
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
-        val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS, MediaType.APPLICATION_JSON)
-
-        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(entity))
-    }
-
-    @Test
-    fun `it should compact and return a JSON-LD entity`() = runTest {
+    fun `it should compact and return an entity`() = runTest {
         val entity =
             """
             {
@@ -248,150 +84,216 @@ class JsonLdUtilsTests {
         val expectedEntity =
             """
             {
-                "id":"urn:ngsi-ld:Device:01234",
-                "type":"Device",
-                "@context":[
-                    "https://fiware.github.io/data-models/context.jsonld",
-                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-                ]
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
             }
             """.trimIndent()
 
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
-        val compactedEntity = compactEntity(jsonLdEntity, DEFAULT_CONTEXTS)
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
 
-        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(expectedEntity))
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntity))
     }
 
     @Test
-    fun `it should not find an unknown attribute instance in a list of attributes`() = runTest {
-        val entityFragment =
+    fun `it should compact and return a list of one entity`() = runTest {
+        val entity =
             """
             {
-                "brandName": {
-                    "value": "a new value"
-                }            
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
             }
             """.trimIndent()
-
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, "unknownAttribute", null))
-    }
-
-    @Test
-    fun `it should find an attribute instance from a list of attributes without multi-attributes`() = runTest {
-        val entityFragment =
+        val expectedEntity =
             """
-            {
-                "brandName": {
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z"
-                },
-                "name": {
-                    "value": 12
-                }
-            }
+            [{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            }]
             """.trimIndent()
 
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntities = compactEntities(listOf(expandedEntity), NGSILD_TEST_CORE_CONTEXTS)
 
-        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
-        assertNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId".toUri())
-        )
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntities))
     }
 
     @Test
-    fun `it should find an attribute instance from a list of attributes with multi-attributes`() = runTest {
-        val entityFragment =
+    fun `it should compact and return a list of entities`() = runTest {
+        val entity =
             """
             {
-                "brandName": [{
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z"
-                },
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
+            }
+            """.trimIndent()
+        val expectedEntity =
+            """
+            [{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            },{
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            }]
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS)
+        val compactedEntities = compactEntities(listOf(expandedEntity, expandedEntity), NGSILD_TEST_CORE_CONTEXTS)
+
+        assertJsonPayloadsAreEqual(expectedEntity, mapper.writeValueAsString(compactedEntities))
+    }
+
+    @Test
+    fun `it should expand an attribute from a fragment`() = runTest {
+        val fragment =
+            """
                 {
-                    "value": "a new value",
-                    "observedAt": "2021-03-16T00:00:00.000Z",
-                    "datasetId": "urn:datasetId:1"
-                }],
-                "name": {
-                    "value": 12,
-                    "datasetId": "urn:datasetId:1"
+                    "attribute": {
+                        "type": "Property",
+                        "value": "something"
+                    }
                 }
-            }
             """.trimIndent()
 
-        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)
-        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)
-
-        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
-        assertNotNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:1".toUri())
-        )
-        assertNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:2".toUri())
-        )
-        assertNotNull(
-            getAttributeFromExpandedAttributes(expandedAttributes, expandedName, "urn:datasetId:1".toUri())
-        )
-        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedName, null))
+        val expandedAttribute = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
     }
 
     @Test
-    fun `it should find a JSON-LD @context in an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1",
-            "@context" to "https://some.context"
-        )
+    fun `it should expand an attribute from a name and a string payload`() = runTest {
+        val payload =
+            """
+                {
+                    "type": "Property",
+                    "value": "something"
+                }
+            """.trimIndent()
 
-        assertEquals(listOf("https://some.context"), extractContextFromInput(input))
+        val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
     }
 
     @Test
-    fun `it should find a list of JSON-LD @contexts in an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1",
-            "@context" to listOf("https://some.context", "https://some.context.2")
-        )
-
-        assertEquals(listOf("https://some.context", "https://some.context.2"), extractContextFromInput(input))
-    }
-
-    @Test
-    fun `it should return an empty list if no JSON-LD @context was found an input map`() {
-        val input = mapOf(
-            "id" to "urn:ngsi-ld:Entity:1"
-        )
-
-        assertEquals(emptyList<String>(), extractContextFromInput(input))
-    }
-
-    @Test
-    fun `it should add createdAt information into an attribute`() {
-        val attrPayload = mapOf(
+    fun `it should expand an attribute from a name and a map payload`() = runTest {
+        val payload = mapOf(
             "type" to "Property",
-            "value" to 12.0
+            "value" to "something"
         )
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
-
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertFalse(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
+        val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
+        assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+        assertThat(expandedAttribute.second).hasSize(1)
     }
 
     @Test
-    fun `it should add createdAt and modifiedAt information into an attribute`() {
-        val attrPayload = mapOf(
-            "type" to "Property",
-            "value" to 12.0
+    fun `it should correctly transform geoproperties`() = runTest {
+        val payload =
+            """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "location": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Point",
+                            "coordinates": [ 100.12, 0.23 ]
+                        }
+                    },
+                    "observationSpace": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [100.12, 0.23],
+                                [101.12, 0.23], 
+                                [101.12, 1.23],
+                                [100.12, 1.23],
+                                [100.12, 0.23]
+                            ]]
+                        }
+                    }
+                }
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntityF(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+
+        val location = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(NGSILD_LOCATION_PROPERTY, null)
+        assertNotNull(location)
+        assertEquals(
+            "POINT (100.12 0.23)",
+            location!!.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
         )
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
+        val observationSpace = expandedEntity.getAttributes()
+            .getAttributeFromExpandedAttributes(NGSILD_OBSERVATION_SPACE_PROPERTY, null)
+        assertNotNull(observationSpace)
+        assertEquals(
+            "POLYGON ((100.12 0.23, 101.12 0.23, 101.12 1.23, 100.12 1.23, 100.12 0.23))",
+            observationSpace!!.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
+        )
+    }
 
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertTrue(attrPayloadWithSysAttrs.containsKey(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
+    @Test
+    fun `it should correctly transform and restore geoproperties`() = runTest {
+        val payload =
+            """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "location": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Point",
+                            "coordinates": [ 100.12, 0.23 ]
+                        }
+                    },
+                    "observationSpace": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [100.12, 0.23],
+                                [101.12, 0.23], 
+                                [101.12, 1.23],
+                                [100.12, 1.23],
+                                [100.12, 0.23]
+                            ]]
+                        }
+                    }
+                }
+            """.trimIndent()
+
+        val deserializedPayload = payload.deserializeAsMap()
+        val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
+        assertJsonPayloadsAreEqual(
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(compactedEntity)
+        )
+    }
+
+    @Test
+    fun `it should correctly compact a term if it is in the provided contexts`() = runTest {
+        assertEquals(
+            INCOMING_COMPACT_PROPERTY,
+            compactTerm(INCOMING_PROPERTY, APIC_COMPOUND_CONTEXTS)
+        )
+    }
+
+    @Test
+    fun `it should return the input term if it was not able to compact it`() = runTest {
+        assertEquals(
+            INCOMING_PROPERTY,
+            compactTerm(INCOMING_PROPERTY, NGSILD_TEST_CORE_CONTEXTS)
+        )
     }
 }

@@ -13,9 +13,10 @@ import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -45,13 +46,13 @@ class EntityAccessControlHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contextLink
+            contexts
         ).bind()
 
         if (!entitiesQuery.attrs.all { ALL_IAM_RIGHTS.contains(it) })
@@ -59,31 +60,27 @@ class EntityAccessControlHandler(
                 "The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
             ).left().bind<ResponseEntity<*>>()
 
-        val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
+        val (count, entities) = authorizationService.getAuthorizedEntities(
             entitiesQuery,
-            contextLink,
+            contexts,
             sub
         ).bind()
 
-        if (countAndAuthorizedEntities.first == -1) {
+        if (count == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndAuthorizedEntities.second,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            countAndAuthorizedEntities.first,
+            count,
             "/ngsi-ld/v1/entityAccessControl/entities",
             entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -97,41 +94,37 @@ class EntityAccessControlHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contextLink
+            contexts
         ).bind()
 
-        val countAndGroupEntities =
+        val (count, entities) =
             authorizationService.getGroupsMemberships(
                 entitiesQuery.paginationQuery.offset,
                 entitiesQuery.paginationQuery.limit,
-                contextLink,
+                contexts,
                 sub
             ).bind()
 
-        if (countAndGroupEntities.first == -1) {
+        if (count == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndGroupEntities.second,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            countAndGroupEntities.first,
+            count,
             "/ngsi-ld/v1/entityAccessControl/groups",
             entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -147,40 +140,36 @@ class EntityAccessControlHandler(
 
         authorizationService.userIsAdmin(sub).bind()
 
-        val contextLink = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contextLink
+            contexts
         ).bind()
 
-        val countAndUserEntities =
+        val (count, entities) =
             authorizationService.getUsers(
                 entitiesQuery.paginationQuery.offset,
                 entitiesQuery.paginationQuery.limit,
-                contextLink
+                contexts
             ).bind()
 
-        if (countAndUserEntities.first == -1) {
+        if (count == -1) {
             return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndUserEntities.second,
-            contextLink,
-            mediaType
-        )
+        val compactedEntities = compactEntities(entities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            countAndUserEntities.first,
+            count,
             "/ngsi-ld/v1/entityAccessControl/users",
             entitiesQuery.paginationQuery,
             params,
             mediaType,
-            contextLink
+            contexts
         )
     }.fold(
         { it.toErrorResponse() },
@@ -294,7 +283,7 @@ class EntityAccessControlHandler(
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body).bind().replaceDefaultContextToAuthzContext()
-        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, removeContextFromInput(body), contexts)
+        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, body.minus(JSONLD_CONTEXT), contexts)
         if (expandedAttribute.first != AUTH_PROP_SAP)
             BadRequestDataException("${expandedAttribute.first} is not authorized property name")
                 .left().bind<ResponseEntity<*>>()

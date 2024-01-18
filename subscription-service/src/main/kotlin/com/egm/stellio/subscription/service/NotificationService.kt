@@ -7,7 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -58,7 +58,7 @@ class NotificationService(
         entity: Map<String, Any?>
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val notification = Notification(
             subscriptionId = subscription.id,
             data = listOf(entity)
@@ -70,8 +70,8 @@ class NotificationService(
                 if (mediaType == MediaType.APPLICATION_JSON) {
                     it.set(HttpHeaders.LINK, subscriptionService.getContextsLink(subscription))
                 }
-                if (tenantUri != DEFAULT_TENANT_URI)
-                    it.set(NGSILD_TENANT_HEADER, tenantUri.toString())
+                if (tenantName != DEFAULT_TENANT_NAME)
+                    it.set(NGSILD_TENANT_HEADER, tenantName)
                 subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
                     it.set(endpointInfo.key, endpointInfo.value)
                 }

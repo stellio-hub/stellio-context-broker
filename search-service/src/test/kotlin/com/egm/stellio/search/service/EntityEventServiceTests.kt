@@ -11,7 +11,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.*
@@ -66,7 +66,7 @@ class EntityEventServiceTests {
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
                 null,
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 breedingServiceUri,
                 listOf(breedingServiceType),
                 EMPTY_PAYLOAD,

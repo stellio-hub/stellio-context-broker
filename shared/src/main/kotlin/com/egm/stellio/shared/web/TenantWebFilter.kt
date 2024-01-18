@@ -3,7 +3,6 @@ package com.egm.stellio.shared.web
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantResponse
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.toUri
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
@@ -55,6 +54,6 @@ class TenantWebFilter(
 
         return chain
             .filter(exchange)
-            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenantName.toUri()) }
+            .contextWrite { context -> context.put(NGSILD_TENANT_HEADER, tenantName) }
     }
 }

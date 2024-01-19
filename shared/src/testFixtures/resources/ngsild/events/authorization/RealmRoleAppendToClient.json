@@ -1,6 +1,6 @@
 {
   "operationType":"ATTRIBUTE_APPEND",
-  "tenantUri": "urn:ngsi-ld:tenant:default",
+  "tenantName": "urn:ngsi-ld:tenant:default",
   "entityId":"urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb",
   "entityTypes": ["Group"],
   "attributeName": "roles",

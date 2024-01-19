@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
-import java.net.URI
 
 @ConfigurationProperties("application")
 data class ApplicationProperties(
@@ -19,7 +18,7 @@ data class ApplicationProperties(
     )
 
     data class TenantConfiguration(
-        val uri: URI,
+        val name: String,
         val issuer: String,
         val dbSchema: String
     )

@@ -18,7 +18,6 @@ import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
-import java.net.URI
 
 @Configuration
 @EnableTransactionManagement
@@ -72,11 +71,11 @@ class DatabaseTenantConfig(
     @PostConstruct
     fun initializeTenantDataSources() {
         applicationProperties.tenants.forEach { tenantConfiguration ->
-            createTenantConnectionFactory(tenantConfiguration.uri, tenantConfiguration.dbSchema)
+            createTenantConnectionFactory(tenantConfiguration.name, tenantConfiguration.dbSchema)
         }
     }
 
-    fun createTenantConnectionFactory(uri: URI, dbSchema: String) {
+    fun createTenantConnectionFactory(name: String, dbSchema: String) {
         val tenantConnectionFactory = ConnectionFactories.get(
             ConnectionFactoryOptions.builder()
                 .from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "?schema=" + dbSchema))
@@ -84,6 +83,6 @@ class DatabaseTenantConfig(
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password)
                 .build()
         )
-        tenantConnectionFactories.putIfAbsent(uri.toString(), tenantConnectionFactory)
+        tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
     }
 }

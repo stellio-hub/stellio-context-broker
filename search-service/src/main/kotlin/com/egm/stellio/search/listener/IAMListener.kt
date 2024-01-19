@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.net.URI
 
 @Component
 class IAMListener(
@@ -51,13 +50,13 @@ class IAMListener(
     internal suspend fun dispatchIamMessage(content: String) {
         val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)
         kotlin.runCatching {
-            val tenantUri = authorizationEvent.tenantUri
+            val tenantName = authorizationEvent.tenantName
             when (authorizationEvent) {
-                is EntityCreateEvent -> createSubjectReferential(tenantUri, authorizationEvent)
-                is EntityDeleteEvent -> deleteSubjectReferential(tenantUri, authorizationEvent)
-                is AttributeAppendEvent -> updateSubjectProfile(tenantUri, authorizationEvent)
-                is AttributeReplaceEvent -> updateSubjectInfo(tenantUri, authorizationEvent)
-                is AttributeDeleteEvent -> removeSubjectFromGroup(tenantUri, authorizationEvent)
+                is EntityCreateEvent -> createSubjectReferential(tenantName, authorizationEvent)
+                is EntityDeleteEvent -> deleteSubjectReferential(tenantName, authorizationEvent)
+                is AttributeAppendEvent -> updateSubjectProfile(tenantName, authorizationEvent)
+                is AttributeReplaceEvent -> updateSubjectInfo(tenantName, authorizationEvent)
+                is AttributeDeleteEvent -> removeSubjectFromGroup(tenantName, authorizationEvent)
                 else ->
                     OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
             }
@@ -67,7 +66,7 @@ class IAMListener(
     }
 
     private suspend fun createSubjectReferential(
-        tenantUri: URI,
+        tenantName: String,
         entityCreateEvent: EntityCreateEvent
     ): Either<APIException, Unit> = either {
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
@@ -84,7 +83,7 @@ class IAMListener(
 
         mono {
             subjectReferentialService.create(subjectReferential)
-        }.writeContextAndSubscribe(tenantUri, entityCreateEvent)
+        }.writeContextAndSubscribe(tenantName, entityCreateEvent)
     }
 
     private fun extractRoles(operationPayload: Map<String, Any>): List<GlobalRole>? =
@@ -97,16 +96,16 @@ class IAMListener(
         } else null
 
     private suspend fun deleteSubjectReferential(
-        tenantUri: URI,
+        tenantName: String,
         entityDeleteEvent: EntityDeleteEvent
     ): Either<APIException, Unit> = either {
         mono {
             subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
-        }.writeContextAndSubscribe(tenantUri, entityDeleteEvent)
+        }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
     }
 
     private suspend fun updateSubjectProfile(
-        tenantUri: URI,
+        tenantName: String,
         attributeAppendEvent: AttributeAppendEvent
     ): Either<APIException, Unit> = either {
         val operationPayload = attributeAppendEvent.operationPayload.deserializeAsMap()
@@ -137,11 +136,11 @@ class IAMListener(
                     "Received unknown attribute name: ${attributeAppendEvent.attributeName}"
                 ).left()
             }
-        }.writeContextAndSubscribe(tenantUri, attributeAppendEvent)
+        }.writeContextAndSubscribe(tenantName, attributeAppendEvent)
     }
 
     private suspend fun updateSubjectInfo(
-        tenantUri: URI,
+        tenantName: String,
         attributeReplaceEvent: AttributeReplaceEvent
     ): Either<APIException, Unit> = either {
         val operationPayload = attributeReplaceEvent.operationPayload.deserializeAsMap()
@@ -153,11 +152,11 @@ class IAMListener(
                 subjectUuid,
                 newSubjectInfo
             )
-        }.writeContextAndSubscribe(tenantUri, attributeReplaceEvent)
+        }.writeContextAndSubscribe(tenantName, attributeReplaceEvent)
     }
 
     private suspend fun removeSubjectFromGroup(
-        tenantUri: URI,
+        tenantName: String,
         attributeDeleteEvent: AttributeDeleteEvent
     ): Either<APIException, Unit> = either {
         mono {
@@ -165,14 +164,14 @@ class IAMListener(
                 attributeDeleteEvent.entityId.extractSub(),
                 attributeDeleteEvent.datasetId!!.extractSub()
             )
-        }.writeContextAndSubscribe(tenantUri, attributeDeleteEvent)
+        }.writeContextAndSubscribe(tenantName, attributeDeleteEvent)
     }
 
     private fun Mono<Either<APIException, Unit>>.writeContextAndSubscribe(
-        tenantUri: URI,
+        tenantName: String,
         event: EntityEvent
     ) = this.contextWrite {
-        it.put(NGSILD_TENANT_HEADER, tenantUri)
+        it.put(NGSILD_TENANT_HEADER, tenantName)
     }.subscribe {
         it.fold({ apiException ->
             if (apiException is OperationNotSupportedException)

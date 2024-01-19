@@ -1,6 +1,6 @@
 {
   "operationType": "ATTRIBUTE_APPEND",
-  "tenantUri": "urn:ngsi-ld:tenant:default",
+  "tenantName": "urn:ngsi-ld:tenant:default",
   "entityId": "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",
   "entityTypes": ["User"],
   "attributeName": "isMemberOf",

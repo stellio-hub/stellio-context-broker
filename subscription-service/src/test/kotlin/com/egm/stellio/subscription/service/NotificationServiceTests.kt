@@ -368,7 +368,7 @@ class NotificationServiceTests {
         mono {
             notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
         }.contextWrite { context ->
-            context.put(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01".toUri())
+            context.put(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
         }.awaitSingle()
 
         verify(

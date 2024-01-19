@@ -1,7 +1,10 @@
 package com.egm.stellio.subscription.service
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.Option
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -10,8 +13,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.model.GeoQ
-import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.*
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
@@ -51,10 +52,12 @@ class SubscriptionService(
         checkIdIsValid(subscription).bind()
         checkEntitiesOrWatchedAttributes(subscription).bind()
         checkTimeIntervalGreaterThanZero(subscription).bind()
+        checkThrottlingGreaterThanZero(subscription).bind()
         checkSubscriptionValidity(subscription).bind()
         checkExpiresAtInTheFuture(subscription).bind()
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
+
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -82,6 +85,14 @@ class SubscriptionService(
     private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
         if (subscription.timeInterval != null && subscription.timeInterval < 1)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
+        else Unit.right()
+
+    private fun checkThrottlingGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
+        if ((subscription.timeInterval != null && subscription.timeInterval > 0 && subscription.throttling != null) ||
+            (subscription.timeInterval != null && subscription.timeInterval < 1 && subscription.throttling != null) ||
+            (subscription.timeInterval == null && subscription.throttling != null && subscription.throttling < 1)
+        )
+            BadRequestDataException("Error").left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
@@ -416,6 +427,7 @@ class SubscriptionService(
                 }
                 listOf(Pair("notif_attributes", attributes))
             }
+
             "format" -> {
                 val format =
                     if (attribute.value == "keyValues")
@@ -424,6 +436,7 @@ class SubscriptionService(
                         NotificationParams.FormatType.NORMALIZED.name
                 listOf(Pair("notif_format", format))
             }
+
             "endpoint" -> {
                 val endpoint = attribute.value as Map<String, Any>
                 val accept =
@@ -441,6 +454,7 @@ class SubscriptionService(
                     Pair("endpoint_notifier_info", Json.of(endpointInfoMapToString(endpointNotifierInfo)))
                 )
             }
+
             else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
         }
     }

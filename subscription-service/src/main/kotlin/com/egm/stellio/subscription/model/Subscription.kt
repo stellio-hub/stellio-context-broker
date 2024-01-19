@@ -20,7 +20,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 val defaultNotificationTriggers = listOf(
     ATTRIBUTE_CREATED.notificationTrigger,
@@ -49,7 +49,8 @@ data class Subscription(
     //  - used to compact entities in notifications
     //  - used when needed to serve contexts in JSON notifications
     @JsonProperty(value = JSONLD_CONTEXT)
-    val contexts: List<ExpandedTerm>
+    val contexts: List<ExpandedTerm>,
+    val throttling: Int? = null
 ) {
 
     @Transient

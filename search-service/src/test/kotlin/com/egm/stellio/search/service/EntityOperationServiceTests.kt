@@ -100,6 +100,29 @@ class EntityOperationServiceTests {
     }
 
     @Test
+    fun `it should split entities per uniqueness`() = runTest {
+        val (unique, duplicates) = entityOperationService.splitEntitiesByUniqueness(
+            listOf(
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity),
+                Pair(firstExpandedEntity, firstEntity),
+            )
+        )
+
+        assertEquals(listOf(Pair(firstExpandedEntity, firstEntity), Pair(secondExpandedEntity, secondEntity)), unique)
+        assertEquals(listOf(Pair(firstExpandedEntity, firstEntity)), duplicates)
+    }
+
+    @Test
+    fun `it should split entities per uniqueness with ids`() = runTest {
+        val (unique, duplicates) =
+            entityOperationService.splitEntitiesIdsByUniqueness(listOf(firstEntityURI, secondEntityURI, firstEntityURI))
+
+        assertEquals(listOf(firstEntityURI, secondEntityURI), unique)
+        assertEquals(listOf(firstEntityURI), duplicates)
+    }
+
+    @Test
     fun `it should ask to create all provided entities`() = runTest {
         coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
 

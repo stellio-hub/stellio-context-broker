@@ -50,6 +50,28 @@ class EntityOperationService(
         return entities.partition { existingEntitiesIds.contains(extractIdFunc.invoke(it)) }
     }
 
+    fun splitEntitiesByUniqueness(
+        entities: List<JsonLdNgsiLdEntity>
+    ): Pair<List<JsonLdNgsiLdEntity>, List<JsonLdNgsiLdEntity>> {
+        val extractIdFunc: (JsonLdNgsiLdEntity) -> URI = { it.entityId() }
+        return splitEntitiesByUniquenessGeneric(entities, extractIdFunc)
+    }
+
+    fun splitEntitiesIdsByUniqueness(entityIds: List<URI>): Pair<List<URI>, List<URI>> {
+        val identityFunc: (URI) -> URI = { it }
+        return splitEntitiesByUniquenessGeneric(entityIds, identityFunc)
+    }
+
+    fun <T> splitEntitiesByUniquenessGeneric(
+        entities: List<T>,
+        extractIdFunc: (T) -> URI
+    ): Pair<List<T>, List<T>> =
+        entities.fold(Pair(emptyList(), emptyList())) { acc, current ->
+            if (acc.first.any { extractIdFunc(it) == extractIdFunc(current) })
+                Pair(acc.first, acc.second.plus(current))
+            else Pair(acc.first.plus(current), acc.second)
+        }
+
     /**
      * Creates a batch of [entities].
      *

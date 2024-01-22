@@ -1,26 +1,71 @@
 [
    {
-      "id":"urn:ngsi-ld:BeeHive:TESTC",
-      "type":"BeeHive",
-      "incoming":[
+      "@id": "urn:ngsi-ld:BeeHive:TESTC",
+      "@type": [
+         "https://ontology.eglobalmark.com/apic#BeeHive"
+      ],
+      "https://ontology.eglobalmark.com/apic#incoming": [
          {
-            "type":"Property",
-            "value":20,
-            "instanceId":"urn:ngsi-ld:Instance:45678",
-            "observedAt":"2020-03-25T08:33:17.965206Z",
-            "sub": "sub"
+            "@type": [
+               "https://uri.etsi.org/ngsi-ld/Property"
+            ],
+            "https://uri.etsi.org/ngsi-ld/observedAt": [
+               {
+                  "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+                  "@value": "2020-03-25T08:33:17.965206Z"
+               }
+            ],
+            "https://uri.etsi.org/ngsi-ld/instanceId": [
+               {
+                  "@id": "urn:ngsi-ld:Instance:45678"
+               }
+            ],
+            "https://uri.etsi.org/ngsi-ld/hasValue": [
+               {
+                  "@value": 20
+               }
+            ],
+            "https://ontology.eglobalmark.com/authorization#sub": [
+               {
+                  "@type": [
+                     "https://uri.etsi.org/ngsi-ld/Property"
+                  ],
+                  "https://uri.etsi.org/ngsi-ld/hasValue": [
+                     {
+                        "@value": "sub"
+                     }
+                  ]
+               }
+            ]
          }
       ]
    },
    {
-      "id":"urn:ngsi-ld:BeeHive:TESTD",
-      "type":"BeeHive",
-      "outgoing":[
+      "@id": "urn:ngsi-ld:BeeHive:TESTD",
+      "@type": [
+         "https://ontology.eglobalmark.com/apic#BeeHive"
+      ],
+      "https://ontology.eglobalmark.com/apic#outgoing": [
          {
-            "type":"Property",
-            "value":25,
-            "instanceId":"urn:ngsi-ld:Instance:45679",
-            "observedAt":"2020-03-25T08:33:17.965206Z"
+            "@type": [
+               "https://uri.etsi.org/ngsi-ld/Property"
+            ],
+            "https://uri.etsi.org/ngsi-ld/observedAt": [
+               {
+                  "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+                  "@value": "2020-03-25T08:33:17.965206Z"
+               }
+            ],
+            "https://uri.etsi.org/ngsi-ld/instanceId": [
+               {
+                  "@id": "urn:ngsi-ld:Instance:45679"
+               }
+            ],
+            "https://uri.etsi.org/ngsi-ld/hasValue": [
+               {
+                  "@value": 25
+               }
+            ]
          }
       ]
    }

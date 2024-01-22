@@ -9,9 +9,9 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.*
@@ -66,7 +66,7 @@ class EntityEventServiceTests {
         entityEventService.publishEntityEvent(
             EntityCreateEvent(
                 null,
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 breedingServiceUri,
                 listOf(breedingServiceType),
                 EMPTY_PAYLOAD,
@@ -212,7 +212,7 @@ class EntityEventServiceTests {
                     "$fishNumberTerm": $fishNumberAttributeFragment
                 }
                 """.trimIndent()
-            val jsonLdAttributes = expandJsonLdFragment(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
+            val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
             val appendResult = UpdateResult(
                 listOf(
                     UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.APPENDED),
@@ -278,7 +278,7 @@ class EntityEventServiceTests {
                 "$fishNumberTerm": $fishNumberAttributeFragment
             }
             """.trimIndent()
-        val jsonLdAttributes = expandJsonLdFragment(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
+        val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
         val updateResult = UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.REPLACED),
@@ -338,7 +338,7 @@ class EntityEventServiceTests {
                 "$fishNameTerm": [$fishNameAttributeFragment, $fishNameAttributeFragment2]
             }
             """.trimIndent()
-        val jsonLdAttributes = expandJsonLdFragment(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
+        val jsonLdAttributes = expandAttributes(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
         val updateResult = UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.REPLACED),

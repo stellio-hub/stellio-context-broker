@@ -150,7 +150,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `get subscription context should return a list of contexts`() = runTest {
-        val subscription = gimmeRawSubscription().copy(contexts = listOf(APIC_COMPOUND_CONTEXT))
+        val subscription = gimmeRawSubscription().copy(contexts = APIC_COMPOUND_CONTEXTS)
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
         coEvery { subscriptionService.getContextsForSubscription(any()) } returns subscription.contexts.right()
@@ -499,7 +499,7 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
+        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, APIC_COMPOUND_CONTEXTS) }
 
         confirmVerified(subscriptionService)
     }
@@ -531,7 +531,7 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
+        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, APIC_COMPOUND_CONTEXTS) }
 
         confirmVerified(subscriptionService)
     }
@@ -660,7 +660,7 @@ class SubscriptionHandlerTests {
     fun `delete subscription should return a 500 if subscription could not be deleted`() = runTest {
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
-        coEvery { subscriptionService.getContextsForSubscription(any()) } returns listOf(APIC_COMPOUND_CONTEXT).right()
+        coEvery { subscriptionService.getContextsForSubscription(any()) } returns APIC_COMPOUND_CONTEXTS.right()
         coEvery { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()

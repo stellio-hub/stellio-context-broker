@@ -10,11 +10,9 @@ import com.egm.stellio.search.util.deserializeAsMap
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -84,7 +82,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should create an entity payload from string with specificAccessPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -93,7 +91,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     now
                 )
             }
-        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity02Uri, setOf(BEEHIVE_TYPE), AUTH_WRITE, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -148,17 +146,18 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any(), any(), any())
         } returns Unit.right()
 
-        val rawEntity = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(listOf(APIC_COMPOUND_CONTEXT), it.contexts)
+                assertEquals(APIC_COMPOUND_CONTEXTS, it.contexts)
             }
 
         coVerify {
@@ -206,11 +205,12 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -266,17 +266,18 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
             loadSampleData("fragments/beehive_merge_entity_multiple_types.jsonld"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.mergeEntity(
@@ -310,17 +311,18 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns emptyList()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
             loadSampleData("fragments/beehive_merge_entity_multiple_types_and_scopes.jsonld"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.mergeEntity(
@@ -353,20 +355,21 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
         } returns Unit.right()
         coEvery { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Unit.right()
 
-        val createEntityPayload = loadSampleData("beehive_minimal.jsonld")
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityPayloadService.createEntity(
-            createEntityPayload,
-            listOf(APIC_COMPOUND_CONTEXT),
+            ngsiLdEntity,
+            expandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        val (newExpandedEntity, newNgsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityPayloadService.replaceEntity(
             beehiveURI,
-            ngsiLdEntity,
-            jsonLdEntity,
+            newNgsiLdEntity,
+            newExpandedEntity,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
@@ -403,7 +406,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val expandedAttribute = expandAttribute(
             loadSampleData("fragments/beehive_new_incoming_property.json"),
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         )
 
         entityPayloadService.replaceAttribute(beehiveTestCId, expandedAttribute, "0123456789-1234-5678-987654321")
@@ -434,14 +437,14 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
-                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_CORE_CONTEXT))
+                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_TEST_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
             }
     }
 
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(
@@ -712,7 +715,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should remove a specific access policy from a entity payload`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, setOf(AUTHORIZATION_COMPOUND_CONTEXT))
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityPayloadService.createEntityPayload(

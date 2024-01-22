@@ -24,16 +24,16 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
         val availableEntityTypes: Any = if (detailedRepresentation)
-            entityTypeService.getEntityTypes(listOf(contextLink))
+            entityTypeService.getEntityTypes(contexts)
         else
-            entityTypeService.getEntityTypeList(listOf(contextLink))
+            entityTypeService.getEntityTypeList(contexts)
 
-        prepareGetSuccessResponse(mediaType, contextLink)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(JsonUtils.serializeObject(availableEntityTypes))
     }.fold(
         { it.toErrorResponse() },
@@ -48,13 +48,13 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable type: String
     ): ResponseEntity<*> = either {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val expandedType = expandJsonLdTerm(type.decode(), contextLink)
+        val expandedType = expandJsonLdTerm(type.decode(), contexts)
 
-        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(expandedType, listOf(contextLink)).bind()
+        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(expandedType, contexts).bind()
 
-        prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(entityTypeInfo))
+        prepareGetSuccessResponseHeaders(mediaType, contexts).body(JsonUtils.serializeObject(entityTypeInfo))
     }.fold(
         { it.toErrorResponse() },
         { it }

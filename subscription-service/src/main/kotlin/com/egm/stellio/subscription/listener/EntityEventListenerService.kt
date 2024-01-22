@@ -3,7 +3,6 @@ package com.egm.stellio.subscription.listener
 import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_PROPERTIES
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -20,7 +19,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.Disposable
-import java.net.URI
 
 @Component
 class EntityEventListenerService(
@@ -42,16 +40,16 @@ class EntityEventListenerService(
     internal suspend fun dispatchEntityEvent(content: String) {
         kotlin.runCatching {
             val entityEvent = deserializeAs<EntityEvent>(content)
-            val tenantUri = entityEvent.tenantUri
+            val tenantName = entityEvent.tenantName
             logger.debug(
                 "Handling {} event for entity {} in tenant {}",
                 entityEvent.operationType,
                 entityEvent.entityId,
-                entityEvent.tenantUri
+                entityEvent.tenantName
             )
             when (entityEvent) {
                 is EntityCreateEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     entityEvent.operationPayload.getUpdatedAttributes(),
                     entityEvent.getEntity(),
                     NotificationTrigger.ENTITY_CREATED,
@@ -59,7 +57,7 @@ class EntityEventListenerService(
                 )
                 is EntityReplaceEvent -> entityEvent.operationPayload.getUpdatedAttributes().forEach { attribute ->
                     handleEntityEvent(
-                        tenantUri,
+                        tenantName,
                         setOf(attribute),
                         entityEvent.getEntity(),
                         NotificationTrigger.ATTRIBUTE_CREATED,
@@ -67,42 +65,42 @@ class EntityEventListenerService(
                     )
                 }
                 is EntityDeleteEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     entityEvent.deletedEntity?.getUpdatedAttributes() ?: emptySet(),
                     entityEvent.getEntity() ?: serializeObject(emptyMap<String, Any>()),
                     NotificationTrigger.ENTITY_DELETED,
                     entityEvent.contexts
                 )
                 is AttributeAppendEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_CREATED,
                     entityEvent.contexts
                 )
                 is AttributeReplaceEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_UPDATED,
                     entityEvent.contexts
                 )
                 is AttributeUpdateEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_UPDATED,
                     entityEvent.contexts
                 )
                 is AttributeDeleteEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_DELETED,
                     entityEvent.contexts
                 )
                 is AttributeDeleteAllInstancesEvent -> handleEntityEvent(
-                    tenantUri,
+                    tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_DELETED,
@@ -115,22 +113,22 @@ class EntityEventListenerService(
     }
 
     private suspend fun handleEntityEvent(
-        tenantUri: URI,
+        tenantName: String,
         updatedAttributes: Set<ExpandedTerm>,
         entityPayload: String,
         notificationTrigger: NotificationTrigger,
         contexts: List<String>
     ): Either<APIException, Disposable> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val jsonLdEntity = JsonLdEntity(entityPayload.deserializeAsMap(), contexts)
+        val expandedEntity = ExpandedEntity(entityPayload.deserializeAsMap(), contexts)
         mono {
             notificationService.notifyMatchingSubscribers(
-                jsonLdEntity,
+                expandedEntity,
                 updatedAttributes,
                 notificationTrigger
             )
         }.contextWrite {
-            it.put(NGSILD_TENANT_HEADER, tenantUri)
+            it.put(NGSILD_TENANT_HEADER, tenantName)
         }.subscribe { notificationResult ->
             notificationResult.fold({
                 if (it is OperationNotSupportedException)

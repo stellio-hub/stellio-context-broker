@@ -1,10 +1,11 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import java.util.regex.Pattern
 
@@ -106,7 +107,7 @@ fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String
         }
 
 // Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.
-fun buildQQuery(rawQuery: String, contexts: List<String>, target: JsonLdEntity? = null): String {
+fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity? = null): String {
     val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
 
     return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
@@ -191,7 +192,7 @@ private fun transformQQueryToSqlJsonPath(
     value.isURI() ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_HAS_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
+            '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
             '{ "value": ${value.quote()} }')
         """.trimIndent()
     value.isRange() -> {
@@ -221,7 +222,7 @@ private fun transformQQueryToSqlJsonPath(
         """.trimIndent()
 }
 
-fun buildScopeQQuery(scopeQQuery: String, target: JsonLdEntity? = null): String =
+fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
         when {
             matchResult.value.endsWith('#') ->

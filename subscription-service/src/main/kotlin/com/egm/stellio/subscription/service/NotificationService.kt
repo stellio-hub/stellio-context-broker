@@ -2,16 +2,12 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.Either
 import arrow.core.raise.either
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.toKeyValues
-import com.egm.stellio.shared.util.ExpandedTerm
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
-import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -33,18 +29,25 @@ class NotificationService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun notifyMatchingSubscribers(
-        jsonLdEntity: JsonLdEntity,
+        expandedEntity: ExpandedEntity,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
-        subscriptionService.getMatchingSubscriptions(jsonLdEntity, updatedAttributes, notificationTrigger).bind()
+        subscriptionService.getMatchingSubscriptions(expandedEntity, updatedAttributes, notificationTrigger).bind()
             .map {
-                val filteredEntity =
-                    filterJsonLdEntityOnAttributes(jsonLdEntity, it.notification.attributes?.toSet().orEmpty())
+                val filteredEntity = expandedEntity.filterOnAttributes(it.notification.attributes?.toSet().orEmpty())
+                val entityRepresentation =
+                    EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
+                val attributeRepresentation =
+                    if (it.notification.format == NotificationParams.FormatType.KEY_VALUES)
+                        AttributeRepresentation.SIMPLIFIED
+                    else AttributeRepresentation.NORMALIZED
+
                 val compactedEntity = compactEntity(
-                    JsonLdEntity(filteredEntity, it.contexts),
-                    it.contexts,
-                    MediaType.valueOf(it.notification.endpoint.accept.accept)
+                    ExpandedEntity(filteredEntity, it.contexts),
+                    it.contexts
+                ).toFinalRepresentation(
+                    NgsiLdDataRepresentation(entityRepresentation, attributeRepresentation, true)
                 )
                 callSubscriber(it, compactedEntity)
             }
@@ -52,13 +55,13 @@ class NotificationService(
 
     suspend fun callSubscriber(
         subscription: Subscription,
-        entity: CompactedJsonLdEntity
+        entity: Map<String, Any?>
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotificationData(entity, subscription)
+            data = listOf(entity)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
@@ -67,8 +70,8 @@ class NotificationService(
                 if (mediaType == MediaType.APPLICATION_JSON) {
                     it.set(HttpHeaders.LINK, subscriptionService.getContextsLink(subscription))
                 }
-                if (tenantUri != DEFAULT_TENANT_URI)
-                    it.set(NGSILD_TENANT_HEADER, tenantUri.toString())
+                if (tenantName != DEFAULT_TENANT_NAME)
+                    it.set(NGSILD_TENANT_HEADER, tenantName)
                 subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
                     it.set(endpointInfo.key, endpointInfo.value)
                 }
@@ -90,17 +93,5 @@ class NotificationService(
         }
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
         return result
-    }
-
-    private fun buildNotificationData(
-        compactedEntity: CompactedJsonLdEntity,
-        subscription: Subscription
-    ): List<Map<String, Any>> {
-        val processedEntity = if (subscription.notification.format == NotificationParams.FormatType.KEY_VALUES)
-            compactedEntity.toKeyValues()
-        else
-            compactedEntity
-
-        return listOf(processedEntity)
     }
 }

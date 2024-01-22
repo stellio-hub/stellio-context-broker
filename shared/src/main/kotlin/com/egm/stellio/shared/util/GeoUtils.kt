@@ -45,6 +45,9 @@ fun geoJsonToWkt(geoJsonSerializedPayload: String): Either<APIException, String>
         BadRequestDataException("Invalid geometry definition: $geoJsonSerializedPayload ($it)").left()
     })
 
+fun throwingGeoJsonToWkt(geoJsonPayload: Map<String, Any>): String =
+    geoJsonToWkt(geoJsonPayload).fold({ throw it }, { it })
+
 fun wktToGeoJson(wkt: String): Map<String, Any> {
     val geometry = WKTReader().read(wkt)
     val geoJsonWriter = GeoJsonWriter()

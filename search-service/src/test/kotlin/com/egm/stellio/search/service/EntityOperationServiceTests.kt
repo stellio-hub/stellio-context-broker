@@ -9,8 +9,8 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.web.BatchEntityError
 import com.egm.stellio.search.web.BatchEntitySuccess
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
@@ -46,22 +46,22 @@ class EntityOperationServiceTests {
 
     val firstEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
     val secondEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-    private lateinit var firstJsonLdEntity: JsonLdEntity
+    private lateinit var firstExpandedEntity: ExpandedEntity
     private lateinit var firstEntity: NgsiLdEntity
-    private lateinit var secondJsonLdEntity: JsonLdEntity
+    private lateinit var secondExpandedEntity: ExpandedEntity
     private lateinit var secondEntity: NgsiLdEntity
 
     val sub: Sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
 
     @BeforeEach
     fun initNgsiLdEntitiesMocks() {
-        firstJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true) {
+        firstExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
             every { id } returns firstEntityURI.toString()
             every { members } returns emptyMap()
         }
         firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns firstEntityURI
-        secondJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true) {
+        secondExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
             every { id } returns secondEntityURI.toString()
             every { members } returns emptyMap()
         }
@@ -77,13 +77,13 @@ class EntityOperationServiceTests {
 
         val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             )
         )
 
-        assertEquals(listOf(Pair(firstJsonLdEntity, firstEntity)), exist)
-        assertEquals(listOf(Pair(secondJsonLdEntity, secondEntity)), doNotExist)
+        assertEquals(listOf(Pair(firstExpandedEntity, firstEntity)), exist)
+        assertEquals(listOf(Pair(secondExpandedEntity, secondEntity)), doNotExist)
     }
 
     @Test
@@ -100,13 +100,36 @@ class EntityOperationServiceTests {
     }
 
     @Test
+    fun `it should split entities per uniqueness`() = runTest {
+        val (unique, duplicates) = entityOperationService.splitEntitiesByUniqueness(
+            listOf(
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity),
+                Pair(firstExpandedEntity, firstEntity),
+            )
+        )
+
+        assertEquals(listOf(Pair(firstExpandedEntity, firstEntity), Pair(secondExpandedEntity, secondEntity)), unique)
+        assertEquals(listOf(Pair(firstExpandedEntity, firstEntity)), duplicates)
+    }
+
+    @Test
+    fun `it should split entities per uniqueness with ids`() = runTest {
+        val (unique, duplicates) =
+            entityOperationService.splitEntitiesIdsByUniqueness(listOf(firstEntityURI, secondEntityURI, firstEntityURI))
+
+        assertEquals(listOf(firstEntityURI, secondEntityURI), unique)
+        assertEquals(listOf(firstEntityURI), duplicates)
+    }
+
+    @Test
     fun `it should ask to create all provided entities`() = runTest {
         coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.create(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             sub
         )
@@ -118,10 +141,10 @@ class EntityOperationServiceTests {
         assertTrue(batchOperationResult.errors.isEmpty())
 
         coVerify {
-            entityPayloadService.createEntity(firstEntity, firstJsonLdEntity, sub)
+            entityPayloadService.createEntity(firstEntity, firstExpandedEntity, sub)
         }
         coVerify {
-            entityPayloadService.createEntity(secondEntity, secondJsonLdEntity, sub)
+            entityPayloadService.createEntity(secondEntity, secondExpandedEntity, sub)
         }
     }
 
@@ -134,8 +157,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.create(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             sub
         )
@@ -157,8 +180,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.update(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             false,
             sub
@@ -189,8 +212,8 @@ class EntityOperationServiceTests {
         val batchOperationResult =
             entityOperationService.update(
                 listOf(
-                    Pair(firstJsonLdEntity, firstEntity),
-                    Pair(secondJsonLdEntity, secondEntity)
+                    Pair(firstExpandedEntity, firstEntity),
+                    Pair(secondExpandedEntity, secondEntity)
                 ),
                 false,
                 sub
@@ -224,8 +247,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.update(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             false,
             sub
@@ -254,8 +277,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             sub
         )
@@ -288,8 +311,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             sub
         )
@@ -318,8 +341,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(
             listOf(
-                Pair(firstJsonLdEntity, firstEntity),
-                Pair(secondJsonLdEntity, secondEntity)
+                Pair(firstExpandedEntity, firstEntity),
+                Pair(secondExpandedEntity, secondEntity)
             ),
             sub
         )

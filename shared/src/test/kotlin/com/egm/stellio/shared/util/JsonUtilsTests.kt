@@ -5,7 +5,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -118,11 +118,11 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 "0123456789-1234-5678-987654321",
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 entityId,
                 listOf(BEEHIVE_TYPE),
-                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
-                listOf(APIC_COMPOUND_CONTEXT)
+                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
+                APIC_COMPOUND_CONTEXTS
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityCreateEvent.json"), event)
@@ -133,11 +133,11 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
                 null,
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 entityId,
                 listOf(BEEHIVE_TYPE),
-                serializeObject(expandJsonLdFragment(entityPayload, listOf(APIC_COMPOUND_CONTEXT))),
-                listOf(APIC_COMPOUND_CONTEXT)
+                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
+                APIC_COMPOUND_CONTEXTS
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityDeleteEvent.json"), event)

@@ -7,9 +7,9 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.toExpandedAttributes
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.net.URI
 
 @Component
 class ObservationEventListener(
@@ -42,17 +41,17 @@ class ObservationEventListener(
     internal suspend fun dispatchObservationMessage(content: String) {
         kotlin.runCatching {
             val observationEvent = deserializeAs<EntityEvent>(content)
-            val tenantUri = observationEvent.tenantUri
+            val tenantName = observationEvent.tenantName
             logger.debug(
                 "Handling event {} for entity {} in tenant {}",
                 observationEvent.operationType,
                 observationEvent.entityId,
-                observationEvent.tenantUri
+                observationEvent.tenantName
             )
             when (observationEvent) {
-                is EntityCreateEvent -> handleEntityCreate(tenantUri, observationEvent)
-                is AttributeUpdateEvent -> handleAttributeUpdateEvent(tenantUri, observationEvent)
-                is AttributeAppendEvent -> handleAttributeAppendEvent(tenantUri, observationEvent)
+                is EntityCreateEvent -> handleEntityCreate(tenantName, observationEvent)
+                is AttributeUpdateEvent -> handleAttributeUpdateEvent(tenantName, observationEvent)
+                is AttributeAppendEvent -> handleAttributeAppendEvent(tenantName, observationEvent)
                 else -> OperationNotSupportedException(unhandledOperationType(observationEvent.operationType)).left()
             }
         }.onFailure {
@@ -61,13 +60,19 @@ class ObservationEventListener(
     }
 
     suspend fun handleEntityCreate(
-        tenantUri: URI,
+        tenantName: String,
         observationEvent: EntityCreateEvent
     ): Either<APIException, Unit> = either {
+        val expandedEntity = expandJsonLdEntity(
+            observationEvent.operationPayload,
+            observationEvent.contexts
+        )
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
+
         mono {
             entityPayloadService.createEntity(
-                observationEvent.operationPayload,
-                observationEvent.contexts,
+                ngsiLdEntity,
+                expandedEntity,
                 observationEvent.sub
             ).map {
                 entityEventService.publishEntityCreateEvent(
@@ -77,11 +82,11 @@ class ObservationEventListener(
                     observationEvent.contexts
                 )
             }
-        }.writeContextAndSubscribe(tenantUri, observationEvent)
+        }.writeContextAndSubscribe(tenantName, observationEvent)
     }
 
     suspend fun handleAttributeUpdateEvent(
-        tenantUri: URI,
+        tenantName: String,
         observationEvent: AttributeUpdateEvent
     ): Either<APIException, Unit> = either {
         val expandedAttribute = expandAttribute(
@@ -115,11 +120,11 @@ class ObservationEventListener(
                     )
                 }
             }
-        }.writeContextAndSubscribe(tenantUri, observationEvent)
+        }.writeContextAndSubscribe(tenantName, observationEvent)
     }
 
     suspend fun handleAttributeAppendEvent(
-        tenantUri: URI,
+        tenantName: String,
         observationEvent: AttributeAppendEvent
     ): Either<APIException, Unit> = either {
         val expandedAttribute = expandAttribute(
@@ -153,14 +158,14 @@ class ObservationEventListener(
                     )
                 }
             }
-        }.writeContextAndSubscribe(tenantUri, observationEvent)
+        }.writeContextAndSubscribe(tenantName, observationEvent)
     }
 
     private fun Mono<Either<APIException, Job>>.writeContextAndSubscribe(
-        tenantUri: URI,
+        tenantName: String,
         event: EntityEvent
     ) = this.contextWrite {
-        it.put(NGSILD_TENANT_HEADER, tenantUri)
+        it.put(NGSILD_TENANT_HEADER, tenantName)
     }.subscribe { createResult ->
         createResult.fold({
             if (it is OperationNotSupportedException)

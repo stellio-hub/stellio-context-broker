@@ -1,21 +1,47 @@
 {
-  "scope": {
-    "type": "Property",
-    "values": [
-      [
-        [
-          "/A/B",
-          "/B/C"
-        ],
-        "2020-03-25T08:29:17.965206Z"
-      ],
-      [
-        [
-          "/B/C",
-          "/D/E"
-        ],
-        "2020-03-25T08:30:17.965206Z"
-      ]
+  "https://uri.etsi.org/ngsi-ld/scope": {
+    "@type": [
+      "https://uri.etsi.org/ngsi-ld/Property"
+    ],
+    "https://uri.etsi.org/ngsi-ld/hasValues": [
+      {
+        "@list": [
+          {
+            "@list": [
+              {
+                "@list": [
+                  {
+                    "@value": "/A/B"
+                  },
+                  {
+                    "@value": "/B/C"
+                  }
+                ]
+              },
+              {
+                "@value": "2020-03-25T08:29:17.965206Z"
+              }
+            ]
+          },
+          {
+            "@list": [
+              {
+                "@list": [
+                  {
+                    "@value": "/B/C"
+                  },
+                  {
+                    "@value": "/D/E"
+                  }
+                ]
+              },
+              {
+                "@value": "2020-03-25T08:30:17.965206Z"
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
 }

@@ -2,7 +2,10 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.*
+import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
+import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -11,9 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedProperty
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedDateTime
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
+import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
 import io.mockk.verify
@@ -249,8 +250,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 temporalEntityAttribute = temporalEntityAttribute2.id,
                 time = observedAt,
                 attributeMetadata = attributeMetadata,
-                payload = buildExpandedProperty(attributeMetadata.value!!)
-                    .addSubAttribute(NGSILD_OBSERVED_AT_PROPERTY, buildNonReifiedDateTime(observedAt))
+                payload = buildExpandedPropertyValue(attributeMetadata.value!!)
+                    .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_PROPERTY, observedAt)
                     .getSingleEntry()
             )
             attributeInstanceService.create(attributeInstance)
@@ -546,10 +547,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsList())
+        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
-            listOf(APIC_COMPOUND_CONTEXT)
+            APIC_COMPOUND_CONTEXTS
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(

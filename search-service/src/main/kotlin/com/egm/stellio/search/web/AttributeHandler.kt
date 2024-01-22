@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.raise.either
 import com.egm.stellio.search.service.AttributeService
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -22,16 +23,16 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
         val availableAttribute: Any = if (detailedRepresentation)
-            attributeService.getAttributeDetails(listOf(contextLink))
+            attributeService.getAttributeDetails(contexts)
         else
-            attributeService.getAttributeList(listOf(contextLink))
+            attributeService.getAttributeList(contexts)
 
-        prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(availableAttribute))
+        prepareGetSuccessResponseHeaders(mediaType, contexts).body(JsonUtils.serializeObject(availableAttribute))
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -45,14 +46,14 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable attrId: String
     ): ResponseEntity<*> = either {
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val expandedAttribute = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)
+        val expandedAttribute = expandJsonLdTerm(attrId.decode(), contexts)
 
         val attributeTypeInfo =
-            attributeService.getAttributeTypeInfoByAttribute(expandedAttribute, listOf(contextLink)).bind()
+            attributeService.getAttributeTypeInfoByAttribute(expandedAttribute, contexts).bind()
 
-        prepareGetSuccessResponse(mediaType, contextLink).body(JsonUtils.serializeObject(attributeTypeInfo))
+        prepareGetSuccessResponseHeaders(mediaType, contexts).body(JsonUtils.serializeObject(attributeTypeInfo))
     }.fold(
         { it.toErrorResponse() },
         { it }

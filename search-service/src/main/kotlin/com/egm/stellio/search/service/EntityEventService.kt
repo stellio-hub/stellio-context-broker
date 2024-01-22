@@ -6,9 +6,7 @@ import com.egm.stellio.search.model.UpdateOperationResult
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
@@ -43,15 +41,15 @@ class EntityEventService(
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ): Job {
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
-            logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantUri)
+            logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityCreateEvent(sub, tenantUri, entityId, entityTypes, it.second, contexts)
+                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second, contexts)
                 )
-            }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantUri)
+            }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
         }
     }
 
@@ -61,15 +59,15 @@ class EntityEventService(
         entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ): Job {
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
-            logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantUri)
+            logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantUri, entityId, entityTypes, it.second, contexts)
+                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second, contexts)
                 )
-            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantUri)
+            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
     }
 
@@ -78,13 +76,13 @@ class EntityEventService(
         entityPayload: EntityPayload,
         contexts: List<String>
     ): Job {
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         return coroutineScope.launch {
-            logger.debug("Sending delete event for entity {} in tenant {}", entityPayload.entityId, tenantUri)
+            logger.debug("Sending delete event for entity {} in tenant {}", entityPayload.entityId, tenantName)
             publishEntityEvent(
                 EntityDeleteEvent(
                     sub,
-                    tenantUri,
+                    tenantName,
                     entityPayload.entityId,
                     entityPayload.types,
                     entityPayload.payload.asString(),
@@ -102,10 +100,10 @@ class EntityEventService(
         overwrite: Boolean,
         contexts: List<String>
     ): Job {
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
-            logger.debug("Sending attributes change events for entity {} in tenant {}", entityId, tenantUri)
+            logger.debug("Sending attributes change events for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 updateResult.updated.forEach { updatedDetails ->
                     val attributeName = updatedDetails.attributeName
@@ -114,7 +112,7 @@ class EntityEventService(
                     publishAttributeChangeEvent(
                         updatedDetails,
                         sub,
-                        tenantUri,
+                        tenantName,
                         entityId,
                         it,
                         serializedAttribute,
@@ -122,14 +120,14 @@ class EntityEventService(
                         contexts
                     )
                 }
-            }.logAttributeEvent("Attribute Change", entityId, tenantUri)
+            }.logAttributeEvent("Attribute Change", entityId, tenantName)
         }
     }
 
     private fun publishAttributeChangeEvent(
         updatedDetails: UpdatedDetails,
         sub: String?,
-        tenantUri: URI,
+        tenantName: String,
         entityId: URI,
         entityTypesAndPayload: Pair<List<ExpandedTerm>, String>,
         serializedAttribute: Pair<ExpandedTerm, String>,
@@ -141,7 +139,7 @@ class EntityEventService(
                 publishEntityEvent(
                     AttributeAppendEvent(
                         sub,
-                        tenantUri,
+                        tenantName,
                         entityId,
                         entityTypesAndPayload.first,
                         serializedAttribute.first,
@@ -157,7 +155,7 @@ class EntityEventService(
                 publishEntityEvent(
                     AttributeReplaceEvent(
                         sub,
-                        tenantUri,
+                        tenantName,
                         entityId,
                         entityTypesAndPayload.first,
                         serializedAttribute.first,
@@ -172,7 +170,7 @@ class EntityEventService(
                 publishEntityEvent(
                     AttributeUpdateEvent(
                         sub,
-                        tenantUri,
+                        tenantName,
                         entityId,
                         entityTypesAndPayload.first,
                         serializedAttribute.first,
@@ -199,21 +197,21 @@ class EntityEventService(
         deleteAll: Boolean,
         contexts: List<String>
     ): Job {
-        val tenantUri = getTenantFromContext()
+        val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug(
                 "Sending delete event for attribute {} of entity {} in tenant {}",
                 attributeName,
                 entityId,
-                tenantUri
+                tenantName
             )
             entity.onRight {
                 if (deleteAll)
                     publishEntityEvent(
                         AttributeDeleteAllInstancesEvent(
                             sub,
-                            tenantUri,
+                            tenantName,
                             entityId,
                             it.first,
                             attributeName,
@@ -225,7 +223,7 @@ class EntityEventService(
                     publishEntityEvent(
                         AttributeDeleteEvent(
                             sub,
-                            tenantUri,
+                            tenantName,
                             entityId,
                             it.first,
                             attributeName,
@@ -234,7 +232,7 @@ class EntityEventService(
                             contexts
                         )
                     )
-            }.logAttributeEvent("Attribute Delete", entityId, tenantUri)
+            }.logAttributeEvent("Attribute Delete", entityId, tenantName)
         }
     }
 
@@ -254,28 +252,31 @@ class EntityEventService(
         when (attributeName) {
             JSONLD_TYPE -> Pair(JSONLD_TYPE, serializeObject(jsonLdAttributes[JSONLD_TYPE]!!))
             else -> {
-                val extractedPayload = getAttributeFromExpandedAttributes(jsonLdAttributes, attributeName, datasetId)!!
+                val extractedPayload = (jsonLdAttributes as ExpandedAttributes).getAttributeFromExpandedAttributes(
+                    attributeName,
+                    datasetId
+                )!!
                 Pair(attributeName, serializeObject(extractedPayload))
             }
         }
 
-    private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantUri: URI) =
+    private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantName: String) =
         this.fold({
-            logger.error("Error sending {} event for entity {} in tenant {}: {}", eventsType, entityId, tenantUri, it)
+            logger.error("Error sending {} event for entity {} in tenant {}: {}", eventsType, entityId, tenantName, it)
         }, {
-            logger.debug("Sent {} event for entity {} in tenant {}", eventsType, entityId, tenantUri)
+            logger.debug("Sent {} event for entity {} in tenant {}", eventsType, entityId, tenantName)
         })
 
-    private fun <A, B> Either<A, B>.logAttributeEvent(eventCategory: String, entityId: URI, tenantUri: URI) =
+    private fun <A, B> Either<A, B>.logAttributeEvent(eventCategory: String, entityId: URI, tenantName: String) =
         this.fold({
             logger.error(
                 "Error sending {} event for entity {} in tenant {}: {}",
                 eventCategory,
                 entityId,
-                tenantUri,
+                tenantName,
                 it
             )
         }, {
-            logger.debug("Sent {} event for entity {} in tenant {}", eventCategory, entityId, tenantUri)
+            logger.debug("Sent {} event for entity {} in tenant {}", eventCategory, entityId, tenantName)
         })
 }

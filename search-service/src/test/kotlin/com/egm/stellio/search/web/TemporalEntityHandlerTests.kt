@@ -16,19 +16,11 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.confirmVerified
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -57,8 +49,6 @@ import java.util.UUID
 @Import(WebSecurityTestConfig::class)
 class TemporalEntityHandlerTests {
 
-    private lateinit var apicHeaderLink: String
-
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -83,8 +73,6 @@ class TemporalEntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-
         webClient = webClient.mutate()
             .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
             .apply(csrf())
@@ -113,7 +101,7 @@ class TemporalEntityHandlerTests {
 
         val data =
             loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(data, listOf(APIC_COMPOUND_CONTEXT))
+        val expandedEntity = JsonLdUtils.expandJsonLdEntity(data, APIC_COMPOUND_CONTEXTS)
         val expectedInstancesFilePath =
             "/temporal/beehive_create_temporal_entity_without_first_instance_expanded.jsonld"
         val jsonInstances =
@@ -131,7 +119,7 @@ class TemporalEntityHandlerTests {
         coVerify {
             entityPayloadService.createEntity(
                 any(),
-                eq(jsonLdEntity),
+                eq(expandedEntity),
                 eq(sub.value)
             )
         }
@@ -186,7 +174,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -213,7 +201,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -240,7 +228,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -267,7 +255,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -290,7 +278,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
@@ -319,7 +307,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
@@ -377,9 +365,10 @@ class TemporalEntityHandlerTests {
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -566,16 +555,17 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -590,7 +580,7 @@ class TemporalEntityHandlerTests {
                         !temporalEntitiesQuery.withTemporalValues &&
                         !temporalEntitiesQuery.withAudit
                 },
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(APIC_COMPOUND_CONTEXTS)
             )
         }
         confirmVerified(queryService)
@@ -600,16 +590,17 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -620,16 +611,17 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         buildDefaultMockResponsesForGetEntity()
 
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any())
-        } returns emptyMap<String, Any>().right()
+        } returns returnedExpandedEntity.right()
 
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
 
@@ -639,7 +631,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution`() {
+    fun `it should return an entity with two temporal properties evolution`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(false)
@@ -649,7 +641,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
@@ -661,7 +653,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a json entity with two temporal properties evolution`() {
+    fun `it should return a json entity with two temporal properties evolution`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(false)
@@ -671,7 +663,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .header("Accept", MediaType.APPLICATION_JSON.toString())
             .exchange()
             .expectStatus().isOk
@@ -685,7 +677,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
+    fun `it should return an entity with two temporal properties evolution with temporalValues option`() = runTest {
         buildDefaultMockResponsesForGetEntity()
 
         mockWithIncomingAndOutgoingTemporalProperties(true)
@@ -695,18 +687,18 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&options=temporalValues"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
             .jsonPath("$.id").exists()
             .jsonPath("$.type").exists()
             .jsonPath("$..observedAt").doesNotExist()
-            .jsonPath("$.incoming[0].values.length()").isEqualTo(2)
-            .jsonPath("$.outgoing[0].values.length()").isEqualTo(2)
+            .jsonPath("$.incoming.values.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.values.length()").isEqualTo(2)
     }
 
-    private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
+    private suspend fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
         val entityTemporalProperties = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             .map {
                 TemporalEntityAttribute(
@@ -722,7 +714,7 @@ class TemporalEntityHandlerTests {
         else
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
-        val entityWith2temporalEvolutions = deserializeObject(loadSampleData(entityFileName))
+        val entityWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any())
         } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
@@ -786,7 +778,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities?" +
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -808,11 +800,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return 200 with jsonld response body for query temporal entities`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `it should return 200 with jsonld response body for query temporal entities`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -825,7 +815,7 @@ class TemporalEntityHandlerTests {
                     "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive"
             )
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -836,11 +826,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return 200 with json response body for query temporal entities`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `it should return 200 with json response body for query temporal entities`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -854,7 +842,7 @@ class TemporalEntityHandlerTests {
                     "type=BeeHive"
             )
             .header("Accept", MediaType.APPLICATION_JSON.toString())
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
             .expectHeader().exists("Link")
@@ -866,11 +854,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with prev link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with prev link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -928,11 +914,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with next link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with next link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -957,11 +941,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 with prev and next link header if exists`() {
-        val firstTemporalEntity = deserializeObject(
-            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
-        ).minus("@context")
-        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+    fun `query temporal entity should return 200 with prev and next link header if exists`() = runTest {
+        val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -1083,7 +1065,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1114,7 +1096,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1144,7 +1126,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1165,7 +1147,7 @@ class TemporalEntityHandlerTests {
     fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -1177,7 +1159,7 @@ class TemporalEntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
-            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
             .exchange()
@@ -1542,7 +1524,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
         coEvery {
             entityPayloadService.checkEntityExistence(any())
         } returns Unit.right()
@@ -1555,7 +1537,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
@@ -1578,7 +1560,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -1599,7 +1581,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery {
             entityPayloadService.checkEntityExistence(any())
@@ -1615,7 +1597,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -1653,7 +1635,7 @@ class TemporalEntityHandlerTests {
         webClient
             .method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
-            .header("Link", apicHeaderLink)
+            .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(

@@ -9,7 +9,9 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.search.util.deserializeAsMap
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
@@ -27,7 +29,7 @@ class QueryService(
     suspend fun queryEntity(
         entityId: URI,
         contexts: List<String>
-    ): Either<APIException, JsonLdEntity> =
+    ): Either<APIException, ExpandedEntity> =
         either {
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
             toJsonLdEntity(entityPayload, contexts)
@@ -36,17 +38,17 @@ class QueryService(
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
-    ): Either<APIException, Pair<List<JsonLdEntity>, Int>> = either {
+    ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
         val entitiesIds = entityPayloadService.queryEntities(entitiesQuery, accessRightFilter)
         val count = entityPayloadService.queryEntitiesCount(entitiesQuery, accessRightFilter).bind()
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Pair<List<JsonLdEntity>, Int>(emptyList(), count)
+            return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
 
         val entitiesPayloads =
             entityPayloadService.retrieve(entitiesIds)
-                .map { toJsonLdEntity(it, listOf(entitiesQuery.context)) }
+                .map { toJsonLdEntity(it, entitiesQuery.contexts) }
 
         Pair(entitiesPayloads, count).right().bind()
     }
@@ -54,8 +56,8 @@ class QueryService(
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        contextLink: String
-    ): Either<APIException, CompactedJsonLdEntity> = either {
+        contexts: List<String>
+    ): Either<APIException, ExpandedEntity> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs).let {
             if (it.isEmpty())
@@ -82,7 +84,7 @@ class QueryService(
         TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, scopeHistory, temporalEntityAttributesWithInstances),
             temporalEntitiesQuery,
-            listOf(contextLink)
+            contexts
         )
     }
 
@@ -124,7 +126,7 @@ class QueryService(
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         accessRightFilter: () -> String?
-    ): Either<APIException, Pair<List<CompactedJsonLdEntity>, Int>> = either {
+    ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
         val count = entityPayloadService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
@@ -132,7 +134,7 @@ class QueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Pair<List<CompactedJsonLdEntity>, Int>(emptyList(), count)
+            return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
 
         val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
             entitiesIds,
@@ -174,7 +176,7 @@ class QueryService(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
                 temporalEntitiesQuery,
-                listOf(temporalEntitiesQuery.entitiesQuery.context)
+                temporalEntitiesQuery.entitiesQuery.contexts
             ),
             count
         )
@@ -236,8 +238,8 @@ class QueryService(
     private fun toJsonLdEntity(
         entityPayload: EntityPayload,
         contexts: List<String>
-    ): JsonLdEntity {
+    ): ExpandedEntity {
         val deserializedEntity = entityPayload.payload.deserializeAsMap()
-        return JsonLdEntity(deserializedEntity, contexts)
+        return ExpandedEntity(deserializedEntity, contexts)
     }
 }

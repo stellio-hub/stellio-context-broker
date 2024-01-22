@@ -63,8 +63,9 @@ class ParsingUtilsTests {
         result.fold({
             assertTrue(it is LdContextNotAvailableException)
             assertEquals(
-                "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
-                    "loading remote context failed: $contextNonExisting)",
+                "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
+                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem " +
+                    "encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED].])",
                 it.message
             )
         }, {

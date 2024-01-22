@@ -4,8 +4,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -14,7 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.http.MediaType
 
-class JsonLdEntityTests {
+class ExpandedEntityTests {
 
     private val normalizedJson =
         """
@@ -120,12 +118,12 @@ class JsonLdEntityTests {
 
     @Test
     fun `it should find an expanded attribute contained in the entity`() {
-        val jsonLdEntity = JsonLdEntity(
+        val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to ""),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
 
-        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
 
         checkResult.fold({
             fail("it should have found one of the requested attributes")
@@ -134,12 +132,12 @@ class JsonLdEntityTests {
 
     @Test
     fun `it should not find an expanded attribute contained in the entity`() {
-        val jsonLdEntity = JsonLdEntity(
+        val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01"),
-            DEFAULT_CONTEXTS
+            NGSILD_TEST_CORE_CONTEXTS
         )
 
-        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
 
         checkResult.fold({
             assertEquals(
@@ -203,9 +201,9 @@ class JsonLdEntityTests {
         }
         """.trimIndent()
 
-        val jsonLdEntity = expandJsonLdEntity(entity).populateCreationTimeDate(ngsiLdDateTime())
-        assertThat(jsonLdEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
-        val nameAttributeInstances = jsonLdEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
+        val expandedEntity = expandJsonLdEntity(entity).populateCreationTimeDate(ngsiLdDateTime())
+        assertThat(expandedEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
+        val nameAttributeInstances = expandedEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
         assertThat(nameAttributeInstances).hasSize(1)
         assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_PROPERTY)
     }

@@ -3,13 +3,12 @@ package com.egm.stellio.subscription.job
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.ApplicationProperties.TenantConfiguration
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.DEFAULT_TENANT_URI
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
@@ -119,9 +118,9 @@ class TimeIntervalNotificationJobTest {
         val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 query,
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(1, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
@@ -144,9 +143,9 @@ class TimeIntervalNotificationJobTest {
 
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntities(
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 "?type=BeeHive",
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(2, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
@@ -193,9 +192,9 @@ class TimeIntervalNotificationJobTest {
 
         runBlocking {
             val compactedEntities = timeIntervalNotificationJob.getEntitiesToNotify(
-                DEFAULT_TENANT_URI,
+                DEFAULT_TENANT_NAME,
                 subscription,
-                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+                APIC_HEADER_LINK
             )
             assertEquals(2, compactedEntities.size)
             assertTrue(
@@ -239,9 +238,9 @@ class TimeIntervalNotificationJobTest {
 
         every {
             applicationProperties.tenants
-        } returns listOf(TenantConfiguration(DEFAULT_TENANT_URI, "", "public"))
+        } returns listOf(TenantConfiguration(DEFAULT_TENANT_NAME, "", "public"))
         coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
-        coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_CORE_CONTEXT
+        coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_TEST_CORE_CONTEXT
         coEvery {
             notificationService.callSubscriber(any(), any())
         } returns Triple(subscription, mockkClass(Notification::class), true)

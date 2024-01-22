@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.job
 
 import arrow.core.flatten
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
@@ -18,7 +18,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
-import java.net.URI
 
 @Component
 class TimeIntervalNotificationJob(
@@ -38,13 +37,13 @@ class TimeIntervalNotificationJob(
                     subscriptionService.getRecurringSubscriptionsToNotify().forEach { subscription ->
                         val contextLink = subscriptionService.getContextsLink(subscription)
                         // TODO send one notification per subscription
-                        getEntitiesToNotify(tenantConfiguration.uri, subscription, contextLink)
+                        getEntitiesToNotify(tenantConfiguration.name, subscription, contextLink)
                             .forEach { compactedEntity ->
                                 sendNotification(compactedEntity, subscription)
                             }
                     }
                 }.contextWrite {
-                    it.put(NGSILD_TENANT_HEADER, tenantConfiguration.uri)
+                    it.put(NGSILD_TENANT_HEADER, tenantConfiguration.name)
                 }.subscribe()
             }
         }
@@ -62,7 +61,7 @@ class TimeIntervalNotificationJob(
     }
 
     suspend fun sendNotification(
-        compactedEntity: CompactedJsonLdEntity,
+        compactedEntity: CompactedEntity,
         subscription: Subscription
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
@@ -71,16 +70,16 @@ class TimeIntervalNotificationJob(
         )
 
     suspend fun getEntitiesToNotify(
-        tenantUri: URI,
+        tenantName: String,
         subscription: Subscription,
         contextLink: String
-    ): Set<CompactedJsonLdEntity> =
+    ): Set<CompactedEntity> =
         // if a subscription has a "timeInterval" member defined, it has at least one "entities" member
         // because it can't have a "watchedAttributes" member
         subscription.entities!!
             .map {
                 getEntities(
-                    tenantUri,
+                    tenantName,
                     prepareQueryParams(it, subscription.q, subscription.notification.attributes),
                     contextLink
                 )
@@ -92,15 +91,19 @@ class TimeIntervalNotificationJob(
                     logger.debug(
                         "Gonna notify about entities: {} in tenant {}",
                         compactedEntities.joinToString { it["id"] as String },
-                        tenantUri
+                        tenantName
                     )
             }
 
-    suspend fun getEntities(tenantUri: URI, paramRequest: String, contextLink: String): List<CompactedJsonLdEntity> =
+    suspend fun getEntities(
+        tenantName: String,
+        paramRequest: String,
+        contextLink: String
+    ): List<CompactedEntity> =
         webClient.get()
             .uri("/ngsi-ld/v1/entities$paramRequest")
             .header(HttpHeaders.LINK, contextLink)
-            .header(NGSILD_TENANT_HEADER, tenantUri.toString())
+            .header(NGSILD_TENANT_HEADER, tenantName)
             .retrieve()
             .bodyToMono(String::class.java)
             .map { JsonUtils.deserializeListOfObjects(it) }

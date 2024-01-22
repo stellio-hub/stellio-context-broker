@@ -8,7 +8,6 @@ import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
@@ -251,7 +250,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -276,7 +275,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountGroups(any()) } returns Either.Right(1)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHORIZATION_COMPOUND_CONTEXT, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
             .shouldSucceedWith {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)
@@ -310,7 +309,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getUsersCount() } returns Either.Right(2)
 
-        enabledAuthorizationService.getUsers(0, 2, AUTHORIZATION_COMPOUND_CONTEXT)
+        enabledAuthorizationService.getUsers(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -344,9 +343,9 @@ class EnabledAuthorizationServiceTests {
             EntitiesQuery(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
-                context = APIC_COMPOUND_CONTEXT
+                contexts = APIC_COMPOUND_CONTEXTS
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
+            contexts = APIC_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
             assertEquals(1, it.first)
@@ -400,17 +399,17 @@ class EnabledAuthorizationServiceTests {
             EntitiesQuery(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
-                context = APIC_COMPOUND_CONTEXT
+                contexts = APIC_COMPOUND_CONTEXTS
             ),
-            contextLink = APIC_COMPOUND_CONTEXT,
+            contexts = APIC_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             assertEquals(2, it.second.size)
 
-            val jsonLdEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
-            assertEquals(4, jsonLdEntityWithOtherRights.members.size)
-            assertTrue(jsonLdEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
+            val expandedEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
+            assertEquals(4, expandedEntityWithOtherRights.members.size)
+            assertTrue(expandedEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
         }
 
         coVerify {

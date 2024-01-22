@@ -9,10 +9,10 @@ import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.getScopes
-import com.egm.stellio.shared.util.ExpandedAttributeInstances
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY

@@ -3,9 +3,7 @@
     "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
     "type": "Sensor",
     "@context": [
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
     ]
   },
   {
@@ -16,9 +14,7 @@
     "id": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
     "type": "Device",
     "@context": [
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
-      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+      "http://localhost:8093/jsonld-contexts/aquac-compound.jsonld"
     ]
   }
 ]

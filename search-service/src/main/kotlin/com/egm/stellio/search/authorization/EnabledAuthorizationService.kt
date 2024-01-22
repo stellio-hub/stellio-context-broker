@@ -6,7 +6,7 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -95,9 +95,9 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQuery,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val accessRights = entitiesQuery.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
         val entitiesAccessControl = entityAccessRightsService.getSubjectAccessRights(
             sub,
@@ -127,8 +127,8 @@ class EnabledAuthorizationService(
                     )
                 } else entityAccessControl
             }
-            .map { it.serializeProperties(contextLink) }
-            .map { JsonLdEntity(it, listOf(contextLink)) }
+            .map { it.serializeProperties(contexts) }
+            .map { ExpandedEntity(it, contexts) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
@@ -143,9 +143,9 @@ class EnabledAuthorizationService(
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int,
-        contextLink: String,
+        contexts: List<String>,
         sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val groups =
             when (userIsAdmin(sub)) {
                 is Either.Left -> {
@@ -162,10 +162,7 @@ class EnabledAuthorizationService(
             }
 
         val jsonLdEntities = groups.second.map {
-            JsonLdEntity(
-                it.serializeProperties(),
-                listOf(contextLink)
-            )
+            ExpandedEntity(it.serializeProperties(), contexts)
         }
 
         Pair(groups.first, jsonLdEntities)
@@ -174,16 +171,13 @@ class EnabledAuthorizationService(
     override suspend fun getUsers(
         offset: Int,
         limit: Int,
-        contextLink: String
-    ): Either<APIException, Pair<Int, List<JsonLdEntity>>> = either {
+        contexts: List<String>,
+    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val users = subjectReferentialService.getUsers(offset, limit)
         val usersCount = subjectReferentialService.getUsersCount().bind()
 
         val jsonLdEntities = users.map {
-            JsonLdEntity(
-                it.serializeProperties(contextLink),
-                listOf(contextLink)
-            )
+            ExpandedEntity(it.serializeProperties(contexts), contexts)
         }
 
         Pair(usersCount, jsonLdEntities)

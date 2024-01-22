@@ -71,9 +71,6 @@ object JsonUtils {
     fun serializeObject(input: Any): String =
         mapper.writeValueAsString(input)
 
-    fun Map<String, Any>.serialize(): String =
-        mapper.writeValueAsString(this)
-
     fun serializeObject(
         input: Any,
         inputClass: KClass<*>,

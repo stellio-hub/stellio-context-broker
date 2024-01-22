@@ -56,14 +56,18 @@ class EntityOperationHandler(
         checkBatchRequestBody(body).bind()
         checkContentType(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+
         val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
+        val (uniqueEntities, duplicateEntities) =
+            entityOperationService.splitEntitiesByUniqueness(parsedEntities)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(uniqueEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
             authorizationService.userCanCreateEntities(sub).isLeft()
         }
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)
+            addEntitiesToErrors(duplicateEntities.extractNgsiLdEntities(), ENTITY_ALREADY_EXISTS_MESSAGE)
             addEntitiesToErrors(existingEntities.extractNgsiLdEntities(), ENTITY_ALREADY_EXISTS_MESSAGE)
             addEntitiesToErrors(unauthorizedEntities.extractNgsiLdEntities(), ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
@@ -109,10 +113,16 @@ class EntityOperationHandler(
             addEntitiesToErrors(newUnauthorizedEntities.extractNgsiLdEntities(), ENTITIY_CREATION_FORBIDDEN_MESSAGE)
         }
 
-        doBatchCreation(newAuthorizedEntities, batchOperationResult, sub)
+        val (newUniqueEntities, duplicatedEntities) =
+            entityOperationService.splitEntitiesByUniqueness(newAuthorizedEntities)
+        val existingOrDuplicatedEntities = existingEntities.plus(duplicatedEntities)
+
+        doBatchCreation(newUniqueEntities, batchOperationResult, sub)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
-            existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
+            existingOrDuplicatedEntities.partition {
+                authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft()
+            }
         batchOperationResult.addEntitiesToErrors(
             existingEntitiesUnauthorized.extractNgsiLdEntities(),
             ENTITY_UPDATE_FORBIDDEN_MESSAGE
@@ -133,8 +143,8 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
 
-        if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
-            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.entityId() })
+        if (batchOperationResult.errors.isEmpty() && newUniqueEntities.isNotEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(newUniqueEntities.map { it.entityId() })
         else if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
@@ -165,14 +175,14 @@ class EntityOperationHandler(
 
         val (parsedEntities, unparsableEntities) =
             expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
+        val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
             existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)
-            addEntitiesToErrors(newEntities.extractNgsiLdEntities(), ENTITY_DOES_NOT_EXIST_MESSAGE)
+            addEntitiesToErrors(unknownEntities.extractNgsiLdEntities(), ENTITY_DOES_NOT_EXIST_MESSAGE)
             addEntitiesToErrors(existingEntitiesUnauthorized.extractNgsiLdEntities(), ENTITY_UPDATE_FORBIDDEN_MESSAGE)
         }
 
@@ -186,7 +196,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
 
-        if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
+        if (batchOperationResult.errors.isEmpty() && unknownEntities.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
@@ -205,27 +215,30 @@ class EntityOperationHandler(
         val body = requestBody.awaitFirst()
         checkBatchRequestBody(body).bind()
 
+        val (uniqueEntitiesId, duplicateEntitiesId) =
+            entityOperationService.splitEntitiesIdsByUniqueness(body.toListOfUri())
+
         val (existingEntities, unknownEntities) =
-            entityOperationService.splitEntitiesIdsByExistence(body.toListOfUri())
+            entityOperationService.splitEntitiesIdsByExistence(uniqueEntitiesId)
 
-        val entitiesIdsToDelete = existingEntities.toSet()
-        val entitiesBeforeDelete =
-            if (entitiesIdsToDelete.isNotEmpty())
-                entityPayloadService.retrieve(entitiesIdsToDelete.toList())
-            else emptyList()
-
-        val (entitiesUserCannotAdmin, entitiesUserCanAdmin) =
-            entitiesBeforeDelete.partition {
-                authorizationService.userCanAdminEntity(it.entityId, sub).isLeft()
+        val (entitiesUserCannotDelete, entitiesUserCanDelete) =
+            existingEntities.partition {
+                authorizationService.userCanAdminEntity(it, sub).isLeft()
             }
 
+        val entitiesBeforeDelete =
+            if (entitiesUserCanDelete.isNotEmpty())
+                entityPayloadService.retrieve(entitiesUserCanDelete.toList())
+            else emptyList()
+
         val batchOperationResult = BatchOperationResult().apply {
+            addIdsToErrors(duplicateEntitiesId, ENTITY_DOES_NOT_EXIST_MESSAGE)
             addIdsToErrors(unknownEntities, ENTITY_DOES_NOT_EXIST_MESSAGE)
-            addIdsToErrors(entitiesUserCannotAdmin.map { it.entityId }, ENTITY_DELETE_FORBIDDEN_MESSAGE)
+            addIdsToErrors(entitiesUserCannotDelete, ENTITY_DELETE_FORBIDDEN_MESSAGE)
         }
 
-        if (entitiesUserCanAdmin.isNotEmpty()) {
-            val deleteOperationResult = entityOperationService.delete(entitiesUserCanAdmin.map { it.entityId }.toSet())
+        if (entitiesUserCanDelete.isNotEmpty()) {
+            val deleteOperationResult = entityOperationService.delete(entitiesUserCanDelete.toSet())
 
             deleteOperationResult.success.map { it.entityId }.forEach { uri ->
                 val entity = entitiesBeforeDelete.find { it.entityId == uri }!!

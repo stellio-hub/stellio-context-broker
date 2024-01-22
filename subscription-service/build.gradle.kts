@@ -50,7 +50,6 @@ jib.pluginExtensions {
         implementation = "com.google.cloud.tools.jib.gradle.extension.springboot.JibSpringBootExtension"
     }
 }
-jib.container.jvmFlags = listOf("-Xms256m", "-Xmx768m")
 jib.container.ports = listOf("8084")
 jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

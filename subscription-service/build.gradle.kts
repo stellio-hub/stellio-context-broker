@@ -18,7 +18,7 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation("org.postgresql:r2dbc-postgresql")
-    implementation("com.jayway.jsonpath:json-path:2.8.0")
+    implementation("com.jayway.jsonpath:json-path:2.9.0")
     implementation(project(":shared"))
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.4")

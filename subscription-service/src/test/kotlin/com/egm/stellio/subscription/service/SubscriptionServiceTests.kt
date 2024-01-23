@@ -150,6 +150,43 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should not allow a subscription with timeInterval and throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to 10,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to 30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "You can't use 'timeInterval' in conjunction with 'throttling'"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with a negative throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to -30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'throttling' must be greater than zero (int)"
+            }
+    }
+
+    @Test
     fun `it should not allow a subscription with a negative timeInterval`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
@@ -263,10 +300,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         ) &&
                     it.watchedAttributes == listOf(INCOMING_PROPERTY) &&
                     it.notificationTrigger == listOf(
-                        ENTITY_CREATED.notificationTrigger,
-                        ATTRIBUTE_UPDATED.notificationTrigger,
-                        ENTITY_DELETED.notificationTrigger
-                    ) &&
+                    ENTITY_CREATED.notificationTrigger,
+                    ATTRIBUTE_UPDATED.notificationTrigger,
+                    ENTITY_DELETED.notificationTrigger
+                ) &&
                     it.timeInterval == null &&
                     it.q == "foodQuantity<150;foodName=='dietary fibres'" &&
                     (
@@ -281,10 +318,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.attributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
-                        URI("http://localhost:8084"),
-                        Endpoint.AcceptType.JSON,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
-                    ) &&
+                    URI("http://localhost:8084"),
+                    Endpoint.AcceptType.JSON,
+                    listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                ) &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z")
             }
     }
@@ -725,8 +762,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.endpoint.accept.name == "JSONLD" &&
                     it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
                     it.notification.endpoint.receiverInfo == listOf(
-                        EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                    )
+                    EndpointInfo("Authorization-token", "Authorization-token-newValue")
+                )
             }
     }
 

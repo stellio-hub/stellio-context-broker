@@ -77,23 +77,29 @@ class SubscriptionService(
         else Unit.right()
 
     private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.watchedAttributes != null && subscription.timeInterval != null)
-            BadRequestDataException(
-                "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
-            ).left()
-        else Unit.right()
+        when {
+            subscription.watchedAttributes != null && subscription.timeInterval != null -> {
+                BadRequestDataException(
+                    "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+                ).left()
+            }
+            subscription.timeInterval != null && subscription.throttling != null -> {
+                BadRequestDataException(
+                    "You can't use 'timeInterval' in conjunction with 'throttling'"
+                ).left()
+            }
+            else ->
+                Unit.right()
+        }
 
     private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.timeInterval != null && subscription.timeInterval < 1)
+        if (subscription.timeInterval != null && subscription.timeInterval < 1 && subscription.throttling == null)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
         else Unit.right()
 
     private fun checkThrottlingGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if ((subscription.timeInterval != null && subscription.timeInterval > 0 && subscription.throttling != null) ||
-            (subscription.timeInterval != null && subscription.timeInterval < 1 && subscription.throttling != null) ||
-            (subscription.timeInterval == null && subscription.throttling != null && subscription.throttling < 1)
-        )
-            BadRequestDataException("Error").left()
+        if (subscription.throttling != null && subscription.throttling < 1)
+            BadRequestDataException("The value of 'throttling' must be greater than zero (int)").left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
@@ -146,11 +152,11 @@ class SubscriptionService(
             INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                 notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
                 endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
-                expires_at, sub, contexts)
+                expires_at, sub, contexts, throttling)
             VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                 :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
                 :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
-                :expires_at, :sub, :contexts)
+                :expires_at, :sub, :contexts, :throttling)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -175,6 +181,7 @@ class SubscriptionService(
             .bind("expires_at", subscription.expiresAt)
             .bind("sub", sub.toStringValue())
             .bind("contexts", subscription.contexts.toTypedArray())
+            .bind("throttling", subscription.throttling)
             .execute().bind()
 
         geoQuery?.let {

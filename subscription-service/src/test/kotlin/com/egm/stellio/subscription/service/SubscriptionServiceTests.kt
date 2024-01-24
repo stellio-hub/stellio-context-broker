@@ -322,7 +322,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     Endpoint.AcceptType.JSON,
                     listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                 ) &&
-                    it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z")
+                    it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
+                    it.throttling == 60
             }
     }
 

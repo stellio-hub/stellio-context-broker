@@ -252,7 +252,7 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -691,7 +691,8 @@ class SubscriptionService(
                 lastSuccess = toNullableZonedDateTime(row["last_success"])
             ),
             isActive = toBoolean(row["is_active"]),
-            contexts = toList(row["contexts"])
+            contexts = toList(row["contexts"]),
+            throttling = toNullableInt(row["throttling"])
         )
     }
 

@@ -20,7 +20,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 val defaultNotificationTriggers = listOf(
     ATTRIBUTE_CREATED.notificationTrigger,

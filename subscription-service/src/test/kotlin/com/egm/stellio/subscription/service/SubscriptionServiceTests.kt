@@ -300,10 +300,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         ) &&
                     it.watchedAttributes == listOf(INCOMING_PROPERTY) &&
                     it.notificationTrigger == listOf(
-                    ENTITY_CREATED.notificationTrigger,
-                    ATTRIBUTE_UPDATED.notificationTrigger,
-                    ENTITY_DELETED.notificationTrigger
-                ) &&
+                        ENTITY_CREATED.notificationTrigger,
+                        ATTRIBUTE_UPDATED.notificationTrigger,
+                        ENTITY_DELETED.notificationTrigger
+                    ) &&
                     it.timeInterval == null &&
                     it.q == "foodQuantity<150;foodName=='dietary fibres'" &&
                     (
@@ -318,10 +318,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.attributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8084"),
-                    Endpoint.AcceptType.JSON,
-                    listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
-                ) &&
+                        URI("http://localhost:8084"),
+                        Endpoint.AcceptType.JSON,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                    ) &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60
             }
@@ -763,8 +763,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.endpoint.accept.name == "JSONLD" &&
                     it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
                     it.notification.endpoint.receiverInfo == listOf(
-                    EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                )
+                        EndpointInfo("Authorization-token", "Authorization-token-newValue")
+                    )
             }
     }
 

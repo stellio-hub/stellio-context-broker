@@ -57,8 +57,6 @@ class SubscriptionService(
         checkExpiresAtInTheFuture(subscription).bind()
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
-
-
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =

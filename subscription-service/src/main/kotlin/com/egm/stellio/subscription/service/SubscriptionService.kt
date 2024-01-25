@@ -47,8 +47,6 @@ class SubscriptionService(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> = either {
         checkTypeIsSubscription(subscription).bind()
         checkIdIsValid(subscription).bind()
@@ -365,12 +363,12 @@ class SubscriptionService(
                 }
 
                 listOf("csf", "temporalQ").contains(it.key) -> {
-                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId,it))
+                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId, it))
                         .left().bind<Unit>()
                 }
 
                 else -> {
-                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId,it))
+                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId, it))
                         .left().bind<Unit>()
                 }
             }

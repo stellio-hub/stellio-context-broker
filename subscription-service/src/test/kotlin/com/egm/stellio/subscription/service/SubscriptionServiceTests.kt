@@ -716,7 +716,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "geometry" to "Point",
                 "coordinates" to "[100.0, 0.0]",
                 "geoproperty" to "https://uri.etsi.org/ngsi-ld/observationSpace"
-            )
+            ),
+            "throttling" to 50
         )
 
         subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
@@ -732,7 +733,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.geoQ!!.georel == "equals" &&
                     it.geoQ!!.geometry == "Point" &&
                     it.geoQ!!.coordinates == "[100.0, 0.0]" &&
-                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace"
+                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace" &&
+                    it.throttling == 50
             }
     }
 

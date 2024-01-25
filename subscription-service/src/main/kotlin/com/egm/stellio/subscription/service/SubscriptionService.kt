@@ -354,14 +354,15 @@ class SubscriptionService(
                     "q",
                     "scopeQ",
                     "isActive",
-                    "modifiedAt"
+                    "modifiedAt",
+                    "throttling"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
                     updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
                 }
 
-                listOf("csf", "throttling", "temporalQ").contains(it.key) -> {
+                listOf("csf", "temporalQ").contains(it.key) -> {
                     logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                     NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                         .left().bind<Unit>()

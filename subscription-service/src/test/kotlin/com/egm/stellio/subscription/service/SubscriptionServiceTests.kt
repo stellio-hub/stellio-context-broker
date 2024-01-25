@@ -927,12 +927,12 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "throttling" to "someValue")
+        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
 
         subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
             .shouldFailWith {
                 it is NotImplementedException &&
-                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: throttling"
+                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: csf"
             }
     }
 

@@ -20,6 +20,8 @@ import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
+import com.egm.stellio.subscription.web.invalidSubscriptiondAttributeMessage
+import com.egm.stellio.subscription.web.unsupportedSubscriptiondAttributeMessage
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
@@ -363,14 +365,12 @@ class SubscriptionService(
                 }
 
                 listOf("csf", "temporalQ").contains(it.key) -> {
-                    logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
-                    NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
+                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId,it))
                         .left().bind<Unit>()
                 }
 
                 else -> {
-                    logger.warn("Subscription $subscriptionId has invalid attribute: ${it.key}")
-                    BadRequestDataException("Subscription $subscriptionId has invalid attribute: ${it.key}")
+                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId,it))
                         .left().bind<Unit>()
                 }
             }

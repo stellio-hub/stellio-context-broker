@@ -33,6 +33,8 @@ const val OUTGOING_COMPACT_PROPERTY = "outgoing"
 const val OUTGOING_PROPERTY = "https://ontology.eglobalmark.com/apic#$OUTGOING_COMPACT_PROPERTY"
 const val TEMPERATURE_COMPACT_PROPERTY = "temperature"
 const val TEMPERATURE_PROPERTY = "https://ontology.eglobalmark.com/apic#$TEMPERATURE_COMPACT_PROPERTY"
+const val LUMINOSITY_COMPACT_JSONPROPERTY = "luminosity"
+const val LUMINOSITY_JSONPROPERTY = "https://ontology.eglobalmark.com/apic#$LUMINOSITY_COMPACT_JSONPROPERTY"
 
 const val MANAGED_BY_COMPACT_RELATIONSHIP = "managedBy"
 const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAGED_BY_COMPACT_RELATIONSHIP"

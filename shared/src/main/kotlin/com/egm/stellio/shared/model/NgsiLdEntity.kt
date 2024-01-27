@@ -323,7 +323,7 @@ class NgsiLdGeoPropertyInstance(
 }
 
 class NgsiLdJsonPropertyInstance private constructor(
-    val json: Map<String, Any>,
+    val json: Any,
     createdAt: ZonedDateTime?,
     modifiedAt: ZonedDateTime?,
     observedAt: ZonedDateTime?,
@@ -340,8 +340,10 @@ class NgsiLdJsonPropertyInstance private constructor(
             ensureNotNull(json) {
                 BadRequestDataException("Property $name has an instance without a json member")
             }
-            ensure(json is Map<*, *>) {
-                BadRequestDataException("Property $name has a json member that is not a map")
+            ensure(json is Map<*, *> || (json is List<*> && json.all { it is Map<*, *> })) {
+                BadRequestDataException(
+                    "Property $name has a json member that is not a JSON object, nor an array of JSON objects"
+                )
             }
 
             val createdAt = values.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY)
@@ -357,7 +359,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             }
 
             NgsiLdJsonPropertyInstance(
-                json as Map<String, Any>,
+                json,
                 createdAt,
                 modifiedAt,
                 observedAt,

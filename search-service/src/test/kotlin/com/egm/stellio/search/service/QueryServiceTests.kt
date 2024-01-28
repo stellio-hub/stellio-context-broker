@@ -8,6 +8,7 @@ import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
+import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -16,7 +17,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -413,12 +413,9 @@ class QueryServiceTests {
             })
     }
 
-    private fun gimmeEntityPayload(): EntityPayload =
-        EntityPayload(
+    private fun gimmeEntityPayload() =
+        gimmeEntityPayload(
             entityId = entityUri,
-            types = listOf(BEEHIVE_TYPE),
-            createdAt = now,
-            contexts = APIC_COMPOUND_CONTEXTS,
-            payload = Json.of(loadSampleData("beehive_expanded.jsonld"))
+            payload = loadSampleData("beehive_expanded.jsonld")
         )
 }

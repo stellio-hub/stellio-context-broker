@@ -244,8 +244,7 @@ class EntityOperationHandler(
                 val entity = entitiesBeforeDelete.find { it.entityId == uri }!!
                 entityEventService.publishEntityDeleteEvent(
                     sub.getOrNull(),
-                    entity,
-                    entity.contexts
+                    entity
                 )
             }
 
@@ -354,8 +353,7 @@ class EntityOperationHandler(
                     entityEventService.publishEntityCreateEvent(
                         sub.getOrNull(),
                         ngsiLdEntity.id,
-                        ngsiLdEntity.types,
-                        ngsiLdEntity.contexts
+                        ngsiLdEntity.types
                     )
                 }
             batchOperationResult.errors.addAll(createOperationResult.errors)
@@ -372,8 +370,7 @@ class EntityOperationHandler(
             entityEventService.publishEntityReplaceEvent(
                 sub,
                 it.entityId(),
-                it.second.types,
-                it.second.contexts
+                it.second.types
             )
         }
 
@@ -383,7 +380,7 @@ class EntityOperationHandler(
         jsonLdNgsiLdEntities: List<JsonLdNgsiLdEntity>
     ) {
         updateBatchOperationResult.success.forEach {
-            val (jsonLdEntity, ngsiLdEntity) = jsonLdNgsiLdEntities.find { jsonLdNgsiLdEntity ->
+            val (jsonLdEntity, _) = jsonLdNgsiLdEntities.find { jsonLdNgsiLdEntity ->
                 jsonLdNgsiLdEntity.entityId() == it.entityId
             }!!
             entityEventService.publishAttributeChangeEvents(
@@ -391,8 +388,7 @@ class EntityOperationHandler(
                 it.entityId,
                 jsonLdEntity.members,
                 it.updateResult!!,
-                true,
-                ngsiLdEntity.contexts
+                true
             )
         }
     }

@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.AttributeType
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
@@ -43,9 +44,9 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
-    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
-    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
+    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
+    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
+    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
     private val temporalEntityAttribute1 = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
@@ -229,17 +230,4 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .bind("types", entityPayload.types.toTypedArray())
                 .execute()
         }
-
-    private fun newEntityPayload(
-        id: String,
-        types: List<String>,
-        contexts: List<String> = APIC_COMPOUND_CONTEXTS
-    ): EntityPayload =
-        EntityPayload(
-            entityId = toUri(id),
-            types = types,
-            createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = contexts
-        )
 }

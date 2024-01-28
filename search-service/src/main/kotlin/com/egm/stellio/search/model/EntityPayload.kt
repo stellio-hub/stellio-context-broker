@@ -21,9 +21,6 @@ data class EntityPayload(
     val scopes: List<String>? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
-    // creation time contexts
-    // FIXME only stored because needed to compact types at deletion time...
-    val contexts: List<String>,
     val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {

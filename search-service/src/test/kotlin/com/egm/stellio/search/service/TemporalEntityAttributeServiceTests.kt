@@ -56,7 +56,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 entityId = beehiveTestCId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
-                contexts = APIC_COMPOUND_CONTEXTS,
                 payload = EMPTY_JSON_PAYLOAD
             )
         ).block()
@@ -66,7 +65,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 entityId = beehiveTestDId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
-                contexts = APIC_COMPOUND_CONTEXTS,
                 payload = EMPTY_JSON_PAYLOAD
             )
         ).block()

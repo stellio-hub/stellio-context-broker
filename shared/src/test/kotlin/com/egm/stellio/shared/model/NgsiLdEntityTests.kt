@@ -83,7 +83,8 @@ class NgsiLdEntityTests {
         expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Entity has attribute(s) with an unknown type: [${NGSILD_DEFAULT_VOCAB}deviceState]",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState has an unknown type: " +
+                    "https://uri.etsi.org/ngsi-ld/default-context/UnknownProperty",
                 it.message
             )
         }
@@ -112,8 +113,6 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
-        assertNull(ngsiLdPropertyInstance.createdAt)
-        assertNull(ngsiLdPropertyInstance.modifiedAt)
     }
 
     @Test
@@ -182,30 +181,6 @@ class NgsiLdEntityTests {
         assertEquals("MTR", ngsiLdPropertyInstance.unitCode)
         assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdPropertyInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdPropertyInstance.observedAt)
-    }
-
-    @Test
-    fun `it should parse an entity with a property having createdAt and modifiedAt information`() = runTest {
-        val rawEntity =
-            """
-            {
-              "id": "urn:ngsi-ld:Device:01234",
-              "type": "Device",
-              "deviceState": {
-                "type": "Property",
-                "value": "Open",
-                "createdAt": "2022-01-19T00:00:00Z",
-                "modifiedAt": "2022-01-29T00:00:00Z"
-              }
-            }
-            """.trimIndent()
-
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
-            .shouldSucceedAndResult()
-
-        val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
-        assertEquals(ZonedDateTime.parse("2022-01-19T00:00:00Z"), ngsiLdPropertyInstance.createdAt)
-        assertEquals(ZonedDateTime.parse("2022-01-29T00:00:00Z"), ngsiLdPropertyInstance.modifiedAt)
     }
 
     @Test
@@ -282,7 +257,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState instances must have the same type",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState can't have instances with different types",
                 it.message
             )
         }
@@ -408,8 +383,6 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
         assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
-        assertNull(ngsiLdRelationshipInstance.createdAt)
-        assertNull(ngsiLdRelationshipInstance.modifiedAt)
     }
 
     @Test
@@ -553,7 +526,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel instances must have the same type",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel can't have instances with different types",
                 it.message
             )
         }
@@ -591,8 +564,6 @@ class NgsiLdEntityTests {
         assertEquals(1, location?.instances?.size)
         val locationInstance = location?.instances?.get(0)
         assertEquals("POLYGON ((100 0, 101 0, 101 1, 100 1, 100 0))", locationInstance?.coordinates?.value)
-        assertNull(locationInstance?.createdAt)
-        assertNull(locationInstance?.modifiedAt)
     }
 
     @Test

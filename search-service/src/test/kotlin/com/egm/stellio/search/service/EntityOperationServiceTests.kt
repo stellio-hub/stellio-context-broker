@@ -272,6 +272,9 @@ class EntityOperationServiceTests {
     @Test
     fun `it should ask to replace entities`() = runTest {
         coEvery {
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
+        } returns Unit.right()
+        coEvery {
             entityPayloadService.appendAttributes(any(), any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
@@ -303,6 +306,9 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error an replace which raises a BadRequestDataException`() = runTest {
         coEvery {
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
+        } returns Unit.right()
+        coEvery {
             entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
@@ -326,6 +332,9 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error not replaced entities in entities`() = runTest {
+        coEvery {
+            temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any())
+        } returns Unit.right()
         coEvery {
             entityPayloadService.appendAttributes(firstEntityURI, any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()

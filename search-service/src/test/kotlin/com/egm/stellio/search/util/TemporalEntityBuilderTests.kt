@@ -37,8 +37,7 @@ class TemporalEntityBuilderTests {
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = APIC_COMPOUND_CONTEXTS
+            payload = EMPTY_JSON_PAYLOAD
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
@@ -71,8 +70,7 @@ class TemporalEntityBuilderTests {
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = APIC_COMPOUND_CONTEXTS
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
@@ -177,8 +175,7 @@ class TemporalEntityBuilderTests {
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = APIC_COMPOUND_CONTEXTS
+            payload = EMPTY_JSON_PAYLOAD
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(

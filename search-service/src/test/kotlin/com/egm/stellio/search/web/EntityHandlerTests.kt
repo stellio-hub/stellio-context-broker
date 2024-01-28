@@ -100,7 +100,7 @@ class EntityHandlerTests {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createAdminRight(any(), any()) } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -125,8 +125,7 @@ class EntityHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
-                eq(listOf(breedingServiceType)),
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                eq(listOf(breedingServiceType))
             )
         }
     }
@@ -1153,7 +1152,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any()) } returns Job()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1177,8 +1176,7 @@ class EntityHandlerTests {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
-                eq(listOf(breedingServiceType)),
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                eq(listOf(breedingServiceType))
             )
         }
     }
@@ -1274,7 +1272,7 @@ class EntityHandlerTests {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
     }
 
@@ -1322,8 +1320,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 appendResult,
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             )
         }
     }
@@ -1379,8 +1376,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 appendResult,
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             )
         }
     }
@@ -1422,8 +1418,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 appendTypeResult,
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             )
         }
     }
@@ -1471,8 +1466,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 appendTypeResult.mergeWith(appendResult),
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             )
         }
     }
@@ -1599,7 +1593,7 @@ class EntityHandlerTests {
             entityPayloadService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
 
         webClient.patch()
@@ -1621,8 +1615,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 eq(updateResult),
-                eq(false),
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                eq(false)
             )
         }
     }
@@ -1744,7 +1737,7 @@ class EntityHandlerTests {
             entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
 
         webClient.patch()
@@ -1766,8 +1759,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 eq(updateResult),
-                true,
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                true
             )
         }
     }
@@ -1798,7 +1790,7 @@ class EntityHandlerTests {
             entityPayloadService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
 
         webClient.patch()
@@ -1825,8 +1817,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 eq(updateResult),
-                true,
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                true
             )
         }
     }
@@ -1951,7 +1942,7 @@ class EntityHandlerTests {
             entityPayloadService.updateAttributes(any(), any(), any())
         } returns updateResult.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
 
         webClient.patch()
@@ -1973,8 +1964,7 @@ class EntityHandlerTests {
                 eq(entityId),
                 any(),
                 eq(updateResult),
-                true,
-                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+                true
             )
         }
     }
@@ -1997,7 +1987,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
 
         webClient.patch()
@@ -2024,7 +2014,7 @@ class EntityHandlerTests {
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
         ).right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true, any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
         } returns Job()
 
         webClient.patch()
@@ -2135,11 +2125,10 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        every { entity.contexts } returns APIC_COMPOUND_CONTEXTS
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -2157,8 +2146,7 @@ class EntityHandlerTests {
         coVerify {
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                eq(entity),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(entity)
             )
         }
     }
@@ -2242,7 +2230,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any())
         } returns Job()
     }
 
@@ -2275,8 +2263,7 @@ class EntityHandlerTests {
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
-                eq(false),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(false)
             )
         }
     }
@@ -2310,8 +2297,7 @@ class EntityHandlerTests {
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 isNull(),
-                eq(true),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(true)
             )
         }
     }
@@ -2345,8 +2331,7 @@ class EntityHandlerTests {
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
-                eq(false),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(false)
             )
         }
     }
@@ -2450,7 +2435,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
     }
 

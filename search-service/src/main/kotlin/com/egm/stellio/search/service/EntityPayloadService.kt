@@ -64,8 +64,8 @@ class EntityPayloadService(
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, contexts, specific_access_policy)
-            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :contexts, :specific_access_policy)
+            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
+            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
             """.trimIndent()
         )
             .bind("entity_id", ngsiLdEntity.id)
@@ -73,7 +73,6 @@ class EntityPayloadService(
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
             .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
-            .bind("contexts", ngsiLdEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
@@ -155,8 +154,7 @@ class EntityPayloadService(
                 scopes = :scopes,
                 modified_at = :modified_at,
                 payload = :payload,
-                specific_access_policy = :specific_access_policy,
-                contexts = :contexts
+                specific_access_policy = :specific_access_policy
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
@@ -165,7 +163,6 @@ class EntityPayloadService(
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("modified_at", replacedAt)
             .bind("payload", Json.of(serializedPayload))
-            .bind("contexts", expandedEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
@@ -210,7 +207,6 @@ class EntityPayloadService(
             scopes = toOptionalList(row["scopes"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            contexts = toList(row["contexts"]),
             payload = toJson(row["payload"]),
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )

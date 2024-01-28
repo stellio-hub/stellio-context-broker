@@ -78,8 +78,7 @@ class ObservationEventListener(
                 entityEventService.publishEntityCreateEvent(
                     observationEvent.sub,
                     observationEvent.entityId,
-                    expandJsonLdTerms(observationEvent.entityTypes, observationEvent.contexts),
-                    observationEvent.contexts
+                    expandJsonLdTerms(observationEvent.entityTypes, observationEvent.contexts)
                 )
             }
         }.writeContextAndSubscribe(tenantName, observationEvent)
@@ -115,8 +114,7 @@ class ObservationEventListener(
                         observationEvent.entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
-                        false,
-                        observationEvent.contexts
+                        false
                     )
                 }
             }
@@ -153,8 +151,7 @@ class ObservationEventListener(
                         observationEvent.entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
-                        observationEvent.overwrite,
-                        observationEvent.contexts
+                        observationEvent.overwrite
                     )
                 }
             }

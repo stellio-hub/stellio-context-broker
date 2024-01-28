@@ -7,10 +7,12 @@ import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.model.UpdatedDetails
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.matchContent
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
@@ -87,8 +89,7 @@ class EntityEventServiceTests {
         entityEventService.publishEntityCreateEvent(
             null,
             breedingServiceUri,
-            listOf(breedingServiceType),
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            listOf(breedingServiceType)
         ).join()
 
         coVerify { entityEventService.getSerializedEntity(eq(breedingServiceUri)) }
@@ -105,8 +106,7 @@ class EntityEventServiceTests {
         entityEventService.publishEntityReplaceEvent(
             null,
             breedingServiceUri,
-            listOf(breedingServiceType),
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            listOf(breedingServiceType)
         ).join()
 
         coVerify { entityEventService.getSerializedEntity(eq(breedingServiceUri)) }
@@ -120,11 +120,7 @@ class EntityEventServiceTests {
         }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        entityEventService.publishEntityDeleteEvent(
-            null,
-            entityPayload,
-            listOf(AQUAC_COMPOUND_CONTEXT)
-        ).join()
+        entityEventService.publishEntityDeleteEvent(null, entityPayload).join()
 
         verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }
@@ -145,8 +141,7 @@ class EntityEventServiceTests {
                 listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.APPENDED)),
                 emptyList()
             ),
-            true,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            true
         ).join()
 
         verify {
@@ -159,7 +154,7 @@ class EntityEventServiceTests {
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
                         it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                        it.contexts.isEmpty()
                 }
             )
         }
@@ -181,8 +176,7 @@ class EntityEventServiceTests {
                 listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.REPLACED)),
                 emptyList()
             ),
-            true,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            true
         ).join()
 
         verify {
@@ -195,7 +189,7 @@ class EntityEventServiceTests {
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
                         it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                        it.contexts.isEmpty()
                 }
             )
         }
@@ -229,8 +223,7 @@ class EntityEventServiceTests {
                 breedingServiceUri,
                 jsonLdAttributes,
                 appendResult,
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             ).join()
 
             verify {
@@ -246,7 +239,7 @@ class EntityEventServiceTests {
                                         it.operationPayload.matchContent(
                                             serializedAttributePayload(jsonLdAttributes)
                                         ) &&
-                                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                                        it.contexts.isEmpty()
                                 }
 
                             is AttributeReplaceEvent ->
@@ -258,7 +251,7 @@ class EntityEventServiceTests {
                                         it.operationPayload.matchContent(
                                             serializedAttributePayload(jsonLdAttributes, fishNameProperty)
                                         ) &&
-                                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                                        it.contexts.isEmpty()
                                 }
 
                             else -> false
@@ -295,8 +288,7 @@ class EntityEventServiceTests {
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
-            true,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            true
         ).join()
 
         verify {
@@ -314,7 +306,7 @@ class EntityEventServiceTests {
                                         serializedAttributePayload(jsonLdAttributes, fishNameProperty)
                                     )
                                 ) &&
-                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                            it.contexts.isEmpty()
                     }
                 }
             )
@@ -355,8 +347,7 @@ class EntityEventServiceTests {
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
-            true,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            true
         ).join()
 
         verify {
@@ -376,7 +367,7 @@ class EntityEventServiceTests {
                                         serializedAttributePayload(jsonLdAttributes, fishNameProperty, 1)
                                     )
                                 ) &&
-                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                            it.contexts.isEmpty()
                     }
                 }
             )
@@ -404,8 +395,7 @@ class EntityEventServiceTests {
             breedingServiceUri,
             expandedAttribute.toExpandedAttributes(),
             UpdateResult(updatedDetails, emptyList()),
-            false,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            false
         ).join()
 
         verify {
@@ -417,7 +407,7 @@ class EntityEventServiceTests {
                         it.attributeName == fishNameProperty &&
                         it.datasetId == fishName1DatasetUri &&
                         it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                        it.contexts.isEmpty()
                 }
             )
         }
@@ -436,8 +426,7 @@ class EntityEventServiceTests {
                 breedingServiceUri,
                 fishNameProperty,
                 null,
-                true,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                true
             ).join()
 
             verify {
@@ -448,7 +437,7 @@ class EntityEventServiceTests {
                                 it.entityId == breedingServiceUri &&
                                 it.entityTypes == listOf(breedingServiceType) &&
                                 it.attributeName == fishNameProperty &&
-                                it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                                it.contexts.isEmpty()
                         }
                     }
                 )
@@ -467,8 +456,7 @@ class EntityEventServiceTests {
             breedingServiceUri,
             fishNameProperty,
             fishName1DatasetUri,
-            false,
-            listOf(AQUAC_COMPOUND_CONTEXT)
+            false
         ).join()
 
         verify {
@@ -480,7 +468,7 @@ class EntityEventServiceTests {
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
                             it.datasetId == fishName1DatasetUri &&
-                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                            it.contexts.isEmpty()
                     }
                 }
             )

@@ -33,7 +33,8 @@ data class TemporalEntityAttribute(
         DATETIME,
         DATE,
         TIME,
-        URI
+        URI,
+        JSON
     }
 
     enum class AttributeType {

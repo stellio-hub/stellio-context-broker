@@ -497,7 +497,7 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -539,13 +539,15 @@ class SubscriptionService(
                    entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
-                   endpoint_receiver_info, endpoint_notifier_info, contexts
+                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
+            AND ( throttling IS NULL 
+                OR (last_notification + throttling * INTERVAL '1 second') > CURRENT_TIMESTAMP )
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
                 OR watched_attributes IS NULL)
             AND CASE
@@ -717,7 +719,8 @@ class SubscriptionService(
                 lastFailure = null,
                 lastSuccess = null
             ),
-            contexts = toList(row["contexts"])
+            contexts = toList(row["contexts"]),
+            throttling = toNullableInt(row["throttling"])
         )
     }
 
@@ -753,11 +756,12 @@ class SubscriptionService(
                 scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info,
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
-                geometry, coordinates, pgis_geometry, geoproperty, contexts
+                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
             WHERE time_interval IS NOT NULL
+            AND throttling IS NULL
             AND (last_notification IS NULL 
                 OR ((EXTRACT(EPOCH FROM last_notification) + time_interval) < EXTRACT(EPOCH FROM :currentDate))
             )

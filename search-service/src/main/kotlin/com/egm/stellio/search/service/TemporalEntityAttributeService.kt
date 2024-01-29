@@ -872,11 +872,21 @@ class TemporalEntityAttributeService(
     ): Pair<JSONObject, ExpandedAttributeInstance> {
         val jsonSourceObject = JSONObject(tea.payload.asString())
         val jsonUpdateObject = JSONObject(expandedAttributeInstance)
+        // if the attribute is a JsonProperty, preserve its JSON value to avoid it being merged
+        // (the whole JSON value shall be replaced)
+        val preservedJsonValue = if (tea.attributeType == TemporalEntityAttribute.AttributeType.JsonProperty)
+            expandedAttributeInstance[NGSILD_JSONPROPERTY_VALUE]
+        else null
         val jsonMerger = JsonMerger(
             arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
             objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
         )
         val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
+            .let {
+                if (preservedJsonValue != null)
+                    it.put(NGSILD_JSONPROPERTY_VALUE, preservedJsonValue)
+                else it
+            }
         val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
         return Pair(jsonTargetObject, updatedAttributeInstance)
     }

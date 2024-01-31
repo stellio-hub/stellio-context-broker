@@ -1121,7 +1121,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_PROPERTY), ATTRIBUTE_UPDATED)
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(INCOMING_COMPACT_PROPERTY),
+            ATTRIBUTE_UPDATED
+        )
             .shouldSucceedWith { assertEquals(0, it.size) }
     }
 

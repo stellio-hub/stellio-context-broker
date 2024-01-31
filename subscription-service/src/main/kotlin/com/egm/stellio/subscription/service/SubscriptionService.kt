@@ -362,12 +362,12 @@ class SubscriptionService(
                 }
 
                 listOf("csf", "temporalQ").contains(it.key) -> {
-                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId, it))
+                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId, it.key))
                         .left().bind<Unit>()
                 }
 
                 else -> {
-                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId, it))
+                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId, it.key))
                         .left().bind<Unit>()
                 }
             }
@@ -547,7 +547,7 @@ class SubscriptionService(
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
             AND ( throttling IS NULL 
-                OR (last_notification + throttling * INTERVAL '1 second') > CURRENT_TIMESTAMP )
+                OR (last_notification + throttling * INTERVAL '1 second') > CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
                 OR watched_attributes IS NULL)
             AND CASE
@@ -761,7 +761,6 @@ class SubscriptionService(
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
             WHERE time_interval IS NOT NULL
-            AND throttling IS NULL
             AND (last_notification IS NULL 
                 OR ((EXTRACT(EPOCH FROM last_notification) + time_interval) < EXTRACT(EPOCH FROM :currentDate))
             )

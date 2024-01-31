@@ -25,7 +25,6 @@ interface WithTimescaleContainer {
             withEnv("POSTGRES_MULTIPLE_EXTENSIONS", "postgis,timescaledb,pgcrypto")
             withExposedPorts(5432)
             setWaitStrategy(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
-            withReuse(true)
         }
 
         @JvmStatic

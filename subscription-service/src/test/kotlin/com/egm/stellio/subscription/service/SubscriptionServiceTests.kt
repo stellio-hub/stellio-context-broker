@@ -1129,6 +1129,33 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .shouldSucceedWith { assertEquals(0, it.size) }
     }
 
+    @Test
+    fun `it should return a subscription if throttling has elapsed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+            "notification" to mapOf(
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"),
+                "lastNotification" to ngsiLdDateTime().minusMinutes(5)
+            ),
+            "throttling" to 200
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(INCOMING_COMPACT_PROPERTY),
+            ATTRIBUTE_UPDATED
+        )
+            .shouldSucceedWith { assertEquals(0, it.size) }
+    }
+
     @ParameterizedTest
     @CsvSource(
         "near;minDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0",

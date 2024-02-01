@@ -1107,26 +1107,31 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
-            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
-            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
             "notification" to mapOf(
-                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"),
-                "lastNotification" to ngsiLdDateTime()
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
             ),
             "throttling" to 300
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
 
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(INCOMING_COMPACT_PROPERTY),
+            setOf(NGSILD_LOCATION_PROPERTY),
             ATTRIBUTE_UPDATED
-        )
-            .shouldSucceedWith { assertEquals(0, it.size) }
+        ).shouldSucceedWith {
+            assertEquals(0, it.size)
+        }
     }
 
     @Test
@@ -1134,29 +1139,36 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
-            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
-            "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
             "notification" to mapOf(
-                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"),
-                "lastNotification" to ngsiLdDateTime()
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
             ),
-            "throttling" to 5
+            "throttling" to 1
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
 
+        // add a delay for throttling period to be elapsed
         runBlocking {
-            delay(5000)
+            delay(2000)
         }
+
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(INCOMING_COMPACT_PROPERTY),
+            setOf(NGSILD_LOCATION_PROPERTY),
             ATTRIBUTE_UPDATED
-        )
-            .shouldSucceedWith { assertEquals(0, it.size) }
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
     }
 
     @ParameterizedTest

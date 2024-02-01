@@ -38,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 import kotlin.time.Duration
 
 @SpringBootTest
@@ -1139,15 +1139,18 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             "watchedAttributes" to listOf(INCOMING_COMPACT_PROPERTY),
             "notification" to mapOf(
                 "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"),
-                "lastNotification" to ngsiLdDateTime().minusMinutes(5)
+                "lastNotification" to ngsiLdDateTime()
             ),
-            "throttling" to 200
+            "throttling" to 5
         )
 
         val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
 
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
+        runBlocking {
+            delay(5000)
+        }
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
             setOf(INCOMING_COMPACT_PROPERTY),

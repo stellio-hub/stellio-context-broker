@@ -38,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import kotlin.time.Duration
 
 @SpringBootTest

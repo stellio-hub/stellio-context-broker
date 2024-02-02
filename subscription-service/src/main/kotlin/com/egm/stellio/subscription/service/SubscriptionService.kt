@@ -90,7 +90,7 @@ class SubscriptionService(
         }
 
     private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.timeInterval != null && subscription.timeInterval < 1 && subscription.throttling == null)
+        if (subscription.timeInterval != null && subscription.timeInterval < 1)
             BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
         else Unit.right()
 

@@ -213,41 +213,40 @@ class TemporalEntityAttributeService(
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
         sub: Sub?
-    ): Either<APIException, Unit> =
-        either {
-            logger.debug(
-                "Replacing attribute {} ({}) in entity {}",
-                ngsiLdAttribute.name,
-                attributeMetadata.datasetId,
-                temporalEntityAttribute.entityId
-            )
-            updateOnReplace(
-                temporalEntityAttribute.id,
-                attributeMetadata,
-                createdAt,
-                serializeObject(attributePayload)
-            ).bind()
+    ): Either<APIException, Unit> = either {
+        logger.debug(
+            "Replacing attribute {} ({}) in entity {}",
+            ngsiLdAttribute.name,
+            attributeMetadata.datasetId,
+            temporalEntityAttribute.entityId
+        )
+        updateOnReplace(
+            temporalEntityAttribute.id,
+            attributeMetadata,
+            createdAt,
+            serializeObject(attributePayload)
+        ).bind()
 
-            val attributeInstance = AttributeInstance(
+        val attributeInstance = AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute.id,
+            timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+            time = createdAt,
+            attributeMetadata = attributeMetadata,
+            payload = attributePayload,
+            sub = sub
+        )
+        attributeInstanceService.create(attributeInstance).bind()
+
+        if (attributeMetadata.observedAt != null) {
+            val attributeObservedAtInstance = AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
-                time = createdAt,
+                time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
-                payload = attributePayload,
-                sub = sub
+                payload = attributePayload
             )
-            attributeInstanceService.create(attributeInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = AttributeInstance(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
-                    time = attributeMetadata.observedAt,
-                    attributeMetadata = attributeMetadata,
-                    payload = attributePayload
-                )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
-            }
+            attributeInstanceService.create(attributeObservedAtInstance).bind()
         }
+    }
 
     @Transactional
     suspend fun mergeAttribute(
@@ -860,7 +859,7 @@ class TemporalEntityAttributeService(
                 )
             TemporalEntityAttribute.AttributeType.JsonProperty ->
                 Triple(
-                    valueToStringOrNull(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_VALUE)!!),
+                    serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_VALUE)!!),
                     null,
                     null
                 )

@@ -479,7 +479,7 @@ class EntityPayloadService(
     ): Either<APIException, UpdateResult> = either {
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
 
         val operationType =
             if (disallowOverwrite) APPEND_ATTRIBUTES
@@ -508,50 +508,48 @@ class EntityPayloadService(
         entityUri: URI,
         expandedAttributes: ExpandedAttributes,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val (coreAttrs, otherAttrs) =
-                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+    ): Either<APIException, UpdateResult> = either {
+        val (coreAttrs, otherAttrs) =
+            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+        val createdAt = ngsiLdDateTime()
 
-            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
-            val attrsUpdateResult = temporalEntityAttributeService.updateEntityAttributes(
-                entityUri,
-                otherAttrs.toMap().toNgsiLdAttributes().bind(),
-                expandedAttributes,
-                createdAt,
-                sub
-            ).bind()
+        val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
+        val attrsUpdateResult = temporalEntityAttributeService.updateEntityAttributes(
+            entityUri,
+            otherAttrs.toMap().toNgsiLdAttributes().bind(),
+            expandedAttributes,
+            createdAt,
+            sub
+        ).bind()
 
-            val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
-            // update modifiedAt in entity if at least one attribute has been added
-            if (updateResult.hasSuccessfulUpdate()) {
-                val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
-                updateState(entityUri, createdAt, teas).bind()
-            }
-            updateResult
+        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
+        // update modifiedAt in entity if at least one attribute has been added
+        if (updateResult.hasSuccessfulUpdate()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+            updateState(entityUri, createdAt, teas).bind()
         }
+        updateResult
+    }
 
     @Transactional
     suspend fun partialUpdateAttribute(
         entityId: URI,
         expandedAttribute: ExpandedAttribute,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
-            val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
-                entityId,
-                expandedAttribute,
-                modifiedAt,
-                sub
-            ).bind()
-            if (updateResult.isSuccessful()) {
-                val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
-                updateState(entityId, modifiedAt, teas).bind()
-            }
-            updateResult
+    ): Either<APIException, UpdateResult> = either {
+        val modifiedAt = ngsiLdDateTime()
+        val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
+            entityId,
+            expandedAttribute,
+            modifiedAt,
+            sub
+        ).bind()
+        if (updateResult.isSuccessful()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            updateState(entityId, modifiedAt, teas).bind()
         }
+        updateResult
+    }
 
     @Transactional
     suspend fun upsertAttributes(

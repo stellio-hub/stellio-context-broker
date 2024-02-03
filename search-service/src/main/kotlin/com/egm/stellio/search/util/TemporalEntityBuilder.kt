@@ -5,21 +5,20 @@ import com.egm.stellio.search.scope.TemporalScopeBuilder
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.wktToGeoJson
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
@@ -75,7 +74,7 @@ object TemporalEntityBuilder {
             mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
                 .mapValues { (_, attributeInstanceResults) ->
                     attributeInstanceResults.map { attributeInstanceResult ->
-                        JsonUtils.deserializeObject(attributeInstanceResult.payload)
+                        deserializeObject(attributeInstanceResult.payload)
                             .let { instancePayload ->
                                 injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
                             }.let { instancePayload ->
@@ -122,20 +121,33 @@ object TemporalEntityBuilder {
             it.key.datasetId?.let { datasetId ->
                 attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
             }
-            val valuesKey =
-                when (it.key.attributeType) {
-                    TemporalEntityAttribute.AttributeType.Property -> NGSILD_PROPERTY_VALUES
-                    TemporalEntityAttribute.AttributeType.Relationship -> NGSILD_RELATIONSHIP_OBJECTS
-                    TemporalEntityAttribute.AttributeType.GeoProperty -> NGSILD_GEOPROPERTY_VALUES
-                    TemporalEntityAttribute.AttributeType.JsonProperty -> NGSILD_JSONPROPERTY_VALUES
-                }
+            val valuesKey = it.key.attributeType.toSimpliedRepresentationKey()
             attributeInstance[valuesKey] =
                 buildExpandedTemporalValue(it.value) { attributeInstanceResult ->
                     attributeInstanceResult as SimplifiedAttributeInstanceResult
-                    listOf(
-                        mapOf(JSONLD_VALUE to attributeInstanceResult.value),
-                        mapOf(JSONLD_VALUE to attributeInstanceResult.time)
-                    )
+                    if (it.key.attributeType == TemporalEntityAttribute.AttributeType.JsonProperty) {
+                        // flaky way to know if the serialized value is a JSON object or an array of JSON objects
+                        val deserializedJsonValue: Any =
+                            if ((attributeInstanceResult.value as String).startsWith("["))
+                                deserializeListOfObjects(attributeInstanceResult.value)
+                            else deserializeObject(attributeInstanceResult.value)
+                        listOf(
+                            mapOf(
+                                NGSILD_JSONPROPERTY_VALUE to listOf(
+                                    mapOf(
+                                        JSONLD_TYPE to JSONLD_JSON,
+                                        JSONLD_VALUE to deserializedJsonValue
+                                    )
+                                )
+                            ),
+                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                        )
+                    } else {
+                        listOf(
+                            mapOf(JSONLD_VALUE to attributeInstanceResult.value),
+                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                        )
+                    }
                 }
             attributeInstance.toMap()
         }

@@ -452,8 +452,7 @@ class EntityOperationHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 any(),
                 capture(capturedEntitiesIds),
-                capture(capturedEntityTypes),
-                any()
+                capture(capturedEntityTypes)
             )
         } returns Job()
 

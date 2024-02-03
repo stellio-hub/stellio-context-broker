@@ -6,7 +6,6 @@ import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.util.UUID

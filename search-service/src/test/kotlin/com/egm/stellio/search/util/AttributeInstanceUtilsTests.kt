@@ -135,6 +135,22 @@ class AttributeInstanceUtilsTests {
     }
 
     @Test
+    fun `it should guess the value type of a JSON property`() = runTest {
+        val expandedJsonProperty = expandAttribute(
+            "jsonProperty",
+            mapOf(
+                "type" to "JsonProperty",
+                "json" to mapOf("key" to "value")
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+        assertEquals(
+            TemporalEntityAttribute.AttributeValueType.JSON,
+            guessAttributeValueType(TemporalEntityAttribute.AttributeType.JsonProperty, expandedJsonProperty.second[0])
+        )
+    }
+
+    @Test
     fun `it should guess the value type of a relationship`() = runTest {
         val expandedGeoRelationship = expandAttribute(
             "relationship",

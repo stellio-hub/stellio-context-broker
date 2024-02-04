@@ -1,0 +1,56 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#luminosity": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/JsonProperty"
+      ],
+      "https://uri.etsi.org/ngsi-ld/jsons": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasJSON": [
+                    {
+                      "@type": "@json",
+                      "@value": {
+                        "id": "123",
+                        "stringValue": "value",
+                        "nullValue": null
+                      }
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasJSON": [
+                    {
+                      "@type": "@json",
+                      "@value": {
+                        "id": "456",
+                        "stringValue": "anotherValue"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

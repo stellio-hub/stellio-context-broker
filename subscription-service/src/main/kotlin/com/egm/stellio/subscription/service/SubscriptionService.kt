@@ -20,8 +20,8 @@ import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
-import com.egm.stellio.subscription.web.invalidSubscriptiondAttributeMessage
-import com.egm.stellio.subscription.web.unsupportedSubscriptiondAttributeMessage
+import com.egm.stellio.subscription.web.invalidSubscriptionAttributeMessage
+import com.egm.stellio.subscription.web.unsupportedSubscriptionAttributeMessage
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
@@ -362,12 +362,12 @@ class SubscriptionService(
                 }
 
                 listOf("csf", "temporalQ").contains(it.key) -> {
-                    NotImplementedException(unsupportedSubscriptiondAttributeMessage(subscriptionId, it.key))
+                    NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
                         .left().bind<Unit>()
                 }
 
                 else -> {
-                    BadRequestDataException(invalidSubscriptiondAttributeMessage(subscriptionId, it.key))
+                    BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
                         .left().bind<Unit>()
                 }
             }

@@ -6,8 +6,8 @@ fun subscriptionNotFoundMessage(subscriptionId: URI) = "Could not find a subscri
 fun subscriptionAlreadyExistsMessage(subscriptionId: URI) = "A subscription with id $subscriptionId already exists"
 fun subscriptionUnauthorizedMessage(subscriptionId: URI) =
     "User is not authorized to access subscription $subscriptionId"
-fun unsupportedSubscriptiondAttributeMessage(subscriptionId: URI, key: String) =
+fun unsupportedSubscriptionAttributeMessage(subscriptionId: URI, key: String) =
     "Subscription $subscriptionId has unsupported attribute: $key"
 
-fun invalidSubscriptiondAttributeMessage(subscriptionId: URI, key: String) =
+fun invalidSubscriptionAttributeMessage(subscriptionId: URI, key: String) =
     "Subscription $subscriptionId has invalid attribute: $key"

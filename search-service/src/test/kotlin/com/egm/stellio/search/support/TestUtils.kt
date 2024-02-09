@@ -50,3 +50,8 @@ suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAcc
 
 const val EMPTY_PAYLOAD = "{}"
 val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)
+val SAMPLE_JSON_PROPERTY_PAYLOAD = Json.of(
+    """
+        { "id": "123", "stringValue": "value", "nullValue": null }
+    """.trimIndent()
+)

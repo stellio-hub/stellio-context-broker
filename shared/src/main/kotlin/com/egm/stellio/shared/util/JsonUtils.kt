@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonProcessingException
@@ -9,13 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
-import com.fasterxml.jackson.module.kotlin.convertValue
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
 val mapper: ObjectMapper =
     jacksonObjectMapper()
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
         .findAndRegisterModules()
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -87,9 +86,6 @@ object JsonUtils {
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
 
-    fun convertToMap(input: Any): Map<String, Any> =
-        mapper.convertValue(input)
-
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->
             // what is inside the value of a property is not a key
@@ -114,9 +110,11 @@ object JsonUtils {
 
     fun Map<String, Any>.getAllValues(): Set<Any?> =
         this.entries.fold(emptySet()) { acc, entry ->
-            val values = when (entry.value) {
-                is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
-                is List<*> ->
+            val values = when {
+                entry.value is Map<*, *> &&
+                    entry.key in listOf(JSONLD_VALUE_TERM, JSONLD_JSON_TERM) -> setOf(entry.value)
+                entry.value is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
+                entry.value is List<*> ->
                     (entry.value as List<Any>).map {
                         when (it) {
                             is Map<*, *> -> (it as Map<String, Any>).getAllValues()

@@ -58,11 +58,11 @@ class EntityTypeService(
         val result = databaseClient.sql(
             """
             WITH entities AS (
-                SELECT entity_id 
+                SELECT entity_id
                 FROM entity_payload 
                 WHERE :type_name = any (types)
             )    
-            SELECT attribute_name, attribute_type, count(distinct(entity_id)) as count_entity
+            SELECT attribute_name, attribute_type, (select count(entity_id) from entities) as entity_count
             FROM temporal_entity_attribute
             WHERE entity_id IN (SELECT entity_id FROM entities)
             GROUP BY attribute_name, attribute_type
@@ -77,7 +77,7 @@ class EntityTypeService(
         return EntityTypeInfo(
             id = toUri(typeName),
             typeName = compactTerm(typeName, contexts),
-            entityCount = toInt(result.first()["count_entity"]),
+            entityCount = toInt(result.first()["entity_count"]),
             attributeDetails = result.map {
                 AttributeInfo(
                     id = toUri(it["attribute_name"]),

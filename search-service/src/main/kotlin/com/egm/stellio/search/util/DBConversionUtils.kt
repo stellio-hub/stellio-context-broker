@@ -1,7 +1,9 @@
 package com.egm.stellio.search.util
 
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -29,3 +31,5 @@ fun toInt(entry: Any?): Int = (entry as Long).toInt()
 
 fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().deserializeExpandedPayload()
 fun Json.deserializeAsMap(): Map<String, Any> = this.asString().deserializeAsMap()
+
+fun ExpandedAttributeInstance.toJson(): Json = Json.of(serializeObject(this))

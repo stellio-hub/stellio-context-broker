@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -55,6 +56,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     private lateinit var incomingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var outgoingTemporalEntityAttribute: TemporalEntityAttribute
+    private lateinit var jsonTemporalEntityAttribute: TemporalEntityAttribute
 
     val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -83,6 +85,18 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         runBlocking {
             temporalEntityAttributeService.create(outgoingTemporalEntityAttribute)
         }
+
+        jsonTemporalEntityAttribute = TemporalEntityAttribute(
+            entityId = entityId,
+            attributeName = LUMINOSITY_JSONPROPERTY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.JSON,
+            createdAt = now,
+            payload = SAMPLE_JSON_PROPERTY_PAYLOAD
+        )
+
+        runBlocking {
+            temporalEntityAttributeService.create(jsonTemporalEntityAttribute)
+        }
     }
 
     @AfterEach
@@ -100,7 +114,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve a full instance if temporalValues are not asked for`() = runTest {
-        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             time = now,
             measuredValue = 12.4
         )
@@ -122,7 +136,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve an instance having the corresponding time property value`() = runTest {
-        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
@@ -145,7 +159,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve an instance with audit info if time property is not observedAt`() = runTest {
-        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4,
@@ -170,7 +184,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should not retrieve an instance not having the corresponding time property value`() = runTest {
-        val observation = gimmeAttributeInstance(incomingTemporalEntityAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id).copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
@@ -194,7 +208,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should retrieve all full instances if temporalValues are not asked for`() = runTest {
         (1..10).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -213,7 +227,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should retrieve all instances when no timerel and time parameters are provided`() = runTest {
         (1..10).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
 
         attributeInstanceService.search(gimmeTemporalEntitiesQuery(TemporalQuery()), incomingTemporalEntityAttribute)
@@ -274,7 +288,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
@@ -301,7 +315,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should only return the last n instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
-            val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
                 .copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance)
         }
@@ -333,10 +347,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         temporalEntityAttributeService.create(temporalEntityAttribute2)
 
         (1..10).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
         (1..5).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(temporalEntityAttribute2.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(temporalEntityAttribute2.id))
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -358,7 +372,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should not retrieve any instance if temporal entity does not match`() = runTest {
         (1..10).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -379,7 +393,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should not retrieve any instance if there is no value in the time interval`() = runTest {
         (1..10).forEach { _ ->
-            attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+            attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -397,7 +411,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should update an existing attribute instance with same observation date`() = runTest {
-        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
 
         attributeInstanceService.create(attributeInstance)
 
@@ -541,8 +555,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should modify attribute instance`() = runTest {
-        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+    fun `it should modify attribute instance for a property`() = runTest {
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance)
 
         val instanceTemporalFragment =
@@ -578,8 +592,47 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `it should modify attribute instance for a JSON property`() = runTest {
+        val attributeInstance = gimmeJsonPropertyAttributeInstance(jsonTemporalEntityAttribute.id)
+        attributeInstanceService.create(attributeInstance)
+
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_json_fragment.jsonld")
+        val attributeInstancePayload =
+            mapOf(LUMINOSITY_COMPACT_JSONPROPERTY to instanceTemporalFragment.deserializeAsMap())
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
+            attributeInstancePayload,
+            APIC_COMPOUND_CONTEXTS
+        ) as ExpandedAttributes
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+            )
+        )
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            LUMINOSITY_JSONPROPERTY,
+            attributeInstance.instanceId,
+            jsonLdAttribute.entries.first().value
+        ).shouldSucceed()
+
+        attributeInstanceService.search(temporalEntitiesQuery, jsonTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).single { result ->
+                    result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
+                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
+                        result.payload.deserializeAsMap().containsKey(NGSILD_JSONPROPERTY_VALUE)
+                }
+            }
+    }
+
+    @Test
     fun `it should delete attribute instance`() = runTest {
-        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
         attributeInstanceService.deleteInstance(
@@ -597,7 +650,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should not delete attribute instance if attribute name is not found`() = runTest {
-        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
         attributeInstanceService.deleteInstance(
@@ -618,7 +671,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should not delete attribute instance if instanceID is not found`() = runTest {
-        val attributeInstance = gimmeAttributeInstance(incomingTemporalEntityAttribute.id)
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
         val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
@@ -642,10 +695,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should delete all instances of an entity`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
-                attributeInstanceService.create(gimmeAttributeInstance(incomingTemporalEntityAttribute.id))
+                attributeInstanceService.create(
+                    gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                )
             else
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(
+                    gimmeNumericPropertyAttributeInstance(
                         teaUuid = incomingTemporalEntityAttribute.id,
                         timeProperty = AttributeInstance.TemporalProperty.CREATED_AT
                     )
@@ -680,11 +735,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(teaUuid = incomingTemporalEntityAttribute.id)
+                    gimmeNumericPropertyAttributeInstance(teaUuid = incomingTemporalEntityAttribute.id)
                 )
             else
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(teaUuid = outgoingTemporalEntityAttribute.id)
+                    gimmeNumericPropertyAttributeInstance(teaUuid = outgoingTemporalEntityAttribute.id)
                 )
         }
 
@@ -707,11 +762,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(teaUuid = incomingTemporalEntityAttribute.id)
+                    gimmeNumericPropertyAttributeInstance(teaUuid = incomingTemporalEntityAttribute.id)
                 )
             else
                 attributeInstanceService.create(
-                    gimmeAttributeInstance(teaUuid = outgoingTemporalEntityAttribute.id)
+                    gimmeNumericPropertyAttributeInstance(teaUuid = outgoingTemporalEntityAttribute.id)
                 )
         }
 

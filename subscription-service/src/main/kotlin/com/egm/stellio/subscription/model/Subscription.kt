@@ -7,10 +7,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.JsonUtils.convertToMap
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
+import com.egm.stellio.subscription.utils.ParsingUtils.convertToMap
+import com.egm.stellio.subscription.utils.ParsingUtils.serializeSubscription
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -96,9 +96,6 @@ data class Subscription(
             watchedAttributes = this.watchedAttributes?.map { compactTerm(it, contexts) }
         )
 
-    fun compact(context: String): Subscription =
-        compact(listOf(context))
-
     fun serialize(
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
@@ -106,7 +103,7 @@ data class Subscription(
     ): String =
         convertToMap(this.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
-            .let { serializeObject(it) }
+            .let { serializeSubscription(it) }
 
     fun serialize(
         context: String,
@@ -186,7 +183,7 @@ fun List<Subscription>.serialize(
         convertToMap(it.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
     }.let {
-        serializeObject(it)
+        serializeSubscription(it)
     }
 
 fun List<Subscription>.mergeEntitySelectorsOnSubscriptions() =

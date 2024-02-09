@@ -42,6 +42,10 @@ object JsonLdUtils {
     const val NGSILD_RELATIONSHIP_TERM = "Relationship"
     val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
     const val NGSILD_RELATIONSHIP_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
+    const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
+    val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
+    const val NGSILD_JSONPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasJSON"
+    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
 
     const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
@@ -56,6 +60,8 @@ object JsonLdUtils {
     const val JSONLD_VALUE = "@value"
     const val JSONLD_OBJECT = "object"
     const val JSONLD_LIST = "@list"
+    const val JSONLD_JSON_TERM = "json"
+    const val JSONLD_JSON = "@json"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"

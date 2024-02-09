@@ -5,6 +5,7 @@ import com.egm.stellio.search.scope.FullScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.SAMPLE_JSON_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
@@ -539,6 +540,41 @@ class TemporalEntityParameterizedSource {
                 loadSampleData("expectations/beehive_scope_multi_instances.jsonld")
             )
 
+        private val beehiveJsonPropertyTemporalValues =
+            Arguments.arguments(
+                emptyList<ScopeInstanceResult>(),
+                mapOf(
+                    TemporalEntityAttribute(
+                        entityId = entityId,
+                        attributeName = "https://ontology.eglobalmark.com/apic#luminosity",
+                        attributeType = TemporalEntityAttribute.AttributeType.JsonProperty,
+                        attributeValueType = TemporalEntityAttribute.AttributeValueType.JSON,
+                        datasetId = null,
+                        createdAt = now,
+                        payload = SAMPLE_JSON_PROPERTY_PAYLOAD
+                    ) to
+                        listOf(
+                            SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
+                                value = """
+                                    { "id": "123", "stringValue": "value", "nullValue": null }
+                                """,
+                                time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                            ),
+                            SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
+                                value = """
+                                    { "id": "456", "stringValue": "anotherValue" }
+                                """,
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                            )
+                        )
+                ),
+                true,
+                false,
+                loadSampleData("expectations/beehive_json_property_temporal_values.jsonld")
+            )
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -554,7 +590,8 @@ class TemporalEntityParameterizedSource {
                 beehivePropertyMultiInstancesWithoutDatasetIdStringValuesTemporalValues,
                 beehiveRelationshipMultiInstancesTemporalValues,
                 beehiveScopeMultiInstancesTemporalValues,
-                beehiveScopeMultiInstances
+                beehiveScopeMultiInstances,
+                beehiveJsonPropertyTemporalValues
             )
         }
     }

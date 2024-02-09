@@ -9,7 +9,10 @@ import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.Job
@@ -43,7 +46,7 @@ class ObservationEventListenerTests {
         coEvery {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
@@ -59,8 +62,7 @@ class ObservationEventListenerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
-                eq(listOf(BEEHIVE_TYPE)),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(listOf(BEEHIVE_TYPE))
             )
         }
     }
@@ -83,7 +85,7 @@ class ObservationEventListenerTests {
         ).right()
 
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -106,8 +108,7 @@ class ObservationEventListenerTests {
                         it.updated[0].datasetId == expectedTemperatureDatasetId &&
                         it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
-                eq(false),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(false)
             )
         }
     }
@@ -147,7 +148,7 @@ class ObservationEventListenerTests {
         val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -173,8 +174,7 @@ class ObservationEventListenerTests {
                         it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
                         it.updated[0].datasetId == expectedTemperatureDatasetId
                 },
-                eq(true),
-                eq(APIC_COMPOUND_CONTEXTS)
+                eq(true)
             )
         }
     }

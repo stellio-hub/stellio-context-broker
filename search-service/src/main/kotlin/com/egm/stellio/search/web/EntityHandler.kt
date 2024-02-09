@@ -67,8 +67,7 @@ class EntityHandler(
         entityEventService.publishEntityCreateEvent(
             sub.getOrNull(),
             ngsiLdEntity.id,
-            ngsiLdEntity.types,
-            contexts
+            ngsiLdEntity.types
         )
 
         ResponseEntity.status(HttpStatus.CREATED)
@@ -115,8 +114,7 @@ class EntityHandler(
                 entityId,
                 expandedAttributes,
                 updateResult,
-                true,
-                contexts
+                true
             )
         }
 
@@ -165,8 +163,7 @@ class EntityHandler(
         entityEventService.publishEntityReplaceEvent(
             sub.getOrNull(),
             ngsiLdEntity.id,
-            ngsiLdEntity.types,
-            contexts
+            ngsiLdEntity.types
         )
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -277,7 +274,7 @@ class EntityHandler(
         entityPayloadService.deleteEntity(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entity, entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entity)
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -319,8 +316,7 @@ class EntityHandler(
                 entityId,
                 expandedAttributes,
                 updateResult,
-                true,
-                contexts
+                true
             )
         }
 
@@ -369,8 +365,7 @@ class EntityHandler(
                 entityId,
                 expandedAttributes,
                 updateResult,
-                true,
-                contexts
+                true
             )
         }
 
@@ -426,8 +421,7 @@ class EntityHandler(
                         entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
-                        false,
-                        contexts
+                        false
                     )
 
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
@@ -473,8 +467,7 @@ class EntityHandler(
             entityId,
             expandedAttrId,
             datasetId,
-            deleteAll,
-            contexts
+            deleteAll
         )
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -514,8 +507,7 @@ class EntityHandler(
                         entityId,
                         expandedAttribute.toExpandedAttributes(),
                         it,
-                        false,
-                        contexts
+                        false
                     )
 
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()

@@ -38,8 +38,7 @@ class EntityEventService(
     suspend fun publishEntityCreateEvent(
         sub: String?,
         entityId: URI,
-        entityTypes: List<ExpandedTerm>,
-        contexts: List<String>
+        entityTypes: List<ExpandedTerm>
     ): Job {
         val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
@@ -47,7 +46,7 @@ class EntityEventService(
             logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second, contexts)
+                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second, emptyList())
                 )
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
         }
@@ -56,8 +55,7 @@ class EntityEventService(
     suspend fun publishEntityReplaceEvent(
         sub: String?,
         entityId: URI,
-        entityTypes: List<ExpandedTerm>,
-        contexts: List<String>
+        entityTypes: List<ExpandedTerm>
     ): Job {
         val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
@@ -65,7 +63,7 @@ class EntityEventService(
             logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second, contexts)
+                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second, emptyList())
                 )
             }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
@@ -73,8 +71,7 @@ class EntityEventService(
 
     suspend fun publishEntityDeleteEvent(
         sub: String?,
-        entityPayload: EntityPayload,
-        contexts: List<String>
+        entityPayload: EntityPayload
     ): Job {
         val tenantName = getTenantFromContext()
         return coroutineScope.launch {
@@ -86,7 +83,7 @@ class EntityEventService(
                     entityPayload.entityId,
                     entityPayload.types,
                     entityPayload.payload.asString(),
-                    contexts
+                    emptyList()
                 )
             )
         }
@@ -97,8 +94,7 @@ class EntityEventService(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updateResult: UpdateResult,
-        overwrite: Boolean,
-        contexts: List<String>
+        overwrite: Boolean
     ): Job {
         val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
@@ -116,8 +112,7 @@ class EntityEventService(
                         entityId,
                         it,
                         serializedAttribute,
-                        overwrite,
-                        contexts
+                        overwrite
                     )
                 }
             }.logAttributeEvent("Attribute Change", entityId, tenantName)
@@ -131,8 +126,7 @@ class EntityEventService(
         entityId: URI,
         entityTypesAndPayload: Pair<List<ExpandedTerm>, String>,
         serializedAttribute: Pair<ExpandedTerm, String>,
-        overwrite: Boolean,
-        contexts: List<String>
+        overwrite: Boolean
     ) {
         when (updatedDetails.updateOperationResult) {
             UpdateOperationResult.APPENDED ->
@@ -147,7 +141,7 @@ class EntityEventService(
                         overwrite,
                         serializedAttribute.second,
                         entityTypesAndPayload.second,
-                        contexts
+                        emptyList()
                     )
                 )
 
@@ -162,7 +156,7 @@ class EntityEventService(
                         updatedDetails.datasetId,
                         serializedAttribute.second,
                         entityTypesAndPayload.second,
-                        contexts
+                        emptyList()
                     )
                 )
 
@@ -177,7 +171,7 @@ class EntityEventService(
                         updatedDetails.datasetId,
                         serializedAttribute.second,
                         entityTypesAndPayload.second,
-                        contexts
+                        emptyList()
                     )
                 )
 
@@ -194,8 +188,7 @@ class EntityEventService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI? = null,
-        deleteAll: Boolean,
-        contexts: List<String>
+        deleteAll: Boolean
     ): Job {
         val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
@@ -216,7 +209,7 @@ class EntityEventService(
                             it.first,
                             attributeName,
                             it.second,
-                            contexts
+                            emptyList()
                         )
                     )
                 else
@@ -229,7 +222,7 @@ class EntityEventService(
                             attributeName,
                             datasetId,
                             it.second,
-                            contexts
+                            emptyList()
                         )
                     )
             }.logAttributeEvent("Attribute Delete", entityId, tenantName)

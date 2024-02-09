@@ -157,7 +157,8 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(APIC_COMPOUND_CONTEXTS, it.contexts)
+                assertEquals("urn:ngsi-ld:BeeHive:TESTC".toUri(), it.entityId)
+                assertEquals(listOf(BEEHIVE_TYPE), it.types)
             }
 
         coVerify {
@@ -437,7 +438,6 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", null)
-                    .hasFieldOrPropertyWithValue("contexts", listOf(NGSILD_TEST_CORE_CONTEXT))
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
             }
     }

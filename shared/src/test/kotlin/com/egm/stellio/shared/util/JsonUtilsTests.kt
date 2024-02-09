@@ -122,7 +122,7 @@ class JsonUtilsTests {
                 entityId,
                 listOf(BEEHIVE_TYPE),
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
-                APIC_COMPOUND_CONTEXTS
+                emptyList()
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityCreateEvent.json"), event)
@@ -137,7 +137,7 @@ class JsonUtilsTests {
                 entityId,
                 listOf(BEEHIVE_TYPE),
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
-                APIC_COMPOUND_CONTEXTS
+                emptyList()
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityDeleteEvent.json"), event)

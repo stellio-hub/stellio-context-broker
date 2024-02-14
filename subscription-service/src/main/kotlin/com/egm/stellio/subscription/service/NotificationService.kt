@@ -47,7 +47,10 @@ class NotificationService(
                     ExpandedEntity(filteredEntity, it.contexts),
                     it.contexts
                 ).toFinalRepresentation(
-                    NgsiLdDataRepresentation(entityRepresentation, attributeRepresentation, true)
+                    if (it.notification.sysAttrs)
+                        NgsiLdDataRepresentation(entityRepresentation, attributeRepresentation, true)
+                    else NgsiLdDataRepresentation(entityRepresentation, attributeRepresentation, false)
+
                 )
                 callSubscriber(it, compactedEntity)
             }

@@ -12,6 +12,7 @@ import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.*
 import com.egm.stellio.subscription.support.gimmeRawSubscription
+import com.egm.stellio.subscription.utils.ParsingUtils
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
@@ -21,8 +22,7 @@ import io.mockk.confirmVerified
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -68,6 +68,24 @@ class NotificationServiceTests {
            "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         } 
         """.trimIndent()
+
+     private val entity =
+        """
+        {
+           "id":"$apiaryId",
+           "type":"Apiary",
+           "createdAt": "2024-02-13T18:15:00Z",
+           "modifiedAt": "2024-02-13T18:16:00Z",
+           "name": {
+              "type":"Property",
+              "value":"ApiarySophia",
+              "createdAt": "2024-02-13T18:15:00Z",
+              "modifiedAt": "2024-02-13T18:16:00Z"
+           },
+           "@context":[ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
 
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
@@ -403,5 +421,121 @@ class NotificationServiceTests {
         confirmVerified(subscriptionService)
 
         verify(1, postRequestedFor(urlPathEqualTo("/notification")))
+    }
+
+    @Test
+    fun `it should notify the subscriber and return entities without system attributes if sysAttrs is false`() = runTest {
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:1",
+            "type" to JsonLdUtils.NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(
+                mapOf(
+                    "id" to apiaryId,
+                    "type" to "Apiary",
+                    "@context" to APIC_COMPOUND_CONTEXT
+                )
+            ) ,
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                "accept" to "application/ld+json",
+                "uri" to "http://localhost:8089/notification"),
+                "sysAttrs" to false
+            )
+        )
+
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val expandedEntity = expandJsonLdEntity(entity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            expandedEntity,
+            setOf(NGSILD_NAME_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            val entity = it[0].second.data[0]
+            assertFalse(entity.containsKey("createdAt"))
+            assertFalse(entity.containsKey("modifiedAt"))
+
+            for ((key, value) in entity) {
+                if (value !is Map<*, *>) {
+                    continue
+                }
+                 assertFalse((value as Map<*, *>).containsKey("createdAt"))
+                    assertFalse((value as Map<*, *>).containsKey("modifiedAt"))
+
+            }
+        }
+    }
+
+    @Test
+    fun `it should notify the subscriber and return entities with system attributes if sysAttrs is true`() = runTest {
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:1",
+            "type" to JsonLdUtils.NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(
+                mapOf(
+                    "id" to apiaryId,
+                    "type" to "Apiary",
+                    "createdAt" to  "2024-02-13T18:15:00Z",
+                    "modifiedAt" to "2024-02-13T18:16:00Z",
+                    "name" to mapOf(
+                        "type" to "Property",
+                        "value" to "ApiarySophia",
+                        "createdAt" to "2024-02-13T18:15:00Z",
+                        "modifiedAt" to "2024-02-13T18:16:00Z"
+                    ),
+                    "@context" to APIC_COMPOUND_CONTEXT
+                )
+            ) ,
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "accept" to "application/ld+json",
+                    "uri" to "http://localhost:8089/notification"),
+                "sysAttrs" to true
+            )
+        )
+
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val expandedEntity = expandJsonLdEntity(entity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            expandedEntity,
+            setOf(NGSILD_NAME_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            val entity = it[0].second.data[0]
+            assertTrue(entity.containsKey("createdAt"))
+            assertTrue(entity.containsKey("modifiedAt"))
+
+            for ((_, attributeValue) in entity) {
+                val attribute = attributeValue as Map<String, Any?>
+                assertTrue(attribute.containsKey("createdAt"))
+                assertTrue(attribute.containsKey("modifiedAt"))
+
+            }
+        }
     }
 }

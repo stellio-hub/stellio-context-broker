@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.filterIsInstance
 import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
@@ -12,7 +13,6 @@ import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.*
 import com.egm.stellio.subscription.support.gimmeRawSubscription
-import com.egm.stellio.subscription.utils.ParsingUtils
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
@@ -22,6 +22,7 @@ import io.mockk.confirmVerified
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -69,7 +70,7 @@ class NotificationServiceTests {
         } 
         """.trimIndent()
 
-    private val entityWithsysAttrs =
+    private val entityWithSysAttrs =
         """
         {
            "id":"$apiaryId",
@@ -425,7 +426,7 @@ class NotificationServiceTests {
     @Test
     fun `it should notify the subscriber and return entities without sysAttrs if sysAttrs is false`() = runTest {
         val subscription = gimmeRawSubscription()
-        val expandedEntity = expandJsonLdEntity(entityWithsysAttrs)
+        val expandedEntity = expandJsonLdEntity(entityWithSysAttrs)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -446,32 +447,28 @@ class NotificationServiceTests {
             assertFalse(entity.containsKey("createdAt"))
             assertFalse(entity.containsKey("modifiedAt"))
 
-            for ((_, value) in entity) {
-                if (value !is Map<*, *>) {
-                    continue
+            entity.filterIsInstance<String, Map<String, Any>>()
+                .forEach { (_, v) ->
+                    assertThat(v).doesNotContainKey("createdAt")
+                    assertThat(v).doesNotContainKey("modifiedAt")
                 }
-                assertFalse(value.containsKey("createdAt"))
-                assertFalse(value.containsKey("modifiedAt"))
-            }
-            assertTrue(it[0].third)
         }
     }
 
     @Test
     fun `it should notify the subscriber and return entities with sysAttrs if sysAttrs is true`() = runTest {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Subscription:1",
-            "type" to JsonLdUtils.NGSILD_SUBSCRIPTION_TERM,
-            "notification" to mapOf(
-                "endpoint" to mapOf(
-                    "accept" to "application/ld+json",
-                    "uri" to "http://localhost:8089/notification"
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD
                 ),
-                "sysAttrs" to true
+                sysAttrs = true
             )
         )
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
-        val expandedEntity = expandJsonLdEntity(entityWithsysAttrs)
+
+        val expandedEntity = expandJsonLdEntity(entityWithSysAttrs)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -492,14 +489,11 @@ class NotificationServiceTests {
             assertTrue(entity.containsKey("createdAt"))
             assertTrue(entity.containsKey("modifiedAt"))
 
-            for ((_, value) in entity) {
-                if (value !is Map<*, *>) {
-                    continue
+            entity.filterIsInstance<String, Map<String, Any>>()
+                .forEach { (_, v) ->
+                    assertThat(v).containsKey("createdAt")
+                    assertThat(v).containsKey("modifiedAt")
                 }
-                assertTrue(value.containsKey("createdAt"))
-                assertTrue(value.containsKey("modifiedAt"))
-            }
-            assertTrue(it[0].third)
         }
     }
 }

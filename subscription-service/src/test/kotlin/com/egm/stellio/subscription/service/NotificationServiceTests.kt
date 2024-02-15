@@ -450,8 +450,8 @@ class NotificationServiceTests {
                 if (value !is Map<*, *>) {
                     continue
                 }
-                assertFalse((value as Map<*, *>).containsKey("createdAt"))
-                assertFalse((value as Map<*, *>).containsKey("modifiedAt"))
+                assertFalse(value.containsKey("createdAt"))
+                assertFalse(value.containsKey("modifiedAt"))
             }
             assertTrue(it[0].third)
         }
@@ -496,8 +496,8 @@ class NotificationServiceTests {
                 if (value !is Map<*, *>) {
                     continue
                 }
-                assertTrue((value as Map<*, *>).containsKey("createdAt"))
-                assertTrue((value as Map<*, *>).containsKey("modifiedAt"))
+                assertTrue(value.containsKey("createdAt"))
+                assertTrue(value.containsKey("modifiedAt"))
             }
             assertTrue(it[0].third)
         }

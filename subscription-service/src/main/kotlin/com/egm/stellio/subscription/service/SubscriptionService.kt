@@ -179,7 +179,7 @@ class SubscriptionService(
             .bind("sub", sub.toStringValue())
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
-            .bind("sys_attrs" , subscription.notification.sysAttrs)
+            .bind("sys_attrs", subscription.notification.sysAttrs)
             .execute().bind()
 
         geoQuery?.let {

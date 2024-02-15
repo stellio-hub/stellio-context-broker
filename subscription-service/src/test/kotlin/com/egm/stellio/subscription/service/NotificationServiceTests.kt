@@ -69,7 +69,7 @@ class NotificationServiceTests {
         } 
         """.trimIndent()
 
-     private val entity =
+    private val entityWithsysAttrs =
         """
         {
            "id":"$apiaryId",
@@ -85,7 +85,6 @@ class NotificationServiceTests {
            "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         }
         """.trimIndent()
-
 
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
@@ -424,29 +423,9 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and return entities without system attributes if sysAttrs is false`() = runTest {
-
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Subscription:1",
-            "type" to JsonLdUtils.NGSILD_SUBSCRIPTION_TERM,
-            "entities" to listOf(
-                mapOf(
-                    "id" to apiaryId,
-                    "type" to "Apiary",
-                    "@context" to APIC_COMPOUND_CONTEXT
-                )
-            ) ,
-            "notification" to mapOf(
-                "endpoint" to mapOf(
-                "accept" to "application/ld+json",
-                "uri" to "http://localhost:8089/notification"),
-                "sysAttrs" to false
-            )
-        )
-
-
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
-        val expandedEntity = expandJsonLdEntity(entity)
+    fun `it should notify the subscriber and return entities without sysAttrs if sysAttrs is false`() = runTest {
+        val subscription = gimmeRawSubscription()
+        val expandedEntity = expandJsonLdEntity(entityWithsysAttrs)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -467,49 +446,32 @@ class NotificationServiceTests {
             assertFalse(entity.containsKey("createdAt"))
             assertFalse(entity.containsKey("modifiedAt"))
 
-            for ((key, value) in entity) {
+            for ((_, value) in entity) {
                 if (value !is Map<*, *>) {
                     continue
                 }
-                 assertFalse((value as Map<*, *>).containsKey("createdAt"))
-                    assertFalse((value as Map<*, *>).containsKey("modifiedAt"))
-
+                assertFalse((value as Map<*, *>).containsKey("createdAt"))
+                assertFalse((value as Map<*, *>).containsKey("modifiedAt"))
             }
+            assertTrue(it[0].third)
         }
     }
 
     @Test
-    fun `it should notify the subscriber and return entities with system attributes if sysAttrs is true`() = runTest {
-
+    fun `it should notify the subscriber and return entities with sysAttrs if sysAttrs is true`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Subscription:1",
             "type" to JsonLdUtils.NGSILD_SUBSCRIPTION_TERM,
-            "entities" to listOf(
-                mapOf(
-                    "id" to apiaryId,
-                    "type" to "Apiary",
-                    "createdAt" to  "2024-02-13T18:15:00Z",
-                    "modifiedAt" to "2024-02-13T18:16:00Z",
-                    "name" to mapOf(
-                        "type" to "Property",
-                        "value" to "ApiarySophia",
-                        "createdAt" to "2024-02-13T18:15:00Z",
-                        "modifiedAt" to "2024-02-13T18:16:00Z"
-                    ),
-                    "@context" to APIC_COMPOUND_CONTEXT
-                )
-            ) ,
             "notification" to mapOf(
                 "endpoint" to mapOf(
                     "accept" to "application/ld+json",
-                    "uri" to "http://localhost:8089/notification"),
+                    "uri" to "http://localhost:8089/notification"
+                ),
                 "sysAttrs" to true
             )
         )
-
-
         val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
-        val expandedEntity = expandJsonLdEntity(entity)
+        val expandedEntity = expandJsonLdEntity(entityWithsysAttrs)
 
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
@@ -530,12 +492,14 @@ class NotificationServiceTests {
             assertTrue(entity.containsKey("createdAt"))
             assertTrue(entity.containsKey("modifiedAt"))
 
-            for ((_, attributeValue) in entity) {
-                val attribute = attributeValue as Map<String, Any?>
-                assertTrue(attribute.containsKey("createdAt"))
-                assertTrue(attribute.containsKey("modifiedAt"))
-
+            for ((_, value) in entity) {
+                if (value !is Map<*, *>) {
+                    continue
+                }
+                assertTrue((value as Map<*, *>).containsKey("createdAt"))
+                assertTrue((value as Map<*, *>).containsKey("modifiedAt"))
             }
+            assertTrue(it[0].third)
         }
     }
 }

@@ -324,7 +324,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     ) &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60
-                    it.notification.sysAttrs == true}
+                it.notification.sysAttrs == true
+            }
     }
 
     @Test

@@ -26,8 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.ZoneOffset
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,7 +40,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
 
     private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
     private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
@@ -75,6 +73,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "urn:ngsi-ld:Sensor:TESTB",
         LUMINOSITY_JSONPROPERTY,
         TemporalEntityAttribute.AttributeType.JsonProperty,
+        TemporalEntityAttribute.AttributeValueType.JSON
+    )
+    private val friendlyNameLanguageProperty = newTemporalEntityAttribute(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        FRIENDLYNAME_LANGUAGEPROPERTY,
+        TemporalEntityAttribute.AttributeType.LanguageProperty,
         TemporalEntityAttribute.AttributeValueType.OBJECT
     )
 
@@ -98,6 +102,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         createTemporalEntityAttribute(locationGeoProperty)
         createTemporalEntityAttribute(outgoingProperty)
         createTemporalEntityAttribute(luminosityJsonProperty)
+        createTemporalEntityAttribute(friendlyNameLanguageProperty)
     }
 
     @Test
@@ -119,8 +124,8 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should return all known entity types with details`() = runTest {
         val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
 
-        assertEquals(3, entityTypes.size)
         assertThat(entityTypes)
+            .hasSize(3)
             .containsAll(
                 listOf(
                     EntityType(
@@ -131,12 +136,17 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     EntityType(
                         id = toUri(BEEHIVE_TYPE),
                         typeName = BEEHIVE_COMPACT_TYPE,
-                        attributeNames = listOf(INCOMING_COMPACT_PROPERTY, MANAGED_BY_COMPACT_RELATIONSHIP)
+                        attributeNames = listOf(
+                            FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
+                            INCOMING_COMPACT_PROPERTY,
+                            MANAGED_BY_COMPACT_RELATIONSHIP
+                        )
                     ),
                     EntityType(
                         id = toUri(SENSOR_TYPE),
                         typeName = SENSOR_COMPACT_TYPE,
                         attributeNames = listOf(
+                            FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
                             INCOMING_COMPACT_PROPERTY,
                             LUMINOSITY_COMPACT_JSONPROPERTY,
                             MANAGED_BY_COMPACT_RELATIONSHIP,
@@ -162,10 +172,15 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityTypeInfo.shouldSucceedWith {
             assertEquals(
                 EntityTypeInfo(
-                    id = toUri(SENSOR_TYPE),
+                    id = SENSOR_TYPE.toUri(),
                     typeName = SENSOR_COMPACT_TYPE,
                     entityCount = 2,
                     attributeDetails = listOf(
+                        AttributeInfo(
+                            id = toUri(FRIENDLYNAME_LANGUAGEPROPERTY),
+                            attributeName = FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
+                            attributeTypes = listOf(AttributeType.LanguageProperty)
+                        ),
                         AttributeInfo(
                             id = toUri(INCOMING_PROPERTY),
                             attributeName = INCOMING_COMPACT_PROPERTY,
@@ -229,7 +244,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         attributeValueType: TemporalEntityAttribute.AttributeValueType
     ): TemporalEntityAttribute =
         TemporalEntityAttribute(
-            entityId = toUri(id),
+            entityId = id.toUri(),
             attributeName = attributeName,
             attributeType = attributeType,
             attributeValueType = attributeValueType,

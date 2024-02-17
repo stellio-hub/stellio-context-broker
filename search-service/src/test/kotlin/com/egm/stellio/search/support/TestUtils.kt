@@ -55,3 +55,22 @@ val SAMPLE_JSON_PROPERTY_PAYLOAD = Json.of(
         { "id": "123", "stringValue": "value", "nullValue": null }
     """.trimIndent()
 )
+val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD = Json.of(
+    """
+    {
+      "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
+        {
+          "@value": "My beautiful beehive",
+          "@language": "en"
+        },
+        {
+          "@value": "Ma belle ruche",
+          "@language": "fr"
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/LanguageProperty"
+      ]
+    }
+    """.trimIndent()
+)

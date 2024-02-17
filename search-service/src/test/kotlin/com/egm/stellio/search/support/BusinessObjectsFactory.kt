@@ -82,6 +82,32 @@ fun gimmeJsonPropertyAttributeInstance(
     )
 }
 
+fun gimmeLanguagePropertyAttributeInstance(
+    teaUuid: UUID,
+    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+): AttributeInstance {
+    val attributeMetadata = AttributeMetadata(
+        measuredValue = null,
+        value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString(),
+        geoValue = null,
+        valueType = TemporalEntityAttribute.AttributeValueType.OBJECT,
+        datasetId = null,
+        type = TemporalEntityAttribute.AttributeType.LanguageProperty,
+        observedAt = ngsiLdDateTime()
+    )
+    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
+        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
+        .getSingleEntry()
+
+    return AttributeInstance(
+        temporalEntityAttribute = teaUuid,
+        time = attributeMetadata.observedAt!!,
+        attributeMetadata = attributeMetadata,
+        timeProperty = timeProperty,
+        payload = payload
+    )
+}
+
 fun gimmeTemporalEntitiesQuery(
     temporalQuery: TemporalQuery,
     withTemporalValues: Boolean = false,

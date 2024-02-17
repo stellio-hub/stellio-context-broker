@@ -35,6 +35,8 @@ const val TEMPERATURE_COMPACT_PROPERTY = "temperature"
 const val TEMPERATURE_PROPERTY = "https://ontology.eglobalmark.com/apic#$TEMPERATURE_COMPACT_PROPERTY"
 const val LUMINOSITY_COMPACT_JSONPROPERTY = "luminosity"
 const val LUMINOSITY_JSONPROPERTY = "https://ontology.eglobalmark.com/apic#$LUMINOSITY_COMPACT_JSONPROPERTY"
+const val FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY = "friendlyName"
+const val FRIENDLYNAME_LANGUAGEPROPERTY = "https://ontology.eglobalmark.com/apic#$FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY"
 
 const val MANAGED_BY_COMPACT_RELATIONSHIP = "managedBy"
 const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAGED_BY_COMPACT_RELATIONSHIP"

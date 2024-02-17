@@ -7,11 +7,13 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
@@ -57,6 +59,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     private lateinit var incomingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var outgoingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var jsonTemporalEntityAttribute: TemporalEntityAttribute
+    private lateinit var languageTemporalEntityAttribute: TemporalEntityAttribute
 
     val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -96,6 +99,18 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         runBlocking {
             temporalEntityAttributeService.create(jsonTemporalEntityAttribute)
+        }
+
+        languageTemporalEntityAttribute = TemporalEntityAttribute(
+            entityId = entityId,
+            attributeName = FRIENDLYNAME_LANGUAGEPROPERTY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
+        )
+
+        runBlocking {
+            temporalEntityAttributeService.create(languageTemporalEntityAttribute)
         }
     }
 
@@ -626,6 +641,50 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                         result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
                         result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
                         result.payload.deserializeAsMap().containsKey(NGSILD_JSONPROPERTY_VALUE)
+                }
+            }
+    }
+
+    @Test
+    fun `it should modify attribute instance for a LanguageProperty property`() = runTest {
+        val attributeInstance = gimmeLanguagePropertyAttributeInstance(languageTemporalEntityAttribute.id)
+        attributeInstanceService.create(attributeInstance)
+
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_language_fragment.jsonld")
+        val attributeInstancePayload =
+            mapOf(FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY to instanceTemporalFragment.deserializeAsMap())
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
+            attributeInstancePayload,
+            APIC_COMPOUND_CONTEXTS
+        ) as ExpandedAttributes
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+            )
+        )
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            FRIENDLYNAME_LANGUAGEPROPERTY,
+            attributeInstance.instanceId,
+            jsonLdAttribute.entries.first().value
+        ).shouldSucceed()
+
+        attributeInstanceService.search(temporalEntitiesQuery, languageTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).single { result ->
+                    val deserializedPayload = result.payload.deserializeAsMap()
+                    result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
+                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
+                        deserializedPayload.containsKey(NGSILD_LANGUAGEPROPERTY_VALUE) &&
+                        (deserializedPayload[NGSILD_LANGUAGEPROPERTY_VALUE] as List<Map<String, String>>)
+                            .all { langMap ->
+                                langMap[JSONLD_LANGUAGE] == "fr" || langMap[JSONLD_LANGUAGE] == "it"
+                            }
                 }
             }
     }

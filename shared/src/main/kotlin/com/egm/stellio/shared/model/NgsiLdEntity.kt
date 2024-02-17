@@ -9,13 +9,17 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
@@ -27,6 +31,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
+import java.util.Locale
 
 class NgsiLdEntity private constructor(
     val id: URI,
@@ -57,12 +62,13 @@ class NgsiLdEntity private constructor(
         }
     }
 
-    inline fun <reified T : NgsiLdAttribute> getAttributesOfType(): List<T> = attributes.filterIsInstance<T>()
+    private inline fun <reified T : NgsiLdAttribute> getAttributesOfType(): List<T> = attributes.filterIsInstance<T>()
 
     val properties = getAttributesOfType<NgsiLdProperty>()
     val relationships = getAttributesOfType<NgsiLdRelationship>()
     val geoProperties = getAttributesOfType<NgsiLdGeoProperty>()
     val jsonProperties = getAttributesOfType<NgsiLdJsonProperty>()
+    val languageProperties = getAttributesOfType<NgsiLdLanguageProperty>()
 }
 
 sealed class NgsiLdAttribute(val name: ExpandedTerm) {
@@ -167,6 +173,31 @@ class NgsiLdJsonProperty private constructor(
     }
 
     override fun getAttributeInstances(): List<NgsiLdJsonPropertyInstance> = instances
+}
+
+class NgsiLdLanguageProperty private constructor(
+    name: ExpandedTerm,
+    val instances: List<NgsiLdLanguagePropertyInstance>
+) : NgsiLdAttribute(name) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdLanguageProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_LANGUAGEPROPERTY_TYPE).bind()
+
+            val ngsiLdLanguagePropertyInstances = instances.parMap { instance ->
+                NgsiLdLanguagePropertyInstance.create(name, instance).bind()
+            }
+
+            checkAttributeDefaultInstance(name, ngsiLdLanguagePropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdLanguagePropertyInstances).bind()
+
+            NgsiLdLanguageProperty(name, ngsiLdLanguagePropertyInstances)
+        }
+    }
+
+    override fun getAttributeInstances(): List<NgsiLdLanguagePropertyInstance> = instances
 }
 
 sealed class NgsiLdAttributeInstance(
@@ -322,12 +353,65 @@ class NgsiLdJsonPropertyInstance private constructor(
     override fun toString(): String = "NgsiLdJsonPropertyInstance(json=$json)"
 }
 
+class NgsiLdLanguagePropertyInstance private constructor(
+    val languageMap: List<Map<String, String>>,
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    attributes: List<NgsiLdAttribute>
+) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdLanguagePropertyInstance> = either {
+            val languageMap = values[NGSILD_LANGUAGEPROPERTY_VALUE]
+            ensureNotNull(languageMap) {
+                BadRequestDataException("Property $name has an instance without a languageMap member")
+            }
+            ensure(isValidLanguageMap(languageMap)) {
+                BadRequestDataException("Property $name has an invalid languageMap member")
+            }
+
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val datasetId = values.getDatasetId()
+
+            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
+
+            val rawAttributes = getNonCoreMembers(values, NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS)
+            val attributes = parseAttributes(rawAttributes).bind()
+
+            NgsiLdLanguagePropertyInstance(
+                languageMap as List<Map<String, String>>,
+                observedAt,
+                datasetId,
+                attributes
+            )
+        }
+
+        private fun isValidLanguageMap(languageMap: List<Any>): Boolean =
+            languageMap.all {
+                it is Map<*, *> &&
+                    it.size == 2 &&
+                    (it.containsKey(JSONLD_VALUE) || it.containsKey(JSONLD_LANGUAGE)) &&
+                    it.values.all { value -> value is String } &&
+                    isValidLanguageTag(it[JSONLD_LANGUAGE] as String)
+            }
+
+        private fun isValidLanguageTag(tag: String): Boolean {
+            val locale = Locale.forLanguageTag(tag)
+            return tag == locale.toLanguageTag()
+        }
+    }
+
+    override fun toString(): String = "NgsiLdLanguagePropertyInstance(languageMap=$languageMap)"
+}
+
 @JvmInline
 value class WKTCoordinates(val value: String)
 
 /**
  * Given an entity's attribute, returns whether it is of the given attribute type
- * (i.e. property, geo property, json property or relationship)
+ * (i.e. property, geo property, json property, language property or relationship)
  */
 fun isAttributeOfType(attributeInstance: ExpandedAttributeInstance, type: AttributeType): Boolean =
     attributeInstance.containsKey(JSONLD_TYPE) &&
@@ -347,6 +431,7 @@ private suspend fun parseAttributes(
                 NGSILD_RELATIONSHIP_TYPE.uri -> NgsiLdRelationship.create(it.first, it.second)
                 NGSILD_GEOPROPERTY_TYPE.uri -> NgsiLdGeoProperty.create(it.first, it.second)
                 NGSILD_JSONPROPERTY_TYPE.uri -> NgsiLdJsonProperty.create(it.first, it.second)
+                NGSILD_LANGUAGEPROPERTY_TYPE.uri -> NgsiLdLanguageProperty.create(it.first, it.second)
                 else -> BadRequestDataException("Attribute ${it.first} has an unknown type: $attributeType").left()
             }
         }.let { l ->
@@ -413,18 +498,19 @@ suspend fun ExpandedAttribute.toNgsiLdAttribute(): Either<APIException, NgsiLdAt
 
 suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
     attributeName: ExpandedTerm
-): Either<APIException, NgsiLdAttribute> =
-    when {
-        isAttributeOfType(this[0], NGSILD_PROPERTY_TYPE) ->
-            NgsiLdProperty.create(attributeName, this)
-        isAttributeOfType(this[0], NGSILD_RELATIONSHIP_TYPE) ->
-            NgsiLdRelationship.create(attributeName, this)
-        isAttributeOfType(this[0], NGSILD_GEOPROPERTY_TYPE) ->
-            NgsiLdGeoProperty.create(attributeName, this)
-        isAttributeOfType(this[0], NGSILD_JSONPROPERTY_TYPE) ->
-            NgsiLdJsonProperty.create(attributeName, this)
-        else -> BadRequestDataException("Unrecognized type for $attributeName").left()
-    }
+): Either<APIException, NgsiLdAttribute> = when {
+    isAttributeOfType(this[0], NGSILD_PROPERTY_TYPE) ->
+        NgsiLdProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_RELATIONSHIP_TYPE) ->
+        NgsiLdRelationship.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_GEOPROPERTY_TYPE) ->
+        NgsiLdGeoProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_JSONPROPERTY_TYPE) ->
+        NgsiLdJsonProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_LANGUAGEPROPERTY_TYPE) ->
+        NgsiLdLanguageProperty.create(attributeName, this)
+    else -> BadRequestDataException("Unrecognized type for $attributeName").left()
+}
 
 suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
     NgsiLdEntity.create(this.members)
@@ -485,6 +571,16 @@ val NGSILD_JSONPROPERTIES_CORE_MEMBERS = listOf(
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_JSONPROPERTIES_FORBIDDEN_MEMBERS = listOf(
+    NGSILD_RELATIONSHIP_OBJECT,
+    NGSILD_PROPERTY_VALUE,
+    NGSILD_UNIT_CODE_PROPERTY
+)
+
+val NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS = listOf(
+    NGSILD_LANGUAGEPROPERTY_VALUE
+).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
+
+val NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
     NGSILD_PROPERTY_VALUE,
     NGSILD_UNIT_CODE_PROPERTY

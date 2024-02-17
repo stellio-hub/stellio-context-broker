@@ -1,9 +1,11 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.model.AttributeCompactedType.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
@@ -45,11 +47,12 @@ private fun simplifyMultiInstanceAttribute(value: List<Map<String, Any>>): Map<S
 private fun simplifyValue(value: Map<String, Any>): Any {
     val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
     return when (attributeCompactedType) {
-        AttributeCompactedType.PROPERTY, AttributeCompactedType.GEOPROPERTY -> {
+        PROPERTY, GEOPROPERTY -> {
             value.getOrDefault(JSONLD_VALUE_TERM, value)
         }
-        AttributeCompactedType.JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
-        AttributeCompactedType.RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
+        RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
+        JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
+        LANGUAGEPROPERTY -> mapOf(JSONLD_LANGUAGEMAP_TERM to value.getOrDefault(JSONLD_LANGUAGEMAP_TERM, value))
     }
 }
 
@@ -136,7 +139,8 @@ enum class AttributeCompactedType(val key: String) {
     PROPERTY("Property"),
     RELATIONSHIP("Relationship"),
     GEOPROPERTY("GeoProperty"),
-    JSONPROPERTY("JsonProperty");
+    JSONPROPERTY("JsonProperty"),
+    LANGUAGEPROPERTY("LanguageProperty");
 
     companion object {
         fun forKey(key: String): AttributeCompactedType? =

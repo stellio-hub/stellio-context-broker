@@ -44,11 +44,15 @@ object JsonLdUtils {
     const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
     val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
     const val NGSILD_JSONPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasJSON"
-    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
+    const val NGSILD_LANGUAGEPROPERTY_TERM = "LanguageProperty"
+    val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
+    const val NGSILD_LANGUAGEPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasLanguageMap"
 
     const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
+    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
+    const val NGSILD_LANGUAGEPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasLanguageMaps"
 
     private const val JSONLD_GRAPH = "@graph"
     const val JSONLD_ID_TERM = "id"
@@ -60,6 +64,8 @@ object JsonLdUtils {
     const val JSONLD_OBJECT = "object"
     const val JSONLD_LIST = "@list"
     const val JSONLD_JSON_TERM = "json"
+    const val JSONLD_LANGUAGE = "@language"
+    const val JSONLD_LANGUAGEMAP_TERM = "languageMap"
     const val JSONLD_JSON = "@json"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"

@@ -22,7 +22,8 @@ enum class AttributeType(val key: String) {
     Property("Property"),
     Relationship("Relationship"),
     GeoProperty("GeoProperty"),
-    JsonProperty("JsonProperty");
+    JsonProperty("JsonProperty"),
+    LanguageProperty("LanguageProperty");
 
     companion object {
         fun forKey(key: String): AttributeType =

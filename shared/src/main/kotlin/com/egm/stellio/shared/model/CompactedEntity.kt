@@ -4,11 +4,13 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -38,6 +40,8 @@ private fun simplifyValue(value: Map<String, Any>): Any =
     when (value[JSONLD_TYPE_TERM]) {
         NGSILD_PROPERTY_TERM, NGSILD_GEOPROPERTY_TERM -> value.getOrDefault(JSONLD_VALUE_TERM, value)
         NGSILD_JSONPROPERTY_TERM -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
+        NGSILD_LANGUAGEPROPERTY_TERM ->
+            mapOf(JSONLD_LANGUAGEMAP_TERM to value.getOrDefault(JSONLD_LANGUAGEMAP_TERM, value))
         NGSILD_RELATIONSHIP_TERM -> value.getOrDefault(JSONLD_OBJECT, value)
         else -> value
     }

@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -860,6 +861,12 @@ class TemporalEntityAttributeService(
             TemporalEntityAttribute.AttributeType.JsonProperty ->
                 Triple(
                     serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_VALUE)!!),
+                    null,
+                    null
+                )
+            TemporalEntityAttribute.AttributeType.LanguageProperty ->
+                Triple(
+                    serializeObject(attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_VALUE)!!),
                     null,
                     null
                 )

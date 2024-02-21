@@ -1172,7 +1172,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return a subscription if last_notification is null`() = runTest {
+    fun `it should return a subscription if throttling is not null and last_notification is null`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(

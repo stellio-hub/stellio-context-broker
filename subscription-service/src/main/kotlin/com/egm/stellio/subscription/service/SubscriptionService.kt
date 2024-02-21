@@ -547,7 +547,8 @@ class SubscriptionService(
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
             AND ( throttling IS NULL 
-                OR (last_notification + throttling * INTERVAL '1 second') < :date)
+                OR (last_notification + throttling * INTERVAL '1 second') < :date
+                OR last_notification IS NULL)
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
                 OR watched_attributes IS NULL)
             AND CASE

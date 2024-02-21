@@ -1171,6 +1171,32 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
     }
 
+    @Test
+    fun `it should return a subscription if last_notification is null`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
+            ),
+            "throttling" to 300
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(NGSILD_LOCATION_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
     @ParameterizedTest
     @CsvSource(
         "near;minDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0",

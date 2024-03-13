@@ -18,21 +18,34 @@ typealias CompactedEntity = Map<String, Any>
 fun CompactedEntity.toKeyValues(): Map<String, Any> =
     this.mapValues { (_, value) -> simplifyRepresentation(value) }
 
-private fun simplifyRepresentation(value: Any): Any =
-    when (value) {
-        // an attribute with a single instance
+private fun simplifyRepresentation(value: Any): Any {
+    return when (value) {
         is Map<*, *> -> simplifyValue(value as Map<String, Any>)
-        // an attribute with multiple instances
-        is List<*> -> value.map {
-            when (it) {
-                is Map<*, *> -> simplifyValue(it as Map<String, Any>)
-                // we keep @context value as it is (List<String>)
-                else -> it
-            }
-        }
-        // keep id, type and other non-reified properties as they are (typically string or list)
+        is List<*> -> simplifyList(value)
         else -> value
     }
+}
+
+private fun simplifyList(value: List<*>): Any {
+    val datasetMaps = mutableMapOf<Any?, Any?>()
+    value.forEach {
+        when (it) {
+            is Map<*, *> -> {
+                val datasetId = it["datasetId"]
+                val datasetValue: Any? = if (it["type"] == "Property") {
+                    it["value"]
+                } else {
+                    it["object"]
+                }
+                datasetMaps[datasetId] = datasetValue
+            }
+
+            // we keep @context value as it is (List<String>)
+            else -> it
+        }
+    }
+    return mapOf("dataset" to datasetMaps)
+}
 
 private fun simplifyValue(value: Map<String, Any>): Any =
     when (value[JSONLD_TYPE_TERM]) {

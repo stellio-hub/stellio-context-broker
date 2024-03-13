@@ -301,6 +301,126 @@ class ExpandedEntityTests {
     }
 
     @Test
+    fun `it should return a simplified entity with a Multi-Attribute of type Property  `() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Vehicle",
+                "createdAt": "2023-11-25T08:00:00Z",
+                "modifiedAt": "2023-11-25T09:00:00Z",
+                "brandName": {
+                    "type": "Property",
+                    "value": "Mercedes"
+                },
+                "speed": [
+                {
+                     "type": "Property",
+                     "value": 55,
+                     "source": {
+                       "type": "Property",
+                       "value": "Speedometer"
+                     },
+                     "datasetId": "urn:ngsi-ld:Property:speedometerA4567-speed"
+                },
+                {
+                     "type": "Property",
+                     "value": 54.5,
+                     "source": {
+                     "type": "Property",
+                     "value": "GPS"
+                      },
+                     "datasetId": "urn:ngsi-ld:Property:gpsBxyz123-speed"
+                }]
+            }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Vehicle",
+                "brandName": "Mercedes",
+                "speed": {
+                   "dataset": {
+                       "urn:ngsi-ld:Property:speedometerA4567-speed": 55,
+                       "urn:ngsi-ld:Property:gpsBxyz123-speed": 54.5
+                   }
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a simplified entity with a Multi-Attribute of type Relationship  `() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Event:bonjourLeMonde",
+                "type": "Event",
+                "createdAt": "2023-11-25T08:00:00Z",
+                "modifiedAt": "2023-11-25T09:00:00Z",
+                "name": {
+                    "type": "Property",
+                    "value": "Bonjour le Monde"
+                },
+                "sameAs": [
+                {
+                     "type": "Relationship",
+                     "object": "urn:ngsi-ld:Event:helloWorld",
+                      "inLanguage": {
+                         "type": "Property",
+                         "value": "en"
+                      },
+                     "datasetId": "urn:ngsi-ld:Relationship:1"
+                },
+                {
+                     "type": "Relationship",
+                     "object": "urn:ngsi-ld:Event:halloWelt",
+                      "inLanguage": {
+                         "type": "Property",
+                         "value": "en"
+                      },
+                     "datasetId": "urn:ngsi-ld:Relationship:2"
+                }]
+            }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Event:bonjourLeMonde",
+                "type": "Event",
+                "name": "Bonjour le Monde",
+                "sameAs": {
+                   "dataset": {
+                       "urn:ngsi-ld:Relationship:1": "urn:ngsi-ld:Event:helloWorld",
+                       "urn:ngsi-ld:Relationship:2": "urn:ngsi-ld:Event:halloWelt"
+                   }
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
     fun `it should return a normalized GeoJSON entity on location attribute`() {
         val inputEntity = normalizedJson.deserializeAsMap()
 

@@ -18,33 +18,31 @@ typealias CompactedEntity = Map<String, Any>
 fun CompactedEntity.toKeyValues(): Map<String, Any> =
     this.mapValues { (_, value) -> simplifyRepresentation(value) }
 
-private fun simplifyRepresentation(value: Any): Any {
-    return when (value) {
+private fun simplifyRepresentation(value: Any): Any =
+    when (value) {
         is Map<*, *> -> simplifyValue(value as Map<String, Any>)
-        is List<*> -> simplifyList(value)
+        is List<*> -> {
+            when (value.first()) {
+                is Map<*, *> -> simplifyList(value as List<Map<String, Any>>)
+                // we keep @context value as it is (List<String>)
+                else -> value
+            }
+        }
         else -> value
     }
-}
 
-private fun simplifyList(value: List<*>): Any {
-    val datasetMaps = mutableMapOf<Any?, Any?>()
-    value.forEach {
-        when (it) {
-            is Map<*, *> -> {
-                val datasetId = it["datasetId"]
-                val datasetValue: Any? = if (it["type"] == "Property") {
-                    it["value"]
-                } else {
-                    it["object"]
-                }
-                datasetMaps[datasetId] = datasetValue
-            }
-
-            // we keep @context value as it is (List<String>)
-            else -> it
+private fun simplifyList(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
+    val datasetIds = value.map {
+        val datasetId = (it["datasetId"] as? String) ?: "@none"
+        val datasetValue: Any = if (it["type"] == "Property") {
+            it["value"]!!
+        } else {
+            it["object"]!!
         }
+        Pair(datasetId, datasetValue)
     }
-    return mapOf("dataset" to datasetMaps)
+
+    return mapOf("dataset" to datasetIds.toMap())
 }
 
 private fun simplifyValue(value: Map<String, Any>): Any =

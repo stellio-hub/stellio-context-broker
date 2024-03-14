@@ -64,7 +64,8 @@ object JsonLdUtils {
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
-
+    const val NGSILD_NONE_TERM = "@none"
+    const val NGSILD_DATASET_TERM = "dataset"
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
     // List of members that are part of a core entity base definition (i.e., without attributes)
@@ -90,6 +91,8 @@ object JsonLdUtils {
     val NGSILD_GEO_PROPERTIES_TERMS =
         setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
+    const val NGSILD_DATASET_ID_PROPERTY_TERM = "datasetId"
+
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
 
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"

@@ -7,8 +7,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
@@ -33,16 +36,16 @@ private fun simplifyRepresentation(value: Any): Any =
 
 private fun simplifyList(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
     val datasetIds = value.map {
-        val datasetId = (it["datasetId"] as? String) ?: "@none"
-        val datasetValue: Any = if (it["type"] == "Property") {
-            it["value"]!!
+        val datasetId = (it[NGSILD_DATASET_ID_PROPERTY_TERM] as? String) ?: NGSILD_NONE_TERM
+        val datasetValue: Any = if (it[JSONLD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM) {
+            it[JSONLD_OBJECT] as Any
         } else {
-            it["object"]!!
+            it[JSONLD_VALUE_TERM] as Any
         }
         Pair(datasetId, datasetValue)
     }
 
-    return mapOf("dataset" to datasetIds.toMap())
+    return mapOf(NGSILD_DATASET_TERM to datasetIds.toMap())
 }
 
 private fun simplifyValue(value: Map<String, Any>): Any =

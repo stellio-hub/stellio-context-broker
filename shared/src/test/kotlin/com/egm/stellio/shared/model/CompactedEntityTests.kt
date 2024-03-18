@@ -4,13 +4,13 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 
 class CompactedEntityTests {
 
-    private val normalizedJson =
+    private val normalizedEntity =
         """
         {
             "id": "urn:ngsi-ld:Vehicle:A4567",
@@ -47,7 +47,7 @@ class CompactedEntityTests {
         }
         """.trimIndent()
 
-    private val simplifiedJson =
+    private val simplifiedEntity =
         """
         {
             "id": "urn:ngsi-ld:Vehicle:A4567",
@@ -70,7 +70,7 @@ class CompactedEntityTests {
         }
         """.trimIndent()
 
-    private val normalizedMultiAttributeJson =
+    private val normalizedMultiAttributeEntity =
         """
         {
             "id": "urn:ngsi-ld:Vehicle:A4567",
@@ -102,7 +102,7 @@ class CompactedEntityTests {
         }
         """.trimIndent()
 
-    private val simplifiedMultiAttributeJson =
+    private val simplifiedMultiAttributeEntity =
         """
         {
             "id": "urn:ngsi-ld:Vehicle:A4567",
@@ -124,22 +124,22 @@ class CompactedEntityTests {
 
     @Test
     fun `it should simplify a compacted entity`() {
-        val normalizedMap = normalizedJson.deserializeAsMap()
-        val simplifiedMap = simplifiedJson.deserializeAsMap()
+        val normalizedMap = normalizedEntity.deserializeAsMap()
+        val simplifiedMap = simplifiedEntity.deserializeAsMap()
 
         val resultMap = normalizedMap.toKeyValues()
 
-        Assertions.assertEquals(simplifiedMap, resultMap)
+        assertEquals(simplifiedMap, resultMap)
     }
 
     @Test
     fun `it should simplify a compacted entity with multi-attributes`() {
-        val normalizedMap = normalizedMultiAttributeJson.deserializeAsMap()
-        val simplifiedMap = simplifiedMultiAttributeJson.deserializeAsMap()
+        val normalizedMap = normalizedMultiAttributeEntity.deserializeAsMap()
+        val simplifiedMap = simplifiedMultiAttributeEntity.deserializeAsMap()
 
         val resultMap = normalizedMap.toKeyValues()
 
-        Assertions.assertEquals(simplifiedMap, resultMap)
+        assertEquals(simplifiedMap, resultMap)
     }
 
     @Test
@@ -246,7 +246,7 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
@@ -281,11 +281,11 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type Property`() {
+    fun `it should return a simplified entity with a multi-attribute Property`() {
         val inputEntity =
             """
             {
@@ -324,36 +324,37 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type Relationship`() {
+    fun `it should return a simplified entity with a multi-attribute Relationship`() {
         val inputEntity =
             """
             {
-                "id": "urn:ngsi-ld:Event:bonjourLeMonde",
-                "sameAs": [
-                {
-                     "type": "Relationship",
-                     "object": "urn:ngsi-ld:Event:helloWorld",
-                     "datasetId": "urn:ngsi-ld:Relationship:1"
-                },
-                {
-                     "type": "Relationship",
-                     "object": "urn:ngsi-ld:Event:halloWelt",
-                     "datasetId": "urn:ngsi-ld:Relationship:2"
-                }]
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "hasOwner": [
+                    {
+                        "type": "Relationship",
+                        "datasetId": "urn:ngsi-ld:Dataset:01",
+                        "object": "urn:ngsi-ld:Person:John"
+                    },
+                    {
+                        "type": "Relationship",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "object": "urn:ngsi-ld:Person:Jane"
+                    }
+                ]
             }
             """.trimIndent().deserializeAsMap()
         val expectedEntity =
             """
             {
-                "id": "urn:ngsi-ld:Event:bonjourLeMonde",
-                "sameAs": {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "hasOwner": {
                    "dataset": {
-                       "urn:ngsi-ld:Relationship:1": "urn:ngsi-ld:Event:helloWorld",
-                       "urn:ngsi-ld:Relationship:2": "urn:ngsi-ld:Event:halloWelt"
+                       "urn:ngsi-ld:Dataset:01": "urn:ngsi-ld:Person:John",
+                       "urn:ngsi-ld:Dataset:02": "urn:ngsi-ld:Person:Jane"
                    }
                 }
             }
@@ -367,11 +368,11 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type JsonProperty`() {
+    fun `it should return a simplified entity with a multi-attribute JsonProperty`() {
         val inputEntity =
             """
             {
@@ -423,11 +424,11 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type GeoProperty`() {
+    fun `it should return a simplified entity with a multi-attribute GeoProperty`() {
         val inputEntity =
             """
             {
@@ -491,7 +492,7 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
@@ -553,12 +554,12 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a normalized GeoJSON entity on location attribute`() {
-        val inputEntity = normalizedJson.deserializeAsMap()
+    fun `it should return the GeoJSON representation of a normalized entity on location attribute`() {
+        val inputEntity = normalizedEntity.deserializeAsMap()
 
         val expectedEntity =
             """
@@ -613,12 +614,12 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, actualEntity)
+        assertEquals(expectedEntity, actualEntity)
     }
 
     @Test
-    fun `it should return a simplified GeoJSON entity on location attribute`() {
-        val inputEntity = normalizedJson.deserializeAsMap()
+    fun `it should return the GeoJSON representation of a simplified entity on location attribute`() {
+        val inputEntity = normalizedEntity.deserializeAsMap()
 
         val expectedEntity =
             """
@@ -656,11 +657,11 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return a GeoJSON entity with a null geometry if the GeoProperty does not exist`() {
+    fun `it should return the GeoJSON representation of an entity with a null geometry if it does not exist`() {
         val inputEntity =
             """
             {
@@ -695,11 +696,11 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+        assertEquals(expectedEntity, simplifiedEntity)
     }
 
     @Test
-    fun `it should return simplified GeoJSON entities`() {
+    fun `it should return the GeoJSON representation of simplified entities`() {
         val inputEntity =
             """
             {
@@ -760,6 +761,6 @@ class CompactedEntityTests {
             )
         )
 
-        Assertions.assertEquals(expectedEntities, actualEntities)
+        assertEquals(expectedEntities, actualEntities)
     }
 }

@@ -53,6 +53,7 @@ private fun simplifyMultiInstanceAttribute(value: List<Map<String, Any>>): Map<S
     }
     return mapOf(NGSILD_DATASET_TERM to datasetIds.toMap())
 }
+
 private fun simplifyValue(value: Map<String, Any>): Any =
     when (value[JSONLD_TYPE_TERM]) {
         NGSILD_PROPERTY_TERM, NGSILD_GEOPROPERTY_TERM -> value.getOrDefault(JSONLD_VALUE_TERM, value)

@@ -285,35 +285,20 @@ class CompactedEntityTests {
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type Property  `() {
+    fun `it should return a simplified entity with a Multi-Attribute of type Property`() {
         val inputEntity =
             """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
-                "type": "Vehicle",
-                "createdAt": "2023-11-25T08:00:00Z",
-                "modifiedAt": "2023-11-25T09:00:00Z",
-                "brandName": {
-                    "type": "Property",
-                    "value": "Mercedes"
-                },
                 "speed": [
                 {
                      "type": "Property",
                      "value": 55,
-                     "source": {
-                       "type": "Property",
-                       "value": "Speedometer"
-                     },
                      "datasetId": "urn:ngsi-ld:Property:speedometerA4567-speed"
                 },
                 {
                      "type": "Property",
                      "value": 54.5,
-                     "source": {
-                     "type": "Property",
-                     "value": "GPS"
-                      },
                      "datasetId": "urn:ngsi-ld:Property:gpsBxyz123-speed"
                 }]
             }
@@ -322,8 +307,6 @@ class CompactedEntityTests {
             """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
-                "type": "Vehicle",
-                "brandName": "Mercedes",
                 "speed": {
                    "dataset": {
                        "urn:ngsi-ld:Property:speedometerA4567-speed": 55,
@@ -345,35 +328,20 @@ class CompactedEntityTests {
     }
 
     @Test
-    fun `it should return a simplified entity with a Multi-Attribute of type Relationship  `() {
+    fun `it should return a simplified entity with a Multi-Attribute of type Relationship`() {
         val inputEntity =
             """
             {
                 "id": "urn:ngsi-ld:Event:bonjourLeMonde",
-                "type": "Event",
-                "createdAt": "2023-11-25T08:00:00Z",
-                "modifiedAt": "2023-11-25T09:00:00Z",
-                "name": {
-                    "type": "Property",
-                    "value": "Bonjour le Monde"
-                },
                 "sameAs": [
                 {
                      "type": "Relationship",
                      "object": "urn:ngsi-ld:Event:helloWorld",
-                      "inLanguage": {
-                         "type": "Property",
-                         "value": "en"
-                      },
                      "datasetId": "urn:ngsi-ld:Relationship:1"
                 },
                 {
                      "type": "Relationship",
                      "object": "urn:ngsi-ld:Event:halloWelt",
-                      "inLanguage": {
-                         "type": "Property",
-                         "value": "en"
-                      },
                      "datasetId": "urn:ngsi-ld:Relationship:2"
                 }]
             }
@@ -382,8 +350,6 @@ class CompactedEntityTests {
             """
             {
                 "id": "urn:ngsi-ld:Event:bonjourLeMonde",
-                "type": "Event",
-                "name": "Bonjour le Monde",
                 "sameAs": {
                    "dataset": {
                        "urn:ngsi-ld:Relationship:1": "urn:ngsi-ld:Event:helloWorld",
@@ -391,6 +357,192 @@ class CompactedEntityTests {
                    }
                 }
             }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a simplified entity with a Multi-Attribute of type JsonProperty`() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "speed": [
+                {
+                     "type": "JsonProperty",
+                     "json": {
+                        "anId": "id",
+                        "anArray": [1, 2]
+                    },
+                     "datasetId": "urn:ngsi-ld:JsonProperty:1"
+                },
+                {
+                     "type": "JsonProperty",
+                      "json": {
+                        "anId": "id",
+                        "anArray": [1, 2]
+                    },
+                     "datasetId": "urn:ngsi-ld:Property:JsonProperty:2"
+                }]
+            }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "speed":
+                {
+                 "dataset": {
+                       "urn:ngsi-ld:JsonProperty:1": {
+                        "anId": "id",
+                        "anArray": [1, 2]
+                    },
+                       "urn:ngsi-ld:Property:JsonProperty:2": {
+                        "anId": "id",
+                        "anArray": [1, 2]
+                    }
+                   }
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a simplified entity with a Multi-Attribute of type GeoProperty`() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "location": [
+                {
+                     "type": "GeoProperty",
+                     "value": {
+                         "type": "Point",
+                         "coordinates": [
+                            24.30623,
+                            60.07966
+                         ]
+                      },
+                     "datasetId": "urn:ngsi-ld:GeoProperty:1"
+                },
+                {
+                     "type": "GeoProperty",
+                     "value": {
+                         "type": "Point",
+                         "coordinates": [
+                            25.30623,
+                            60.08066
+                         ]
+                      },
+                     "datasetId": "urn:ngsi-ld:GeoProperty:2"
+                }]
+            }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "location":
+                {
+                 "dataset": {
+                       "urn:ngsi-ld:GeoProperty:1": {
+                         "type": "Point",
+                         "coordinates": [
+                            24.30623,
+                            60.07966
+                         ]
+                      },
+                       "urn:ngsi-ld:GeoProperty:2": {
+                         "type": "Point",
+                         "coordinates": [
+                            25.30623,
+                            60.08066
+                         ]
+                      }
+                   }
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        Assertions.assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
+    fun `it should return a simplified entity with a Multi-Attribute with no datasetId`() {
+        val inputEntity =
+            """
+            {
+            "id": "urn:ngsi-ld:Vehicle:A4567",
+            "type": "Vehicle",
+            "speed": [
+                {
+                    "type": "Property",
+                    "value": 10
+                },
+                {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:01",
+                    "value": 11
+                }
+            ],
+            "hasOwner": [
+                {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Person:John"
+                },
+                {
+                    "type": "Relationship",
+                    "datasetId": "urn:ngsi-ld:Dataset:01",
+                    "object": "urn:ngsi-ld:Person:Jane"
+                }
+            ]
+        }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+           {
+            "id": "urn:ngsi-ld:Vehicle:A4567",
+            "type": "Vehicle",
+            "speed": {
+                  "dataset": {
+                       "@none": 10,
+                       "urn:ngsi-ld:Dataset:01": 11
+                   }
+            },
+            "hasOwner": {
+                  "dataset": {
+                       "@none": "urn:ngsi-ld:Person:John",
+                       "urn:ngsi-ld:Dataset:01": "urn:ngsi-ld:Person:Jane"
+                   }
+            }
+        }
             """.trimIndent().deserializeAsMap()
 
         val simplifiedEntity = inputEntity.toFinalRepresentation(

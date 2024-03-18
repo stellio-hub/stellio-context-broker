@@ -91,7 +91,7 @@ object JsonLdUtils {
     val NGSILD_GEO_PROPERTIES_TERMS =
         setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
-    const val NGSILD_DATASET_ID_PROPERTY_TERM = "datasetId"
+    const val NGSILD_DATASET_ID_TERM = "datasetId"
 
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
 

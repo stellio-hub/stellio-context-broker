@@ -7,7 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import java.util.*
 
 typealias CompactedEntity = Map<String, Any>
 
@@ -23,31 +24,35 @@ fun CompactedEntity.toKeyValues(): Map<String, Any> =
 
 private fun simplifyRepresentation(value: Any): Any =
     when (value) {
+        // an attribute with a single instance
         is Map<*, *> -> simplifyValue(value as Map<String, Any>)
+        // an attribute with multiple instances
         is List<*> -> {
             when (value.first()) {
-                is Map<*, *> -> simplifyList(value as List<Map<String, Any>>)
+                is Map<*, *> -> simplifyMultiInstanceAttribute(value as List<Map<String, Any>>)
                 // we keep @context value as it is (List<String>)
                 else -> value
             }
         }
+        // keep id, type and other non-reified properties as they are (typically string or list)
         else -> value
     }
 
-private fun simplifyList(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
+private fun simplifyMultiInstanceAttribute(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
     val datasetIds = value.map {
-        val datasetId = (it[NGSILD_DATASET_ID_PROPERTY_TERM] as? String) ?: NGSILD_NONE_TERM
-        val datasetValue: Any = if (it[JSONLD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM) {
-            it[JSONLD_OBJECT] as Any
-        } else {
-            it[JSONLD_VALUE_TERM] as Any
+        val datasetId = (it[NGSILD_DATASET_ID_TERM] as? String) ?: NGSILD_NONE_TERM
+        val attributeType = it[JSONLD_TYPE_TERM] as String
+        val attributeEnum: AttributeType = AttributeType.valueOf(attributeType.uppercase(Locale.getDefault()))
+        val datasetValue: Any = when (attributeEnum) {
+            AttributeType.PROPERTY -> it[JSONLD_VALUE_TERM] as Any
+            AttributeType.RELATIONSHIP -> it[JSONLD_OBJECT] as Any
+            AttributeType.GEOPROPERTY -> it[JSONLD_VALUE_TERM] as Any
+            AttributeType.JSONPROPERTY -> it[JSONLD_JSON_TERM] as Any
         }
         Pair(datasetId, datasetValue)
     }
-
     return mapOf(NGSILD_DATASET_TERM to datasetIds.toMap())
 }
-
 private fun simplifyValue(value: Map<String, Any>): Any =
     when (value[JSONLD_TYPE_TERM]) {
         NGSILD_PROPERTY_TERM, NGSILD_GEOPROPERTY_TERM -> value.getOrDefault(JSONLD_VALUE_TERM, value)

@@ -377,40 +377,38 @@ class CompactedEntityTests {
             """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
-                "speed": [
-                {
-                     "type": "JsonProperty",
-                     "json": {
-                        "anId": "id",
-                        "anArray": [1, 2]
-                    },
+                "speed": [ {
+                      "type": "JsonProperty",
+                         "json": {
+                            "anId": "id"
+                         },
                      "datasetId": "urn:ngsi-ld:JsonProperty:1"
-                },
+                   },
                 {
-                     "type": "JsonProperty",
+                   "type": "JsonProperty",
                       "json": {
-                        "anId": "id",
                         "anArray": [1, 2]
-                    },
+                      },
                      "datasetId": "urn:ngsi-ld:Property:JsonProperty:2"
-                }]
+                } ]
             }
             """.trimIndent().deserializeAsMap()
         val expectedEntity =
             """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
-                "speed":
-                {
-                 "dataset": {
+                "speed": {
+                    "dataset": {
                        "urn:ngsi-ld:JsonProperty:1": {
-                        "anId": "id",
-                        "anArray": [1, 2]
-                    },
+                          "json": {
+                             "anId": "id"
+                          }
+                       },
                        "urn:ngsi-ld:Property:JsonProperty:2": {
-                        "anId": "id",
-                        "anArray": [1, 2]
-                    }
+                          "json": {
+                             "anArray": [1, 2]
+                          }
+                       }
                    }
                 }
             }

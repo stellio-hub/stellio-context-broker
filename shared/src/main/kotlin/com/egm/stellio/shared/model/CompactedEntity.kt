@@ -9,13 +9,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
-import java.util.*
 
 typealias CompactedEntity = Map<String, Any>
 
@@ -41,26 +36,22 @@ private fun simplifyRepresentation(value: Any): Any =
 private fun simplifyMultiInstanceAttribute(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
     val datasetIds = value.map {
         val datasetId = (it[NGSILD_DATASET_ID_TERM] as? String) ?: NGSILD_NONE_TERM
-        val attributeType = it[JSONLD_TYPE_TERM] as String
-        val attributeEnum: AttributeType = AttributeType.valueOf(attributeType.uppercase(Locale.getDefault()))
-        val datasetValue: Any = when (attributeEnum) {
-            AttributeType.PROPERTY -> it[JSONLD_VALUE_TERM] as Any
-            AttributeType.RELATIONSHIP -> it[JSONLD_OBJECT] as Any
-            AttributeType.GEOPROPERTY -> it[JSONLD_VALUE_TERM] as Any
-            AttributeType.JSONPROPERTY -> it[JSONLD_JSON_TERM] as Any
-        }
+        val datasetValue: Any = simplifyValue(it)
         Pair(datasetId, datasetValue)
     }
     return mapOf(NGSILD_DATASET_TERM to datasetIds.toMap())
 }
 
-private fun simplifyValue(value: Map<String, Any>): Any =
-    when (value[JSONLD_TYPE_TERM]) {
-        NGSILD_PROPERTY_TERM, NGSILD_GEOPROPERTY_TERM -> value.getOrDefault(JSONLD_VALUE_TERM, value)
-        NGSILD_JSONPROPERTY_TERM -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
-        NGSILD_RELATIONSHIP_TERM -> value.getOrDefault(JSONLD_OBJECT, value)
-        else -> value
+private fun simplifyValue(value: Map<String, Any>): Any {
+    val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
+    return when (attributeCompactedType) {
+        AttributeCompactedType.PROPERTY, AttributeCompactedType.GEOPROPERTY -> {
+            value.getOrDefault(JSONLD_VALUE_TERM, value)
+        }
+        AttributeCompactedType.JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
+        AttributeCompactedType.RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
     }
+}
 
 fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
     val geometryAttributeContent = this[geometryProperty] as? Map<String, Any>
@@ -140,3 +131,15 @@ fun List<CompactedEntity>.toFinalRepresentation(
             )
         } else it
     }
+
+enum class AttributeCompactedType(val key: String) {
+    PROPERTY("Property"),
+    RELATIONSHIP("Relationship"),
+    GEOPROPERTY("GeoProperty"),
+    JSONPROPERTY("JsonProperty");
+
+    companion object {
+        fun forKey(key: String): AttributeCompactedType? =
+            entries.find { it.key == key }
+    }
+}

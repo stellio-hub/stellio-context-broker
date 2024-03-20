@@ -168,8 +168,8 @@ class GeoQueryUtilsTests {
         assertEqualsIgnoringNoise(
             """
             public.ST_Distance(
-                'SRID=4326;POINT(60.124.6)'::geography,
-                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                cast('SRID=4326;POINT(60.124.6)' as public.geography),
+                cast('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value') as public.geography),
                 false
             ) <= 2000
             """,
@@ -192,8 +192,8 @@ class GeoQueryUtilsTests {
         assertEqualsIgnoringNoise(
             """
             public.ST_Distance(
-                'SRID=4326;POINT(60.124.6)'::geography,
-                ('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))::geography,
+                cast('SRID=4326;POINT(60.124.6)' as public.geography),
+                cast('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value') as public.geography),
                 false
             ) >= 15
             """,

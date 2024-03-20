@@ -576,7 +576,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should not add a type if existing types are not in the list of types to add`() = runTest {
+    fun `it should add a type even if existing types are not in the list of types to add`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -586,16 +586,14 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     now
                 )
             }
-
         entityPayloadService.updateTypes(entity01Uri, listOf(APIARY_TYPE), ngsiLdDateTime(), false)
+            .shouldSucceed()
+
+        entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
-                assertFalse(it.isSuccessful())
-                assertEquals(1, it.notUpdated.size)
-                val notUpdatedDetails = it.notUpdated[0]
-                assertEquals(JSONLD_TYPE, notUpdatedDetails.attributeName)
                 assertEquals(
-                    "A type cannot be removed from an entity: [$BEEHIVE_TYPE] have been removed",
-                    notUpdatedDetails.reason
+                    listOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE]
                 )
             }
     }

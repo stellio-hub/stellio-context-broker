@@ -424,18 +424,6 @@ class EntityPayloadService(
             // when dealing with an entity update, list of types can be empty if no change of type is requested
             if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
                 return@either UpdateResult(emptyList(), emptyList())
-            if (!newTypes.containsAll(currentTypes)) {
-                val removedTypes = currentTypes.minus(newTypes)
-                return@either updateResultFromDetailedResult(
-                    listOf(
-                        UpdateAttributeResult(
-                            attributeName = JSONLD_TYPE,
-                            updateOperationResult = UpdateOperationResult.FAILED,
-                            errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
-                        )
-                    )
-                )
-            }
 
             val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                 .mapValues {
@@ -447,15 +435,15 @@ class EntityPayloadService(
             databaseClient.sql(
                 """
                 UPDATE entity_payload
-                SET types = :types,
+                SET types = (SELECT array_agg(x) from (select distinct unnest(types || :new_types) as x) as sub_test),
                     modified_at = :modified_at,
                     payload = :payload
                 WHERE entity_id = :entity_id
                 """.trimIndent()
             )
                 .bind("entity_id", entityId)
-                .bind("types", newTypes.toTypedArray())
                 .bind("modified_at", modifiedAt)
+                .bind("new_types", newTypes.toTypedArray())
                 .bind("payload", Json.of(serializeObject(updatedPayload)))
                 .execute()
                 .map {

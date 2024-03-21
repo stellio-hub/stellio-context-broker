@@ -428,14 +428,14 @@ class EntityPayloadService(
             val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
                 .mapValues {
                     if (it.key == JSONLD_TYPE)
-                        newTypes
+                        currentTypes.union(newTypes)
                     else it
                 }
 
             databaseClient.sql(
                 """
                 UPDATE entity_payload
-                SET types = (SELECT array_agg(x) from (select distinct unnest(types || :new_types) as x) as sub_test),
+                SET types = :types,
                     modified_at = :modified_at,
                     payload = :payload
                 WHERE entity_id = :entity_id
@@ -443,7 +443,7 @@ class EntityPayloadService(
             )
                 .bind("entity_id", entityId)
                 .bind("modified_at", modifiedAt)
-                .bind("new_types", newTypes.toTypedArray())
+                .bind("types", (currentTypes.union(newTypes)).toTypedArray())
                 .bind("payload", Json.of(serializeObject(updatedPayload)))
                 .execute()
                 .map {

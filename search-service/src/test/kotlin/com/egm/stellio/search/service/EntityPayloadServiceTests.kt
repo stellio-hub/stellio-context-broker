@@ -576,7 +576,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should add a type even if existing types are not in the list of types to add`() = runTest {
+    fun `it should add a type to an entity even if existing types are not in the list of types to add`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
             .sampleDataToNgsiLdEntity()
             .map {

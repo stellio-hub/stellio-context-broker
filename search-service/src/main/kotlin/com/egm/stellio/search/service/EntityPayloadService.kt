@@ -455,7 +455,7 @@ class EntityPayloadService(
                         )
                     )
                 )
-        }.bind()
+            }.bind()
     }
 
     @Transactional

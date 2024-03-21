@@ -591,6 +591,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.retrieve(entity01Uri)
             .shouldSucceedWith {
+                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
                 assertEquals(
                     listOf(BEEHIVE_TYPE, APIARY_TYPE),
                     it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE]

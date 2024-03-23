@@ -498,7 +498,7 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

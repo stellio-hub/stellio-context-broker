@@ -417,58 +417,46 @@ class EntityPayloadService(
         newTypes: List<ExpandedTerm>,
         modifiedAt: ZonedDateTime,
         allowEmptyListOfTypes: Boolean = true
-    ): Either<APIException, UpdateResult> =
-        either {
-            val entityPayload = retrieve(entityId).bind()
-            val currentTypes = entityPayload.types
-            // when dealing with an entity update, list of types can be empty if no change of type is requested
-            if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
-                return@either UpdateResult(emptyList(), emptyList())
-            if (!newTypes.containsAll(currentTypes)) {
-                val removedTypes = currentTypes.minus(newTypes)
-                return@either updateResultFromDetailedResult(
+    ): Either<APIException, UpdateResult> = either {
+        val entityPayload = retrieve(entityId).bind()
+        val currentTypes = entityPayload.types
+        // when dealing with an entity update, list of types can be empty if no change of type is requested
+        if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
+            return@either UpdateResult(emptyList(), emptyList())
+
+        val updatedTypes = currentTypes.union(newTypes)
+        val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
+            .mapValues {
+                if (it.key == JSONLD_TYPE)
+                    updatedTypes
+                else it
+            }
+
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET types = :types,
+                modified_at = :modified_at,
+                payload = :payload
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("types", updatedTypes.toTypedArray())
+            .bind("payload", Json.of(serializeObject(updatedPayload)))
+            .execute()
+            .map {
+                updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
                             attributeName = JSONLD_TYPE,
-                            updateOperationResult = UpdateOperationResult.FAILED,
-                            errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
+                            updateOperationResult = UpdateOperationResult.APPENDED
                         )
                     )
                 )
-            }
-
-            val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
-                .mapValues {
-                    if (it.key == JSONLD_TYPE)
-                        newTypes
-                    else it
-                }
-
-            databaseClient.sql(
-                """
-                UPDATE entity_payload
-                SET types = :types,
-                    modified_at = :modified_at,
-                    payload = :payload
-                WHERE entity_id = :entity_id
-                """.trimIndent()
-            )
-                .bind("entity_id", entityId)
-                .bind("types", newTypes.toTypedArray())
-                .bind("modified_at", modifiedAt)
-                .bind("payload", Json.of(serializeObject(updatedPayload)))
-                .execute()
-                .map {
-                    updateResultFromDetailedResult(
-                        listOf(
-                            UpdateAttributeResult(
-                                attributeName = JSONLD_TYPE,
-                                updateOperationResult = UpdateOperationResult.APPENDED
-                            )
-                        )
-                    )
-                }.bind()
-        }
+            }.bind()
+    }
 
     @Transactional
     suspend fun appendAttributes(

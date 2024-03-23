@@ -1,7 +1,10 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,8 +20,7 @@ class EntityModelTests {
         types = listOf(BEEHIVE_TYPE),
         createdAt = now,
         modifiedAt = now,
-        payload = EMPTY_JSON_PAYLOAD,
-        contexts = NGSILD_TEST_CORE_CONTEXTS
+        payload = EMPTY_JSON_PAYLOAD
     )
 
     @Test

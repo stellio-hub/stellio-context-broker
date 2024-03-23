@@ -207,8 +207,9 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             is Either.Left ->
                 logger.warn("Unable to process attribute $attributeName ($datasetId) from entity $entityId")
             is Either.Right -> {
-                val createdAt = ngsiLdAttributeInstance.createdAt ?: defaultCreatedAt
-                val modifiedAt = ngsiLdAttributeInstance.modifiedAt
+                val createdAt =
+                    attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY) ?: defaultCreatedAt
+                val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
                 val atributeType = temporalAttributesMetadata.value.type
                 val attributeValueType = temporalAttributesMetadata.value.valueType
                 val serializedAttributePayload = serializeObject(attributePayload)
@@ -259,14 +260,16 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {
-        val createdAt = ngsiLdAttributeInstance.createdAt ?: defaultCreatedAt
-        val modifiedAt = ngsiLdAttributeInstance.modifiedAt
+        val createdAt =
+            attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY) ?: defaultCreatedAt
+        val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
         val serializedAttributePayload = serializeObject(attributePayload)
 
         val valueType = when (ngsiLdAttributeInstance) {
             is NgsiLdPropertyInstance -> guessPropertyValueType(ngsiLdAttributeInstance).first
             is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeValueType.URI
             is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
+            is NgsiLdJsonPropertyInstance -> TemporalEntityAttribute.AttributeValueType.OBJECT
         }
 
         jdbcTemplate.execute(

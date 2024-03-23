@@ -33,7 +33,9 @@
       "receiverInfo": [
         { "key": "Authorization-token", "value": "Authorization-token-value" }
       ]
-    }
+    },
+    "sysAttrs": true
   },
-  "expiresAt": "2100-01-01T00:00:00Z"
+  "expiresAt": "2100-01-01T00:00:00Z",
+  "throttling": 60
 }

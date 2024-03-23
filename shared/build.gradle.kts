@@ -26,7 +26,7 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:1.2.1")
+    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:1.2.3")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
@@ -34,7 +34,7 @@ dependencies {
     testFixturesImplementation("org.mock-server:mockserver-netty-no-dependencies:5.15.0")
     testFixturesImplementation("org.mock-server:mockserver-client-java-no-dependencies:5.15.0")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.4")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.5")
 
     testFixturesApi("org.testcontainers:testcontainers")
     testFixturesApi("org.testcontainers:junit-jupiter")

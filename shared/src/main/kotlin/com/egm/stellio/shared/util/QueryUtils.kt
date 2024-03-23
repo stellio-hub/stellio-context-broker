@@ -82,13 +82,13 @@ fun String.escapeRegexpPattern(): String =
     if (this.matches(innerRegexPattern.toRegex())) {
         this.replace(innerRegexPattern.toRegex()) { matchResult ->
             matchResult.value
-                .replace("(?i)", "##?i//")
+                .replace("(?i)", "##?i§§")
         }
     } else this
 
 fun String.unescapeRegexPattern(): String =
     this.replace("##", "(")
-        .replace("//", ")")
+        .replace("§§", ")")
 
 fun buildTypeQuery(rawQuery: String, target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->

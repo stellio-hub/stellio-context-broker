@@ -59,6 +59,12 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
                 AttributeValueType.GEOMETRY,
                 Triple(null, null, this.coordinates)
             )
+        is NgsiLdJsonPropertyInstance ->
+            Triple(
+                TemporalEntityAttribute.AttributeType.JsonProperty,
+                AttributeValueType.JSON,
+                Triple(serializeObject(this.json), null, null)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         logger.warn("Unable to get a value from attribute: $this")
@@ -85,6 +91,7 @@ fun guessAttributeValueType(
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
         TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
         TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
+        TemporalEntityAttribute.AttributeType.JsonProperty -> AttributeValueType.JSON
     }
 
 fun guessPropertyValueType(

@@ -1,12 +1,12 @@
 package com.egm.stellio.search.model
 
+import com.egm.stellio.search.util.toJson
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -65,8 +65,6 @@ data class AttributeInstance private constructor(
             payload = payload.composePayload(instanceId).toJson(),
             sub = sub
         )
-
-        private fun ExpandedAttributeInstance.toJson(): Json = Json.of(serializeObject(this))
 
         private fun ExpandedAttributeInstance.composePayload(
             instanceId: URI,

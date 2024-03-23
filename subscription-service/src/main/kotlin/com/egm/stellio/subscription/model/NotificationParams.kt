@@ -15,7 +15,9 @@ data class NotificationParams(
     val timesSent: Int = 0,
     val lastNotification: ZonedDateTime? = null,
     val lastFailure: ZonedDateTime? = null,
-    val lastSuccess: ZonedDateTime? = null
+    val lastSuccess: ZonedDateTime? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
+    val sysAttrs: Boolean = false
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")

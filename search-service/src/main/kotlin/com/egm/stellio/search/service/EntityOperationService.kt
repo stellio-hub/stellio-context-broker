@@ -202,7 +202,7 @@ class EntityOperationService(
         sub: Sub?
     ): Either<BatchEntityError, BatchEntitySuccess> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id)
+        temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
         val updateResult = entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getAttributes(),

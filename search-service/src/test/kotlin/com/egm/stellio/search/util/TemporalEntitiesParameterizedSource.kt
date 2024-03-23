@@ -3,7 +3,10 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
 import java.time.Instant
 import java.time.ZoneOffset
@@ -24,8 +27,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(
@@ -49,8 +51,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(
@@ -78,8 +79,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(
@@ -110,8 +110,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(
@@ -146,8 +145,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(
@@ -185,8 +183,7 @@ class TemporalEntitiesParameterizedSource {
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                         types = listOf(BEEHIVE_TYPE),
                         createdAt = now,
-                        payload = EMPTY_JSON_PAYLOAD,
-                        contexts = APIC_COMPOUND_CONTEXTS
+                        payload = EMPTY_JSON_PAYLOAD
                     ),
                     emptyList(),
                     mapOf(

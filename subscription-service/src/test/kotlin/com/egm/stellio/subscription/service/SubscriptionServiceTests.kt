@@ -150,6 +150,43 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should not allow a subscription with timeInterval and throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to 10,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to 30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "You can't use 'timeInterval' in conjunction with 'throttling'"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with a negative throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to -30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'throttling' must be greater than zero (int)"
+            }
+    }
+
+    @Test
     fun `it should not allow a subscription with a negative timeInterval`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
@@ -285,7 +322,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         Endpoint.AcceptType.JSON,
                         listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                     ) &&
-                    it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z")
+                    it.notification.sysAttrs &&
+                    it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
+                    it.throttling == 60
             }
     }
 
@@ -678,7 +717,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "geometry" to "Point",
                 "coordinates" to "[100.0, 0.0]",
                 "geoproperty" to "https://uri.etsi.org/ngsi-ld/observationSpace"
-            )
+            ),
+            "throttling" to 50
         )
 
         subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
@@ -694,7 +734,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.geoQ!!.georel == "equals" &&
                     it.geoQ!!.geometry == "Point" &&
                     it.geoQ!!.coordinates == "[100.0, 0.0]" &&
-                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace"
+                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace" &&
+                    it.throttling == 50
             }
     }
 
@@ -887,12 +928,12 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "throttling" to "someValue")
+        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
 
         subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
             .shouldFailWith {
                 it is NotImplementedException &&
-                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: throttling"
+                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: csf"
             }
     }
 
@@ -1060,6 +1101,101 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_PROPERTY), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(0, it.size) }
+    }
+
+    @Test
+    fun `it should not return a subscription if throttling has not elapsed yet`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
+            ),
+            "throttling" to 300
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(NGSILD_LOCATION_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(0, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if throttling has elapsed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
+            ),
+            "throttling" to 1
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
+
+        // add a delay for throttling period to be elapsed
+        runBlocking {
+            delay(2000)
+        }
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(NGSILD_LOCATION_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if throttling is not null and last_notification is null`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")
+            ),
+            "throttling" to 300
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(NGSILD_LOCATION_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
     }
 
     @ParameterizedTest

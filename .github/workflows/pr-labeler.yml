@@ -13,6 +13,6 @@ jobs:
       pull-requests: write # for TimonVS/pr-labeler-action to add labels in PR
     runs-on: ubuntu-latest
     steps:
-      - uses: TimonVS/pr-labeler-action@v4.1.1
+      - uses: TimonVS/pr-labeler-action@v5.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}

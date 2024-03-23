@@ -18,13 +18,13 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.2.1" apply false
+    id("org.springframework.boot") version "3.2.4" apply false
     id("io.spring.dependency-management") version "1.1.4" apply false
-    id("org.graalvm.buildtools.native") version "0.9.28"
-    kotlin("jvm") version "1.9.22" apply false
-    kotlin("plugin.spring") version "1.9.22" apply false
-    id("com.google.cloud.tools.jib") version "3.4.0" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.4" apply false
+    id("org.graalvm.buildtools.native") version "0.10.1"
+    kotlin("jvm") version "1.9.23" apply false
+    kotlin("plugin.spring") version "1.9.23" apply false
+    id("com.google.cloud.tools.jib") version "3.4.1" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.5" apply false
     id("org.sonarqube") version "4.4.1.3373"
     jacoco
 }
@@ -64,10 +64,10 @@ subprojects {
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-        implementation("com.apicatalog:titanium-json-ld:1.3.3")
+        implementation("com.apicatalog:titanium-json-ld:1.4.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.3")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 
@@ -104,7 +104,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.21")
+                useVersion("1.9.22")
             }
         }
     }

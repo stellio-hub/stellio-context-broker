@@ -64,8 +64,8 @@ class EntityPayloadService(
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, contexts, specific_access_policy)
-            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :contexts, :specific_access_policy)
+            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
+            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
             """.trimIndent()
         )
             .bind("entity_id", ngsiLdEntity.id)
@@ -73,7 +73,6 @@ class EntityPayloadService(
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
             .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
-            .bind("contexts", ngsiLdEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
@@ -155,8 +154,7 @@ class EntityPayloadService(
                 scopes = :scopes,
                 modified_at = :modified_at,
                 payload = :payload,
-                specific_access_policy = :specific_access_policy,
-                contexts = :contexts
+                specific_access_policy = :specific_access_policy
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
@@ -165,7 +163,6 @@ class EntityPayloadService(
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("modified_at", replacedAt)
             .bind("payload", Json.of(serializedPayload))
-            .bind("contexts", expandedEntity.contexts.toTypedArray())
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
             .map {
@@ -210,7 +207,6 @@ class EntityPayloadService(
             scopes = toOptionalList(row["scopes"]),
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            contexts = toList(row["contexts"]),
             payload = toJson(row["payload"]),
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )
@@ -421,58 +417,46 @@ class EntityPayloadService(
         newTypes: List<ExpandedTerm>,
         modifiedAt: ZonedDateTime,
         allowEmptyListOfTypes: Boolean = true
-    ): Either<APIException, UpdateResult> =
-        either {
-            val entityPayload = retrieve(entityId).bind()
-            val currentTypes = entityPayload.types
-            // when dealing with an entity update, list of types can be empty if no change of type is requested
-            if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
-                return@either UpdateResult(emptyList(), emptyList())
-            if (!newTypes.containsAll(currentTypes)) {
-                val removedTypes = currentTypes.minus(newTypes)
-                return@either updateResultFromDetailedResult(
+    ): Either<APIException, UpdateResult> = either {
+        val entityPayload = retrieve(entityId).bind()
+        val currentTypes = entityPayload.types
+        // when dealing with an entity update, list of types can be empty if no change of type is requested
+        if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
+            return@either UpdateResult(emptyList(), emptyList())
+
+        val updatedTypes = currentTypes.union(newTypes)
+        val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
+            .mapValues {
+                if (it.key == JSONLD_TYPE)
+                    updatedTypes
+                else it
+            }
+
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET types = :types,
+                modified_at = :modified_at,
+                payload = :payload
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("types", updatedTypes.toTypedArray())
+            .bind("payload", Json.of(serializeObject(updatedPayload)))
+            .execute()
+            .map {
+                updateResultFromDetailedResult(
                     listOf(
                         UpdateAttributeResult(
                             attributeName = JSONLD_TYPE,
-                            updateOperationResult = UpdateOperationResult.FAILED,
-                            errorMessage = "A type cannot be removed from an entity: $removedTypes have been removed"
+                            updateOperationResult = UpdateOperationResult.APPENDED
                         )
                     )
                 )
-            }
-
-            val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
-                .mapValues {
-                    if (it.key == JSONLD_TYPE)
-                        newTypes
-                    else it
-                }
-
-            databaseClient.sql(
-                """
-                UPDATE entity_payload
-                SET types = :types,
-                    modified_at = :modified_at,
-                    payload = :payload
-                WHERE entity_id = :entity_id
-                """.trimIndent()
-            )
-                .bind("entity_id", entityId)
-                .bind("types", newTypes.toTypedArray())
-                .bind("modified_at", modifiedAt)
-                .bind("payload", Json.of(serializeObject(updatedPayload)))
-                .execute()
-                .map {
-                    updateResultFromDetailedResult(
-                        listOf(
-                            UpdateAttributeResult(
-                                attributeName = JSONLD_TYPE,
-                                updateOperationResult = UpdateOperationResult.APPENDED
-                            )
-                        )
-                    )
-                }.bind()
-        }
+            }.bind()
+    }
 
     @Transactional
     suspend fun appendAttributes(
@@ -483,7 +467,7 @@ class EntityPayloadService(
     ): Either<APIException, UpdateResult> = either {
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
 
         val operationType =
             if (disallowOverwrite) APPEND_ATTRIBUTES
@@ -512,50 +496,48 @@ class EntityPayloadService(
         entityUri: URI,
         expandedAttributes: ExpandedAttributes,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val (coreAttrs, otherAttrs) =
-                expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-            val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+    ): Either<APIException, UpdateResult> = either {
+        val (coreAttrs, otherAttrs) =
+            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+        val createdAt = ngsiLdDateTime()
 
-            val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
-            val attrsUpdateResult = temporalEntityAttributeService.updateEntityAttributes(
-                entityUri,
-                otherAttrs.toMap().toNgsiLdAttributes().bind(),
-                expandedAttributes,
-                createdAt,
-                sub
-            ).bind()
+        val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
+        val attrsUpdateResult = temporalEntityAttributeService.updateEntityAttributes(
+            entityUri,
+            otherAttrs.toMap().toNgsiLdAttributes().bind(),
+            expandedAttributes,
+            createdAt,
+            sub
+        ).bind()
 
-            val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
-            // update modifiedAt in entity if at least one attribute has been added
-            if (updateResult.hasSuccessfulUpdate()) {
-                val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
-                updateState(entityUri, createdAt, teas).bind()
-            }
-            updateResult
+        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
+        // update modifiedAt in entity if at least one attribute has been added
+        if (updateResult.hasSuccessfulUpdate()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+            updateState(entityUri, createdAt, teas).bind()
         }
+        updateResult
+    }
 
     @Transactional
     suspend fun partialUpdateAttribute(
         entityId: URI,
         expandedAttribute: ExpandedAttribute,
         sub: Sub?
-    ): Either<APIException, UpdateResult> =
-        either {
-            val modifiedAt = ZonedDateTime.now(ZoneOffset.UTC)
-            val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
-                entityId,
-                expandedAttribute,
-                modifiedAt,
-                sub
-            ).bind()
-            if (updateResult.isSuccessful()) {
-                val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
-                updateState(entityId, modifiedAt, teas).bind()
-            }
-            updateResult
+    ): Either<APIException, UpdateResult> = either {
+        val modifiedAt = ngsiLdDateTime()
+        val updateResult = temporalEntityAttributeService.partialUpdateEntityAttribute(
+            entityId,
+            expandedAttribute,
+            modifiedAt,
+            sub
+        ).bind()
+        if (updateResult.isSuccessful()) {
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            updateState(entityId, modifiedAt, teas).bind()
         }
+        updateResult
+    }
 
     @Transactional
     suspend fun upsertAttributes(

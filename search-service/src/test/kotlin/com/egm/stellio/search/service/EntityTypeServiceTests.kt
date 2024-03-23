@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.AttributeType
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.util.execute
 import com.egm.stellio.search.util.toUri
 import com.egm.stellio.shared.model.APIException
@@ -15,9 +16,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,32 +44,38 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = newEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
-    private val entityPayload2 = newEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
-    private val entityPayload3 = newEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
-    private val temporalEntityAttribute1 = newTemporalEntityAttribute(
+    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
+    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
+    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
+    private val incomingProperty = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
         TemporalEntityAttribute.AttributeType.Property,
         TemporalEntityAttribute.AttributeValueType.NUMBER
     )
-    private val temporalEntityAttribute2 = newTemporalEntityAttribute(
+    private val managedByRelationship = newTemporalEntityAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         MANAGED_BY_RELATIONSHIP,
         TemporalEntityAttribute.AttributeType.Relationship,
         TemporalEntityAttribute.AttributeValueType.STRING
     )
-    private val temporalEntityAttribute3 = newTemporalEntityAttribute(
+    private val locationGeoProperty = newTemporalEntityAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
         NGSILD_LOCATION_PROPERTY,
         TemporalEntityAttribute.AttributeType.GeoProperty,
         TemporalEntityAttribute.AttributeValueType.GEOMETRY
     )
-    private val temporalEntityAttribute4 = newTemporalEntityAttribute(
+    private val outgoingProperty = newTemporalEntityAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
         OUTGOING_PROPERTY,
         TemporalEntityAttribute.AttributeType.Property,
         TemporalEntityAttribute.AttributeValueType.GEOMETRY
+    )
+    private val luminosityJsonProperty = newTemporalEntityAttribute(
+        "urn:ngsi-ld:Sensor:TESTB",
+        LUMINOSITY_JSONPROPERTY,
+        TemporalEntityAttribute.AttributeType.JsonProperty,
+        TemporalEntityAttribute.AttributeValueType.OBJECT
     )
 
     @AfterEach
@@ -86,36 +93,35 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         createEntityPayload(entityPayload1)
         createEntityPayload(entityPayload2)
         createEntityPayload(entityPayload3)
-        createTemporalEntityAttribute(temporalEntityAttribute1)
-        createTemporalEntityAttribute(temporalEntityAttribute2)
-        createTemporalEntityAttribute(temporalEntityAttribute3)
-        createTemporalEntityAttribute(temporalEntityAttribute4)
+        createTemporalEntityAttribute(incomingProperty)
+        createTemporalEntityAttribute(managedByRelationship)
+        createTemporalEntityAttribute(locationGeoProperty)
+        createTemporalEntityAttribute(outgoingProperty)
+        createTemporalEntityAttribute(luminosityJsonProperty)
     }
 
     @Test
-    fun `it should return an EntityTypeList`() = runTest {
+    fun `it should return a list of all known entity types`() = runTest {
         val entityTypes = entityTypeService.getEntityTypeList(APIC_COMPOUND_CONTEXTS)
 
-        assertTrue(
-            entityTypes.typeList == listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
-        )
+        assertEquals(listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE), entityTypes.typeList)
     }
 
     @Test
-    fun `it should return an empty list of types if no entity was found`() = runTest {
+    fun `it should return an empty list of types if no entity exists`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
         val entityTypes = entityTypeService.getEntityTypeList(listOf(AQUAC_COMPOUND_CONTEXT))
-        assert(entityTypes.typeList.isEmpty())
+        assertThat(entityTypes.typeList).isEmpty()
     }
 
     @Test
-    fun `it should return a list of EntityType`() = runTest {
+    fun `it should return all known entity types with details`() = runTest {
         val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
 
-        assertTrue(entityTypes.size == 3)
-        assertTrue(
-            entityTypes.containsAll(
+        assertEquals(3, entityTypes.size)
+        assertThat(entityTypes)
+            .containsAll(
                 listOf(
                     EntityType(
                         id = toUri(APIARY_TYPE),
@@ -132,59 +138,67 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         typeName = SENSOR_COMPACT_TYPE,
                         attributeNames = listOf(
                             INCOMING_COMPACT_PROPERTY,
+                            LUMINOSITY_COMPACT_JSONPROPERTY,
                             MANAGED_BY_COMPACT_RELATIONSHIP,
                             OUTGOING_COMPACT_PROPERTY
                         )
                     )
                 )
             )
-        )
     }
 
     @Test
-    fun `it should return an empty list of EntityTypes if no entity was found`() = runTest {
+    fun `it should return an empty list of detailed entity types if no entity exists`() = runTest {
         clearPreviousTemporalEntityAttributesAndObservations()
 
         val entityTypes = entityTypeService.getEntityTypes(listOf(AQUAC_COMPOUND_CONTEXT))
-        assert(entityTypes.isEmpty())
+        assertThat(entityTypes).isEmpty()
     }
 
     @Test
-    fun `it should return an EntityTypeInfo for a specific type`() = runTest {
-        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(
-            BEEHIVE_TYPE,
-            APIC_COMPOUND_CONTEXTS
-        )
+    fun `it should return entity type info for a specific type`() = runTest {
+        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(SENSOR_TYPE, APIC_COMPOUND_CONTEXTS)
 
         entityTypeInfo.shouldSucceedWith {
-            EntityTypeInfo(
-                id = toUri(BEEHIVE_TYPE),
-                typeName = BEEHIVE_COMPACT_TYPE,
-                entityCount = 1,
-                attributeDetails = listOf(
-                    AttributeInfo(
-                        id = toUri(INCOMING_PROPERTY),
-                        attributeName = INCOMING_COMPACT_PROPERTY,
-                        attributeTypes = listOf(AttributeType.Property)
-                    ),
-                    AttributeInfo(
-                        id = toUri(MANAGED_BY_RELATIONSHIP),
-                        attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
-                        attributeTypes = listOf(AttributeType.Relationship)
+            assertEquals(
+                EntityTypeInfo(
+                    id = toUri(SENSOR_TYPE),
+                    typeName = SENSOR_COMPACT_TYPE,
+                    entityCount = 2,
+                    attributeDetails = listOf(
+                        AttributeInfo(
+                            id = toUri(INCOMING_PROPERTY),
+                            attributeName = INCOMING_COMPACT_PROPERTY,
+                            attributeTypes = listOf(AttributeType.Property)
+                        ),
+                        AttributeInfo(
+                            id = toUri(LUMINOSITY_JSONPROPERTY),
+                            attributeName = LUMINOSITY_COMPACT_JSONPROPERTY,
+                            attributeTypes = listOf(AttributeType.JsonProperty)
+                        ),
+                        AttributeInfo(
+                            id = toUri(MANAGED_BY_RELATIONSHIP),
+                            attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
+                            attributeTypes = listOf(AttributeType.Relationship)
+                        ),
+                        AttributeInfo(
+                            id = toUri(OUTGOING_PROPERTY),
+                            attributeName = OUTGOING_COMPACT_PROPERTY,
+                            attributeTypes = listOf(AttributeType.Property)
+                        )
                     )
-                )
+                ),
+                it
             )
         }
     }
 
     @Test
-    fun `it should error when type doesn't exist`() = runTest {
-        val entityTypeInfo =
-            entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
-
-        entityTypeInfo.shouldFail {
-            assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
-        }
+    fun `it should return an error when entity type doesn't exist`() = runTest {
+        entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
+            .shouldFail {
+                assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
+            }
     }
 
     private fun createTemporalEntityAttribute(
@@ -237,17 +251,4 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 .bind("types", entityPayload.types.toTypedArray())
                 .execute()
         }
-
-    private fun newEntityPayload(
-        id: String,
-        types: List<String>,
-        contexts: List<String> = APIC_COMPOUND_CONTEXTS
-    ): EntityPayload =
-        EntityPayload(
-            entityId = toUri(id),
-            types = types,
-            createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = contexts
-        )
 }

@@ -1,12 +1,14 @@
 package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.search.support.gimmeEntityPayload
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
@@ -16,13 +18,11 @@ import java.time.ZonedDateTime
 @ActiveProfiles("test")
 class TemporalScopeBuilderTests {
 
-    private val now = ngsiLdDateTime()
-
     private val entityId = "urn:ngsi-ld:Beehive:1234".toUri()
 
     @Test
     fun `it should build an aggregated temporal representation of scopes`() {
-        val entityPayload = gimmeEntityPayload()
+        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             AggregatedScopeInstanceResult(
                 entityId = entityId,
@@ -86,7 +86,7 @@ class TemporalScopeBuilderTests {
 
     @Test
     fun `it should build a temporal values representation of scopes`() {
-        val entityPayload = gimmeEntityPayload()
+        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             SimplifiedScopeInstanceResult(
                 entityId = entityId,
@@ -124,7 +124,7 @@ class TemporalScopeBuilderTests {
 
     @Test
     fun `it should build a full representation of scopes`() {
-        val entityPayload = gimmeEntityPayload()
+        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             FullScopeInstanceResult(
                 entityId = entityId,
@@ -161,13 +161,4 @@ class TemporalScopeBuilderTests {
             JsonUtils.serializeObject(scopeHistory)
         )
     }
-
-    private fun gimmeEntityPayload(): EntityPayload =
-        EntityPayload(
-            entityId = entityId,
-            types = listOf(BEEHIVE_TYPE),
-            createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD,
-            contexts = APIC_COMPOUND_CONTEXTS
-        )
 }

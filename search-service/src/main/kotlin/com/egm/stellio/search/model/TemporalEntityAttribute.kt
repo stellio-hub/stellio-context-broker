@@ -2,7 +2,12 @@ package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
@@ -32,19 +37,33 @@ data class TemporalEntityAttribute(
         DATETIME,
         DATE,
         TIME,
-        URI
+        URI,
+        JSON
     }
 
     enum class AttributeType {
         Property,
         Relationship,
-        GeoProperty;
+        GeoProperty,
+        JsonProperty;
 
         fun toExpandedName(): String =
             when (this) {
                 Property -> NGSILD_PROPERTY_TYPE.uri
                 Relationship -> NGSILD_RELATIONSHIP_TYPE.uri
                 GeoProperty -> NGSILD_GEOPROPERTY_TYPE.uri
+                JsonProperty -> NGSILD_JSONPROPERTY_TYPE.uri
+            }
+
+        /**
+         * Returns the key of the member for the simplified representation of the attribute, as defined in 4.5.9
+         */
+        fun toSimpliedRepresentationKey(): String =
+            when (this) {
+                Property -> NGSILD_PROPERTY_VALUES
+                Relationship -> NGSILD_RELATIONSHIP_OBJECTS
+                GeoProperty -> NGSILD_GEOPROPERTY_VALUES
+                JsonProperty -> NGSILD_JSONPROPERTY_VALUES
             }
     }
 }

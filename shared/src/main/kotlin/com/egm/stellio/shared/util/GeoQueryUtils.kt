@@ -115,8 +115,8 @@ fun buildGeoQuery(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {
         if (georelQuery.first == GEOREL_NEAR_DISTANCE_MODIFIER)
             """
             public.ST_Distance(
-                'SRID=4326;${geoQuery.wktCoordinates.value}'::geography, 
-                ('SRID=4326;' || $targetWKTCoordinates)::geography,
+                cast('SRID=4326;${geoQuery.wktCoordinates.value}' as public.geography), 
+                cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
                 false
             ) ${georelQuery.second} ${georelQuery.third}
             """.trimIndent()

@@ -21,7 +21,8 @@ data class AttributeInfo(
 enum class AttributeType(val key: String) {
     Property("Property"),
     Relationship("Relationship"),
-    GeoProperty("GeoProperty");
+    GeoProperty("GeoProperty"),
+    JsonProperty("JsonProperty");
 
     companion object {
         fun forKey(key: String): AttributeType =

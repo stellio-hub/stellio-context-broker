@@ -34,7 +34,7 @@ dependencies {
     testFixturesImplementation("org.mock-server:mockserver-netty-no-dependencies:5.15.0")
     testFixturesImplementation("org.mock-server:mockserver-client-java-no-dependencies:5.15.0")
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.5")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
 
     testFixturesApi("org.testcontainers:testcontainers")
     testFixturesApi("org.testcontainers:junit-jupiter")

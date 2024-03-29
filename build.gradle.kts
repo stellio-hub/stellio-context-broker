@@ -24,8 +24,8 @@ plugins {
     kotlin("jvm") version "1.9.23" apply false
     kotlin("plugin.spring") version "1.9.23" apply false
     id("com.google.cloud.tools.jib") version "3.4.1" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.5" apply false
-    id("org.sonarqube") version "4.4.1.3373"
+    id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
+    id("org.sonarqube") version "5.0.0.4638"
     jacoco
 }
 
@@ -104,7 +104,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.22")
+                useVersion("1.9.23")
             }
         }
     }

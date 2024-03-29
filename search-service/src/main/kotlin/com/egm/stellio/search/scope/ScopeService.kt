@@ -8,11 +8,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.search.util.*
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.ExpandedAttributeInstances
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.model.getScopes
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
@@ -147,7 +143,7 @@ class ScopeService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT entity_id,
-                   time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
+                   public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
                    $allAggregates
                 """
             } else

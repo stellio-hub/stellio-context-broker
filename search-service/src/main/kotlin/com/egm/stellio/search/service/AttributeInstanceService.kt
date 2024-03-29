@@ -211,7 +211,7 @@ class AttributeInstanceService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT temporal_entity_attribute,
-                    time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
+                    public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
                     $allAggregates
                 """.trimIndent()
             } else

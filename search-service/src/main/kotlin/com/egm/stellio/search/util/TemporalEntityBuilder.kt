@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
@@ -113,8 +114,8 @@ object TemporalEntityBuilder {
      */
     private fun buildAttributesSimplifiedRepresentation(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult
-    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
-        return attributeAndResultsMap.mapValues {
+    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> =
+        attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
                 JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
             )
@@ -142,6 +143,14 @@ object TemporalEntityBuilder {
                             ),
                             mapOf(JSONLD_VALUE to attributeInstanceResult.time)
                         )
+                    } else if (it.key.attributeType == TemporalEntityAttribute.AttributeType.LanguageProperty) {
+                        listOf(
+                            mapOf(
+                                NGSILD_LANGUAGEPROPERTY_VALUE to
+                                    deserializeListOfObjects(attributeInstanceResult.value as String)
+                            ),
+                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                        )
                     } else {
                         listOf(
                             mapOf(JSONLD_VALUE to attributeInstanceResult.value),
@@ -151,7 +160,6 @@ object TemporalEntityBuilder {
                 }
             attributeInstance.toMap()
         }
-    }
 
     /**
      * Creates the aggregated representation for each temporal entity attribute in the input map.

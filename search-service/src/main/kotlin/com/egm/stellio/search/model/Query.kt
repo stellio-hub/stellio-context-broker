@@ -22,7 +22,8 @@ data class Query private constructor(
     val q: String? = null,
     val geoQ: UnparsedGeoQuery? = null,
     val temporalQ: UnparsedTemporalQuery? = null,
-    val scopeQ: String? = null
+    val scopeQ: String? = null,
+    val lang: String? = null,
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {

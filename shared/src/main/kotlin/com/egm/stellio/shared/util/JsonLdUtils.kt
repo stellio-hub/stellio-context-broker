@@ -70,6 +70,7 @@ object JsonLdUtils {
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
+    const val NGSILD_LANG_TERM = "lang"
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)

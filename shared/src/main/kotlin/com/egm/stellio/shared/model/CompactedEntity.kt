@@ -11,48 +11,79 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANG_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
 
-fun CompactedEntity.toKeyValues(): Map<String, Any> =
-    this.mapValues { (_, value) -> simplifyRepresentation(value) }
-
-private fun simplifyRepresentation(value: Any): Any =
-    when (value) {
-        // an attribute with a single instance
-        is Map<*, *> -> simplifyValue(value as Map<String, Any>)
-        // an attribute with multiple instances
-        is List<*> -> {
-            when (value.first()) {
-                is Map<*, *> -> simplifyMultiInstanceAttribute(value as List<Map<String, Any>>)
-                // we keep @context value as it is (List<String>)
-                else -> value
-            }
-        }
-        // keep id, type and other non-reified properties as they are (typically string or list)
-        else -> value
+fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
+    this.mapValues { (_, value) ->
+        applyAttributeTransformation(value, null, ::simplifyAttribute, ::simplifyMultiInstanceAttribute)
     }
 
-private fun simplifyMultiInstanceAttribute(value: List<Map<String, Any>>): Map<String, Map<String, Any>> {
+private fun simplifyMultiInstanceAttribute(
+    value: List<Map<String, Any>>,
+    transformationParameters: Map<String, String>?
+): Map<String, Map<String, Any>> {
     val datasetIds = value.map {
         val datasetId = (it[NGSILD_DATASET_ID_TERM] as? String) ?: NGSILD_NONE_TERM
-        val datasetValue: Any = simplifyValue(it)
+        val datasetValue: Any = simplifyAttribute(it, transformationParameters)
         Pair(datasetId, datasetValue)
     }
     return mapOf(NGSILD_DATASET_TERM to datasetIds.toMap())
 }
 
-private fun simplifyValue(value: Map<String, Any>): Any {
+@SuppressWarnings("UnusedParameter")
+private fun simplifyAttribute(value: Map<String, Any>, transformationParameters: Map<String, String>?): Any {
     val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
     return when (attributeCompactedType) {
-        PROPERTY, GEOPROPERTY -> {
-            value.getOrDefault(JSONLD_VALUE_TERM, value)
-        }
+        PROPERTY, GEOPROPERTY -> value.getOrDefault(JSONLD_VALUE_TERM, value)
         RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
         JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
         LANGUAGEPROPERTY -> mapOf(JSONLD_LANGUAGEMAP_TERM to value.getOrDefault(JSONLD_LANGUAGEMAP_TERM, value))
+    }
+}
+
+fun CompactedEntity.toFilteredLanguageProperties(languageFilter: String): CompactedEntity =
+    this.mapValues { (_, value) ->
+        applyAttributeTransformation(
+            value,
+            mapOf(QUERY_PARAM_LANG to languageFilter),
+            ::filterLanguageProperty,
+            ::filterMultiInstanceLanguageProperty
+        )
+    }
+
+private fun filterMultiInstanceLanguageProperty(
+    value: List<Map<String, Any>>,
+    transformationParameters: Map<String, String>?
+): Any =
+    value.map {
+        filterLanguageProperty(it, transformationParameters)
+    }
+
+private fun filterLanguageProperty(value: Map<String, Any>, transformationParameters: Map<String, String>?): Any {
+    val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
+    return when (attributeCompactedType) {
+        LANGUAGEPROPERTY -> {
+            val localeRanges = Locale.LanguageRange.parse(transformationParameters?.get(QUERY_PARAM_LANG)!!)
+            val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
+            val bestLocaleMatch = Locale.filterTags(localeRanges, propertyLocales)
+                .getOrElse(0) { _ -> propertyLocales.first() }
+            mapOf(
+                JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM,
+                JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],
+                NGSILD_LANG_TERM to bestLocaleMatch
+            )
+        }
+        else -> value
     }
 }
 
@@ -103,7 +134,12 @@ fun CompactedEntity.toFinalRepresentation(
         if (!ngsiLdDataRepresentation.includeSysAttrs) it.withoutSysAttrs(ngsiLdDataRepresentation.timeproperty)
         else it
     }.let {
-        if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED) it.toKeyValues()
+        if (ngsiLdDataRepresentation.languageFilter != null)
+            it.toFilteredLanguageProperties(ngsiLdDataRepresentation.languageFilter)
+        else it
+    }.let {
+        if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED)
+            it.toSimplifiedAttributes()
         else it
     }.let {
         when (ngsiLdDataRepresentation.entityRepresentation) {
@@ -136,14 +172,35 @@ fun List<CompactedEntity>.toFinalRepresentation(
     }
 
 enum class AttributeCompactedType(val key: String) {
-    PROPERTY("Property"),
-    RELATIONSHIP("Relationship"),
-    GEOPROPERTY("GeoProperty"),
-    JSONPROPERTY("JsonProperty"),
-    LANGUAGEPROPERTY("LanguageProperty");
+    PROPERTY(NGSILD_PROPERTY_TERM),
+    RELATIONSHIP(NGSILD_RELATIONSHIP_TERM),
+    GEOPROPERTY(NGSILD_GEOPROPERTY_TERM),
+    JSONPROPERTY(NGSILD_JSONPROPERTY_TERM),
+    LANGUAGEPROPERTY(NGSILD_LANGUAGEPROPERTY_TERM);
 
     companion object {
         fun forKey(key: String): AttributeCompactedType? =
             entries.find { it.key == key }
     }
 }
+
+private fun applyAttributeTransformation(
+    value: Any,
+    transformationParameters: Map<String, String>?,
+    onSingleInstance: (Map<String, Any>, Map<String, String>?) -> Any,
+    onMultiInstance: (List<Map<String, Any>>, Map<String, String>?) -> Any
+): Any =
+    when (value) {
+        // an attribute with a single instance
+        is Map<*, *> -> onSingleInstance(value as Map<String, Any>, transformationParameters)
+        // an attribute with multiple instances
+        is List<*> -> {
+            when (value.first()) {
+                is Map<*, *> -> onMultiInstance(value as List<Map<String, Any>>, transformationParameters)
+                // we keep @context value as it is (List<String>)
+                else -> value
+            }
+        }
+        // keep id, type and other non-reified properties as they are (typically string or list)
+        else -> value
+    }

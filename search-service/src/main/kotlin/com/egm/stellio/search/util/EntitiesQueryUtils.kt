@@ -65,16 +65,6 @@ fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException,
 
 fun composeEntitiesQueryFromPostRequest(
     defaultPagination: ApplicationProperties.Pagination,
-    requestBody: String,
-    requestParams: MultiValueMap<String, String>,
-    contexts: List<String>
-): Either<APIException, EntitiesQuery> = either {
-    val query = Query(requestBody).bind()
-    composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contexts).bind()
-}
-
-fun composeEntitiesQueryFromPostRequest(
-    defaultPagination: ApplicationProperties.Pagination,
     query: Query,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
@@ -152,11 +142,10 @@ fun composeTemporalEntitiesQuery(
 
 fun composeTemporalEntitiesQueryFromPostRequest(
     defaultPagination: ApplicationProperties.Pagination,
-    requestBody: String,
+    query: Query,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, TemporalEntitiesQuery> = either {
-    val query = Query(requestBody).bind()
     val entitiesQuery = composeEntitiesQueryFromPostRequest(
         defaultPagination,
         query,

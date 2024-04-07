@@ -127,7 +127,7 @@ class CompactedEntityTests {
         val normalizedMap = normalizedEntity.deserializeAsMap()
         val simplifiedMap = simplifiedEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toKeyValues()
+        val resultMap = normalizedMap.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
@@ -137,7 +137,7 @@ class CompactedEntityTests {
         val normalizedMap = normalizedMultiAttributeEntity.deserializeAsMap()
         val simplifiedMap = simplifiedMultiAttributeEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toKeyValues()
+        val resultMap = normalizedMap.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
@@ -160,7 +160,7 @@ class CompactedEntityTests {
         """.trimIndent()
             .deserializeAsMap()
 
-        val simplifiedRepresentation = compactedEntity.toKeyValues()
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
         val expectedSimplifiedRepresentation = """
             {
@@ -195,7 +195,7 @@ class CompactedEntityTests {
         """.trimIndent()
             .deserializeAsMap()
 
-        val simplifiedRepresentation = compactedEntity.toKeyValues()
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
         val expectedSimplifiedRepresentation = """
             {
@@ -744,7 +744,7 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
                 includeSysAttrs = false,
-                JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
             )
         )
 
@@ -768,7 +768,7 @@ class CompactedEntityTests {
         """.trimIndent()
             .deserializeAsMap()
 
-        val simplifiedRepresentation = compactedEntity.toKeyValues()
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
         val expectedSimplifiedRepresentation = """
             {

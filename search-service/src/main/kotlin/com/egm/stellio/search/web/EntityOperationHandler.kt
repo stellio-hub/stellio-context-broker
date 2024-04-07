@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -272,10 +273,11 @@ class EntityOperationHandler(
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val query = Query(requestBody.awaitFirst()).bind()
 
         val entitiesQuery = composeEntitiesQueryFromPostRequest(
             applicationProperties.pagination,
-            requestBody.awaitFirst(),
+            query,
             params,
             contexts
         ).bind()
@@ -289,6 +291,8 @@ class EntityOperationHandler(
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+            .copy(languageFilter = query.lang)
+
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

@@ -829,7 +829,7 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has an instance without a json member",
+                    "JsonProperty ${NGSILD_DEFAULT_VOCAB}jsonProperty has an instance without a json member",
                     it.message
                 )
             }
@@ -853,7 +853,7 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has a json member that is not a JSON object, " +
+                    "JsonProperty ${NGSILD_DEFAULT_VOCAB}jsonProperty has a json member that is not a JSON object, " +
                         "nor an array of JSON objects",
                     it.message
                 )
@@ -870,8 +870,9 @@ class NgsiLdEntityTests {
                 "languageProperty": {
                     "type": "LanguageProperty",
                     "languageMap": {
-                        "fr": "Grand Place",
-                        "nl": "Grote Markt"
+                        "fr": ["Grand Place", "Grande Place"],
+                        "nl": "Grote Markt",
+                        "@none": "Big Place"
                     }
                 }
             }
@@ -892,9 +893,16 @@ class NgsiLdEntityTests {
                     "@value" to "Grand Place"
                 ),
                 mapOf(
+                    "@language" to "fr",
+                    "@value" to "Grande Place"
+                ),
+                mapOf(
                     "@language" to "nl",
                     "@value" to "Grote Markt"
                 ),
+                mapOf(
+                    "@value" to "Big Place"
+                )
             ),
             languagePropertyInstance.languageMap
         )
@@ -920,7 +928,8 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}languageProperty has an instance without a languageMap member",
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an instance " +
+                        "without a languageMap member",
                     it.message
                 )
             }
@@ -947,7 +956,7 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
                     it.message
                 )
             }
@@ -963,7 +972,7 @@ class NgsiLdEntityTests {
                 "languageProperty": {
                     "type": "LanguageProperty",
                     "languageMap": {
-                        "invalid-lang-tag": "Grand Place"
+                        "123": "Grand Place"
                     }
                 }
             }
@@ -973,7 +982,7 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
                     it.message
                 )
             }

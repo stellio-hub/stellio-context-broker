@@ -325,11 +325,11 @@ class NgsiLdJsonPropertyInstance private constructor(
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
             val json = values.getMemberValue(NGSILD_JSONPROPERTY_VALUE)
             ensureNotNull(json) {
-                BadRequestDataException("Property $name has an instance without a json member")
+                BadRequestDataException("JsonProperty $name has an instance without a json member")
             }
             ensure(json is Map<*, *> || (json is List<*> && json.all { it is Map<*, *> })) {
                 BadRequestDataException(
-                    "Property $name has a json member that is not a JSON object, nor an array of JSON objects"
+                    "JsonProperty $name has a json member that is not a JSON object, nor an array of JSON objects"
                 )
             }
 
@@ -366,10 +366,10 @@ class NgsiLdLanguagePropertyInstance private constructor(
         ): Either<APIException, NgsiLdLanguagePropertyInstance> = either {
             val languageMap = values[NGSILD_LANGUAGEPROPERTY_VALUE]
             ensureNotNull(languageMap) {
-                BadRequestDataException("Property $name has an instance without a languageMap member")
+                BadRequestDataException("LanguageProperty $name has an instance without a languageMap member")
             }
             ensure(isValidLanguageMap(languageMap)) {
-                BadRequestDataException("Property $name has an invalid languageMap member")
+                BadRequestDataException("LanguageProperty $name has an invalid languageMap member")
             }
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
@@ -391,16 +391,20 @@ class NgsiLdLanguagePropertyInstance private constructor(
         private fun isValidLanguageMap(languageMap: List<Any>): Boolean =
             languageMap.all {
                 it is Map<*, *> &&
-                    it.size == 2 &&
-                    (it.containsKey(JSONLD_VALUE) || it.containsKey(JSONLD_LANGUAGE)) &&
-                    it.values.all { value -> value is String } &&
-                    isValidLanguageTag(it[JSONLD_LANGUAGE] as String)
+                    isValidStructure(it) &&
+                    isValidLangValue(it.values) &&
+                    isValidLanguageTag(it[JSONLD_LANGUAGE] as? String)
             }
 
-        private fun isValidLanguageTag(tag: String): Boolean {
-            val locale = Locale.forLanguageTag(tag)
-            return tag == locale.toLanguageTag()
-        }
+        private fun isValidStructure(langEntry: Map<*, *>): Boolean =
+            (langEntry.size == 2 && langEntry.containsKey(JSONLD_VALUE) && langEntry.containsKey(JSONLD_LANGUAGE)) ||
+                (langEntry.size == 1 && langEntry.containsKey(JSONLD_VALUE))
+
+        private fun isValidLangValue(values: Collection<Any?>): Boolean =
+            values.all { value -> value is String || value is List<*> }
+
+        private fun isValidLanguageTag(tag: String?): Boolean =
+            tag == null || "und" != Locale.forLanguageTag(tag).toLanguageTag()
     }
 
     override fun toString(): String = "NgsiLdLanguagePropertyInstance(languageMap=$languageMap)"

@@ -30,8 +30,8 @@ class LanguageFilterTests {
                     """
                     "languageProperty": {
                         "type": "Property",
-                        "value": "Grand Place",
-                        "lang": "fr"
+                        "value": "Big Place",
+                        "lang": "@none"
                     }
                     """.trimIndent()
                 ),
@@ -40,8 +40,8 @@ class LanguageFilterTests {
                     """
                     "languageProperty": {
                         "type": "Property",
-                        "value": "Grand Place",
-                        "lang": "fr"
+                        "value": "Big Place",
+                        "lang": "@none"
                     }
                     """.trimIndent()
                 ),
@@ -103,7 +103,8 @@ class LanguageFilterTests {
                     "type": "LanguageProperty",
                     "languageMap": {
                         "fr": "Grand Place",
-                        "nl": "Grote Markt"
+                        "nl": "Grote Markt",
+                        "@none": "Big Place"
                     }
                 }
             }

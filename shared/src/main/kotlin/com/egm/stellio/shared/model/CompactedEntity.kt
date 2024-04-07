@@ -76,7 +76,10 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
             val localeRanges = Locale.LanguageRange.parse(transformationParameters?.get(QUERY_PARAM_LANG)!!)
             val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
             val bestLocaleMatch = Locale.filterTags(localeRanges, propertyLocales)
-                .getOrElse(0) { _ -> propertyLocales.first() }
+                .getOrElse(0) { _ ->
+                    // as the list is sorted, @none is the first in the list if it exists
+                    propertyLocales.first()
+                }
             mapOf(
                 JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM,
                 JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],

@@ -4,8 +4,12 @@ import arrow.core.filterIsInstance
 import arrow.core.right
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANG_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
@@ -456,7 +460,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and return entities with sysAttrs if sysAttrs is true`() = runTest {
+    fun `it should notify the subscriber with sysAttrs if sysAttrs is true`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -493,6 +497,64 @@ class NotificationServiceTests {
                 .forEach { (_, v) ->
                     assertThat(v).containsKey("createdAt")
                     assertThat(v).containsKey("modifiedAt")
+                }
+        }
+    }
+
+    @Test
+    fun `it should notify the subscriber with language filter applied if lang is provided`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD
+                )
+            ),
+            lang = "fr",
+            contexts = APIC_COMPOUND_CONTEXTS
+        )
+
+        val expandedEntity = expandJsonLdEntity(
+            """
+            {
+               "id":"$apiaryId",
+               "type":"Apiary",
+               "friendlyName": {
+                  "type":"LanguageProperty",
+                  "languageMap": {
+                    "fr": "Le rucher de Nantes",
+                    "en": "The apiary of Nantes"
+                  }
+               },
+               "@context":[ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """.trimIndent()
+        )
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            expandedEntity,
+            setOf(FRIENDLYNAME_LANGUAGEPROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            val entity = it[0].second.data[0]
+            entity.filterKeys { key -> key == FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY }
+                .also { property ->
+                    val propertyValues = property[FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY] as Map<String, Any>
+                    assertThat(propertyValues)
+                        .containsEntry(JSONLD_TYPE_TERM, NGSILD_PROPERTY_TERM)
+                        .containsEntry(JSONLD_VALUE_TERM, "Le rucher de Nantes")
+                        .containsEntry(NGSILD_LANG_TERM, "fr")
                 }
         }
     }

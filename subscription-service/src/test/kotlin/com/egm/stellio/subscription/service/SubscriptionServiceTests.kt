@@ -324,7 +324,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     ) &&
                     it.notification.sysAttrs &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
-                    it.throttling == 60
+                    it.throttling == 60 &&
+                    it.lang == "fr,en"
             }
     }
 
@@ -718,7 +719,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 "coordinates" to "[100.0, 0.0]",
                 "geoproperty" to "https://uri.etsi.org/ngsi-ld/observationSpace"
             ),
-            "throttling" to 50
+            "throttling" to 50,
+            "lang" to "fr-CH,fr"
         )
 
         subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
@@ -735,7 +737,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.geoQ!!.geometry == "Point" &&
                     it.geoQ!!.coordinates == "[100.0, 0.0]" &&
                     it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace" &&
-                    it.throttling == 50
+                    it.throttling == 50 &&
+                    it.lang == "fr-CH,fr"
             }
     }
 

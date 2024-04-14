@@ -5,8 +5,7 @@ import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.deserializeAsMap
-import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.search.util.toExpandedAttributeInstance
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
@@ -111,7 +110,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityPayloadService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
-                val scopesInEntity = (it.payload.deserializeAsMap() as ExpandedAttributeInstance).getScopes()
+                val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()
                 assertEquals(expectedScopes, scopesInEntity)
             }
     }
@@ -296,7 +295,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         scopeService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertNull(it.first)
-                assertNull((it.second.deserializeAsMap() as ExpandedAttributeInstance).getScopes())
+                assertNull(it.second.toExpandedAttributeInstance().getScopes())
             }
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),

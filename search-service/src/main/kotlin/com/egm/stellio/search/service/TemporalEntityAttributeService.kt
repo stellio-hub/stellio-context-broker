@@ -21,9 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
-import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -271,9 +269,10 @@ class TemporalEntityAttributeService(
             attributeMetadata,
             observedAt
         )
-        val (jsonTargetObject, updatedAttributeInstance) = mergeAttributePayload(tea, processedAttributePayload)
+        val (jsonTargetObject, updatedAttributeInstance) =
+            mergePatch(tea.payload.toExpandedAttributeInstance(), processedAttributePayload)
         val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
-        updateOnUpdate(tea.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject.toString()).bind()
+        updateOnUpdate(tea.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
         val attributeInstance =
             createContextualAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
@@ -658,10 +657,11 @@ class TemporalEntityAttributeService(
                         BadRequestDataException("The type of the attribute has to be the same as the existing one")
                     }
                 }
-                val (jsonTargetObject, updatedAttributeInstance) = mergeAttributePayload(tea, attributeValues)
+                val (jsonTargetObject, updatedAttributeInstance) =
+                    partialUpdatePatch(tea.payload.toExpandedAttributeInstance(), attributeValues)
                 val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
                 val attributeValueType = guessAttributeValueType(tea.attributeType, attributeValues)
-                updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject.toString()).bind()
+                updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
 
                 // then update attribute instance
                 val attributeInstance = createContextualAttributeInstance(
@@ -872,31 +872,6 @@ class TemporalEntityAttributeService(
                 )
         }
 
-    suspend fun mergeAttributePayload(
-        tea: TemporalEntityAttribute,
-        expandedAttributeInstance: ExpandedAttributeInstance
-    ): Pair<JSONObject, ExpandedAttributeInstance> {
-        val jsonSourceObject = JSONObject(tea.payload.asString())
-        val jsonUpdateObject = JSONObject(expandedAttributeInstance)
-        // if the attribute is a JsonProperty, preserve its JSON value to avoid it being merged
-        // (the whole JSON value shall be replaced)
-        val preservedJsonValue = if (tea.attributeType == TemporalEntityAttribute.AttributeType.JsonProperty)
-            expandedAttributeInstance[NGSILD_JSONPROPERTY_VALUE]
-        else null
-        val jsonMerger = JsonMerger(
-            arrayMergeMode = JsonMerger.ArrayMergeMode.REPLACE_ARRAY,
-            objectMergeMode = JsonMerger.ObjectMergeMode.MERGE_OBJECT
-        )
-        val jsonTargetObject = jsonMerger.merge(jsonSourceObject, jsonUpdateObject)
-            .let {
-                if (preservedJsonValue != null)
-                    it.put(NGSILD_JSONPROPERTY_VALUE, preservedJsonValue)
-                else it
-            }
-        val updatedAttributeInstance = jsonTargetObject.toMap() as ExpandedAttributeInstance
-        return Pair(jsonTargetObject, updatedAttributeInstance)
-    }
-
     private fun createContextualAttributeInstance(
         tea: TemporalEntityAttribute,
         expandedAttributeInstance: ExpandedAttributeInstance,
@@ -933,16 +908,15 @@ class TemporalEntityAttributeService(
         attributePayload: ExpandedAttributeInstance,
         attributeMetadata: AttributeMetadata,
         observedAt: ZonedDateTime?
-    ): Pair<ExpandedAttributeInstance, AttributeMetadata> {
-        return if (
+    ): Pair<ExpandedAttributeInstance, AttributeMetadata> =
+        if (
             observedAt != null &&
             tea.payload.deserializeAsMap().containsKey(NGSILD_OBSERVED_AT_PROPERTY) &&
             !attributePayload.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
-        ) {
+        )
             Pair(
                 attributePayload.plus(NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedTemporalValue(observedAt)),
                 attributeMetadata.copy(observedAt = observedAt)
             )
-        } else Pair(attributePayload, attributeMetadata)
-    }
+        else Pair(attributePayload, attributeMetadata)
 }

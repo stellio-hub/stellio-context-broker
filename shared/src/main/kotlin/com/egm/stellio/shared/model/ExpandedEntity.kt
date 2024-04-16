@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -26,6 +27,10 @@ data class ExpandedEntity(
 
     fun getAttributes(): ExpandedAttributes =
         members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
+            .mapValues { castAttributeValue(it.value) }
+
+    fun getModifiableMembers(): ExpandedAttributes =
+        members.filter { !listOf(JSONLD_ID, JSONLD_CONTEXT).contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
     fun getScopes(): List<String>? =

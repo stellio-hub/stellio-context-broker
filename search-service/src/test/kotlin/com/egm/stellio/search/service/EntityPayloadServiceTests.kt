@@ -219,7 +219,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityPayloadService.mergeEntity(
             beehiveTestCId,
-            jsonLdEntity.getAttributes(),
+            jsonLdEntity.getModifiableMembers(),
             now,
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()

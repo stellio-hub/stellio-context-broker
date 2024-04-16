@@ -205,7 +205,7 @@ class EntityOperationService(
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
         val updateResult = entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
-            jsonLdEntity.getAttributes(),
+            jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
         ).bind()
@@ -233,7 +233,7 @@ class EntityOperationService(
         val (jsonLdEntity, ngsiLdEntity) = entity
         val updateResult = entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
-            jsonLdEntity.getAttributes(),
+            jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
         ).bind()

@@ -23,7 +23,7 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.10.1"
     kotlin("jvm") version "1.9.23" apply false
     kotlin("plugin.spring") version "1.9.23" apply false
-    id("com.google.cloud.tools.jib") version "3.4.1" apply false
+    id("com.google.cloud.tools.jib") version "3.4.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
     id("org.sonarqube") version "5.0.0.4638"
     jacoco
@@ -67,13 +67,13 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.4.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.3")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:5.0.1")
+        runtimeOnly("de.siegmar:logback-gelf:6.0.1")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {

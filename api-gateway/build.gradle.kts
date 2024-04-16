@@ -7,7 +7,7 @@ plugins {
 
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
-    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.7.2")
+    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.8.0")
 
     // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")

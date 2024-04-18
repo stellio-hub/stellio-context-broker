@@ -14,7 +14,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -319,7 +318,7 @@ class EntityOperationHandler(
                 if (contentType == JSON_LD_MEDIA_TYPE)
                     expandJsonLdEntityF(it.minus(JSONLD_CONTEXT), it.extractContexts())
                 else
-                    expandJsonLdEntityF(it, listOf(context ?: NGSILD_CORE_CONTEXT))
+                    expandJsonLdEntityF(it, addCoreContextIfMissing(listOfNotNull(context)))
             jsonLdExpansionResult
                 .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->

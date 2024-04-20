@@ -155,7 +155,7 @@ fun Map<String, Any>.extractContexts(): List<String> =
 
 private val coreContextRegex = ".*ngsi-ld-core-context-v\\d+.\\d+.jsonld$".toRegex()
 
-internal fun addCoreContextIfMissing(contexts: List<String>): List<String> =
+fun addCoreContextIfMissing(contexts: List<String>): List<String> =
     when {
         contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
         // to ensure that core @context, if present, comes last

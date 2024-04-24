@@ -84,6 +84,8 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
             generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message))
         is LdContextNotAvailableException ->
             generateErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, LdContextNotAvailableResponse(this.message))
+        is TooManyResultsException ->
+            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 

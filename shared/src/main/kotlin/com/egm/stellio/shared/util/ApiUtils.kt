@@ -259,7 +259,7 @@ fun parsePaginationParameters(
     if (count && (limit < 0 || offset < 0))
         return BadRequestDataException("Offset and limit must be greater than zero").left()
     if (limit > limitMax)
-        return BadRequestDataException(
+        return TooManyResultsException(
             "You asked for $limit results, but the supported maximum limit is $limitMax"
         ).left()
     return PaginationQuery(offset, limit, count).right()

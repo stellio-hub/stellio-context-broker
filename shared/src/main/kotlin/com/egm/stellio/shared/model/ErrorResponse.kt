@@ -40,10 +40,9 @@ data class TooComplexQueryResponse(override val detail: String) : ErrorResponse(
 
 data class TooManyResultsResponse(override val detail: String) : ErrorResponse(
     ErrorType.TOO_MANY_RESULTS.type,
-    """
-    The query associated to the operation is producing so many results that can exhaust client or server resources. 
-    It should be made more restrictive
-    """,
+    "The query associated to the operation is producing so many results " +
+        "that can exhaust client or server resources. " +
+        "It should be made more restrictive",
     detail
 )
 

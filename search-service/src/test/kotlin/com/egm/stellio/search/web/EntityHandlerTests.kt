@@ -1024,16 +1024,16 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entities should return 400 if limit is greater than the maximum authorized limit`() {
+    fun `get entities should return 403 if limit is greater than the maximum authorized limit`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&offset=1")
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isForbidden
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
+                    "title":"The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive",
                     "detail":"You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()

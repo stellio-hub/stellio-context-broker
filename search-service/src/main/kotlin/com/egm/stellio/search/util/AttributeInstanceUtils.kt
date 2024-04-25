@@ -8,8 +8,15 @@ import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.logger
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.savvasdalkitsis.jsonmerger.JsonMerger
+import io.r2dbc.postgresql.codec.Json
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -65,6 +72,12 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
                 AttributeValueType.JSON,
                 Triple(serializeObject(this.json), null, null)
             )
+        is NgsiLdLanguagePropertyInstance ->
+            Triple(
+                TemporalEntityAttribute.AttributeType.LanguageProperty,
+                AttributeValueType.ARRAY,
+                Triple(serializeObject(this.languageMap), null, null)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         logger.warn("Unable to get a value from attribute: $this")
@@ -92,6 +105,7 @@ fun guessAttributeValueType(
         TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
         TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
         TemporalEntityAttribute.AttributeType.JsonProperty -> AttributeValueType.JSON
+        TemporalEntityAttribute.AttributeType.LanguageProperty -> AttributeValueType.ARRAY
     }
 
 fun guessPropertyValueType(
@@ -114,3 +128,55 @@ fun guessPropertyValueType(
         is LocalTime -> Pair(AttributeValueType.TIME, Triple(value.toString(), null, null))
         else -> Pair(AttributeValueType.STRING, Triple(value.toString(), null, null))
     }
+
+fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
+    this.deserializeAsMap() as ExpandedAttributeInstance
+
+fun partialUpdatePatch(
+    source: ExpandedAttributeInstance,
+    update: ExpandedAttributeInstance
+): Pair<String, ExpandedAttributeInstance> {
+    val target = source.plus(update)
+    return Pair(serializeObject(target), target)
+}
+
+fun mergePatch(
+    source: ExpandedAttributeInstance,
+    update: ExpandedAttributeInstance
+): Pair<String, ExpandedAttributeInstance> {
+    val target = source.toMutableMap()
+    update.forEach { (attrName, attrValue) ->
+        if (!source.containsKey(attrName)) {
+            target[attrName] = attrValue
+        } else if (listOf(NGSILD_JSONPROPERTY_VALUE, NGSILD_PROPERTY_VALUE).contains(attrName)) {
+            if (attrValue.size > 1) {
+                // a Property holding an array of value or a JsonPropery holding an array of JSON objects
+                // cannot be safely merged patch, so copy the whole value from the update
+                target[attrName] = attrValue
+            } else {
+                target[attrName] = listOf(
+                    JsonMerger().merge(
+                        serializeObject(source[attrName]!![0]),
+                        serializeObject(attrValue[0])
+                    ).deserializeAsMap()
+                )
+            }
+        } else if (listOf(NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
+            val sourceLangEntries = source[attrName] as List<Map<String, String>>
+            val targetLangEntries = sourceLangEntries.toMutableList()
+            (attrValue as List<Map<String, String>>).forEach { langEntry ->
+                // remove any previously existing entry for this language
+                targetLangEntries.removeIf {
+                    it[JSONLD_LANGUAGE] == langEntry[JSONLD_LANGUAGE]
+                }
+                targetLangEntries.add(langEntry)
+            }
+
+            target[attrName] = targetLangEntries
+        } else {
+            target[attrName] = attrValue
+        }
+    }
+
+    return Pair(serializeObject(target), target)
+}

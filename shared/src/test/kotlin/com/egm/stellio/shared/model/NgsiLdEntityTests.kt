@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime
 
 class NgsiLdEntityTests {
@@ -828,7 +829,7 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has an instance without a json member",
+                    "JsonProperty ${NGSILD_DEFAULT_VOCAB}jsonProperty has an instance without a json member",
                     it.message
                 )
             }
@@ -852,10 +853,161 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "Property ${NGSILD_DEFAULT_VOCAB}jsonProperty has a json member that is not a JSON object, " +
+                    "JsonProperty ${NGSILD_DEFAULT_VOCAB}jsonProperty has a json member that is not a JSON object, " +
                         "nor an array of JSON objects",
                     it.message
                 )
             }
+    }
+
+    @Test
+    fun `it should parse an entity with a LanguageProperty`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "fr": ["Grand Place", "Grande Place"],
+                        "nl": "Grote Markt",
+                        "@none": "Big Place"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val languageProperty = ngsiLdEntity.languageProperties.first()
+        assertNotNull(languageProperty)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}languageProperty", languageProperty.name)
+        assertEquals(1, languageProperty.instances.size)
+        val languagePropertyInstance = languageProperty.instances[0]
+        assertEquals(
+            listOf(
+                mapOf(
+                    "@language" to "fr",
+                    "@value" to "Grand Place"
+                ),
+                mapOf(
+                    "@language" to "fr",
+                    "@value" to "Grande Place"
+                ),
+                mapOf(
+                    "@language" to "nl",
+                    "@value" to "Grote Markt"
+                ),
+                mapOf(
+                    "@value" to "Big Place"
+                )
+            ),
+            languagePropertyInstance.languageMap
+        )
+    }
+
+    @Test
+    fun `it should not parse an entity with a LanguageProperty without a languageMap member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "value": {
+                        "id": "Parc-des-Princes"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an instance " +
+                        "without a languageMap member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should not parse an entity with a LanguageProperty with an invalid languageMap member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "languageMap": [{
+                        "fr": "Grand Place",
+                        "nl": "Grote Markt"
+                    }]
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should not parse an entity with a LanguageProperty with an invalid language tag`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "123": "Grand Place"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "LanguageProperty ${NGSILD_DEFAULT_VOCAB}languageProperty has an invalid languageMap member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should not parse an entity with a LanguageProperty with an invalid value for a language`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "fr": {
+                            "key": "Grand Place"
+                        }
+                    }
+                }
+            }
+            """.trimIndent()
+
+        assertThrows<BadRequestDataException> {
+            expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS)
+        }
     }
 }

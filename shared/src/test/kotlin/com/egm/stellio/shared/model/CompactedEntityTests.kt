@@ -127,7 +127,7 @@ class CompactedEntityTests {
         val normalizedMap = normalizedEntity.deserializeAsMap()
         val simplifiedMap = simplifiedEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toKeyValues()
+        val resultMap = normalizedMap.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
@@ -137,7 +137,7 @@ class CompactedEntityTests {
         val normalizedMap = normalizedMultiAttributeEntity.deserializeAsMap()
         val simplifiedMap = simplifiedMultiAttributeEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toKeyValues()
+        val resultMap = normalizedMap.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
@@ -160,7 +160,7 @@ class CompactedEntityTests {
         """.trimIndent()
             .deserializeAsMap()
 
-        val simplifiedRepresentation = compactedEntity.toKeyValues()
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
         val expectedSimplifiedRepresentation = """
             {
@@ -195,7 +195,7 @@ class CompactedEntityTests {
         """.trimIndent()
             .deserializeAsMap()
 
-        val simplifiedRepresentation = compactedEntity.toKeyValues()
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
         val expectedSimplifiedRepresentation = """
             {
@@ -744,10 +744,45 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
                 includeSysAttrs = false,
-                JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
             )
         )
 
         assertEquals(expectedEntities, actualEntities)
+    }
+
+    @Test
+    fun `it should return the simplified representation of a LanguageProperty`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "languageProperty": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "fr": "Grand Place",
+                        "nl": "Grote Markt"
+                    }
+                }
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
+
+        val expectedSimplifiedRepresentation = """
+            {
+               "id": "urn:ngsi-ld:Entity:01",
+               "type": "Entity",
+               "languageProperty": {
+                    "languageMap": {
+                        "fr": "Grand Place",
+                        "nl": "Grote Markt"
+                    }
+               }
+            }
+        """.trimIndent()
+
+        assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
     }
 }

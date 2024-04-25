@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -36,11 +37,12 @@ class TemporalEntityOperationsHandler(
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val query = Query(requestBody.awaitFirst()).bind()
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromPostRequest(
                 applicationProperties.pagination,
-                requestBody.awaitFirst(),
+                query,
                 params,
                 contexts
             ).bind()
@@ -55,6 +57,7 @@ class TemporalEntityOperationsHandler(
         val compactedEntities = compactEntities(temporalEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+            .copy(languageFilter = query.lang)
 
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),

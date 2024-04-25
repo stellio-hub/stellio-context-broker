@@ -50,7 +50,8 @@ class NotificationService(
                     NgsiLdDataRepresentation(
                         entityRepresentation,
                         attributeRepresentation,
-                        it.notification.sysAttrs
+                        it.notification.sysAttrs,
+                        it.lang
                     )
                 )
                 callSubscriber(it, compactedEntity)

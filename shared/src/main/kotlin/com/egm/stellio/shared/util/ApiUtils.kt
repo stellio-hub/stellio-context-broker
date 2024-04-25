@@ -37,6 +37,7 @@ const val QUERY_PARAM_ATTRS: String = "attrs"
 const val QUERY_PARAM_Q: String = "q"
 const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
 const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
+const val QUERY_PARAM_LANG: String = "lang"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
@@ -218,6 +219,7 @@ fun parseRepresentations(
     val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
     val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+    val languageFilter = requestParams.getFirst(QUERY_PARAM_LANG)
     val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
     val geometryProperty =
         if (entityRepresentation == EntityRepresentation.GEO_JSON)
@@ -229,6 +231,7 @@ fun parseRepresentations(
         entityRepresentation,
         attributeRepresentation,
         includeSysAttrs,
+        languageFilter,
         geometryProperty,
         timeproperty
     )

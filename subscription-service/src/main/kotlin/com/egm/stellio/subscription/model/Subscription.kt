@@ -50,7 +50,8 @@ data class Subscription(
     //  - used when needed to serve contexts in JSON notifications
     @JsonProperty(value = JSONLD_CONTEXT)
     val contexts: List<ExpandedTerm>,
-    val throttling: Int? = null
+    val throttling: Int? = null,
+    val lang: String? = null
 ) {
 
     @Transient

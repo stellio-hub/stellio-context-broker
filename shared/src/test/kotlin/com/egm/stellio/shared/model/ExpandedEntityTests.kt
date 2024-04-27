@@ -12,8 +12,7 @@ class ExpandedEntityTests {
     @Test
     fun `it should find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
-            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to ""),
-            NGSILD_TEST_CORE_CONTEXTS
+            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "")
         )
 
         val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
@@ -26,8 +25,7 @@ class ExpandedEntityTests {
     @Test
     fun `it should not find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
-            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01"),
-            NGSILD_TEST_CORE_CONTEXTS
+            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01")
         )
 
         val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))

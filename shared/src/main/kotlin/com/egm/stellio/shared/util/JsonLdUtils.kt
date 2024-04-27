@@ -138,14 +138,14 @@ object JsonLdUtils {
         runCatching {
             doJsonLdExpansion(input, contexts)
         }.fold({
-            ExpandedEntity(it, contexts).right()
+            ExpandedEntity(it).right()
         }, {
             if (it is APIException) it.left()
             else it.toAPIException().left()
         })
 
     suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): ExpandedEntity =
-        ExpandedEntity(doJsonLdExpansion(input, contexts), contexts)
+        ExpandedEntity(doJsonLdExpansion(input, contexts))
 
     suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)

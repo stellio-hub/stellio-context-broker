@@ -593,12 +593,12 @@ class TemporalEntityAttributeService(
             val currentTea =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
+            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
+                ngsiLdAttribute.name,
+                ngsiLdAttributeInstance.datasetId
+            )!!
             if (currentTea != null) {
-                val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
-                val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId
-                )!!
                 replaceAttribute(
                     currentTea,
                     ngsiLdAttribute,
@@ -615,17 +615,21 @@ class TemporalEntityAttributeService(
                     )
                 }.bind()
             } else {
-                val message = if (ngsiLdAttributeInstance.datasetId != null)
-                    "Attribute (datasetId: ${ngsiLdAttributeInstance.datasetId}) does not exist"
-                else
-                    "Attribute (default instance) does not exist"
-                logger.info(message)
-                UpdateAttributeResult(
+                addAttribute(
+                    entityUri,
                     ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.IGNORED,
-                    message
-                ).right().bind()
+                    attributeMetadata,
+                    createdAt,
+                    attributePayload,
+                    sub
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.APPENDED,
+                        null
+                    )
+                }.bind()
             }
         }
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })

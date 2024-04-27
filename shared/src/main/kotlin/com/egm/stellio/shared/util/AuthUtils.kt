@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import arrow.core.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
@@ -158,7 +159,10 @@ enum class AccessRight(val attributeName: String) {
 fun getAuthzContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, List<String>> =
     getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         .map {
-            if (it != null) listOf(it).plus(AUTHORIZATION_COMPOUND_CONTEXT)
+            if (it != null)
+                if (canExpandJsonLdKeyFromCore(listOf(it)))
+                    listOf(it, AUTHORIZATION_CONTEXT)
+                else listOf(it, AUTHORIZATION_COMPOUND_CONTEXT)
             else listOf(AUTHORIZATION_COMPOUND_CONTEXT)
         }
 

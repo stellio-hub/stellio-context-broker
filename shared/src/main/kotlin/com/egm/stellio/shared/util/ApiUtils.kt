@@ -172,7 +172,7 @@ fun addCoreContextIfMissing(contexts: List<String>): List<String> =
 /**
  * Utility but basic method to find if given contexts can resolve a known term from the core context.
  */
-private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
     val expandedType = JsonLdUtils.expandJsonLdTerm("datasetId", contexts)
     return expandedType == NGSILD_DATASET_ID_PROPERTY
 }

@@ -267,11 +267,9 @@ class EntityAccessRightsService(
         databaseClient
             .sql(
                 """
-                select entity_id, sr.subject_id, access_right, subject_type, subject_info, service_account_id
+                select entity_id, sr.subject_id, access_right, subject_type, subject_info
                 from entity_access_rights
-                left join subject_referential sr 
-                    on entity_access_rights.subject_id = sr.subject_id 
-                    or entity_access_rights.subject_id = sr.service_account_id
+                left join subject_referential sr on entity_access_rights.subject_id = sr.subject_id 
                 where entity_id in (:entities_ids)
                 and sr.subject_id not in (:excluded_subject_uuids);
                 """.trimIndent()
@@ -285,7 +283,7 @@ class EntityAccessRightsService(
                     .groupBy { AccessRight.forAttributeName(it["access_right"] as String).getOrNull()!! }
                     .mapValues { (_, records) ->
                         records.map { record ->
-                            val uuid = record["service_account_id"] ?: record["subject_id"]
+                            val uuid = record["subject_id"]
                             val subjectType = toEnum<SubjectType>(record["subject_type"]!!)
                             val (uri, type) = when (subjectType) {
                                 SubjectType.USER -> Pair(USER_ENTITY_PREFIX + uuid, USER_COMPACT_TYPE)

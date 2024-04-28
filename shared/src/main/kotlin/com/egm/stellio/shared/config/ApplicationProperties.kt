@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class ApplicationProperties(
     val authentication: Authentication,
     val pagination: Pagination,
-    val tenants: List<TenantConfiguration>
+    val tenants: List<TenantConfiguration>,
+    val contexts: Contexts
 ) {
     data class Authentication(
         val enabled: Boolean
@@ -22,4 +23,12 @@ data class ApplicationProperties(
         val issuer: String,
         val dbSchema: String
     )
+
+    data class Contexts(
+        val core: String,
+        val authz: String,
+        val authzCompound: String
+    ) {
+        fun defaultAuthzContexts(): List<String> = listOf(authz, core)
+    }
 }

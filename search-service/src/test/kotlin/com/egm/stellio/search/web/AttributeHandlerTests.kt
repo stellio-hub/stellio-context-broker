@@ -12,7 +12,6 @@ import com.egm.stellio.search.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -38,6 +37,9 @@ class AttributeHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var attributeService: AttributeService
@@ -99,7 +101,7 @@ class AttributeHandlerTests {
             )
 
         coVerify {
-            attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
+            attributeService.getAttributeList(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -118,7 +120,7 @@ class AttributeHandlerTests {
             .jsonPath("$.attributeList").isEmpty
 
         coVerify {
-            attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
+            attributeService.getAttributeList(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -145,7 +147,7 @@ class AttributeHandlerTests {
             .expectBody().json(expectedAttributeDetails)
 
         coVerify {
-            attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
+            attributeService.getAttributeDetails(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -161,14 +163,15 @@ class AttributeHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
+            attributeService.getAttributeDetails(listOf(applicationProperties.contexts.core))
         }
     }
 
     @Test
     fun `get attribute type information should return a 200 if attribute of that id exists`() {
-        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), listOf(NGSILD_CORE_CONTEXT)) } returns
-            mockkClass(AttributeTypeInfo::class, relaxed = true).right()
+        coEvery {
+            attributeService.getAttributeTypeInfoByAttribute(any(), listOf(applicationProperties.contexts.core))
+        } returns mockkClass(AttributeTypeInfo::class, relaxed = true).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/temperature")
@@ -179,15 +182,16 @@ class AttributeHandlerTests {
         coVerify {
             attributeService.getAttributeTypeInfoByAttribute(
                 "https://uri.etsi.org/ngsi-ld/default-context/temperature",
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }
 
     @Test
     fun `get attribute type information should search on attributes with the expanded id if provided`() {
-        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), listOf(NGSILD_CORE_CONTEXT)) } returns
-            mockkClass(AttributeTypeInfo::class, relaxed = true).right()
+        coEvery {
+            attributeService.getAttributeTypeInfoByAttribute(any(), listOf(applicationProperties.contexts.core))
+        } returns mockkClass(AttributeTypeInfo::class, relaxed = true).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23temperature")
@@ -196,7 +200,10 @@ class AttributeHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, listOf(NGSILD_CORE_CONTEXT))
+            attributeService.getAttributeTypeInfoByAttribute(
+                TEMPERATURE_PROPERTY,
+                listOf(applicationProperties.contexts.core)
+            )
         }
     }
 
@@ -227,8 +234,9 @@ class AttributeHandlerTests {
 
     @Test
     fun `get attribute type information should return a 404 if no attribute of that id exists`() {
-        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), listOf(NGSILD_CORE_CONTEXT)) } returns
-            ResourceNotFoundException(attributeNotFoundMessage(OUTGOING_PROPERTY)).left()
+        coEvery {
+            attributeService.getAttributeTypeInfoByAttribute(any(), listOf(applicationProperties.contexts.core))
+        } returns ResourceNotFoundException(attributeNotFoundMessage(OUTGOING_PROPERTY)).left()
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/$OUTGOING_COMPACT_PROPERTY")

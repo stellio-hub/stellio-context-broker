@@ -271,7 +271,7 @@ class EntityOperationHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val query = Query(requestBody.awaitFirst()).bind()
 
@@ -322,7 +322,10 @@ class EntityOperationHandler(
                 if (contentType == JSON_LD_MEDIA_TYPE)
                     expandJsonLdEntityF(it.minus(JSONLD_CONTEXT), it.extractContexts())
                 else
-                    expandJsonLdEntityF(it, addCoreContextIfMissing(listOfNotNull(context)))
+                    expandJsonLdEntityF(
+                        it,
+                        addCoreContextIfMissing(listOfNotNull(context), applicationProperties.contexts.core)
+                    )
             jsonLdExpansionResult
                 .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->

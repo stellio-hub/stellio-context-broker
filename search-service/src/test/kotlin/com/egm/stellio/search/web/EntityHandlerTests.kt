@@ -15,8 +15,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
@@ -58,6 +56,9 @@ class EntityHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
@@ -323,7 +324,7 @@ class EntityHandlerTests {
                 """
                 {
                     "createdAt": "2015-10-18T11:20:30.000001Z",
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -400,7 +401,7 @@ class EntityHandlerTests {
                     "type": "Beehive",
                     "prop1": "some value",
                     "rel1": "urn:ngsi-ld:Entity:1234",
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -455,7 +456,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
+            .expectBody().json("""{"@context":"${applicationProperties.contexts.core}"}""")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }
@@ -511,7 +512,7 @@ class EntityHandlerTests {
                         "createdAt":"2015-10-18T11:20:30.000001Z",
                         "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -551,7 +552,7 @@ class EntityHandlerTests {
                             "@value":"2015-10-18"
                         }
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -591,7 +592,7 @@ class EntityHandlerTests {
                             "@value":"11:20:30"
                         }
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -628,7 +629,7 @@ class EntityHandlerTests {
                     "id":"urn:ngsi-ld:Beehive:4567",
                     "type":"Beehive",
                     "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -681,7 +682,7 @@ class EntityHandlerTests {
                             "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -724,7 +725,7 @@ class EntityHandlerTests {
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -823,7 +824,7 @@ class EntityHandlerTests {
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
                     ],
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -897,7 +898,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()
@@ -913,7 +914,7 @@ class EntityHandlerTests {
                 EntitiesQuery(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    contexts = NGSILD_CORE_CONTEXTS
+                    contexts = listOf(applicationProperties.contexts.core)
                 ),
                 any()
             )
@@ -947,7 +948,7 @@ class EntityHandlerTests {
                         "id": "$beehiveId",
                         "type": "Beehive",
                         "createdAt":"2015-10-18T11:20:30.000001Z",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()
@@ -986,7 +987,7 @@ class EntityHandlerTests {
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "Beehive",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()

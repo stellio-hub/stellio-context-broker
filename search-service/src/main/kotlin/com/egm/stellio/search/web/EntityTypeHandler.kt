@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.raise.either
 import com.egm.stellio.search.service.EntityTypeService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import org.springframework.http.HttpHeaders
@@ -13,7 +14,8 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/types")
 class EntityTypeHandler(
-    private val entityTypeService: EntityTypeService
+    private val entityTypeService: EntityTypeService,
+    private val applicationProperties: ApplicationProperties
 ) {
 
     /**
@@ -24,7 +26,7 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
@@ -48,7 +50,7 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable type: String
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val expandedType = expandJsonLdTerm(type.decode(), contexts)
 

@@ -10,7 +10,6 @@ import com.egm.stellio.search.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,6 +35,9 @@ class EntityTypeHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
@@ -130,7 +132,7 @@ class EntityTypeHandlerTests {
 
         coVerify {
             entityTypeService.getEntityTypeList(
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }
@@ -150,9 +152,7 @@ class EntityTypeHandlerTests {
             .jsonPath("$.typeList").isEmpty
 
         coVerify {
-            entityTypeService.getEntityTypeList(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypeList(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -185,9 +185,7 @@ class EntityTypeHandlerTests {
             .expectBody().json(expectedEntityTypes)
 
         coVerify {
-            entityTypeService.getEntityTypes(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypes(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -203,9 +201,7 @@ class EntityTypeHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            entityTypeService.getEntityTypes(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypes(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -223,7 +219,7 @@ class EntityTypeHandlerTests {
         coVerify {
             entityTypeService.getEntityTypeInfoByType(
                 "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }
@@ -287,7 +283,7 @@ class EntityTypeHandlerTests {
         coVerify {
             entityTypeService.getEntityTypeInfoByType(
                 "https://ontology.eglobalmark.com/apic#BeeHive",
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }

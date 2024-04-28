@@ -1,9 +1,11 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -19,6 +21,10 @@ class ApiUtilsTests {
     private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(
         CustomWebFilter()
     ).build()
+
+    private val applicationProperties = mockk<ApplicationProperties> {
+        every { contexts.core } returns "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    }
 
     @Test
     fun `it should not find a value if there is no options query param`() {
@@ -109,8 +115,8 @@ class ApiUtilsTests {
     @Test
     fun `it should return the default @context if no Link header was provided and default is asked`() = runTest {
         val httpHeaders = HttpHeaders()
-        getContextFromLinkHeaderOrDefault(httpHeaders).shouldSucceedWith {
-            assertEquals(listOf(NGSILD_CORE_CONTEXT), it)
+        getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).shouldSucceedWith {
+            assertEquals(listOf(applicationProperties.contexts.core), it)
         }
     }
 
@@ -125,7 +131,7 @@ class ApiUtilsTests {
             "@context" to NGSILD_TEST_CORE_CONTEXT
         )
 
-        checkAndGetContext(httpHeaders, jsonLdInput).shouldSucceedWith {
+        checkAndGetContext(httpHeaders, jsonLdInput, applicationProperties.contexts.core).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(NGSILD_TEST_CORE_CONTEXT, it[0])
         }
@@ -145,7 +151,7 @@ class ApiUtilsTests {
             )
         )
 
-        checkAndGetContext(httpHeaders, jsonLdInput).shouldSucceedWith {
+        checkAndGetContext(httpHeaders, jsonLdInput, applicationProperties.contexts.core).shouldSucceedWith {
             assertEquals(2, it.size)
             assertTrue(
                 it.containsAll(
@@ -168,7 +174,7 @@ class ApiUtilsTests {
             "type" to "Building"
         )
 
-        checkAndGetContext(httpHeaders, jsonLdInput).shouldFail {
+        checkAndGetContext(httpHeaders, jsonLdInput, applicationProperties.contexts.core).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Request payload must contain @context term for a request having an application/ld+json content type",
@@ -208,29 +214,33 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return the core context if the list of contexts is empty`() {
-        val contexts = addCoreContextIfMissing(emptyList())
+        val contexts = addCoreContextIfMissing(emptyList(), applicationProperties.contexts.core)
         assertEquals(1, contexts.size)
-        assertEquals(listOf(NGSILD_CORE_CONTEXT), contexts)
+        assertEquals(listOf(applicationProperties.contexts.core), contexts)
     }
 
     @Test
     fun `it should move the core context at last position if it is not last in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(NGSILD_CORE_CONTEXT).plus(APIC_COMPOUND_CONTEXTS))
+        val contexts = addCoreContextIfMissing(
+            listOf(applicationProperties.contexts.core).plus(APIC_COMPOUND_CONTEXTS),
+            applicationProperties.contexts.core
+        )
         assertEquals(2, contexts.size)
-        assertEquals(APIC_COMPOUND_CONTEXTS.plus(NGSILD_CORE_CONTEXT), contexts)
+        assertEquals(APIC_COMPOUND_CONTEXTS.plus(applicationProperties.contexts.core), contexts)
     }
 
     @Test
     fun `it should add the core context at last position if it is not in the list of contexts`() {
-        val contexts = addCoreContextIfMissing(listOf(APIC_CONTEXT))
+        val contexts = addCoreContextIfMissing(listOf(APIC_CONTEXT), applicationProperties.contexts.core)
         assertEquals(2, contexts.size)
-        assertEquals(listOf(APIC_CONTEXT, NGSILD_CORE_CONTEXT), contexts)
+        assertEquals(listOf(APIC_CONTEXT, applicationProperties.contexts.core), contexts)
     }
 
     @Test
     fun `it should not add the core context if it resolvable from the provided contexts`() {
         val contexts = addCoreContextIfMissing(
-            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld")
+            listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"),
+            applicationProperties.contexts.core
         )
         assertEquals(1, contexts.size)
         assertEquals(listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"), contexts)

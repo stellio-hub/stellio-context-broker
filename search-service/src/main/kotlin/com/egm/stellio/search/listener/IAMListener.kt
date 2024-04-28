@@ -111,30 +111,34 @@ class IAMListener(
         val operationPayload = attributeAppendEvent.operationPayload.deserializeAsMap()
         val subjectUuid = attributeAppendEvent.entityId.extractSub()
         mono {
-            if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
-                val newRoles = (operationPayload[JSONLD_VALUE_TERM] as List<*>).map {
-                    GlobalRole.forKey(it as String)
-                }.flattenOption()
-                if (newRoles.isNotEmpty())
-                    subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
-                else
-                    subjectReferentialService.resetGlobalRoles(subjectUuid)
-            } else if (attributeAppendEvent.attributeName == AUTH_TERM_SID) {
-                val serviceAccountId = operationPayload[JSONLD_VALUE_TERM] as String
-                subjectReferentialService.addServiceAccountIdToClient(
-                    subjectUuid,
-                    serviceAccountId.extractSub()
-                )
-            } else if (attributeAppendEvent.attributeName == AUTH_TERM_IS_MEMBER_OF) {
-                val groupId = operationPayload[JSONLD_OBJECT] as String
-                subjectReferentialService.addGroupMembershipToUser(
-                    subjectUuid,
-                    groupId.extractSub()
-                )
-            } else {
-                BadRequestDataException(
-                    "Received unknown attribute name: ${attributeAppendEvent.attributeName}"
-                ).left()
+            when (attributeAppendEvent.attributeName) {
+                AUTH_TERM_ROLES -> {
+                    val newRoles = (operationPayload[JSONLD_VALUE_TERM] as List<*>).map {
+                        GlobalRole.forKey(it as String)
+                    }.flattenOption()
+                    if (newRoles.isNotEmpty())
+                        subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
+                    else
+                        subjectReferentialService.resetGlobalRoles(subjectUuid)
+                }
+                AUTH_TERM_SID -> {
+                    val serviceAccountId = operationPayload[JSONLD_VALUE_TERM] as String
+                    subjectReferentialService.addServiceAccountIdToClient(
+                        subjectUuid,
+                        serviceAccountId.extractSub()
+                    )
+                }
+                AUTH_TERM_IS_MEMBER_OF -> {
+                    val groupId = operationPayload[JSONLD_OBJECT] as String
+                    subjectReferentialService.addGroupMembershipToUser(
+                        subjectUuid,
+                        groupId.extractSub()
+                    )
+                }
+                else ->
+                    BadRequestDataException(
+                        "Received unknown attribute name: ${attributeAppendEvent.attributeName}"
+                    ).left()
             }
         }.writeContextAndSubscribe(tenantName, attributeAppendEvent)
     }

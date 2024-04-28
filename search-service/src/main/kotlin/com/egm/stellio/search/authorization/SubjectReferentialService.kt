@@ -29,20 +29,16 @@ class SubjectReferentialService(
             .sql(
                 """
                 INSERT INTO subject_referential
-                    (subject_id, subject_type, subject_info, service_account_id, global_roles, 
-                        groups_memberships)
-                    VALUES (:subject_id, :subject_type, :subject_info, :service_account_id, :global_roles, 
-                        :groups_memberships)
+                    (subject_id, subject_type, subject_info, global_roles, groups_memberships)
+                    VALUES (:subject_id, :subject_type, :subject_info, :global_roles, :groups_memberships)
                 ON CONFLICT (subject_id)
-                    DO UPDATE SET service_account_id = :service_account_id,
-                        global_roles = :global_roles,
+                    DO UPDATE SET global_roles = :global_roles,
                         groups_memberships = :groups_memberships
                 """.trimIndent()
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
             .bind("subject_info", subjectReferential.subjectInfo)
-            .bind("service_account_id", subjectReferential.serviceAccountId)
             .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .execute()
@@ -53,7 +49,7 @@ class SubjectReferentialService(
                 """
                 SELECT *
                 FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -65,18 +61,15 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT subject_id, service_account_id, groups_memberships
+                SELECT subject_id, groups_memberships
                 FROM subject_referential
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
             .oneToResult(AccessDeniedException("No subject information found for ${sub.value}")) {
-                val subs = toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
+                toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
                     .plus(it["subject_id"] as Sub)
-                if (it["service_account_id"] != null)
-                    subs.plus(it["service_account_id"] as Sub)
-                else subs
             }
 
     suspend fun getGroups(sub: Option<Sub>, offset: Int, limit: Int): List<Group> =
@@ -86,7 +79,7 @@ class SubjectReferentialService(
                 WITH groups_memberships AS (
                     SELECT unnest(groups_memberships) as groups
                     FROM subject_referential
-                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                    WHERE subject_id = :subject_id
                 )
                 SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name
                 FROM subject_referential
@@ -114,7 +107,7 @@ class SubjectReferentialService(
                 SELECT count(sr.g_m) as count
                 FROM subject_referential
                 CROSS JOIN LATERAL unnest(subject_referential.groups_memberships) as sr(g_m)
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", (sub as Some).value)
@@ -127,7 +120,7 @@ class SubjectReferentialService(
                 WITH groups_memberships AS (
                     SELECT distinct(unnest(groups_memberships)) as groups
                     FROM subject_referential 
-                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                    WHERE subject_id = :subject_id
                 )
                 SELECT subject_id AS group_id, (subject_info->'value'->>'name') AS name,
                     (subject_id IN (SELECT groups FROM groups_memberships)) AS is_member
@@ -223,7 +216,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET global_roles = :global_roles
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -237,7 +230,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET global_roles = null
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -250,7 +243,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET groups_memberships = array_append(groups_memberships, :group_id::text)
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -264,7 +257,7 @@ class SubjectReferentialService(
                 """
                 UPDATE subject_referential
                 SET groups_memberships = array_remove(groups_memberships, :group_id::text)
-                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", sub)
@@ -277,7 +270,7 @@ class SubjectReferentialService(
             .sql(
                 """
                 UPDATE subject_referential
-                SET service_account_id = :service_account_id
+                SET subject_id = :service_account_id
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
@@ -314,7 +307,6 @@ class SubjectReferentialService(
             subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
             subjectInfo = toJson(row["subject_info"]),
-            serviceAccountId = row["service_account_id"] as? Sub,
             globalRoles = toOptionalList<String>(row["global_roles"])
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },
             groupsMemberships = toOptionalList(row["groups_memberships"])

@@ -543,12 +543,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should get other subject rights for all kinds of subjects`() = runTest {
         createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
-        createSubjectReferential(
-            UUID.randomUUID().toString(),
-            SubjectType.CLIENT,
-            getSubjectInfoForClient("IoT Device"),
-            clientUuid
-        )
+        createSubjectReferential(clientUuid, SubjectType.CLIENT, getSubjectInfoForClient("IoT Device"))
 
         entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
@@ -588,15 +583,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     private suspend fun createSubjectReferential(
         subjectId: String,
         subjectType: SubjectType,
-        subjectInfo: Json,
-        serviceAccountId: String? = null
+        subjectInfo: Json
     ) {
         subjectReferentialService.create(
             SubjectReferential(
                 subjectId = subjectId,
                 subjectType = subjectType,
-                subjectInfo = subjectInfo,
-                serviceAccountId = serviceAccountId
+                subjectInfo = subjectInfo
             )
         )
     }

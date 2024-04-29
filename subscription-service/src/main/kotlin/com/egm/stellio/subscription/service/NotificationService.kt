@@ -44,7 +44,7 @@ class NotificationService(
                     else AttributeRepresentation.NORMALIZED
 
                 val compactedEntity = compactEntity(
-                    ExpandedEntity(filteredEntity, it.contexts),
+                    ExpandedEntity(filteredEntity),
                     it.contexts
                 ).toFinalRepresentation(
                     NgsiLdDataRepresentation(

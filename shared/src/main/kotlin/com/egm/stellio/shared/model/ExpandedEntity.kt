@@ -14,8 +14,7 @@ import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import java.time.ZonedDateTime
 
 data class ExpandedEntity(
-    val members: Map<String, Any>,
-    val contexts: List<String>
+    val members: Map<String, Any>
 ) {
     fun containsAnyOf(expandedAttributes: Set<String>): Boolean =
         expandedAttributes.isEmpty() || members.keys.any { expandedAttributes.contains(it) }
@@ -50,8 +49,7 @@ data class ExpandedEntity(
                         createdAt
                     ) as ExpandedAttributeInstance
                 }
-            }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt),
-            contexts = contexts
+            }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
         )
 
     /**
@@ -71,8 +69,7 @@ data class ExpandedEntity(
                 }
             }
                 .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, replacedAt),
-            contexts = contexts
+                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, replacedAt)
         )
 
     val id by lazy {
@@ -111,5 +108,5 @@ data class ExpandedEntity(
 fun List<ExpandedEntity>.filterOnAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
     this.filter { it.containsAnyOf(includedAttributes) }
         .map {
-            ExpandedEntity(it.filterOnAttributes(includedAttributes), it.contexts)
+            ExpandedEntity(it.filterOnAttributes(includedAttributes))
         }

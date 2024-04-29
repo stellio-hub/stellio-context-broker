@@ -243,13 +243,12 @@ class EntityHandler(
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
-        val expandedEntity = queryService.queryEntity(entityId, contexts).bind()
+        val expandedEntity = queryService.queryEntity(entityId).bind()
 
         expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
         val filteredExpandedEntity = ExpandedEntity(
-            expandedEntity.filterOnAttributes(queryParams.attrs),
-            expandedEntity.contexts
+            expandedEntity.filterOnAttributes(queryParams.attrs)
         )
         val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 

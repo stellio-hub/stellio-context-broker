@@ -364,7 +364,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -527,7 +527,7 @@ class TemporalEntityHandlerTests {
         buildDefaultMockResponsesForGetEntity()
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
 
         webClient.get()
@@ -554,7 +554,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -576,8 +576,7 @@ class TemporalEntityHandlerTests {
                         ) &&
                         !temporalEntitiesQuery.withTemporalValues &&
                         !temporalEntitiesQuery.withAudit
-                },
-                eq(APIC_COMPOUND_CONTEXTS)
+                }
             )
         }
         confirmVerified(queryService)
@@ -589,7 +588,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -610,7 +609,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -734,7 +733,7 @@ class TemporalEntityHandlerTests {
         }
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns entityWith2temporalEvolutions.right()
     }
 

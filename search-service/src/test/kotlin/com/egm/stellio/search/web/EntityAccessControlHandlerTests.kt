@@ -691,8 +691,7 @@ class EntityAccessControlHandlerTests {
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
                         NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm")
-                    ),
-                    listOf(NGSILD_TEST_CORE_CONTEXT)
+                    )
                 )
             )
         ).right()
@@ -732,8 +731,7 @@ class EntityAccessControlHandlerTests {
                         "@type" to listOf(GROUP_TYPE),
                         NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm"),
                         AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedPropertyValue("true")
-                    ),
-                    listOf(AUTHZ_TEST_COMPOUND_CONTEXT)
+                    )
                 )
             )
         ).right()
@@ -836,8 +834,7 @@ class EntityAccessControlHandlerTests {
                         "givenName",
                         "familyName",
                         mapOf("profile" to "stellio-user", "username" to "username")
-                    ).serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXTS),
-                    listOf(NGSILD_TEST_CORE_CONTEXT)
+                    ).serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXTS)
                 )
             )
         ).right()
@@ -867,12 +864,9 @@ class EntityAccessControlHandlerTests {
             .jsonPath("[0].modifiedAt").doesNotExist()
     }
 
-    private suspend fun createJsonLdEntity(
-        entityAccessRights: EntityAccessRights,
-        context: String = NGSILD_TEST_CORE_CONTEXT
-    ): ExpandedEntity {
+    private suspend fun createJsonLdEntity(entityAccessRights: EntityAccessRights): ExpandedEntity {
         val earSerialized = entityAccessRights.serializeProperties(AUTHZ_TEST_COMPOUND_CONTEXTS)
-        return ExpandedEntity(earSerialized, listOf(context))
+        return ExpandedEntity(earSerialized)
     }
 
     private fun createEntityAccessRight(

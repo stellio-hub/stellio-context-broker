@@ -56,7 +56,7 @@ class QueryServiceTests {
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
 
-        queryService.queryEntity(entityUri, APIC_COMPOUND_CONTEXTS)
+        queryService.queryEntity(entityUri)
             .shouldSucceedWith {
                 assertEquals(entityUri.toString(), it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
@@ -68,7 +68,7 @@ class QueryServiceTests {
     fun `it should return an API exception if no entity exists with the given id`() = runTest {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns ResourceNotFoundException("").left()
 
-        queryService.queryEntity(entityUri, APIC_COMPOUND_CONTEXTS)
+        queryService.queryEntity(entityUri)
             .shouldFail {
                 assertTrue(it is ResourceNotFoundException)
             }
@@ -120,8 +120,7 @@ class QueryServiceTests {
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
             assertEquals(
@@ -172,8 +171,7 @@ class QueryServiceTests {
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         )
 
         coVerify {

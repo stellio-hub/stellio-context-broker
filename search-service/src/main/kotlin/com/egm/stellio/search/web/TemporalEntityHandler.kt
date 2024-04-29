@@ -65,8 +65,7 @@ class TemporalEntityHandler(
             val expandedEntity = ExpandedEntity(
                 sortedJsonLdInstances
                     .keepFirstInstances()
-                    .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types),
-                contexts
+                    .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types)
             )
             val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
@@ -191,11 +190,7 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(applicationProperties.pagination, params, contexts).bind()
 
-        val temporalEntity = queryService.queryTemporalEntity(
-            entityId,
-            temporalEntitiesQuery,
-            contexts
-        ).bind()
+        val temporalEntity = queryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 

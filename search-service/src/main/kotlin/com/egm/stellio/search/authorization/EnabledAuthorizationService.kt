@@ -128,7 +128,7 @@ class EnabledAuthorizationService(
                 } else entityAccessControl
             }
             .map { it.serializeProperties(contexts) }
-            .map { ExpandedEntity(it, contexts) }
+            .map { ExpandedEntity(it) }
 
         val count = entityAccessRightsService.getSubjectAccessRightsCount(
             sub,
@@ -162,7 +162,7 @@ class EnabledAuthorizationService(
             }
 
         val jsonLdEntities = groups.second.map {
-            ExpandedEntity(it.serializeProperties(), contexts)
+            ExpandedEntity(it.serializeProperties())
         }
 
         Pair(groups.first, jsonLdEntities)
@@ -177,7 +177,7 @@ class EnabledAuthorizationService(
         val usersCount = subjectReferentialService.getUsersCount().bind()
 
         val jsonLdEntities = users.map {
-            ExpandedEntity(it.serializeProperties(contexts), contexts)
+            ExpandedEntity(it.serializeProperties(contexts))
         }
 
         Pair(usersCount, jsonLdEntities)

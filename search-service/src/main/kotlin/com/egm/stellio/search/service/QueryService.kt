@@ -26,13 +26,10 @@ class QueryService(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
-    suspend fun queryEntity(
-        entityId: URI,
-        contexts: List<String>
-    ): Either<APIException, ExpandedEntity> =
+    suspend fun queryEntity(entityId: URI): Either<APIException, ExpandedEntity> =
         either {
             val entityPayload = entityPayloadService.retrieve(entityId).bind()
-            toJsonLdEntity(entityPayload, contexts)
+            toJsonLdEntity(entityPayload)
         }
 
     suspend fun queryEntities(
@@ -46,17 +43,14 @@ class QueryService(
         if (entitiesIds.isEmpty())
             return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
 
-        val entitiesPayloads =
-            entityPayloadService.retrieve(entitiesIds)
-                .map { toJsonLdEntity(it, entitiesQuery.contexts) }
+        val entitiesPayloads = entityPayloadService.retrieve(entitiesIds).map { toJsonLdEntity(it) }
 
         Pair(entitiesPayloads, count).right().bind()
     }
 
     suspend fun queryTemporalEntity(
         entityId: URI,
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        contexts: List<String>
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, ExpandedEntity> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs).let {
@@ -83,8 +77,7 @@ class QueryService(
 
         TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, scopeHistory, temporalEntityAttributesWithInstances),
-            temporalEntitiesQuery,
-            contexts
+            temporalEntitiesQuery
         )
     }
 
@@ -175,8 +168,7 @@ class QueryService(
         Pair(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
-                temporalEntitiesQuery,
-                temporalEntitiesQuery.entitiesQuery.contexts
+                temporalEntitiesQuery
             ),
             count
         )
@@ -235,11 +227,8 @@ class QueryService(
         )
     }
 
-    private fun toJsonLdEntity(
-        entityPayload: EntityPayload,
-        contexts: List<String>
-    ): ExpandedEntity {
+    private fun toJsonLdEntity(entityPayload: EntityPayload): ExpandedEntity {
         val deserializedEntity = entityPayload.payload.deserializeAsMap()
-        return ExpandedEntity(deserializedEntity, contexts)
+        return ExpandedEntity(deserializedEntity)
     }
 }

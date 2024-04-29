@@ -29,17 +29,15 @@ object TemporalEntityBuilder {
 
     fun buildTemporalEntities(
         queryResult: List<EntityTemporalResult>,
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        contexts: List<String>
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): List<ExpandedEntity> =
         queryResult.map {
-            buildTemporalEntity(it, temporalEntitiesQuery, contexts)
+            buildTemporalEntity(it, temporalEntitiesQuery)
         }
 
     fun buildTemporalEntity(
         entityTemporalResult: EntityTemporalResult,
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        contexts: List<String>
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): ExpandedEntity {
         val temporalAttributes = buildTemporalAttributes(
             entityTemporalResult.teaInstancesResult,
@@ -55,7 +53,7 @@ object TemporalEntityBuilder {
         val expandedTemporalEntity = entityTemporalResult.entityPayload.serializeProperties()
             .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
-        return ExpandedEntity(expandedTemporalEntity, contexts)
+        return ExpandedEntity(expandedTemporalEntity)
     }
 
     private fun buildTemporalAttributes(

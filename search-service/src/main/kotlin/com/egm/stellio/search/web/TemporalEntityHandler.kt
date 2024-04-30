@@ -48,7 +48,8 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
         val entityUri = jsonLdTemporalEntity.id.toUri()
@@ -109,7 +110,8 @@ class TemporalEntityHandler(
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val jsonLdInstances = expandAttributes(body, contexts)
         jsonLdInstances.checkTemporalAttributeInstance().bind()
         val sortedJsonLdInstances = jsonLdInstances.sorted()
@@ -139,7 +141,7 @@ class TemporalEntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
@@ -182,7 +184,7 @@ class TemporalEntityHandler(
 
         entityPayloadService.checkEntityExistence(entityId).bind()
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
@@ -218,7 +220,8 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val instanceUri = instanceId.toUri()
         attrId.checkNameIsNgsiLdSupported().bind()
 
@@ -284,7 +287,7 @@ class TemporalEntityHandler(
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
@@ -324,7 +327,7 @@ class TemporalEntityHandler(
         @PathVariable instanceId: URI
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 

@@ -50,7 +50,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
@@ -93,7 +94,8 @@ class EntityHandler(
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val observedAt = options.getFirst(QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
@@ -141,7 +143,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val expandedEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
@@ -187,7 +190,7 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
@@ -229,7 +232,7 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val queryParams = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
@@ -297,7 +300,8 @@ class EntityHandler(
 
         entityPayloadService.checkEntityExistence(entityId).bind()
 
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
@@ -346,7 +350,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
         entityPayloadService.checkEntityExistence(entityId).bind()
@@ -401,7 +406,8 @@ class EntityHandler(
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
@@ -449,7 +455,7 @@ class EntityHandler(
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
@@ -489,7 +495,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val (body, contexts) = extractPayloadAndContexts(requestBody, httpHeaders).bind()
+        val (body, contexts) =
+            extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         entityPayloadService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()

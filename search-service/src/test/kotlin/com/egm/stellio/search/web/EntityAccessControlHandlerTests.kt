@@ -7,12 +7,10 @@ import com.egm.stellio.search.authorization.EntityAccessRights
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.User
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
@@ -38,7 +36,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -52,11 +49,13 @@ import java.time.Duration
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-@Import(WebSecurityTestConfig::class)
 class EntityAccessControlHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean(relaxed = true)
     private lateinit var entityAccessRightsService: EntityAccessRightsService
@@ -614,7 +613,7 @@ class EntityAccessControlHandlerTests {
                     "id": "urn:ngsi-ld:Beehive:TESTC",
                     "type": "$BEEHIVE_TYPE",
                     "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
-                    "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
+                    "@context": "${applicationProperties.contexts.authzCompound}"
                 },
                 {
                     "id": "urn:ngsi-ld:Beehive:TESTD",
@@ -630,7 +629,7 @@ class EntityAccessControlHandlerTests {
                             "value": {"$AUTH_TERM_KIND": "User", "$AUTH_TERM_USERNAME": "stellio-user"}
                          }
                     },
-                    "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
+                    "@context": "${applicationProperties.contexts.authzCompound}"
                 }]
                 """.trimMargin()
             )
@@ -709,7 +708,7 @@ class EntityAccessControlHandlerTests {
                         "id": "urn:ngsi-ld:group:1",
                         "type": "$GROUP_COMPACT_TYPE",
                         "name" : {"type":"Property", "value": "egm"},
-                        "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
+                        "@context": "${applicationProperties.contexts.authzCompound}"
                     }
                 ]
                 """.trimMargin()
@@ -753,7 +752,7 @@ class EntityAccessControlHandlerTests {
                         "isMemberOf": {"type":"Property", "value": "true"},
                         "@context": [
                           "$AUTHZ_TEST_CONTEXT",
-                          "$AUTHORIZATION_COMPOUND_CONTEXT"
+                          "${applicationProperties.contexts.authzCompound}"
                         ]
                     }
                 ]
@@ -855,7 +854,7 @@ class EntityAccessControlHandlerTests {
                         "$AUTH_TERM_GIVEN_NAME" : { "type":"Property", "value": "givenName" },
                         "$AUTH_TERM_FAMILY_NAME" : { "type":"Property", "value": "familyName" },
                         "$AUTH_TERM_SUBJECT_INFO": { "type":"Property","value":{ "profile": "stellio-user" } },
-                        "@context": "$AUTHORIZATION_COMPOUND_CONTEXT"
+                        "@context": "${applicationProperties.contexts.authzCompound}"
                     }
                 ]
                 """.trimMargin()

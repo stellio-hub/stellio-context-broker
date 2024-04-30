@@ -43,7 +43,7 @@ class SubscriptionHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val sub = getSubFromSecurityContext()
 
         val subscription = parseSubscription(body, contexts).bind()
@@ -67,7 +67,7 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
@@ -106,7 +106,7 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         checkSubscriptionExists(subscriptionId).bind()
@@ -155,7 +155,7 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
         checkIsAllowed(subscriptionId, sub).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body).bind()
+        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         subscriptionService.update(subscriptionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

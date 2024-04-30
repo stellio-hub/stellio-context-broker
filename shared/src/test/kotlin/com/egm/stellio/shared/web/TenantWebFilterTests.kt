@@ -2,6 +2,8 @@ package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.MockkedHandler
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -13,14 +15,12 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TenantWebFilterTests {
 
-    private val applicationProperties = ApplicationProperties(
-        authentication = ApplicationProperties.Authentication(true),
-        pagination = ApplicationProperties.Pagination(100, 30),
-        tenants = listOf(
+    private val applicationProperties = mockk<ApplicationProperties> {
+        every { tenants } returns listOf(
             ApplicationProperties.TenantConfiguration(DEFAULT_TENANT_NAME, "http://localhost", "public"),
             ApplicationProperties.TenantConfiguration("urn:ngsi-ld:tenant:01", "http://localhost", "tenant_01")
         )
-    )
+    }
 
     private lateinit var webClient: WebTestClient
 

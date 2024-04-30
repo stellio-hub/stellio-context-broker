@@ -26,9 +26,6 @@ value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    val NGSILD_CORE_CONTEXTS = listOf(NGSILD_CORE_CONTEXT)
-
     const val NGSILD_PREFIX = "https://uri.etsi.org/ngsi-ld/"
     const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
 
@@ -138,14 +135,14 @@ object JsonLdUtils {
         runCatching {
             doJsonLdExpansion(input, contexts)
         }.fold({
-            ExpandedEntity(it, contexts).right()
+            ExpandedEntity(it).right()
         }, {
             if (it is APIException) it.left()
             else it.toAPIException().left()
         })
 
     suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): ExpandedEntity =
-        ExpandedEntity(doJsonLdExpansion(input, contexts), contexts)
+        ExpandedEntity(doJsonLdExpansion(input, contexts))
 
     suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)

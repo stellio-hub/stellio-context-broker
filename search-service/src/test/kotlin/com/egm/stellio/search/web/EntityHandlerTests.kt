@@ -4,7 +4,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -15,8 +14,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
@@ -36,7 +33,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -53,11 +49,13 @@ import java.time.*
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-@Import(WebSecurityTestConfig::class)
 class EntityHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var entityPayloadService: EntityPayloadService
@@ -287,7 +285,7 @@ class EntityHandlerTests {
         mockkDefaultBehaviorForGetEntityById()
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
-        coEvery { queryService.queryEntity(any(), any()) } returns returnedExpandedEntity.right()
+        coEvery { queryService.queryEntity(any()) } returns returnedExpandedEntity.right()
         every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
 
         webClient.get()
@@ -301,7 +299,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -310,8 +308,7 @@ class EntityHandlerTests {
                     ),
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -323,7 +320,7 @@ class EntityHandlerTests {
                 """
                 {
                     "createdAt": "2015-10-18T11:20:30.000001Z",
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -333,7 +330,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly filter the asked attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -349,8 +346,7 @@ class EntityHandlerTests {
                         "@value" to "some value 2"
                     )
                 )
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -367,7 +363,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly return the simplified representation of an entity`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
@@ -383,8 +379,7 @@ class EntityHandlerTests {
                         JSONLD_ID to "urn:ngsi-ld:Entity:1234"
                     )
                 )
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -400,7 +395,7 @@ class EntityHandlerTests {
                     "type": "Beehive",
                     "prop1": "some value",
                     "rel1": "urn:ngsi-ld:Entity:1234",
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -410,12 +405,11 @@ class EntityHandlerTests {
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf(BEEHIVE_TYPE)
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
@@ -442,12 +436,11 @@ class EntityHandlerTests {
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -455,7 +448,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
+            .expectBody().json("""{"@context":"${applicationProperties.contexts.core}"}""")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }
@@ -463,7 +456,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         mockkDefaultBehaviorForGetEntityById()
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -489,8 +482,7 @@ class EntityHandlerTests {
                 ),
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -511,7 +503,7 @@ class EntityHandlerTests {
                         "createdAt":"2015-10-18T11:20:30.000001Z",
                         "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -521,7 +513,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Date`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -532,8 +524,7 @@ class EntityHandlerTests {
                 ),
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -551,7 +542,7 @@ class EntityHandlerTests {
                             "@value":"2015-10-18"
                         }
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -561,7 +552,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Time`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -572,8 +563,7 @@ class EntityHandlerTests {
                 ),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -591,7 +581,7 @@ class EntityHandlerTests {
                             "@value":"11:20:30"
                         }
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 } 
                 """.trimIndent()
             )
@@ -601,7 +591,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     mapOf(
@@ -613,8 +603,7 @@ class EntityHandlerTests {
                     ),
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -628,7 +617,7 @@ class EntityHandlerTests {
                     "id":"urn:ngsi-ld:Beehive:4567",
                     "type":"Beehive",
                     "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -638,7 +627,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     listOf(
@@ -659,8 +648,7 @@ class EntityHandlerTests {
                     ),
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -681,7 +669,7 @@ class EntityHandlerTests {
                             "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -691,7 +679,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -705,8 +693,7 @@ class EntityHandlerTests {
                     ),
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -724,7 +711,7 @@ class EntityHandlerTests {
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -734,7 +721,7 @@ class EntityHandlerTests {
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -758,8 +745,7 @@ class EntityHandlerTests {
                     ),
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -776,7 +762,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any(), any()) } returns ExpandedEntity(
+        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(
@@ -798,8 +784,7 @@ class EntityHandlerTests {
                     ),
                 JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
                 JSONLD_TYPE to listOf("Beehive")
-            ),
-            listOf(NGSILD_TEST_CORE_CONTEXT)
+            )
         ).right()
 
         webClient.get()
@@ -823,7 +808,7 @@ class EntityHandlerTests {
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
                     ],
-                    "@context": "$NGSILD_CORE_CONTEXT"
+                    "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
             )
@@ -879,8 +864,7 @@ class EntityHandlerTests {
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
-                    ),
-                    listOf(NGSILD_TEST_CORE_CONTEXT)
+                    )
                 )
             ),
             1
@@ -897,7 +881,7 @@ class EntityHandlerTests {
                     {
                         "id": "$beehiveId",
                         "type": "Beehive",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()
@@ -913,7 +897,7 @@ class EntityHandlerTests {
                 EntitiesQuery(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
-                    contexts = NGSILD_CORE_CONTEXTS
+                    contexts = listOf(applicationProperties.contexts.core)
                 ),
                 any()
             )
@@ -928,8 +912,7 @@ class EntityHandlerTests {
                             ),
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
-                    ),
-                    listOf(NGSILD_TEST_CORE_CONTEXT)
+                    )
                 )
             ),
             1
@@ -947,7 +930,7 @@ class EntityHandlerTests {
                         "id": "$beehiveId",
                         "type": "Beehive",
                         "createdAt":"2015-10-18T11:20:30.000001Z",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()
@@ -959,8 +942,7 @@ class EntityHandlerTests {
         coEvery { queryService.queryEntities(any(), any()) } returns Pair(
             listOf(
                 ExpandedEntity(
-                    mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive")),
-                    listOf(NGSILD_TEST_CORE_CONTEXT)
+                    mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive"))
                 )
             ),
             3
@@ -986,7 +968,7 @@ class EntityHandlerTests {
                     {
                         "id": "urn:ngsi-ld:Beehive:TESTC",
                         "type": "Beehive",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": "${applicationProperties.contexts.core}"
                     }
                 ]
                 """.trimMargin()
@@ -1058,8 +1040,7 @@ class EntityHandlerTests {
                     mapOf(
                         "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
-                    ),
-                    APIC_COMPOUND_CONTEXTS
+                    )
                 )
             ),
             1

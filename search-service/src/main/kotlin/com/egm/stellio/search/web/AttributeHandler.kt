@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.raise.either
 import com.egm.stellio.search.service.AttributeService
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import org.springframework.http.HttpHeaders
@@ -13,7 +14,8 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/attributes")
 class AttributeHandler(
-    private val attributeService: AttributeService
+    private val attributeService: AttributeService,
+    private val applicationProperties: ApplicationProperties
 ) {
     /**
      * Implements 6.27 - Retrieve Available Attributes
@@ -23,7 +25,7 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details.orElse(false)
 
@@ -46,7 +48,7 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable attrId: String
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val expandedAttribute = expandJsonLdTerm(attrId.decode(), contexts)
 

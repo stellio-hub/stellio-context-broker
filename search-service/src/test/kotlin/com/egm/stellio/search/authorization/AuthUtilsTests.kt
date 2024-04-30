@@ -1,17 +1,28 @@
 package com.egm.stellio.search.authorization
 
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_API_DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class AuthUtilsTests {
+
+    private val applicationProperties = mockk<ApplicationProperties> {
+        every {
+            contexts.defaultAuthzContexts()
+        } returns listOf(
+            "http://localhost:8093/jsonld-contexts/authorization.jsonld",
+            "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+        )
+    }
 
     @Test
     fun `it should return a 400 if the payload contains a multi-instance property`() = runTest {
@@ -28,7 +39,7 @@ class AuthUtilsTests {
             """.trimIndent()
 
         val ngsiLdAttribute =
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, applicationProperties.contexts.defaultAuthzContexts())
                 .toNgsiLdAttribute()
                 .shouldSucceedAndResult()
 
@@ -53,7 +64,7 @@ class AuthUtilsTests {
                 """.trimIndent()
 
             val ngsiLdAttribute =
-                expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+                expandAttribute(AUTH_TERM_SAP, requestPayload, applicationProperties.contexts.defaultAuthzContexts())
                     .toNgsiLdAttribute()
                     .shouldSucceedAndResult()
 
@@ -72,7 +83,7 @@ class AuthUtilsTests {
             """.trimIndent()
 
         val ngsiLdAttribute =
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, applicationProperties.contexts.defaultAuthzContexts())
                 .toNgsiLdAttribute()
                 .shouldSucceedAndResult()
 
@@ -99,7 +110,7 @@ class AuthUtilsTests {
             """.trimIndent()
 
         val ngsiLdAttribute =
-            expandAttribute(AUTH_TERM_SAP, requestPayload, AUTHORIZATION_API_DEFAULT_CONTEXTS)
+            expandAttribute(AUTH_TERM_SAP, requestPayload, applicationProperties.contexts.defaultAuthzContexts())
                 .toNgsiLdAttribute()
                 .shouldSucceedAndResult()
 

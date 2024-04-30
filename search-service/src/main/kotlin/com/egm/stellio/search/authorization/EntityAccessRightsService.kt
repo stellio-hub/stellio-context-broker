@@ -42,8 +42,8 @@ class EntityAccessRightsService(
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
-    suspend fun setAdminRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
-        setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
+    suspend fun setCreatorRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
+        setRoleOnEntity(sub, entityId, R_IS_OWNER)
 
     @Transactional
     suspend fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Either<APIException, Unit> =
@@ -204,12 +204,12 @@ class EntityAccessRightsService(
             .groupBy { it.id }
             // a user may have multiple rights on a given entity (e.g., through groups memberships)
             // retain the one with the "higher" right
-            .mapValues {
-                val ear = it.value.first()
+            .mapValues { (_, entityAccessRights) ->
+                val ear = entityAccessRights.first()
                 EntityAccessRights(
                     ear.id,
                     ear.types,
-                    it.value.maxOf { it.right },
+                    entityAccessRights.maxOf { it.right },
                     ear.specificAccessPolicy
                 )
             }.values.toList()

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_OWNER
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import kotlinx.coroutines.reactive.awaitFirst
@@ -63,8 +64,11 @@ object AuthContextModel {
     const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_WRITE
     const val AUTH_TERM_CAN_ADMIN = "rCanAdmin"
     const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
-    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN)
-    val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
+    const val AUTH_TERM_IS_OWNER = "isOwner"
+    const val AUTH_REL_IS_OWNER: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_OWNER
+    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN, AUTH_TERM_IS_OWNER)
+    val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN, AUTH_REL_IS_OWNER)
+    val ALL_ASSIGNABLE_IAM_RIGHTS = ALL_IAM_RIGHTS.minus(AUTH_REL_IS_OWNER)
 
     enum class SpecificAccessPolicy {
         AUTH_READ,
@@ -132,7 +136,8 @@ enum class GlobalRole(val key: String) {
 enum class AccessRight(val attributeName: String) {
     R_CAN_READ("rCanRead"),
     R_CAN_WRITE("rCanWrite"),
-    R_CAN_ADMIN("rCanAdmin");
+    R_CAN_ADMIN("rCanAdmin"),
+    R_IS_OWNER("rIsOwner");
 
     companion object {
         fun forAttributeName(attributeName: String): Option<AccessRight> =
@@ -143,6 +148,7 @@ enum class AccessRight(val attributeName: String) {
                 AUTH_REL_CAN_READ -> R_CAN_READ.some()
                 AUTH_REL_CAN_WRITE -> R_CAN_WRITE.some()
                 AUTH_REL_CAN_ADMIN -> R_CAN_ADMIN.some()
+                AUTH_REL_IS_OWNER -> R_IS_OWNER.some()
                 else -> None
             }
     }

@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_OWNER
 import com.egm.stellio.shared.util.AuthContextModel.DATASET_ID_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -31,7 +32,8 @@ data class EntityAccessRights(
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
     val rCanAdminUsers: List<SubjectRightInfo>? = null,
     val rCanWriteUsers: List<SubjectRightInfo>? = null,
-    val rCanReadUsers: List<SubjectRightInfo>? = null
+    val rCanReadUsers: List<SubjectRightInfo>? = null,
+    val rIsOwnerUser: SubjectRightInfo? = null
 ) {
     data class SubjectRightInfo(
         val uri: URI,
@@ -74,6 +76,10 @@ data class EntityAccessRights(
                 it.serializeProperties(contexts)
             }.flatten()
         }
+        rIsOwnerUser?.run {
+            resultEntity[AUTH_REL_IS_OWNER] = this.serializeProperties(contexts)
+        }
+
         return resultEntity
     }
 }

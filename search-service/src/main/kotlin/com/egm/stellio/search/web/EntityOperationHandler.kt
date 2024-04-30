@@ -354,7 +354,7 @@ class EntityOperationHandler(
     ) {
         if (entitiesToCreate.isNotEmpty()) {
             val createOperationResult = entityOperationService.create(entitiesToCreate, sub.getOrNull())
-            authorizationService.createAdminRights(createOperationResult.getSuccessfulEntitiesIds(), sub)
+            authorizationService.createCreatorRights(createOperationResult.getSuccessfulEntitiesIds(), sub)
             entitiesToCreate
                 .filter { it.second.id in createOperationResult.getSuccessfulEntitiesIds() }
                 .forEach {

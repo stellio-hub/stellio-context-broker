@@ -8,11 +8,13 @@ import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.ninjasquad.springmockk.MockkBean
@@ -85,8 +87,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ)
+                listOf(AUTH_WRITE, AUTH_READ),
+                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)
             )
         }
     }
@@ -102,8 +104,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ)
+                listOf(AUTH_WRITE, AUTH_READ),
+                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)
             )
         }
     }
@@ -122,8 +124,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE)
+                listOf(AUTH_WRITE),
+                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE)
             )
         }
     }
@@ -139,8 +141,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE)
+                listOf(AUTH_WRITE),
+                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE)
             )
         }
     }
@@ -160,7 +162,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(AccessRight.R_CAN_ADMIN)
+                listOf(R_IS_OWNER, R_CAN_ADMIN)
             )
         }
     }
@@ -177,21 +179,21 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(AccessRight.R_CAN_ADMIN)
+                listOf(R_IS_OWNER, R_CAN_ADMIN)
             )
         }
     }
 
     @Test
     fun `it should create admin link for a set of entities`() = runTest {
-        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.setCreatorRoleOnEntity(any(), any()) } returns Unit.right()
 
-        enabledAuthorizationService.createAdminRights(listOf(entityId01, entityId02), Some(subjectUuid))
+        enabledAuthorizationService.createCreatorRights(listOf(entityId01, entityId02), Some(subjectUuid))
             .shouldSucceed()
 
         coVerifyAll {
-            entityAccessRightsService.setAdminRoleOnEntity(eq(subjectUuid), eq(entityId01))
-            entityAccessRightsService.setAdminRoleOnEntity(eq(subjectUuid), eq(entityId02))
+            entityAccessRightsService.setCreatorRoleOnEntity(eq(subjectUuid), eq(entityId01))
+            entityAccessRightsService.setCreatorRoleOnEntity(eq(subjectUuid), eq(entityId02))
         }
     }
 
@@ -329,7 +331,7 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE
+                right = R_CAN_WRITE
             )
         ).right()
         coEvery {
@@ -371,12 +373,12 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_ADMIN
+                right = R_CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE
+                right = R_CAN_WRITE
             )
         ).right()
         coEvery {
@@ -386,7 +388,7 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns mapOf(
             entityId01 to mapOf(
-                AccessRight.R_CAN_WRITE to listOf(
+                R_CAN_WRITE to listOf(
                     SubjectRightInfo(
                         "urn:ngsi-ld:User:01".toUri(),
                         mapOf("kind" to "User", "username" to "stellio")

@@ -100,7 +100,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should remove an entity from the list of known entities`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setAdminRoleOnEntity(subjectUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId01)
 
         entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId01).shouldSucceed()
 

@@ -76,7 +76,7 @@ class TemporalEntityHandler(
                 sortedJsonLdInstances.removeFirstInstances(),
                 sub.getOrNull()
             ).bind()
-            authorizationService.createAdminRight(entityUri, sub).bind()
+            authorizationService.createCreatorRight(entityUri, sub).bind()
 
             ResponseEntity.status(HttpStatus.CREATED)
                 .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))

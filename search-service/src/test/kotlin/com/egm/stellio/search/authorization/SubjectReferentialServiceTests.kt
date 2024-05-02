@@ -30,7 +30,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
+    private val userUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
     private val serviceAccountUuid = "3CB80121-B2D6-4F76-BE97-B459CCC3AF72"
     private val groupUuid = "52A916AB-19E6-4D3B-B629-936BC8E5B640"
 
@@ -44,7 +44,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should persist a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
@@ -59,7 +59,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
@@ -67,9 +67,9 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
-                assertEquals(subjectUuid, it.subjectId)
+                assertEquals(userUuid, it.subjectId)
                 assertEquals(SubjectType.USER, it.subjectType)
                 assertEquals(listOf(STELLIO_ADMIN), it.globalRoles)
             }
@@ -78,7 +78,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a subject referential with subject info`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = getSubjectInfoForUser("stellio"),
             globalRoles = listOf(STELLIO_ADMIN)
@@ -86,7 +86,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 val subjectInfo = it.getSubjectInfoValue()
                 assertTrue(subjectInfo.containsKey("username"))
@@ -98,7 +98,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     fun `it should retrieve UUIDs from user and groups memberships`() = runTest {
         val groupsUuids = List(3) { UUID.randomUUID().toString() }
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = groupsUuids
@@ -106,45 +106,44 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
             .shouldSucceedWith {
                 assertEquals(4, it.size)
-                assertTrue(it.containsAll(groupsUuids.plus(subjectUuid)))
+                assertTrue(it.containsAll(groupsUuids.plus(userUuid)))
             }
     }
 
     @Test
     fun `it should retrieve UUIDs from user when it has no groups memberships`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
-                assertTrue(it.contains(subjectUuid))
+                assertTrue(it.contains(userUuid))
             }
     }
 
     @Test
     fun `it should retrieve UUIDs from client and service account`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = serviceAccountUuid,
             subjectType = SubjectType.CLIENT,
-            subjectInfo = EMPTY_JSON_PAYLOAD,
-            serviceAccountId = serviceAccountUuid
+            subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(serviceAccountUuid))
             .shouldSucceedWith {
-                assertEquals(2, it.size)
-                assertTrue(it.containsAll(listOf(serviceAccountUuid, subjectUuid)))
+                assertEquals(1, it.size)
+                assertThat(it).containsAll(listOf(serviceAccountUuid))
             }
     }
 
@@ -152,19 +151,18 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     fun `it should retrieve UUIDs from client, service account and groups memberships`() = runTest {
         val groupsUuids = List(2) { UUID.randomUUID().toString() }
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = serviceAccountUuid,
             subjectType = SubjectType.CLIENT,
             subjectInfo = EMPTY_JSON_PAYLOAD,
-            serviceAccountId = serviceAccountUuid,
             groupsMemberships = groupsUuids
         )
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
+        subjectReferentialService.getSubjectAndGroupsUUID(Some(serviceAccountUuid))
             .shouldSucceedWith {
-                assertEquals(4, it.size)
-                assertTrue(it.containsAll(groupsUuids.plus(serviceAccountUuid).plus(subjectUuid)))
+                assertEquals(3, it.size)
+                assertThat(it).containsAll(groupsUuids.plus(serviceAccountUuid))
             }
     }
 
@@ -183,7 +181,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         }
         val userGroupsUuids = allGroupsUuids.subList(0, 2)
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = userGroupsUuids
@@ -191,7 +189,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        val groups = subjectReferentialService.getGroups(Some(subjectUuid), 0, 10)
+        val groups = subjectReferentialService.getGroups(Some(userUuid), 0, 10)
 
         assertEquals(2, groups.size)
         groups.forEach {
@@ -200,7 +198,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             assertTrue(it.isMember)
         }
 
-        subjectReferentialService.getCountGroups(Some(subjectUuid))
+        subjectReferentialService.getCountGroups(Some(userUuid))
             .shouldSucceedWith { assertEquals(2, it) }
     }
 
@@ -219,7 +217,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         }
         val userGroupsUuids = allGroupsUuids.subList(0, 2)
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             groupsMemberships = userGroupsUuids
@@ -227,7 +225,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        val groups = subjectReferentialService.getAllGroups(Some(subjectUuid), 0, 10)
+        val groups = subjectReferentialService.getAllGroups(Some(userUuid), 0, 10)
 
         assertEquals(3, groups.size)
         groups.forEach {
@@ -309,21 +307,21 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should update the global role of a subject`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             subjectType = SubjectType.USER
         )
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN))
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.setGlobalRoles(userUuid, listOf(STELLIO_ADMIN))
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 assertEquals(listOf(STELLIO_ADMIN), it.globalRoles)
             }
 
-        subjectReferentialService.resetGlobalRoles(subjectUuid)
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.resetGlobalRoles(userUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 assertNull(it.globalRoles)
             }
@@ -332,7 +330,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should find if an user is a stellio admin or not`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
@@ -340,21 +338,21 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
             .shouldSucceedWith {
                 assertTrue(it)
             }
 
-        subjectReferentialService.resetGlobalRoles(subjectUuid)
+        subjectReferentialService.resetGlobalRoles(userUuid)
 
-        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
             .shouldSucceedWith {
                 assertFalse(it)
             }
 
-        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR))
+        subjectReferentialService.setGlobalRoles(userUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR))
 
-        subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid))
+        subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
             .shouldSucceedWith {
                 assertTrue(it)
             }
@@ -363,17 +361,17 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should add a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
 
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
+        subjectReferentialService.addGroupMembershipToUser(userUuid, groupUuid)
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 assertThat(it.groupsMemberships).containsAll(listOf(groupUuid))
             }
@@ -382,20 +380,20 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should add a group membership to an user inside an existing list`() = runTest {
         val userAccessRights = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
+        subjectReferentialService.addGroupMembershipToUser(userUuid, groupUuid)
 
         val newGroupUuid = UUID.randomUUID().toString()
 
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, newGroupUuid)
+        subjectReferentialService.addGroupMembershipToUser(userUuid, newGroupUuid)
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 assertThat(it.groupsMemberships).containsAll(listOf(groupUuid, newGroupUuid))
             }
@@ -404,18 +402,18 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should remove a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
 
         subjectReferentialService.create(userAccessRights)
-        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid)
+        subjectReferentialService.addGroupMembershipToUser(userUuid, groupUuid)
 
-        subjectReferentialService.removeGroupMembershipToUser(subjectUuid, groupUuid)
+        subjectReferentialService.removeGroupMembershipToUser(userUuid, groupUuid)
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 assertTrue(it.groupsMemberships?.isEmpty() ?: false)
             }
@@ -424,7 +422,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should add a service account id to a client`() = runTest {
         val userAccessRights = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
@@ -433,29 +431,29 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         val serviceAccountId = UUID.randomUUID().toString()
 
-        subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId)
+        subjectReferentialService.addServiceAccountIdToClient(userUuid, serviceAccountId)
             .shouldSucceed()
 
         subjectReferentialService.retrieve(serviceAccountId)
             .shouldSucceedWith {
-                assertEquals(serviceAccountId, it.serviceAccountId)
+                assertEquals(serviceAccountId, it.subjectId)
             }
     }
 
     @Test
     fun `it should update an existing subject info for an user`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = getSubjectInfoForUser("stellio")
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()
 
-        subjectReferentialService.updateSubjectInfo(subjectUuid, Pair("username", "stellio v2"))
+        subjectReferentialService.updateSubjectInfo(userUuid, Pair("username", "stellio v2"))
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 val newValue = it.getSubjectInfoValue()
                 assertTrue(newValue.containsKey("username"))
@@ -466,17 +464,17 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should add a subject info for an user`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = getSubjectInfoForUser("stellio")
         )
 
         subjectReferentialService.create(subjectReferential).shouldSucceed()
 
-        subjectReferentialService.updateSubjectInfo(subjectUuid, Pair("givenName", "Blaise"))
+        subjectReferentialService.updateSubjectInfo(userUuid, Pair("givenName", "Blaise"))
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .shouldSucceedWith {
                 val newValue = it.getSubjectInfoValue()
                 assertTrue(newValue.containsKey("username"))
@@ -489,7 +487,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should delete a subject referential`() = runTest {
         val userAccessRights = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
@@ -497,10 +495,10 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
 
         subjectReferentialService.create(userAccessRights)
 
-        subjectReferentialService.delete(subjectUuid)
+        subjectReferentialService.delete(userUuid)
             .shouldSucceed()
 
-        subjectReferentialService.retrieve(subjectUuid)
+        subjectReferentialService.retrieve(userUuid)
             .fold({
                 assertInstanceOf(AccessDeniedException::class.java, it)
             }, {
@@ -511,38 +509,38 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     @Test
     fun `it should return false when user does not have the requested roles`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), CREATION_ROLES)
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(userUuid), CREATION_ROLES)
             .shouldSucceedWith { assertFalse(it) }
     }
 
     @Test
     fun `it should return true when user has admin roles`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_ADMIN)
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), ADMIN_ROLES)
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(userUuid), ADMIN_ROLES)
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should return true when user has creation roles`() = runTest {
         val subjectReferential = SubjectReferential(
-            subjectId = subjectUuid,
+            subjectId = userUuid,
             subjectType = SubjectType.USER,
             subjectInfo = EMPTY_JSON_PAYLOAD,
             globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
         )
         subjectReferentialService.create(subjectReferential)
-        subjectReferentialService.hasOneOfGlobalRoles(listOf(subjectUuid), CREATION_ROLES)
+        subjectReferentialService.hasOneOfGlobalRoles(listOf(userUuid), CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
     }
 
@@ -550,7 +548,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     fun `it should return true when user has a global role inherited from a group`() = runTest {
         subjectReferentialService.create(
             SubjectReferential(
-                subjectId = subjectUuid,
+                subjectId = userUuid,
                 subjectType = SubjectType.USER,
                 subjectInfo = EMPTY_JSON_PAYLOAD,
                 globalRoles = emptyList(),
@@ -565,7 +563,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
                 globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
             )
         )
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)).shouldSucceedAndResult()
+        val uuids = subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid)).shouldSucceedAndResult()
         subjectReferentialService.hasOneOfGlobalRoles(uuids, CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
     }

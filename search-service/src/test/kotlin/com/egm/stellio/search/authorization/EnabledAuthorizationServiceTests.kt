@@ -88,7 +88,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE, AUTH_READ),
-                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
             )
         }
     }
@@ -105,7 +105,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE, AUTH_READ),
-                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
             )
         }
     }
@@ -125,7 +125,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE),
-                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE)
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
             )
         }
     }
@@ -142,7 +142,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE),
-                listOf(R_IS_OWNER, R_CAN_ADMIN, R_CAN_WRITE)
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
             )
         }
     }
@@ -162,7 +162,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(R_IS_OWNER, R_CAN_ADMIN)
+                listOf(IS_OWNER, CAN_ADMIN)
             )
         }
     }
@@ -179,7 +179,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(R_IS_OWNER, R_CAN_ADMIN)
+                listOf(IS_OWNER, CAN_ADMIN)
             )
         }
     }
@@ -331,7 +331,7 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = R_CAN_WRITE
+                right = CAN_WRITE
             )
         ).right()
         coEvery {
@@ -373,12 +373,12 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = R_CAN_ADMIN
+                right = CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
                 types = listOf(BEEHIVE_TYPE),
-                right = R_CAN_WRITE
+                right = CAN_WRITE
             )
         ).right()
         coEvery {
@@ -388,7 +388,7 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns mapOf(
             entityId01 to mapOf(
-                R_CAN_WRITE to listOf(
+                CAN_WRITE to listOf(
                     SubjectRightInfo(
                         "urn:ngsi-ld:User:01".toUri(),
                         mapOf("kind" to "User", "username" to "stellio")

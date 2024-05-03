@@ -45,9 +45,9 @@ class AuthUtilsTests {
 
     @Test
     fun `it should find the access right with a given key`() {
-        assertEquals(Some(AccessRight.R_CAN_READ), AccessRight.forAttributeName("rCanRead"))
-        assertEquals(Some(AccessRight.R_CAN_WRITE), AccessRight.forAttributeName("rCanWrite"))
-        assertEquals(Some(AccessRight.R_CAN_ADMIN), AccessRight.forAttributeName("rCanAdmin"))
+        assertEquals(Some(AccessRight.CAN_READ), AccessRight.forAttributeName("canRead"))
+        assertEquals(Some(AccessRight.CAN_WRITE), AccessRight.forAttributeName("canWrite"))
+        assertEquals(Some(AccessRight.CAN_ADMIN), AccessRight.forAttributeName("canAdmin"))
     }
 
     @Test

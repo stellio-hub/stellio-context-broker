@@ -46,7 +46,7 @@ class EnabledAuthorizationService(
     override suspend fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
-            listOf(AccessRight.R_IS_OWNER, AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ),
+            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN, AccessRight.CAN_WRITE, AccessRight.CAN_READ),
             listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
             sub
         ).toAccessDecision(ENTITIY_READ_FORBIDDEN_MESSAGE)
@@ -54,7 +54,7 @@ class EnabledAuthorizationService(
     override suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
-            listOf(AccessRight.R_IS_OWNER, AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE),
+            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN, AccessRight.CAN_WRITE),
             listOf(SpecificAccessPolicy.AUTH_WRITE),
             sub
         ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
@@ -62,7 +62,7 @@ class EnabledAuthorizationService(
     override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         userHasOneOfGivenRightsOnEntity(
             entityId,
-            listOf(AccessRight.R_IS_OWNER, AccessRight.R_CAN_ADMIN),
+            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN),
             emptyList(),
             sub
         ).toAccessDecision(ENTITY_ADMIN_FORBIDDEN_MESSAGE)
@@ -110,7 +110,7 @@ class EnabledAuthorizationService(
         // for each entity user is admin or creator of, retrieve the full details of rights other users have on it
 
         val entitiesWithAdminRight = entitiesAccessRights.filter {
-            listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_IS_OWNER).contains(it.right)
+            listOf(AccessRight.CAN_ADMIN, AccessRight.IS_OWNER).contains(it.right)
         }.map { it.id }
 
         val rightsForAdminEntities =
@@ -121,10 +121,10 @@ class EnabledAuthorizationService(
                 if (rightsForAdminEntities.containsKey(entityAccessRight.id)) {
                     val rightsForEntity = rightsForAdminEntities[entityAccessRight.id]!!
                     entityAccessRight.copy(
-                        rCanReadUsers = rightsForEntity[AccessRight.R_CAN_READ],
-                        rCanWriteUsers = rightsForEntity[AccessRight.R_CAN_WRITE],
-                        rCanAdminUsers = rightsForEntity[AccessRight.R_CAN_ADMIN],
-                        rIsOwnerUser = rightsForEntity[AccessRight.R_IS_OWNER]?.get(0)
+                        canRead = rightsForEntity[AccessRight.CAN_READ],
+                        canWrite = rightsForEntity[AccessRight.CAN_WRITE],
+                        canAdmin = rightsForEntity[AccessRight.CAN_ADMIN],
+                        owner = rightsForEntity[AccessRight.IS_OWNER]?.get(0)
                     )
                 } else entityAccessRight
             }

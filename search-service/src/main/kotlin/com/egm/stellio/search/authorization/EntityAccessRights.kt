@@ -30,10 +30,10 @@ data class EntityAccessRights(
     // right the current user has on the entity
     val right: AccessRight,
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
-    val rCanAdminUsers: List<SubjectRightInfo>? = null,
-    val rCanWriteUsers: List<SubjectRightInfo>? = null,
-    val rCanReadUsers: List<SubjectRightInfo>? = null,
-    val rIsOwnerUser: SubjectRightInfo? = null
+    val canAdmin: List<SubjectRightInfo>? = null,
+    val canWrite: List<SubjectRightInfo>? = null,
+    val canRead: List<SubjectRightInfo>? = null,
+    val owner: SubjectRightInfo? = null
 ) {
     data class SubjectRightInfo(
         val uri: URI,
@@ -61,22 +61,22 @@ data class EntityAccessRights(
             resultEntity[AUTH_PROP_SAP] = buildExpandedPropertyValue(this)
         }
 
-        rCanAdminUsers?.run {
+        canAdmin?.run {
             resultEntity[AUTH_REL_CAN_ADMIN] = this.map {
                 it.serializeProperties(contexts)
             }.flatten()
         }
-        rCanWriteUsers?.run {
+        canWrite?.run {
             resultEntity[AUTH_REL_CAN_WRITE] = this.map {
                 it.serializeProperties(contexts)
             }.flatten()
         }
-        rCanReadUsers?.run {
+        canRead?.run {
             resultEntity[AUTH_REL_CAN_READ] = this.map {
                 it.serializeProperties(contexts)
             }.flatten()
         }
-        rIsOwnerUser?.run {
+        owner?.run {
             resultEntity[AUTH_REL_IS_OWNER] = this.serializeProperties(contexts)
         }
 

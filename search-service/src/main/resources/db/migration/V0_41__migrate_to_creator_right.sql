@@ -1,3 +1,12 @@
+-- rename exiting authz rights
+UPDATE entity_access_rights
+SET access_right =
+    CASE
+        WHEN access_right = 'rCanAdmin' THEN 'canAdmin'
+        WHEN access_right = 'rCanWrite' THEN 'canWrite'
+        WHEN access_right = 'rCanReadm' THEN 'canRead'
+    END;
+
 WITH entities AS (
     SELECT entity_id, count(*) as admin_right_count
     FROM entity_access_rights

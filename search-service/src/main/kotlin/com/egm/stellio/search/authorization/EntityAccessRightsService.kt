@@ -35,15 +35,15 @@ class EntityAccessRightsService(
 ) {
     @Transactional
     suspend fun setReadRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
-        setRoleOnEntity(sub, entityId, R_CAN_READ)
+        setRoleOnEntity(sub, entityId, CAN_READ)
 
     @Transactional
     suspend fun setWriteRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
-        setRoleOnEntity(sub, entityId, R_CAN_WRITE)
+        setRoleOnEntity(sub, entityId, CAN_WRITE)
 
     @Transactional
     suspend fun setCreatorRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
-        setRoleOnEntity(sub, entityId, R_IS_OWNER)
+        setRoleOnEntity(sub, entityId, IS_OWNER)
 
     @Transactional
     suspend fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Either<APIException, Unit> =
@@ -96,7 +96,7 @@ class EntityAccessRightsService(
             sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
-            listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN)
+            listOf(CAN_READ, CAN_WRITE, CAN_ADMIN)
         ).flatMap {
             if (!it)
                 AccessDeniedException("User forbidden read access to entity $entityId").left()
@@ -108,7 +108,7 @@ class EntityAccessRightsService(
             sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_WRITE),
-            listOf(R_CAN_WRITE, R_CAN_ADMIN)
+            listOf(CAN_WRITE, CAN_ADMIN)
         ).flatMap {
             if (!it)
                 AccessDeniedException("User forbidden write access to entity $entityId").left()
@@ -321,7 +321,7 @@ class EntityAccessRightsService(
 
     private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessRights {
         val accessRight =
-            if (isStellioAdmin) R_CAN_ADMIN
+            if (isStellioAdmin) CAN_ADMIN
             else (row["access_right"] as String).let { AccessRight.forAttributeName(it) }.getOrNull()!!
 
         return EntityAccessRights(

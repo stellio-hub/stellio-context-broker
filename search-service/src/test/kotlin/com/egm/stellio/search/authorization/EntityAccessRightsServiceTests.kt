@@ -252,8 +252,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should get all entities an user has access to`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
@@ -265,7 +265,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             val entityAccessControl = it[0]
             assertEquals(entityId01, entityAccessControl.id)
             assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
-            assertEquals(AccessRight.R_CAN_WRITE, entityAccessControl.right)
+            assertEquals(AccessRight.CAN_WRITE, entityAccessControl.right)
             assertEquals(AUTH_READ, entityAccessControl.specificAccessPolicy)
         }
 
@@ -283,8 +283,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
@@ -294,7 +294,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         ).shouldSucceedWith {
             assertEquals(2, it.size)
             it.forEach { entityAccessControl ->
-                assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+                assertEquals(AccessRight.CAN_ADMIN, entityAccessControl.right)
             }
         }
 
@@ -313,9 +313,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         createEntityPayload(entityId03, setOf(APIARY_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
@@ -346,9 +346,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         createEntityPayload(entityId03, setOf(APIARY_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
@@ -379,9 +379,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         createEntityPayload(entityId03, setOf(APIARY_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
@@ -412,14 +412,14 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         createEntityPayload(entityId03, setOf(APIARY_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.R_CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE),
+            listOf(AccessRight.CAN_WRITE),
             paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -429,7 +429,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE)
+            listOf(AccessRight.CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -442,13 +442,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
         createEntityPayload(entityId03, setOf(APIARY_TYPE))
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.CAN_READ).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE),
+            listOf(AccessRight.CAN_WRITE),
             "$BEEHIVE_TYPE,$APIARY_TYPE",
             paginationQuery = PaginationQuery(limit = 100, offset = 0)
         ).shouldSucceedWith {
@@ -459,7 +459,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         entityAccessRightsService.getSubjectAccessRightsCount(
             Some(subjectUuid),
-            listOf(AccessRight.R_CAN_WRITE)
+            listOf(AccessRight.CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
         }
@@ -472,8 +472,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } returns listOf(groupUuid, subjectUuid).right()
 
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE)
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_ADMIN)
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_ADMIN)
 
         entityAccessRightsService.getSubjectAccessRights(
             Some(subjectUuid),
@@ -484,7 +484,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
             assertEquals(entityId01, entityAccessControl.id)
-            assertEquals(AccessRight.R_CAN_ADMIN, entityAccessControl.right)
+            assertEquals(AccessRight.CAN_ADMIN, entityAccessControl.right)
         }
     }
 
@@ -499,8 +499,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
 
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
 
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01, entityId02))
             .shouldSucceedWith {
@@ -508,8 +508,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
                 val result = it.entries.first()
                 assertEquals(entityId01, result.key)
                 assertEquals(1, result.value.size)
-                assertTrue(result.value.containsKey(AccessRight.R_CAN_READ))
-                val rCanReadList = result.value[AccessRight.R_CAN_READ]!!
+                assertTrue(result.value.containsKey(AccessRight.CAN_READ))
+                val rCanReadList = result.value[AccessRight.CAN_READ]!!
                 assertEquals(1, rCanReadList.size)
                 val subjectRightDetail = rCanReadList[0]
                 assertEquals(GROUP_ENTITY_PREFIX + groupUuid, subjectRightDetail.uri.toString())
@@ -526,16 +526,16 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
 
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
 
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01, entityId02))
             .shouldSucceedWith {
                 assertEquals(2, it.size)
-                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_READ))
-                assertTrue(it.getValue(entityId02).containsKey(AccessRight.R_CAN_WRITE))
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.CAN_READ))
+                assertTrue(it.getValue(entityId02).containsKey(AccessRight.CAN_WRITE))
             }
     }
 
@@ -545,18 +545,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
         createSubjectReferential(clientUuid, SubjectType.CLIENT, getSubjectInfoForClient("IoT Device"))
 
-        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(clientUuid, entityId01, AccessRight.R_CAN_ADMIN).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(clientUuid, entityId01, AccessRight.CAN_ADMIN).shouldSucceed()
 
         entityAccessRightsService.getAccessRightsForEntities(Some(subjectUuid), listOf(entityId01))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 val result = it.entries.first()
                 assertEquals(2, result.value.size)
-                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_READ))
-                assertTrue(it.getValue(entityId01).containsKey(AccessRight.R_CAN_ADMIN))
-                val rCanAdminList = it.getValue(entityId01).getValue(AccessRight.R_CAN_ADMIN)
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.CAN_READ))
+                assertTrue(it.getValue(entityId01).containsKey(AccessRight.CAN_ADMIN))
+                val rCanAdminList = it.getValue(entityId01).getValue(AccessRight.CAN_ADMIN)
                 assertEquals(1, rCanAdminList.size)
                 assertEquals(CLIENT_ENTITY_PREFIX + clientUuid, rCanAdminList[0].uri.toString())
             }

@@ -63,7 +63,7 @@ class EntityHandler(
             expandedEntity,
             sub.getOrNull()
         ).bind()
-        authorizationService.createCreatorRight(ngsiLdEntity.id, sub).bind()
+        authorizationService.createOwnerRight(ngsiLdEntity.id, sub).bind()
 
         entityEventService.publishEntityCreateEvent(
             sub.getOrNull(),

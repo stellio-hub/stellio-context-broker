@@ -97,7 +97,7 @@ class EntityHandlerTests {
         coEvery {
             entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
-        coEvery { authorizationService.createCreatorRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
@@ -117,7 +117,7 @@ class EntityHandlerTests {
                 any(),
                 any()
             )
-            authorizationService.createCreatorRight(eq(breedingServiceId), sub)
+            authorizationService.createOwnerRight(eq(breedingServiceId), sub)
         }
         coVerify {
             entityEventService.publishEntityCreateEvent(

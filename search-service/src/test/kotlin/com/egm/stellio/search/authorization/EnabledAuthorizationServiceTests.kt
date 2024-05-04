@@ -188,7 +188,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should create admin link for a set of entities`() = runTest {
         coEvery { entityAccessRightsService.setCreatorRoleOnEntity(any(), any()) } returns Unit.right()
 
-        enabledAuthorizationService.createCreatorRights(listOf(entityId01, entityId02), Some(subjectUuid))
+        enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02), Some(subjectUuid))
             .shouldSucceed()
 
         coVerifyAll {

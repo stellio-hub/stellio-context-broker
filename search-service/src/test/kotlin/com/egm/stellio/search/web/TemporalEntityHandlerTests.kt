@@ -94,7 +94,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
         coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
-        coEvery { authorizationService.createCreatorRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val data =
             loadSampleData("/temporal/beehive_create_temporal_entity_first_instance.jsonld").deserializeAsMap()
@@ -127,7 +127,7 @@ class TemporalEntityHandlerTests {
                 eq(sub.value)
             )
         }
-        coVerify { authorizationService.createCreatorRight(eq(entityUri), eq(sub)) }
+        coVerify { authorizationService.createOwnerRight(eq(entityUri), eq(sub)) }
     }
 
     @Test

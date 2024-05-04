@@ -29,10 +29,10 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createCreatorRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    override suspend fun createOwnerRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createCreatorRights(
+    override suspend fun createOwnerRights(
         entitiesId: List<URI>,
         sub: Option<Sub>
     ): Either<APIException, Unit> = Unit.right()

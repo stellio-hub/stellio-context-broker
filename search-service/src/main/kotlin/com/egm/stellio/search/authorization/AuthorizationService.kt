@@ -17,8 +17,8 @@ interface AuthorizationService {
     suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
 
-    suspend fun createCreatorRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
-    suspend fun createCreatorRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
+    suspend fun createOwnerRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
+    suspend fun createOwnerRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit>
 
     suspend fun getAuthorizedEntities(

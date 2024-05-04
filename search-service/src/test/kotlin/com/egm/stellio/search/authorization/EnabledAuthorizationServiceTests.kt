@@ -17,6 +17,8 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_RE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -412,6 +414,94 @@ class EnabledAuthorizationServiceTests {
             val expandedEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
             assertEquals(4, expandedEntityWithOtherRights.members.size)
             assertTrue(expandedEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
+        }
+
+        coVerify {
+            entityAccessRightsService.getAccessRightsForEntities(
+                eq(Some(subjectUuid)),
+                listOf(entityId01)
+            )
+        }
+    }
+
+    @Test
+    fun `it should returned serialized access control entities with other rigths if user is owner`() = runTest {
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
+        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getAccessRightsForEntities(any(), any())
+        } returns mapOf(
+            entityId01 to mapOf(
+                CAN_WRITE to listOf(
+                    SubjectRightInfo(
+                        "urn:ngsi-ld:User:01".toUri(),
+                        mapOf("kind" to "User", "username" to "stellio")
+                    )
+                ),
+                CAN_ADMIN to listOf(
+                    SubjectRightInfo(
+                        "urn:ngsi-ld:User:02".toUri(),
+                        mapOf("kind" to "User", "username" to "jean.dupont")
+                    )
+                )
+            )
+        ).right()
+
+        enabledAuthorizationService.getAuthorizedEntities(
+            EntitiesQuery(
+                typeSelection = BEEHIVE_TYPE,
+                paginationQuery = PaginationQuery(limit = 10, offset = 0),
+                contexts = APIC_COMPOUND_CONTEXTS
+            ),
+            contexts = AUTHZ_TEST_COMPOUND_CONTEXTS,
+            sub = Some(subjectUuid)
+        ).shouldSucceedWith {
+            assertEquals(1, it.first)
+            assertEquals(1, it.second.size)
+
+            val expandedEntityWithOtherRights = it.second.first()
+            val compactedEntity = compactEntity(expandedEntityWithOtherRights, AUTHZ_TEST_COMPOUND_CONTEXTS)
+
+            val expectedEntity = """
+                {
+                    "id": "urn:ngsi-ld:Beehive:01",
+                    "type": "https://ontology.eglobalmark.com/apic#BeeHive",
+                    "right": {
+                        "type": "Property",
+                        "value": "isOwner"
+                    },
+                    "canAdmin": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:User:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "subjectInfo": {
+                            "type": "Property",
+                            "value": {
+                                "kind": "User",
+                                "username": "jean.dupont"
+                            }
+                        }
+                    },
+                    "canWrite": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:User:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01",
+                        "subjectInfo": {
+                            "type": "Property",
+                            "value": {
+                                "kind": "User",
+                                "username": "stellio"
+                            }
+                        }
+                    },
+                    "@context": "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
+                }
+            """.trimIndent()
+            assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
         }
 
         coVerify {

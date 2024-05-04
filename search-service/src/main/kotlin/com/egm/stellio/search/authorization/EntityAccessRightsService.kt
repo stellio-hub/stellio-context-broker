@@ -96,7 +96,7 @@ class EntityAccessRightsService(
             sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
-            listOf(CAN_READ, CAN_WRITE, CAN_ADMIN)
+            listOf(CAN_READ, CAN_WRITE, CAN_ADMIN, IS_OWNER)
         ).flatMap {
             if (!it)
                 AccessDeniedException("User forbidden read access to entity $entityId").left()
@@ -108,7 +108,7 @@ class EntityAccessRightsService(
             sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_WRITE),
-            listOf(CAN_WRITE, CAN_ADMIN)
+            listOf(CAN_WRITE, CAN_ADMIN, IS_OWNER)
         ).flatMap {
             if (!it)
                 AccessDeniedException("User forbidden write access to entity $entityId").left()

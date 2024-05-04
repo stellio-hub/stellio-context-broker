@@ -22,8 +22,7 @@ import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -110,6 +109,21 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId01"), it) },
             { fail("it should have not read right on entity") }
         )
+    }
+
+    @Test
+    fun `it should allow the creator of entity to administrate the entity`() = runTest {
+        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+
+        entityAccessRightsService.setCreatorRoleOnEntity(userUuid, entityId01)
+
+        entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
+        entityAccessRightsService.checkHasRightOnEntity(
+            Some(userUuid),
+            entityId01,
+            emptyList(),
+            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN)
+        ).shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
@@ -246,6 +260,33 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
 
         coVerify { subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid)) wasNot Called }
+    }
+
+    @Test
+    fun `it should get all the entities an user has created with appropriate other rights`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setCreatorRoleOnEntity(userUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(serviceAccountUuid, entityId01).shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(userUuid),
+            emptyList(),
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId01, entityAccessControl.id)
+            assertEquals(BEEHIVE_TYPE, entityAccessControl.types[0])
+            assertEquals(AccessRight.IS_OWNER, entityAccessControl.right)
+            assertNull(entityAccessControl.specificAccessPolicy)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(userUuid),
+            emptyList()
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
     }
 
     @Test

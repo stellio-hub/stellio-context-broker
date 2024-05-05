@@ -314,6 +314,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
 
         webClient.delete()
@@ -327,6 +328,33 @@ class EntityAccessControlHandlerTests {
 
             entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1))
         }
+    }
+
+    @Test
+    fun `it should not allow an authorized user to remove access to the owner of an entity`() {
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns true.right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "detail": "User forbidden to remove ownership of entity",
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource"
+                }
+                """.trimIndent()
+            )
+
+        coVerify {
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            entityAccessRightsService.isOwnerOfEntity(eq(otherUserSub), eq(entityUri1))
+        }
+        coVerify { entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1)) wasNot Called }
     }
 
     @Test
@@ -346,6 +374,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should return a 404 if the subject has no right on the target entity`() {
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery {
             entityAccessRightsService.removeRoleOnEntity(any(), any())
         } returns ResourceNotFoundException("No right found for $subjectId on $entityUri1").left()

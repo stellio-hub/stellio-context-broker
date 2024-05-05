@@ -86,7 +86,7 @@ class EnabledAuthorizationService(
     override suspend fun createOwnerRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
         either {
             entitiesId.parMap {
-                entityAccessRightsService.setCreatorRoleOnEntity((sub as Some).value, it).bind()
+                entityAccessRightsService.setOwnerRoleOnEntity((sub as Some).value, it).bind()
             }
         }.map { it.first() }
 

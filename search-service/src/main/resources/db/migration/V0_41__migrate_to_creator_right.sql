@@ -10,19 +10,19 @@ SET access_right =
 WITH entities AS (
     SELECT entity_id, count(*) as admin_right_count
     FROM entity_access_rights
-    WHERE access_right = 'rCanAdmin'
+    WHERE access_right = 'canAdmin'
     GROUP BY entity_id
 )
 UPDATE entity_access_rights
-SET access_right = 'rIsOwner'
+SET access_right = 'isOwner'
 WHERE entity_id IN (select entity_id from entities where admin_right_count = 1)
-AND access_right = 'rCanAdmin';
+AND access_right = 'canAdmin';
 
 -- set isOwner for entities with more than admin right
 WITH entities AS (
     SELECT entity_id, count(*) as admin_right_count
     FROM entity_access_rights
-    WHERE access_right = 'rCanAdmin'
+    WHERE access_right = 'canAdmin'
     GROUP BY entity_id
 ), entities_more_than_one_admin AS (
     SELECT entity_id
@@ -47,8 +47,8 @@ WITH entities AS (
     and tea.created_at = entities_with_oldest_date.created_at
 )
 update entity_access_rights
-set access_right = 'rIsOwner',
+set access_right = 'isOwner',
     subject_id = entities_oldest_with_sub.sub
 from entities_oldest_with_sub
 where entity_access_rights.entity_id = entities_oldest_with_sub.entity_id
-and entity_access_rights.access_right = 'rCanAdmin';
+and entity_access_rights.access_right = 'canAdmin';

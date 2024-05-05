@@ -188,14 +188,14 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should create admin link for a set of entities`() = runTest {
-        coEvery { entityAccessRightsService.setCreatorRoleOnEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.setOwnerRoleOnEntity(any(), any()) } returns Unit.right()
 
         enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02), Some(subjectUuid))
             .shouldSucceed()
 
         coVerifyAll {
-            entityAccessRightsService.setCreatorRoleOnEntity(eq(subjectUuid), eq(entityId01))
-            entityAccessRightsService.setCreatorRoleOnEntity(eq(subjectUuid), eq(entityId02))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId01))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId02))
         }
     }
 

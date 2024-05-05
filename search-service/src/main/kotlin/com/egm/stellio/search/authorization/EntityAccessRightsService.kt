@@ -42,7 +42,7 @@ class EntityAccessRightsService(
         setRoleOnEntity(sub, entityId, CAN_WRITE)
 
     @Transactional
-    suspend fun setCreatorRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
+    suspend fun setOwnerRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
         setRoleOnEntity(sub, entityId, IS_OWNER)
 
     @Transactional
@@ -114,6 +114,20 @@ class EntityAccessRightsService(
                 AccessDeniedException("User forbidden write access to entity $entityId").left()
             else Unit.right()
         }
+
+    suspend fun isOwnerOfEntity(subjectId: Sub, entityId: URI): Either<APIException, Boolean> =
+        databaseClient
+            .sql(
+                """
+                SELECT access_right
+                FROM entity_access_rights
+                WHERE subject_id = :sub
+                AND entity_id = :entity_id
+                """.trimIndent()
+            )
+            .bind("sub", subjectId)
+            .bind("entity_id", entityId)
+            .oneToResult { it["access_right"] as String == IS_OWNER.attributeName }
 
     internal suspend fun checkHasRightOnEntity(
         sub: Option<Sub>,

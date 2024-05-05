@@ -112,10 +112,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should allow the creator of entity to administrate the entity`() = runTest {
+    fun `it should allow the owner of entity to administrate the entity`() = runTest {
         coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
-        entityAccessRightsService.setCreatorRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01)
 
         entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
         entityAccessRightsService.checkHasRightOnEntity(
@@ -263,9 +263,16 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should find if user has ownership on an entity`() = runTest {
+        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
+
+        entityAccessRightsService.isOwnerOfEntity(userUuid, entityId01).shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
     fun `it should get all the entities an user has created with appropriate other rights`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
-        entityAccessRightsService.setCreatorRoleOnEntity(userUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
         entityAccessRightsService.setWriteRoleOnEntity(serviceAccountUuid, entityId01).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(

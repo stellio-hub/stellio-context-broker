@@ -265,9 +265,14 @@ class EntityAccessControlHandler(
 
         authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
-
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        val isOwnerOfEntity = entityAccessRightsService.isOwnerOfEntity(subjectId, entityId).bind()
+        if (!isOwnerOfEntity) {
+            entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        } else {
+            AccessDeniedException(ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE)
+                .left().bind<ResponseEntity<*>>()
+        }
     }.fold(
         { it.toErrorResponse() },
         { it }

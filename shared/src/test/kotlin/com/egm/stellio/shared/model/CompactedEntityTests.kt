@@ -785,4 +785,62 @@ class CompactedEntityTests {
 
         assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
     }
+
+    @Test
+    fun `it should return the simplified representation of a VocabProperty - string value`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "vocab": "stellio"
+                }
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
+
+        val expectedSimplifiedRepresentation = """
+            {
+               "id": "urn:ngsi-ld:Entity:01",
+               "type": "Entity",
+               "vocabProperty": {
+                    "vocab": "stellio"
+               }
+            }
+        """.trimIndent()
+
+        assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
+    }
+
+    @Test
+    fun `it should return the simplified representation of a VocabProperty - array of strings value`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "vocab": ["stellio", "egm"]
+                }
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
+
+        val expectedSimplifiedRepresentation = """
+            {
+               "id": "urn:ngsi-ld:Entity:01",
+               "type": "Entity",
+               "vocabProperty": {
+                    "vocab": ["stellio", "egm"]
+               }
+            }
+        """.trimIndent()
+
+        assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
+    }
 }

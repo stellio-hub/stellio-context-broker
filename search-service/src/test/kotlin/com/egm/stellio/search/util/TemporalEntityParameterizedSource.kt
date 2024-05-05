@@ -4,10 +4,7 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.FullScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
-import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.search.support.SAMPLE_JSON_PROPERTY_PAYLOAD
-import com.egm.stellio.search.support.SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
-import com.egm.stellio.search.support.buildAttributeInstancePayload
+import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
@@ -625,6 +622,48 @@ class TemporalEntityParameterizedSource {
                 loadSampleData("expectations/beehive_language_property_temporal_values.jsonld")
             )
 
+        private val beehiveVocabPropertyTemporalValues =
+            Arguments.arguments(
+                emptyList<ScopeInstanceResult>(),
+                mapOf(
+                    TemporalEntityAttribute(
+                        entityId = entityId,
+                        attributeName = "https://ontology.eglobalmark.com/apic#category",
+                        attributeType = TemporalEntityAttribute.AttributeType.VocabProperty,
+                        attributeValueType = TemporalEntityAttribute.AttributeValueType.ARRAY,
+                        datasetId = null,
+                        createdAt = now,
+                        payload = SAMPLE_VOCAB_PROPERTY_PAYLOAD
+                    ) to
+                        listOf(
+                            SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
+                                value = """
+                                    [{
+                                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
+                                    },
+                                    {
+                                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/egm"
+                                    }]
+                                """,
+                                time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                            ),
+                            SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
+                                value = """
+                                    [{
+                                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
+                                    }]
+                                """,
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                            )
+                        )
+                ),
+                true,
+                false,
+                loadSampleData("expectations/beehive_vocab_property_temporal_values.jsonld")
+            )
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -642,7 +681,8 @@ class TemporalEntityParameterizedSource {
                 beehiveScopeMultiInstancesTemporalValues,
                 beehiveScopeMultiInstances,
                 beehiveJsonPropertyTemporalValues,
-                beehiveLanguagePropertyTemporalValues
+                beehiveLanguagePropertyTemporalValues,
+                beehiveVocabPropertyTemporalValues
             )
         }
     }

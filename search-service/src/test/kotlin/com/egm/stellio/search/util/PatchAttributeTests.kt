@@ -83,6 +83,32 @@ class PatchAttributeTests {
                         }
                     }
                     """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "stellio"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "egm"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "egm"
+                        }
+                    }
+                    """.trimIndent()
                 )
             )
         }
@@ -258,6 +284,32 @@ class PatchAttributeTests {
                         "incoming": {
                             "type": "JsonProperty",
                             "json": { "a": 2, "b": "thing", "c": "other thing" }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "stellio"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "egm"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "egm"
                         }
                     }
                     """.trimIndent()

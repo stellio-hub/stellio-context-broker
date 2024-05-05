@@ -34,6 +34,7 @@
        "movementCount": "https://ontology.eglobalmark.com/apic#movementCount",
        "hornetCount": "https://ontology.eglobalmark.com/apic#hornetCount",
        "dateOfFirstBee": "https://ontology.eglobalmark.com/apic#dateOfFirstBee",
-       "friendlyName": "https://ontology.eglobalmark.com/apic#friendlyName"
+       "friendlyName": "https://ontology.eglobalmark.com/apic#friendlyName",
+       "category": "https://ontology.eglobalmark.com/apic#category"
     }
  }

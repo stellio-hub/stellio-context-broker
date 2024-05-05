@@ -52,7 +52,11 @@ const val EMPTY_PAYLOAD = "{}"
 val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)
 val SAMPLE_JSON_PROPERTY_PAYLOAD = Json.of(
     """
-        { "id": "123", "stringValue": "value", "nullValue": null }
+    {
+      "id": "123",
+      "stringValue": "value",
+      "nullValue": null
+    }
     """.trimIndent()
 )
 val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD = Json.of(
@@ -70,6 +74,23 @@ val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD = Json.of(
       ],
       "@type": [
         "https://uri.etsi.org/ngsi-ld/LanguageProperty"
+      ]
+    }
+    """.trimIndent()
+)
+val SAMPLE_VOCAB_PROPERTY_PAYLOAD = Json.of(
+    """
+    {
+      "https://uri.etsi.org/ngsi-ld/hasVocab": [
+        {
+          "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
+        },
+        {
+          "@id": "https://uri.etsi.org/ngsi-ld/default-context/egm"
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/VocabProperty"
       ]
     }
     """.trimIndent()

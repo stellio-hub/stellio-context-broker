@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -1009,5 +1010,119 @@ class NgsiLdEntityTests {
         assertThrows<BadRequestDataException> {
             expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS)
         }
+    }
+
+    @Test
+    fun `it should parse an entity with a VocabProperty - array of strings value`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "vocab": ["stellio", "egm"]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val vocabProperty = ngsiLdEntity.vocabProperties.first()
+        assertNotNull(vocabProperty)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}vocabProperty", vocabProperty.name)
+        assertEquals(1, vocabProperty.instances.size)
+        val vocabPropertyInstance = vocabProperty.instances[0]
+        assertEquals(
+            listOf(
+                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}stellio"),
+                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}egm")
+            ),
+            vocabPropertyInstance.vocab
+        )
+    }
+
+    @Test
+    fun `it should parse an entity with a VocabProperty - string value`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "vocab": "stellio"
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val vocabProperty = ngsiLdEntity.vocabProperties.first()
+        assertNotNull(vocabProperty)
+        assertEquals("${NGSILD_DEFAULT_VOCAB}vocabProperty", vocabProperty.name)
+        assertEquals(1, vocabProperty.instances.size)
+        val vocabPropertyInstance = vocabProperty.instances[0]
+        assertEquals(
+            listOf(
+                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}stellio")
+            ),
+            vocabPropertyInstance.vocab
+        )
+    }
+
+    @Test
+    fun `it should not parse an entity with a VocabProperty without a vocab member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "value": "stellio"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "VocabProperty ${NGSILD_DEFAULT_VOCAB}vocabProperty has an instance " +
+                        "without a vocab member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `it should not parse an entity with a VocabProperty with an invalid vocab member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "vocabProperty": {
+                    "type": "VocabProperty",
+                    "vocab": {
+                        "name": "stellio",
+                        "company": "EGM"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "VocabProperty ${NGSILD_DEFAULT_VOCAB}vocabProperty has a vocab member " +
+                        "that is not a string, nor an array of string",
+                    it.message
+                )
+            }
     }
 }

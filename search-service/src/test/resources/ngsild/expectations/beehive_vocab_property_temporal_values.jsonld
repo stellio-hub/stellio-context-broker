@@ -3,25 +3,23 @@
   "@type": [
     "https://ontology.eglobalmark.com/apic#BeeHive"
   ],
-  "https://ontology.eglobalmark.com/apic#friendlyName": [
+  "https://ontology.eglobalmark.com/apic#category": [
     {
       "@type": [
-        "https://uri.etsi.org/ngsi-ld/LanguageProperty"
+        "https://uri.etsi.org/ngsi-ld/VocabProperty"
       ],
-      "https://uri.etsi.org/ngsi-ld/hasLanguageMaps": [
+      "https://uri.etsi.org/ngsi-ld/hasVocabs": [
         {
           "@list": [
             {
               "@list": [
                 {
-                  "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
+                  "https://uri.etsi.org/ngsi-ld/hasVocab": [
                     {
-                      "@value": "One beautiful beehive",
-                      "@language": "en"
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
                     },
                     {
-                      "@value": "Une belle ruche",
-                      "@language": "fr"
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/egm"
                     }
                   ]
                 },
@@ -33,14 +31,9 @@
             {
               "@list": [
                 {
-                  "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
+                  "https://uri.etsi.org/ngsi-ld/hasVocab": [
                     {
-                      "@value": "My beautiful beehive",
-                      "@language": "en"
-                    },
-                    {
-                      "@value": "Ma belle ruche",
-                      "@language": "fr"
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
                     }
                   ]
                 },

@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VOCAB_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
@@ -19,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TERM
 import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
@@ -48,6 +50,7 @@ private fun simplifyAttribute(value: Map<String, Any>, transformationParameters:
         RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
         JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
         LANGUAGEPROPERTY -> mapOf(JSONLD_LANGUAGEMAP_TERM to value.getOrDefault(JSONLD_LANGUAGEMAP_TERM, value))
+        VOCABPROPERTY -> mapOf(JSONLD_VOCAB_TERM to value.getOrDefault(JSONLD_VOCAB_TERM, value))
     }
 }
 
@@ -179,7 +182,8 @@ enum class AttributeCompactedType(val key: String) {
     RELATIONSHIP(NGSILD_RELATIONSHIP_TERM),
     GEOPROPERTY(NGSILD_GEOPROPERTY_TERM),
     JSONPROPERTY(NGSILD_JSONPROPERTY_TERM),
-    LANGUAGEPROPERTY(NGSILD_LANGUAGEPROPERTY_TERM);
+    LANGUAGEPROPERTY(NGSILD_LANGUAGEPROPERTY_TERM),
+    VOCABPROPERTY(NGSILD_VOCABPROPERTY_TERM);
 
     companion object {
         fun forKey(key: String): AttributeCompactedType? =

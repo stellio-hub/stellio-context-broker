@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -78,6 +79,12 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
                 AttributeValueType.ARRAY,
                 Triple(serializeObject(this.languageMap), null, null)
             )
+        is NgsiLdVocabPropertyInstance ->
+            Triple(
+                TemporalEntityAttribute.AttributeType.VocabProperty,
+                AttributeValueType.ARRAY,
+                Triple(serializeObject(this.vocab), null, null)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         logger.warn("Unable to get a value from attribute: $this")
@@ -106,6 +113,7 @@ fun guessAttributeValueType(
         TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
         TemporalEntityAttribute.AttributeType.JsonProperty -> AttributeValueType.JSON
         TemporalEntityAttribute.AttributeType.LanguageProperty -> AttributeValueType.ARRAY
+        TemporalEntityAttribute.AttributeType.VocabProperty -> AttributeValueType.ARRAY
     }
 
 fun guessPropertyValueType(
@@ -148,7 +156,9 @@ fun mergePatch(
     update.forEach { (attrName, attrValue) ->
         if (!source.containsKey(attrName)) {
             target[attrName] = attrValue
-        } else if (listOf(NGSILD_JSONPROPERTY_VALUE, NGSILD_PROPERTY_VALUE).contains(attrName)) {
+        } else if (
+            listOf(NGSILD_JSONPROPERTY_VALUE, NGSILD_VOCABPROPERTY_VALUE, NGSILD_PROPERTY_VALUE).contains(attrName)
+        ) {
             if (attrValue.size > 1) {
                 // a Property holding an array of value or a JsonPropery holding an array of JSON objects
                 // cannot be safely merged patch, so copy the whole value from the update

@@ -271,6 +271,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
             is NgsiLdJsonPropertyInstance -> TemporalEntityAttribute.AttributeValueType.OBJECT
             is NgsiLdLanguagePropertyInstance -> TemporalEntityAttribute.AttributeValueType.ARRAY
+            is NgsiLdVocabPropertyInstance -> TemporalEntityAttribute.AttributeValueType.ARRAY
         }
 
         jdbcTemplate.execute(

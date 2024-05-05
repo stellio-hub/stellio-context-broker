@@ -1,0 +1,57 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#friendlyName": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/LanguageProperty"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasLanguageMaps": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
+                    {
+                      "@value": "One beautiful beehive",
+                      "@language": "en"
+                    },
+                    {
+                      "@value": "Une belle ruche",
+                      "@language": "fr"
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
+                    {
+                      "@value": "My beautiful beehive",
+                      "@language": "en"
+                    },
+                    {
+                      "@value": "Ma belle ruche",
+                      "@language": "fr"
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

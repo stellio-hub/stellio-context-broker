@@ -33,7 +33,7 @@ WITH entities AS (
     FROM temporal_entity_attribute
     WHERE entity_id IN (select entity_id from entities_more_than_one_admin)
     GROUP BY entity_id
-), entities_oldest_with_sub AS (
+), entities_with_oldest_sub AS (
     select distinct tea.entity_id, sub
     from temporal_entity_attribute tea, entities_with_oldest_date
     inner join lateral (
@@ -48,7 +48,7 @@ WITH entities AS (
 )
 update entity_access_rights
 set access_right = 'isOwner',
-    subject_id = entities_oldest_with_sub.sub
-from entities_oldest_with_sub
-where entity_access_rights.entity_id = entities_oldest_with_sub.entity_id
+    subject_id = entities_with_oldest_sub.sub
+from entities_with_oldest_sub
+where entity_access_rights.entity_id = entities_with_oldest_sub.entity_id
 and entity_access_rights.access_right = 'canAdmin';

@@ -187,7 +187,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should create admin link for a set of entities`() = runTest {
+    fun `it should create owner link for a set of entities`() = runTest {
         coEvery { entityAccessRightsService.setOwnerRoleOnEntity(any(), any()) } returns Unit.right()
 
         enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02), Some(subjectUuid))
@@ -425,7 +425,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should returned serialized access control entities with other rigths if user is owner`() = runTest {
+    fun `it should return serialized access control entities with other rigths if user is owner`() = runTest {
         coEvery {
             entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
         } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()

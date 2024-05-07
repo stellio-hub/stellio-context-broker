@@ -155,13 +155,13 @@ class AttributeInstanceService(
         }
 
         if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin")
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, origin, time")
         else if (temporalEntitiesQuery.withAggregatedValues)
-            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
-        else if (temporalQuery.lastN != null)
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, time")
+        if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" GROUP BY time ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 

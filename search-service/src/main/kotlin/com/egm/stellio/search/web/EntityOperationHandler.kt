@@ -320,7 +320,10 @@ class EntityOperationHandler(
         payload.map {
             val jsonLdExpansionResult =
                 if (contentType == JSON_LD_MEDIA_TYPE)
-                    expandJsonLdEntityF(it.minus(JSONLD_CONTEXT), it.extractContexts())
+                    expandJsonLdEntityF(
+                        it.minus(JSONLD_CONTEXT),
+                        addCoreContextIfMissing(it.extractContexts(), applicationProperties.contexts.core)
+                    )
                 else
                     expandJsonLdEntityF(
                         it,

@@ -6,7 +6,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -46,7 +44,6 @@ import java.util.UUID
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-@Import(WebSecurityTestConfig::class)
 class TemporalEntityHandlerTests {
 
     @Autowired
@@ -367,7 +364,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -530,7 +527,7 @@ class TemporalEntityHandlerTests {
         buildDefaultMockResponsesForGetEntity()
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
 
         webClient.get()
@@ -557,7 +554,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -579,8 +576,7 @@ class TemporalEntityHandlerTests {
                         ) &&
                         !temporalEntitiesQuery.withTemporalValues &&
                         !temporalEntitiesQuery.withAudit
-                },
-                eq(APIC_COMPOUND_CONTEXTS)
+                }
             )
         }
         confirmVerified(queryService)
@@ -592,7 +588,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -613,7 +609,7 @@ class TemporalEntityHandlerTests {
 
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns returnedExpandedEntity.right()
 
         webClient.get()
@@ -737,7 +733,7 @@ class TemporalEntityHandlerTests {
         }
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any())
+            queryService.queryTemporalEntity(any(), any())
         } returns entityWith2temporalEvolutions.right()
     }
 
@@ -1027,11 +1023,11 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
+    fun `query temporal entity should return 403 if limit is greater than the maximum authorized limit`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } throws BadRequestDataException(
+        } throws TooManyResultsException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
 
@@ -1042,12 +1038,12 @@ class TemporalEntityHandlerTests {
                     "type=BeeHive&limit=200&offset=1"
             )
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isForbidden
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
+                    "title":"The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive",
                     "detail":"You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()

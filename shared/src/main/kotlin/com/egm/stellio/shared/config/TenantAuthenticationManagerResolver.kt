@@ -5,6 +5,7 @@ import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders
@@ -14,6 +15,7 @@ import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 
 @Component
+@Profile("!test")
 @ConditionalOnProperty("application.authentication.enabled")
 class TenantAuthenticationManagerResolver(
     private val applicationProperties: ApplicationProperties

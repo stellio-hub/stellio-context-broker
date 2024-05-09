@@ -5,6 +5,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
@@ -45,7 +47,8 @@ data class TemporalEntityAttribute(
         Property,
         Relationship,
         GeoProperty,
-        JsonProperty;
+        JsonProperty,
+        LanguageProperty;
 
         fun toExpandedName(): String =
             when (this) {
@@ -53,6 +56,7 @@ data class TemporalEntityAttribute(
                 Relationship -> NGSILD_RELATIONSHIP_TYPE.uri
                 GeoProperty -> NGSILD_GEOPROPERTY_TYPE.uri
                 JsonProperty -> NGSILD_JSONPROPERTY_TYPE.uri
+                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_TYPE.uri
             }
 
         /**
@@ -64,6 +68,7 @@ data class TemporalEntityAttribute(
                 Relationship -> NGSILD_RELATIONSHIP_OBJECTS
                 GeoProperty -> NGSILD_GEOPROPERTY_VALUES
                 JsonProperty -> NGSILD_JSONPROPERTY_VALUES
+                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_VALUES
             }
     }
 }

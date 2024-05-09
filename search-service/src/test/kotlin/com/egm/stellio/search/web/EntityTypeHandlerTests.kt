@@ -3,14 +3,12 @@ package com.egm.stellio.search.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AttributeType
 import com.egm.stellio.search.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -20,7 +18,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -31,11 +28,13 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(EntityTypeHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-@Import(WebSecurityTestConfig::class)
 class EntityTypeHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
@@ -130,7 +129,7 @@ class EntityTypeHandlerTests {
 
         coVerify {
             entityTypeService.getEntityTypeList(
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }
@@ -150,9 +149,7 @@ class EntityTypeHandlerTests {
             .jsonPath("$.typeList").isEmpty
 
         coVerify {
-            entityTypeService.getEntityTypeList(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypeList(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -185,9 +182,7 @@ class EntityTypeHandlerTests {
             .expectBody().json(expectedEntityTypes)
 
         coVerify {
-            entityTypeService.getEntityTypes(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypes(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -203,9 +198,7 @@ class EntityTypeHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            entityTypeService.getEntityTypes(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            entityTypeService.getEntityTypes(listOf(applicationProperties.contexts.core))
         }
     }
 
@@ -223,7 +216,7 @@ class EntityTypeHandlerTests {
         coVerify {
             entityTypeService.getEntityTypeInfoByType(
                 "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }
@@ -287,7 +280,7 @@ class EntityTypeHandlerTests {
         coVerify {
             entityTypeService.getEntityTypeInfoByType(
                 "https://ontology.eglobalmark.com/apic#BeeHive",
-                listOf(NGSILD_CORE_CONTEXT)
+                listOf(applicationProperties.contexts.core)
             )
         }
     }

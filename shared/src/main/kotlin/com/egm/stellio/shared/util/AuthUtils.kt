@@ -1,15 +1,14 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.*
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -21,12 +20,6 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
-    private const val EGM_BASE_CONTEXT_URL = "https://easy-global-market.github.io/ngsild-api-data-models"
-    const val AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
-    const val AUTHORIZATION_COMPOUND_CONTEXT =
-        "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization-compound.jsonld"
-    val AUTHORIZATION_API_DEFAULT_CONTEXTS = listOf(AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
-
     const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_COMPACT_TYPE = "User"
@@ -155,14 +148,20 @@ enum class AccessRight(val attributeName: String) {
     }
 }
 
-fun getAuthzContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, List<String>> =
+fun getAuthzContextFromLinkHeaderOrDefault(
+    httpHeaders: HttpHeaders,
+    contexts: ApplicationProperties.Contexts
+): Either<APIException, List<String>> =
     getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         .map {
-            if (it != null) listOf(it).plus(AUTHORIZATION_COMPOUND_CONTEXT)
-            else listOf(AUTHORIZATION_COMPOUND_CONTEXT)
+            if (it != null)
+                if (canExpandJsonLdKeyFromCore(listOf(it)))
+                    listOf(it, contexts.authz)
+                else listOf(it, contexts.authzCompound)
+            else listOf(contexts.authzCompound)
         }
 
-fun List<String>.replaceDefaultContextToAuthzContext() =
-    if (this.size == 1 && this[0] == NGSILD_CORE_CONTEXT)
-        listOf(AUTHORIZATION_COMPOUND_CONTEXT)
+fun List<String>.replaceDefaultContextToAuthzContext(contexts: ApplicationProperties.Contexts) =
+    if (this.size == 1 && this[0] == contexts.core)
+        listOf(contexts.authzCompound)
     else this

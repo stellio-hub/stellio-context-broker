@@ -4,7 +4,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
@@ -31,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -44,7 +42,6 @@ import java.net.URI
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-@Import(WebSecurityTestConfig::class)
 class EntityOperationHandlerTests {
 
     @Autowired
@@ -95,7 +92,6 @@ class EntityOperationHandlerTests {
         mockedTemperatureSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns temperatureSensorUri.toString()
             every { members } returns emptyMap()
-            every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
         mockedDissolvedOxygenSensorEntity = mockkClass(NgsiLdEntity::class) {
             every { id } returns dissolvedOxygenSensorUri
@@ -104,7 +100,6 @@ class EntityOperationHandlerTests {
         mockedDissolvedOxygenSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns dissolvedOxygenSensorUri.toString()
             every { members } returns emptyMap()
-            every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
         mockedDeviceEntity = mockkClass(NgsiLdEntity::class) {
             every { id } returns deviceUri
@@ -113,7 +108,6 @@ class EntityOperationHandlerTests {
         mockedDeviceExpandedEntity = mockkClass(ExpandedEntity::class) {
             every { id } returns deviceUri.toString()
             every { members } returns emptyMap()
-            every { contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
         }
     }
 

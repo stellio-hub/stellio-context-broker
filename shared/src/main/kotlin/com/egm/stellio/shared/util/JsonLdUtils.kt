@@ -26,9 +26,6 @@ value class AttributeType(val uri: String)
 
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    val NGSILD_CORE_CONTEXTS = listOf(NGSILD_CORE_CONTEXT)
-
     const val NGSILD_PREFIX = "https://uri.etsi.org/ngsi-ld/"
     const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
 
@@ -44,11 +41,15 @@ object JsonLdUtils {
     const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
     val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
     const val NGSILD_JSONPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasJSON"
-    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
+    const val NGSILD_LANGUAGEPROPERTY_TERM = "LanguageProperty"
+    val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
+    const val NGSILD_LANGUAGEPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasLanguageMap"
 
     const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
+    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
+    const val NGSILD_LANGUAGEPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasLanguageMaps"
 
     private const val JSONLD_GRAPH = "@graph"
     const val JSONLD_ID_TERM = "id"
@@ -60,10 +61,13 @@ object JsonLdUtils {
     const val JSONLD_OBJECT = "object"
     const val JSONLD_LIST = "@list"
     const val JSONLD_JSON_TERM = "json"
+    const val JSONLD_LANGUAGE = "@language"
+    const val JSONLD_LANGUAGEMAP_TERM = "languageMap"
     const val JSONLD_JSON = "@json"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
     const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
+    const val NGSILD_LANG_TERM = "lang"
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
@@ -131,14 +135,14 @@ object JsonLdUtils {
         runCatching {
             doJsonLdExpansion(input, contexts)
         }.fold({
-            ExpandedEntity(it, contexts).right()
+            ExpandedEntity(it).right()
         }, {
             if (it is APIException) it.left()
             else it.toAPIException().left()
         })
 
     suspend fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): ExpandedEntity =
-        ExpandedEntity(doJsonLdExpansion(input, contexts), contexts)
+        ExpandedEntity(doJsonLdExpansion(input, contexts))
 
     suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)

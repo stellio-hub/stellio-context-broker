@@ -5,7 +5,6 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.search.util.toJson
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
@@ -279,65 +278,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             assertTrue(it.createdAt.isBefore(createdAt))
             assertEquals(createdAt, it.modifiedAt)
         }
-    }
-
-    @Test
-    fun `it should merge an attribute payload for a JsonProperty`() = runTest {
-        val initialJsonValue = """
-            {
-                "incoming": {
-                    "type": "JsonProperty",
-                    "json": { "id": 1, "b": null, "c": 12.4 },
-                    "observedAt": "2022-12-24T14:01:22.066Z",
-                    "subAttribute": {
-                        "type": "Property",
-                        "value": "subAttribute"
-                    }
-                }
-            }
-        """.trimIndent()
-        val temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = beehiveTestCId,
-            attributeName = INCOMING_PROPERTY,
-            attributeType = TemporalEntityAttribute.AttributeType.JsonProperty,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.JSON,
-            createdAt = ngsiLdDateTime(),
-            payload = expandAttribute(initialJsonValue, APIC_COMPOUND_CONTEXTS).second[0].toJson()
-        )
-
-        val newJsonValue = """
-            {
-                "incoming": {
-                    "type": "JsonProperty",
-                    "json": { "id": 2, "b": "something" },
-                    "observedAt": "2023-12-24T14:01:22.066Z"
-                }
-            }
-        """.trimIndent()
-        val newJsonExpandedAttribute = expandAttribute(newJsonValue, APIC_COMPOUND_CONTEXTS).second[0]
-        val (_, expandedAttributeInstance) = temporalEntityAttributeService.mergeAttributePayload(
-            temporalEntityAttribute,
-            newJsonExpandedAttribute
-        )
-
-        val expectedJsonValue = """
-            {
-                "incoming": {
-                    "type": "JsonProperty",
-                    "json": { "id": 2, "b": "something" },
-                    "observedAt": "2023-12-24T14:01:22.066Z",
-                    "subAttribute": {
-                        "type": "Property",
-                        "value": "subAttribute"
-                    }
-                }
-            }
-        """.trimIndent()
-        val expectedJsonExpandedAttribute = expandAttribute(expectedJsonValue, APIC_COMPOUND_CONTEXTS).second[0]
-        assertJsonPayloadsAreEqual(
-            serializeObject(expectedJsonExpandedAttribute),
-            serializeObject(expandedAttributeInstance)
-        )
     }
 
     @Test

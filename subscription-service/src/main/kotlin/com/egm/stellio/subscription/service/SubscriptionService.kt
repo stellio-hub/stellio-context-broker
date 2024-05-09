@@ -149,11 +149,11 @@ class SubscriptionService(
             INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                 notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
                 endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
-                expires_at, sub, contexts, throttling, sys_attrs)
+                expires_at, sub, contexts, throttling, sys_attrs, lang)
             VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                 :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
                 :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
-                :expires_at, :sub, :contexts, :throttling, :sys_attrs)
+                :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -180,6 +180,7 @@ class SubscriptionService(
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
             .bind("sys_attrs", subscription.notification.sysAttrs)
+            .bind("lang", subscription.lang)
             .execute().bind()
 
         geoQuery?.let {
@@ -250,7 +251,7 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -355,7 +356,8 @@ class SubscriptionService(
                     "scopeQ",
                     "isActive",
                     "modifiedAt",
-                    "throttling"
+                    "throttling",
+                    "lang"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
@@ -498,7 +500,7 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -540,7 +542,7 @@ class SubscriptionService(
                    entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
-                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs
+                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -693,7 +695,8 @@ class SubscriptionService(
             ),
             isActive = toBoolean(row["is_active"]),
             contexts = toList(row["contexts"]),
-            throttling = toNullableInt(row["throttling"])
+            throttling = toNullableInt(row["throttling"]),
+            lang = row["lang"] as? String
         )
     }
 
@@ -724,7 +727,8 @@ class SubscriptionService(
                 sysAttrs = row["sys_attrs"] as Boolean
             ),
             contexts = toList(row["contexts"]),
-            throttling = toNullableInt(row["throttling"])
+            throttling = toNullableInt(row["throttling"]),
+            lang = row["lang"] as? String
         )
     }
 
@@ -760,7 +764,7 @@ class SubscriptionService(
                 scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info,
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
-                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs
+                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

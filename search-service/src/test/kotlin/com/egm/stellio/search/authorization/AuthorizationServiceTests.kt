@@ -2,11 +2,13 @@ package com.egm.stellio.search.authorization
 
 import arrow.core.None
 import com.egm.stellio.search.model.EntitiesQuery
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXTS
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import io.mockk.every
+import io.mockk.mockk
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,6 +20,10 @@ class AuthorizationServiceTests {
     private val authorizationService = spyk(DisabledAuthorizationService())
 
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
+
+    private val applicationProperties = mockk<ApplicationProperties> {
+        every { contexts.core } returns "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    }
 
     @Test
     fun `it should authorize access to read`() = runTest {
@@ -32,9 +38,9 @@ class AuthorizationServiceTests {
         authorizationService.getAuthorizedEntities(
             EntitiesQuery(
                 paginationQuery = PaginationQuery(limit = 0, offset = 0),
-                contexts = NGSILD_CORE_CONTEXTS
+                contexts = listOf(applicationProperties.contexts.core)
             ),
-            NGSILD_CORE_CONTEXTS,
+            listOf(applicationProperties.contexts.core),
             None
         ).shouldSucceedWith {
             assertEquals(-1, it.first)

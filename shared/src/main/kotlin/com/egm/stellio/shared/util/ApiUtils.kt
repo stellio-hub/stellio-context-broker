@@ -8,7 +8,6 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -37,6 +36,7 @@ const val QUERY_PARAM_ATTRS: String = "attrs"
 const val QUERY_PARAM_Q: String = "q"
 const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
 const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
+const val QUERY_PARAM_LANG: String = "lang"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
@@ -56,11 +56,14 @@ val linkHeaderRegex: Regex =
  * Link header as mandated by JSON-LD, section 6.2.extract @context from Link header.
  * In the absence of such Link header, it returns the default JSON-LD @context.
  */
-fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): Either<APIException, List<String>> =
+fun getContextFromLinkHeaderOrDefault(
+    httpHeaders: HttpHeaders,
+    coreContext: String
+): Either<APIException, List<String>> =
     getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         .map {
-            if (it != null) addCoreContextIfMissing(listOf(it))
-            else listOf(NGSILD_CORE_CONTEXT)
+            if (it != null) addCoreContextIfMissing(listOf(it), coreContext)
+            else listOf(coreContext)
         }
 
 fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, String?> =
@@ -78,13 +81,14 @@ fun buildContextLinkHeader(contextLink: String): String =
 
 fun checkAndGetContext(
     httpHeaders: HttpHeaders,
-    body: Map<String, Any>
+    body: Map<String, Any>,
+    coreContext: String
 ): Either<APIException, List<String>> = either {
     checkContentType(httpHeaders, body).bind()
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
-        getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        getContextFromLinkHeaderOrDefault(httpHeaders, coreContext).bind()
     } else {
         val contexts = body.extractContexts()
         // kind of duplicate what is checked in checkContext but a bit more sure
@@ -93,7 +97,7 @@ fun checkAndGetContext(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
             )
         }
-        addCoreContextIfMissing(contexts)
+        addCoreContextIfMissing(contexts, coreContext)
     }
 }
 
@@ -133,12 +137,13 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
  */
 suspend fun extractPayloadAndContexts(
     requestBody: Mono<String>,
-    httpHeaders: HttpHeaders
+    httpHeaders: HttpHeaders,
+    coreContext: String
 ): Either<APIException, Pair<CompactedEntity, List<String>>> = either {
     val body = requestBody.awaitFirst().deserializeAsMap()
         .checkNamesAreNgsiLdSupported().bind()
         .checkContentIsNgsiLdSupported().bind()
-    val contexts = checkAndGetContext(httpHeaders, body).bind()
+    val contexts = checkAndGetContext(httpHeaders, body, coreContext).bind()
 
     Pair(body.minus(JSONLD_CONTEXT), contexts)
 }
@@ -155,23 +160,23 @@ fun Map<String, Any>.extractContexts(): List<String> =
 
 private val coreContextRegex = ".*ngsi-ld-core-context-v\\d+.\\d+.jsonld$".toRegex()
 
-fun addCoreContextIfMissing(contexts: List<String>): List<String> =
+fun addCoreContextIfMissing(contexts: List<String>, coreContext: String): List<String> =
     when {
-        contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
+        contexts.isEmpty() -> listOf(coreContext)
         // to ensure that core @context, if present, comes last
         contexts.any { it.matches(coreContextRegex) } -> {
-            val coreContext = contexts.find { it.matches(coreContextRegex) }!!
-            contexts.filter { !it.matches(coreContextRegex) }.plus(coreContext)
+            val inlineCoreContext = contexts.find { it.matches(coreContextRegex) }!!
+            contexts.filter { !it.matches(coreContextRegex) }.plus(inlineCoreContext)
         }
         // to check if the core @context is included / embedded in one of the link
         canExpandJsonLdKeyFromCore(contexts) -> contexts
-        else -> contexts.plus(NGSILD_CORE_CONTEXT)
+        else -> contexts.plus(coreContext)
     }
 
 /**
  * Utility but basic method to find if given contexts can resolve a known term from the core context.
  */
-private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
     val expandedType = JsonLdUtils.expandJsonLdTerm("datasetId", contexts)
     return expandedType == NGSILD_DATASET_ID_PROPERTY
 }
@@ -218,6 +223,7 @@ fun parseRepresentations(
     val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
     val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+    val languageFilter = requestParams.getFirst(QUERY_PARAM_LANG)
     val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
     val geometryProperty =
         if (entityRepresentation == EntityRepresentation.GEO_JSON)
@@ -229,6 +235,7 @@ fun parseRepresentations(
         entityRepresentation,
         attributeRepresentation,
         includeSysAttrs,
+        languageFilter,
         geometryProperty,
         timeproperty
     )
@@ -259,7 +266,7 @@ fun parsePaginationParameters(
     if (count && (limit < 0 || offset < 0))
         return BadRequestDataException("Offset and limit must be greater than zero").left()
     if (limit > limitMax)
-        return BadRequestDataException(
+        return TooManyResultsException(
             "You asked for $limit results, but the supported maximum limit is $limitMax"
         ).left()
     return PaginationQuery(offset, limit, count).right()

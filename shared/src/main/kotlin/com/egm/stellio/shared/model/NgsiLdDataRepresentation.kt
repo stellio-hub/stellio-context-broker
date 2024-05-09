@@ -11,6 +11,7 @@ data class NgsiLdDataRepresentation(
     val entityRepresentation: EntityRepresentation,
     val attributeRepresentation: AttributeRepresentation,
     val includeSysAttrs: Boolean,
+    val languageFilter: String? = null,
     // In the case of GeoJSON Entity representation,
     // this parameter indicates which GeoProperty to use for the toplevel geometry field
     val geometryProperty: String? = null,

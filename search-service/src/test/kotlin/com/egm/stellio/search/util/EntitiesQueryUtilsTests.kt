@@ -1,8 +1,13 @@
 package com.egm.stellio.search.util
 
+import arrow.core.Either
+import arrow.core.raise.either
 import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.EntitiesQuery
+import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.util.*
@@ -15,6 +20,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -220,6 +226,16 @@ class EntitiesQueryUtilsTests {
             it is BadRequestDataException &&
                 it.message.startsWith("The supplied query could not be parsed")
         }
+    }
+
+    private fun composeEntitiesQueryFromPostRequest(
+        defaultPagination: ApplicationProperties.Pagination,
+        requestBody: String,
+        requestParams: MultiValueMap<String, String>,
+        contexts: List<String>
+    ): Either<APIException, EntitiesQuery> = either {
+        val query = Query(requestBody).bind()
+        composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contexts).bind()
     }
 
     @Test

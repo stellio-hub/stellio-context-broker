@@ -436,6 +436,36 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should get all entities an user has access to wrt access rights and types`() = runTest {
+        val entityId03 = "urn:ngsi-ld:Entity:03".toUri()
+
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId03, setOf(APIARY_TYPE))
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId02, AccessRight.R_CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId03, AccessRight.R_CAN_READ).shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(subjectUuid),
+            listOf(AccessRight.R_CAN_WRITE),
+            "$BEEHIVE_TYPE,$APIARY_TYPE",
+            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+            val entityAccessControl = it[0]
+            assertEquals(entityId02, entityAccessControl.id)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(subjectUuid),
+            listOf(AccessRight.R_CAN_WRITE)
+        ).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+    }
+
+    @Test
     fun `it should return only one entity with higher right if user has access through different paths`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
         coEvery {
@@ -513,12 +543,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     fun `it should get other subject rights for all kinds of subjects`() = runTest {
         createSubjectReferential(subjectUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
         createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
-        createSubjectReferential(
-            UUID.randomUUID().toString(),
-            SubjectType.CLIENT,
-            getSubjectInfoForClient("IoT Device"),
-            clientUuid
-        )
+        createSubjectReferential(clientUuid, SubjectType.CLIENT, getSubjectInfoForClient("IoT Device"))
 
         entityAccessRightsService.setRoleOnEntity(subjectUuid, entityId01, AccessRight.R_CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.R_CAN_READ).shouldSucceed()
@@ -558,15 +583,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     private suspend fun createSubjectReferential(
         subjectId: String,
         subjectType: SubjectType,
-        subjectInfo: Json,
-        serviceAccountId: String? = null
+        subjectInfo: Json
     ) {
         subjectReferentialService.create(
             SubjectReferential(
                 subjectId = subjectId,
                 subjectType = subjectType,
-                subjectInfo = subjectInfo,
-                serviceAccountId = serviceAccountId
+                subjectInfo = subjectInfo
             )
         )
     }

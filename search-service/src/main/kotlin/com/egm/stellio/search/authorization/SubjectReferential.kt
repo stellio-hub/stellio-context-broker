@@ -14,7 +14,6 @@ data class SubjectReferential(
     val subjectId: Sub,
     val subjectType: SubjectType,
     val subjectInfo: Json,
-    val serviceAccountId: Sub? = null,
     val globalRoles: List<GlobalRole>? = null,
     val groupsMemberships: List<Sub>? = null
 ) {

@@ -52,59 +52,51 @@ class EntityEventListenerService(
                     tenantName,
                     entityEvent.operationPayload.getUpdatedAttributes(),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ENTITY_CREATED,
-                    entityEvent.contexts
+                    NotificationTrigger.ENTITY_CREATED
                 )
                 is EntityReplaceEvent -> entityEvent.operationPayload.getUpdatedAttributes().forEach { attribute ->
                     handleEntityEvent(
                         tenantName,
                         setOf(attribute),
                         entityEvent.getEntity(),
-                        NotificationTrigger.ATTRIBUTE_CREATED,
-                        entityEvent.contexts
+                        NotificationTrigger.ATTRIBUTE_CREATED
                     )
                 }
                 is EntityDeleteEvent -> handleEntityEvent(
                     tenantName,
                     entityEvent.deletedEntity?.getUpdatedAttributes() ?: emptySet(),
                     entityEvent.getEntity() ?: serializeObject(emptyMap<String, Any>()),
-                    NotificationTrigger.ENTITY_DELETED,
-                    entityEvent.contexts
+                    NotificationTrigger.ENTITY_DELETED
                 )
                 is AttributeAppendEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ATTRIBUTE_CREATED,
-                    entityEvent.contexts
+                    NotificationTrigger.ATTRIBUTE_CREATED
                 )
                 is AttributeReplaceEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ATTRIBUTE_UPDATED,
-                    entityEvent.contexts
+                    NotificationTrigger.ATTRIBUTE_UPDATED
                 )
                 is AttributeUpdateEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ATTRIBUTE_UPDATED,
-                    entityEvent.contexts
+                    NotificationTrigger.ATTRIBUTE_UPDATED
                 )
                 is AttributeDeleteEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ATTRIBUTE_DELETED,
-                    entityEvent.contexts
+                    NotificationTrigger.ATTRIBUTE_DELETED
                 )
                 is AttributeDeleteAllInstancesEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     entityEvent.getEntity(),
-                    NotificationTrigger.ATTRIBUTE_DELETED,
-                    entityEvent.contexts
+                    NotificationTrigger.ATTRIBUTE_DELETED
                 )
             }
         }.onFailure {
@@ -116,11 +108,10 @@ class EntityEventListenerService(
         tenantName: String,
         updatedAttributes: Set<ExpandedTerm>,
         entityPayload: String,
-        notificationTrigger: NotificationTrigger,
-        contexts: List<String>
+        notificationTrigger: NotificationTrigger
     ): Either<APIException, Disposable> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val expandedEntity = ExpandedEntity(entityPayload.deserializeAsMap(), contexts)
+        val expandedEntity = ExpandedEntity(entityPayload.deserializeAsMap())
         mono {
             notificationService.notifyMatchingSubscribers(
                 expandedEntity,

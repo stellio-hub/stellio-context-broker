@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
@@ -270,12 +271,13 @@ class EntityOperationHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders).bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val query = Query(requestBody.awaitFirst()).bind()
 
         val entitiesQuery = composeEntitiesQueryFromPostRequest(
             applicationProperties.pagination,
-            requestBody.awaitFirst(),
+            query,
             params,
             contexts
         ).bind()
@@ -289,6 +291,8 @@ class EntityOperationHandler(
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+            .copy(languageFilter = query.lang)
+
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -321,7 +325,10 @@ class EntityOperationHandler(
                         addCoreContextIfMissing(it.extractContexts(), applicationProperties.contexts.core)
                     )
                 else
-                    expandJsonLdEntityF(it, addCoreContextIfMissing(listOfNotNull(context)))
+                    expandJsonLdEntityF(
+                        it,
+                        addCoreContextIfMissing(listOfNotNull(context), applicationProperties.contexts.core)
+                    )
             jsonLdExpansionResult
                 .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->

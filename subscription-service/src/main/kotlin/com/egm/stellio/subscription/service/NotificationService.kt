@@ -44,13 +44,14 @@ class NotificationService(
                     else AttributeRepresentation.NORMALIZED
 
                 val compactedEntity = compactEntity(
-                    ExpandedEntity(filteredEntity, it.contexts),
+                    ExpandedEntity(filteredEntity),
                     it.contexts
                 ).toFinalRepresentation(
                     NgsiLdDataRepresentation(
                         entityRepresentation,
                         attributeRepresentation,
-                        it.notification.sysAttrs
+                        it.notification.sysAttrs,
+                        it.lang
                     )
                 )
                 callSubscriber(it, compactedEntity)

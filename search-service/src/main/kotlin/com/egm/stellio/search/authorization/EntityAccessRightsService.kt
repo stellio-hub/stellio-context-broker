@@ -176,7 +176,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
-                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND (${buildTypeQuery(type)})" else ""}
                 ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
@@ -232,7 +232,7 @@ class EntityAccessRightsService(
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
-                ${if (!type.isNullOrEmpty()) " AND ${buildTypeQuery(type)}" else ""}
+                ${if (!type.isNullOrEmpty()) " AND (${buildTypeQuery(type)})" else ""}
                 ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
                 """.trimIndent()
             )
@@ -267,11 +267,9 @@ class EntityAccessRightsService(
         databaseClient
             .sql(
                 """
-                select entity_id, sr.subject_id, access_right, subject_type, subject_info, service_account_id
+                select entity_id, sr.subject_id, access_right, subject_type, subject_info
                 from entity_access_rights
-                left join subject_referential sr 
-                    on entity_access_rights.subject_id = sr.subject_id 
-                    or entity_access_rights.subject_id = sr.service_account_id
+                left join subject_referential sr on entity_access_rights.subject_id = sr.subject_id 
                 where entity_id in (:entities_ids)
                 and sr.subject_id not in (:excluded_subject_uuids);
                 """.trimIndent()
@@ -285,7 +283,7 @@ class EntityAccessRightsService(
                     .groupBy { AccessRight.forAttributeName(it["access_right"] as String).getOrNull()!! }
                     .mapValues { (_, records) ->
                         records.map { record ->
-                            val uuid = record["service_account_id"] ?: record["subject_id"]
+                            val uuid = record["subject_id"]
                             val subjectType = toEnum<SubjectType>(record["subject_type"]!!)
                             val (uri, type) = when (subjectType) {
                                 SubjectType.USER -> Pair(USER_ENTITY_PREFIX + uuid, USER_COMPACT_TYPE)

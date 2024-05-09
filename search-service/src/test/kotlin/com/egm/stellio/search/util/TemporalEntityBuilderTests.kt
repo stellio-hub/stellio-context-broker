@@ -47,8 +47,7 @@ class TemporalEntityBuilderTests {
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         )
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
@@ -81,8 +80,7 @@ class TemporalEntityBuilderTests {
                 withTemporalValues,
                 withAudit,
                 false
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -107,8 +105,7 @@ class TemporalEntityBuilderTests {
                 withTemporalValues,
                 withAudit,
                 false
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -186,8 +183,7 @@ class TemporalEntityBuilderTests {
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = true
-            ),
-            APIC_COMPOUND_CONTEXTS
+            )
         )
 
         assertJsonPayloadsAreEqual(

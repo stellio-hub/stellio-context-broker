@@ -133,7 +133,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 """.trimIndent()
             )
 
-            val jsonLdEntity = ExpandedEntity(expandedEntity, contexts)
+            val jsonLdEntity = ExpandedEntity(expandedEntity)
             val ngsiLdEntity = runBlocking {
                 jsonLdEntity.toNgsiLdEntity()
             }
@@ -270,6 +270,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeValueType.URI
             is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
             is NgsiLdJsonPropertyInstance -> TemporalEntityAttribute.AttributeValueType.OBJECT
+            is NgsiLdLanguagePropertyInstance -> TemporalEntityAttribute.AttributeValueType.ARRAY
         }
 
         jdbcTemplate.execute(

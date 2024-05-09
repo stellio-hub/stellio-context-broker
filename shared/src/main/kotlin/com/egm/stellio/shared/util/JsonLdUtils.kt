@@ -322,7 +322,7 @@ object JsonLdUtils {
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
             val context: Any = when (jsonObject[JSONLD_CONTEXT]) {
-                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { it.toString() }
+                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
                 else -> (jsonObject[JSONLD_CONTEXT] as JsonString).string
             }
             // extract compacted entities from the @graph key

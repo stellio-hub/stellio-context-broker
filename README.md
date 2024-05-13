@@ -28,7 +28,7 @@ The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FI
 
 **NGSI-LD Context Broker Feature Comparison**
 
-The NGSI-LD Specification is regularly updated published by ETSI. The latest specification is [version 1.8.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf) which was  published in April 2024.
+The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.8.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf) which was  published in April 2024.
 
 -  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 

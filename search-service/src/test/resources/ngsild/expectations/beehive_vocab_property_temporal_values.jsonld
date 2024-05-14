@@ -1,0 +1,50 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#category": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/VocabProperty"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasVocabs": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasVocab": [
+                    {
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
+                    },
+                    {
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/egm"
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasVocab": [
+                    {
+                      "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

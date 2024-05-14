@@ -37,6 +37,8 @@ const val LUMINOSITY_COMPACT_JSONPROPERTY = "luminosity"
 const val LUMINOSITY_JSONPROPERTY = "https://ontology.eglobalmark.com/apic#$LUMINOSITY_COMPACT_JSONPROPERTY"
 const val FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY = "friendlyName"
 const val FRIENDLYNAME_LANGUAGEPROPERTY = "https://ontology.eglobalmark.com/apic#$FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY"
+const val CATEGORY_COMPACT_VOCABPROPERTY = "category"
+const val CATEGORY_VOCAPPROPERTY = "https://ontology.eglobalmark.com/apic#$CATEGORY_COMPACT_VOCABPROPERTY"
 
 const val MANAGED_BY_COMPACT_RELATIONSHIP = "managedBy"
 const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAGED_BY_COMPACT_RELATIONSHIP"

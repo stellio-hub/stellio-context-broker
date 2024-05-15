@@ -6,7 +6,6 @@
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty()</ID>
     <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
-    <ID>CyclomaticComplexMethod:AttributeInstanceService.kt$AttributeInstanceService$suspend fun search( temporalEntitiesQuery: TemporalEntitiesQuery, temporalEntityAttributes: List&lt;TemporalEntityAttribute&gt;, origin: ZonedDateTime? = null ): Either&lt;APIException, List&lt;AttributeInstanceResult&gt;&gt;</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
@@ -29,8 +28,6 @@
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( tea: TemporalEntityAttribute, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, mergedAt: ZonedDateTime, observedAt: ZonedDateTime?, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( temporalEntityAttribute: TemporalEntityAttribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
-    <ID>MaxLineLength:AttributeInstanceServiceTests.kt$AttributeInstanceServiceTests$fun</ID>
-    <ID>MaximumLineLength:AttributeInstanceServiceTests.kt$AttributeInstanceServiceTests$ </ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>ReturnCount:EntitiesQueryUtils.kt$fun buildTemporalQuery( params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false, withAggregatedValues: Boolean = false ): Either&lt;APIException, TemporalQuery&gt;</ID>
     <ID>SwallowedException:EntitiesQueryUtils.kt$e: IllegalArgumentException</ID>

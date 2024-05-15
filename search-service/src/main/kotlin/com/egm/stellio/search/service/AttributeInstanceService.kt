@@ -155,13 +155,14 @@ class AttributeInstanceService(
         }
 
         if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, time")
+            sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, start")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
-        else if (temporalQuery.lastN != null)
+
+        if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" ORDER BY start DESC LIMIT ${temporalQuery.lastN}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 
@@ -211,11 +212,11 @@ class AttributeInstanceService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT temporal_entity_attribute,
-                    public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as time,
+                    public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as start,
                     $allAggregates
                 """.trimIndent()
             } else
-                "SELECT temporal_entity_attribute, min(time) as time, max(time) as endTime, $allAggregates "
+                "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
         }
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
@@ -227,7 +228,7 @@ class AttributeInstanceService(
                 AttributeInstance.TemporalProperty.OBSERVED_AT -> null
                 else -> "sub"
             }
-            "SELECT " + listOfNotNull("temporal_entity_attribute", "time", valueColumn, subColumn)
+            "SELECT " + listOfNotNull("temporal_entity_attribute", "time as start", valueColumn, subColumn)
                 .joinToString(",")
         }
     }
@@ -270,10 +271,10 @@ class AttributeInstanceService(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): AttributeInstanceResult =
         if (temporalEntitiesQuery.withAggregatedValues) {
-            val startDateTime = toZonedDateTime(row["time"])
+            val startDateTime = toZonedDateTime(row["start"])
             val endDateTime =
                 if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-                    toZonedDateTime(row["endTime"])
+                    toZonedDateTime(row["end"])
                 else
                     startDateTime.plus(temporalEntitiesQuery.computeAggrPeriodDuration())
             // in a row, there is the result for each requested aggregation method
@@ -291,12 +292,12 @@ class AttributeInstanceService(
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
                 value = row["value"] ?: "",
-                time = toZonedDateTime(row["time"])
+                time = toZonedDateTime(row["start"])
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = toUuid(row["temporal_entity_attribute"]),
             payload = toJsonString(row["payload"]),
-            time = toZonedDateTime(row["time"]),
+            time = toZonedDateTime(row["start"]),
             timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
             sub = row["sub"] as? String
         )

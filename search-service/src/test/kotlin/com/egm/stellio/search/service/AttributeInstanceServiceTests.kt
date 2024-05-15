@@ -366,6 +366,30 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `it should only return the last n instances with aggregated values and aggregation period in the query`() = runTest {
+        (1..10).forEach { _ ->
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                .copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = now.plusHours(1),
+                aggrPeriodDuration = "PT1S",
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                lastN = 5
+            )
+        )
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(5)
+            }
+    }
+
+    @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,

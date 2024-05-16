@@ -47,8 +47,8 @@ WITH entities AS (
     and tea.created_at = entities_with_oldest_date.created_at
 )
 update entity_access_rights
-set access_right = 'isOwner',
-    subject_id = entities_with_oldest_sub.sub
+set access_right = 'isOwner'
 from entities_with_oldest_sub
 where entity_access_rights.entity_id = entities_with_oldest_sub.entity_id
+and subject_id = entities_with_oldest_sub.sub
 and entity_access_rights.access_right = 'canAdmin';

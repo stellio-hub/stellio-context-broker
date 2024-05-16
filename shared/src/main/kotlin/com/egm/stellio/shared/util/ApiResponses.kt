@@ -57,6 +57,7 @@ const val ENTITIY_READ_FORBIDDEN_MESSAGE = "User forbidden to read entity"
 const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"
 const val ENTITY_DELETE_FORBIDDEN_MESSAGE = "User forbidden to delete entity"
 const val ENTITY_ADMIN_FORBIDDEN_MESSAGE = "User forbidden to admin entity"
+const val ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE = "User forbidden to remove ownership of entity"
 const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
 

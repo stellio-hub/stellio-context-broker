@@ -9,6 +9,7 @@ import com.egm.stellio.search.util.composeEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.ALL_ASSIGNABLE_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -193,7 +194,7 @@ class EntityAccessControlHandler(
         // ensure payload contains only relationships and that they are of a known type
         val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
             it is NgsiLdRelationship &&
-                ALL_IAM_RIGHTS.contains(it.name)
+                ALL_ASSIGNABLE_IAM_RIGHTS.contains(it.name)
         }
         val invalidAttributesDetails = invalidAttributes.map {
             NotUpdatedDetails(it.name, "Not a relationship or not an authorized relationship name")
@@ -264,9 +265,14 @@ class EntityAccessControlHandler(
 
         authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
-
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        val isOwnerOfEntity = entityAccessRightsService.isOwnerOfEntity(subjectId, entityId).bind()
+        if (!isOwnerOfEntity) {
+            entityAccessRightsService.removeRoleOnEntity(subjectId, entityId).bind()
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        } else {
+            AccessDeniedException(ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE)
+                .left().bind<ResponseEntity<*>>()
+        }
     }.fold(
         { it.toErrorResponse() },
         { it }

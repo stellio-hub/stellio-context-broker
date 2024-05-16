@@ -318,7 +318,7 @@ class EntityOperationHandlerTests {
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
         coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
@@ -338,7 +338,7 @@ class EntityOperationHandlerTests {
 
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.entityId() })
 
-        coVerify { authorizationService.createAdminRights(allEntitiesUris, sub) }
+        coVerify { authorizationService.createOwnerRights(allEntitiesUris, sub) }
         coVerify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityCreateEvent(any(), any(), any())
         }
@@ -375,7 +375,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
         coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
@@ -406,7 +406,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createOwnerRights(createdEntitiesIds, sub) }
         coVerify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityCreateEvent(any(), any(), any())
         }
@@ -441,7 +441,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
         coEvery {
             entityEventService.publishEntityCreateEvent(
                 any(),
@@ -560,7 +560,7 @@ class EntityOperationHandlerTests {
         )
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -577,7 +577,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
-        coVerify { authorizationService.createAdminRights(createdEntitiesIds, sub) }
+        coVerify { authorizationService.createOwnerRights(createdEntitiesIds, sub) }
         coVerify {
             entityEventService.publishEntityCreateEvent(
                 eq(sub.value),
@@ -650,7 +650,7 @@ class EntityOperationHandlerTests {
             arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
             arrayListOf()
         )
-        coEvery { authorizationService.createAdminRights(any(), eq(sub)) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -681,7 +681,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { authorizationService.createAdminRights(listOf(deviceUri), sub) }
+        coVerify { authorizationService.createOwnerRights(listOf(deviceUri), sub) }
         coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any()) }
     }
 

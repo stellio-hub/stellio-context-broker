@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_OWNER
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import kotlinx.coroutines.reactive.awaitFirst
@@ -57,14 +58,17 @@ object AuthContextModel {
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF
-    const val AUTH_TERM_CAN_READ = "rCanRead"
+    const val AUTH_TERM_CAN_READ = "canRead"
     const val AUTH_REL_CAN_READ: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_READ
-    const val AUTH_TERM_CAN_WRITE = "rCanWrite"
+    const val AUTH_TERM_CAN_WRITE = "canWrite"
     const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_WRITE
-    const val AUTH_TERM_CAN_ADMIN = "rCanAdmin"
+    const val AUTH_TERM_CAN_ADMIN = "canAdmin"
     const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
-    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN)
-    val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
+    const val AUTH_TERM_IS_OWNER = "isOwner"
+    const val AUTH_REL_IS_OWNER: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_OWNER
+    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN, AUTH_TERM_IS_OWNER)
+    val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN, AUTH_REL_IS_OWNER)
+    val ALL_ASSIGNABLE_IAM_RIGHTS = ALL_IAM_RIGHTS.minus(AUTH_REL_IS_OWNER)
 
     enum class SpecificAccessPolicy {
         AUTH_READ,
@@ -130,9 +134,10 @@ enum class GlobalRole(val key: String) {
 }
 
 enum class AccessRight(val attributeName: String) {
-    R_CAN_READ("rCanRead"),
-    R_CAN_WRITE("rCanWrite"),
-    R_CAN_ADMIN("rCanAdmin");
+    CAN_READ("canRead"),
+    CAN_WRITE("canWrite"),
+    CAN_ADMIN("canAdmin"),
+    IS_OWNER("isOwner");
 
     companion object {
         fun forAttributeName(attributeName: String): Option<AccessRight> =
@@ -140,9 +145,10 @@ enum class AccessRight(val attributeName: String) {
 
         fun forExpandedAttributeName(attributeName: ExpandedTerm): Option<AccessRight> =
             when (attributeName) {
-                AUTH_REL_CAN_READ -> R_CAN_READ.some()
-                AUTH_REL_CAN_WRITE -> R_CAN_WRITE.some()
-                AUTH_REL_CAN_ADMIN -> R_CAN_ADMIN.some()
+                AUTH_REL_CAN_READ -> CAN_READ.some()
+                AUTH_REL_CAN_WRITE -> CAN_WRITE.some()
+                AUTH_REL_CAN_ADMIN -> CAN_ADMIN.some()
+                AUTH_REL_IS_OWNER -> IS_OWNER.some()
                 else -> None
             }
     }

@@ -323,7 +323,10 @@ class EntityOperationServiceTests {
             sub
         )
 
-        assertEquals(listOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
+        assertEquals(
+            listOf(BatchEntitySuccess(firstEntityURI, updateResult = EMPTY_UPDATE_RESULT)),
+            batchOperationResult.success
+        )
         assertEquals(
             listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
             batchOperationResult.errors
@@ -356,7 +359,10 @@ class EntityOperationServiceTests {
             sub
         )
 
-        assertEquals(listOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
+        assertEquals(
+            listOf(BatchEntitySuccess(firstEntityURI, updateResult = EMPTY_UPDATE_RESULT)),
+            batchOperationResult.success
+        )
         assertEquals(
             listOf(
                 BatchEntityError(

@@ -4,7 +4,7 @@ SET access_right =
     CASE
         WHEN access_right = 'rCanAdmin' THEN 'canAdmin'
         WHEN access_right = 'rCanWrite' THEN 'canWrite'
-        WHEN access_right = 'rCanReadm' THEN 'canRead'
+        WHEN access_right = 'rCanRead' THEN 'canRead'
     END;
 
 WITH entities AS (

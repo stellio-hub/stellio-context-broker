@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.web.*
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Component
@@ -163,7 +164,7 @@ class EntityOperationService(
         disallowOverwrite: Boolean = false,
         sub: Sub?,
         processor:
-        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
     ): BatchOperationResult =
         entities.map {
             processEntity(it, disallowOverwrite, sub, processor)
@@ -182,70 +183,56 @@ class EntityOperationService(
         disallowOverwrite: Boolean = false,
         sub: Sub?,
         processor:
-        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<BatchEntityError, BatchEntitySuccess>
+        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
     ): Either<BatchEntityError, BatchEntitySuccess> =
         kotlin.runCatching {
-            processor(entity, disallowOverwrite, sub)
+            either {
+                val processedEntity = processor(entity, disallowOverwrite, sub).bind()
+                if (processedEntity.notUpdated.isEmpty())
+                    processedEntity.right().bind()
+                else
+                    BadRequestDataException(
+                        ArrayList(processedEntity.notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
+                    ).left().bind<UpdateResult>()
+            }.map {
+                BatchEntitySuccess(entity.entityId(), it)
+            }.mapLeft {
+                BatchEntityError(entity.entityId(), arrayListOf(it.message))
+            }
         }.fold(
             onFailure = { BatchEntityError(entity.entityId(), arrayListOf(it.message!!)).left() },
             onSuccess = { it }
         )
 
-    /*
-     * Transactional because it should not delete entity attributes if new ones could not be appended.
-     */
-    @Transactional(rollbackFor = [BadRequestDataException::class])
-    @Throws(BadRequestDataException::class)
+
     suspend fun replaceEntity(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
-    ): Either<BatchEntityError, BatchEntitySuccess> = either {
+    ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
-        val updateResult = entityPayloadService.appendAttributes(
+        val result = entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
         ).bind()
-
-        if (updateResult.notUpdated.isNotEmpty())
-            BadRequestDataException(
-                updateResult.notUpdated.joinToString(", ") { it.attributeName + " : " + it.reason }
-            ).left().bind<UpdateResult>()
-        else updateResult.right().bind()
-    }.map {
-        BatchEntitySuccess(entity.entityId())
-    }.mapLeft {
-        BatchEntityError(entity.entityId(), arrayListOf(it.message))
+        return@either result
     }
 
-    /*
-     * Transactional because it should not replace entity attributes if new ones could not be replaced.
-     */
-    @Transactional
+
     suspend fun updateEntity(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
-    ): Either<BatchEntityError, BatchEntitySuccess> = either {
+    ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        val updateResult = entityPayloadService.appendAttributes(
+        entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
         ).bind()
-        if (updateResult.notUpdated.isEmpty())
-            updateResult.right().bind()
-        else
-            BadRequestDataException(
-                ArrayList(updateResult.notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
-            ).left().bind<UpdateResult>()
-    }.map {
-        BatchEntitySuccess(entity.entityId(), it)
-    }.mapLeft {
-        BatchEntityError(entity.entityId(), arrayListOf(it.message))
     }
 }

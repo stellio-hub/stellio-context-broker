@@ -285,6 +285,40 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
     @Test
+    fun `it should retrieve the last n instances of history of scopes with aggregated values`() = runTest {
+        createScopeHistory()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                TemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    timeAt = ngsiLdDateTime(),
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                    aggrPeriodDuration = "PT1S",
+                    lastN = 1
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = true
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, scopeHistoryEntries.size)
+        assertThat(scopeHistoryEntries).allMatch {
+            it as AggregatedScopeInstanceResult
+            it.values.size == 1 &&
+                it.values[0].aggregate == TemporalQuery.Aggregate.SUM
+        }
+    }
+
+    @Test
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()

@@ -16,7 +16,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4527/badge)](https://bestpractices.coreinfrastructure.org/projects/4527)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
-context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf).
+context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf)).
 
 Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
 FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
@@ -28,9 +28,9 @@ The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FI
 
 **NGSI-LD Context Broker Feature Comparison**
 
-The NGSI-LD Specification is regularly updated published by ETSI. The latest specification is [version 1.7.1 ](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf) which was  published in June 2023. 
+The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.8.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf) which was  published in April 2024.
 
--  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.6.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
+-  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
 |---------------------------------------------------|------------------------------------------------------------------------|-------------------------------------|
@@ -70,8 +70,7 @@ We also provide a configuration to deploy Stellio in a k8s cluster. For more inf
 
 Starting from version 2.0.0, a new scheme is used for tagging of Docker images:
 * Releases are tagged with the version number, e.g., `stellio/stellio-search-service:2.0.0`
-* `latest` tag is no longer used for releases as it can be dangerous (for instance, triggering an unwanted major
-  upgrade)
+* `latest` tag is no longer used for releases as it can be dangerous (for instance, triggering an unwanted major upgrade)
 * On each commit on the `develop` branch, an image with the `latest-dev` tag is produced, e.g., `stellio/stellio-search-service:latest-dev`
 
 The version number is obtained during the build process by using the `version` information in the `build.gradle.kts` file.
@@ -125,6 +124,10 @@ If you want to build only one of the services, you can launch:
 ```shell script
 ./gradlew search-service:build
 ```
+
+### Committing
+
+Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ### Code quality
 
@@ -204,7 +207,7 @@ Please note that these requirements may vary based on factors such as the size o
 
 For more detailed explanations on NGSI-LD or FIWARE:
 
--  [NGSI-LD v1.7.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.07.01_60/gs_cim009v010701p.pdf)
+-  [NGSI-LD v1.8.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf)
 -  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.01.01_60/gr_CIM008v010101p.pdf)
 -  [NGSI-LD Tutorials](https://ngsi-ld-tutorials.readthedocs.io/en/latest/)
 -  [FIWARE Training](https://fiware-academy.readthedocs.io/en/latest/integrated-courses/fiware-training/index.html)
@@ -215,16 +218,16 @@ Stellio is licensed under [APL-2.0](https://spdx.org/licenses/Apache-2.0.html).
 
 It mainly makes use of the following libraries and frameworks (dependencies of dependencies have been omitted):
 
-| Library / Framework | 	Licence     |
+| Library / Framework | 	Licence    |
 |---------------------|--------------|
 | Spring              | APL v2       |
-| JSON-LD Java        | BSD-3 Clause |
+| Titanium JSON-LD    | APL v2       |
 | Reactor             | APL v2       |
-| Jackson             | 	APL v2      |
+| Jackson             | APL v2       |
 | JUnit               | EPL v2       |
-| Mockk               | 	APL v2      |
-| JsonPath            | 	APL v2      |
+| Mockk               | APL v2       |
+| JsonPath            | APL v2       |
 | WireMock            | APL v2       |
-| Testcontainers      | 	MIT         |
+| Testcontainers      | MIT          |
 
-© 2020 - 2023 EGM
+© 2020 - 2024 EGM

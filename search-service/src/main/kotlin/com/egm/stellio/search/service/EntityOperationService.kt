@@ -159,7 +159,19 @@ class EntityOperationService(
     ): BatchOperationResult =
         processEntities(entities, disallowOverwrite, sub, ::updateEntity)
 
-    private suspend fun processEntities(
+    /**
+     * Merge a batch of [entities]
+     *
+     * @return a [BatchOperationResult] with list of updated ids and list of errors.
+     */
+    @Transactional
+    suspend fun merge(
+        entities: List<JsonLdNgsiLdEntity>,
+        sub: Sub?
+    ): BatchOperationResult =
+        processEntities(entities, false, sub, ::mergeEntity)
+
+    internal suspend fun processEntities(
         entities: List<JsonLdNgsiLdEntity>,
         disallowOverwrite: Boolean = false,
         sub: Sub?,
@@ -232,5 +244,20 @@ class EntityOperationService(
             disallowOverwrite,
             sub
         ).bind()
+    }
+
+    @SuppressWarnings("UnusedParameter")
+    suspend fun mergeEntity(
+        entity: JsonLdNgsiLdEntity,
+        disallowOverwrite: Boolean,
+        sub: Sub?
+    ): Either<APIException, UpdateResult> {
+        val (jsonLdEntity, ngsiLdEntity) = entity
+        return entityPayloadService.mergeEntity(
+            ngsiLdEntity.id,
+            jsonLdEntity.getModifiableMembers(),
+            null,
+            sub
+        )
     }
 }

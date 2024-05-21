@@ -110,13 +110,13 @@ class ScopeService(
         }
 
         if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-            sqlQueryBuilder.append(" GROUP BY entity_id, origin")
+            sqlQueryBuilder.append(" GROUP BY entity_id, start")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY entity_id")
-        else if (temporalQuery.lastN != null)
+        if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY time DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" ORDER BY start DESC LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.sql(sqlQueryBuilder.toString())
             .bind("entities_ids", entitiesIds)
@@ -143,20 +143,20 @@ class ScopeService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT entity_id,
-                   public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as origin,
+                   public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as start,
                    $allAggregates
                 """
             } else
-                "SELECT entity_id, min(time) as origin, max(time) as endTime, $allAggregates "
+                "SELECT entity_id, min(time) as start, max(time) as end, $allAggregates "
         }
         temporalEntitiesQuery.temporalQuery.timeproperty == TemporalProperty.OBSERVED_AT -> {
             """
-                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time
+                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time as start
             """
         }
         else -> {
             """
-                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time, sub
+                SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time as start, sub
             """
         }
     }
@@ -188,10 +188,10 @@ class ScopeService(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): ScopeInstanceResult =
         if (temporalEntitiesQuery.withAggregatedValues) {
-            val startDateTime = toZonedDateTime(row["origin"])
+            val startDateTime = toZonedDateTime(row["start"])
             val endDateTime =
                 if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-                    toZonedDateTime(row["endTime"])
+                    toZonedDateTime(row["end"])
                 else
                     startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
             // in a row, there is the result for each requested aggregation method
@@ -207,13 +207,13 @@ class ScopeService(
             SimplifiedScopeInstanceResult(
                 entityId = toUri(row["entity_id"]),
                 scopes = toList(row["value"]),
-                time = toZonedDateTime(row["time"])
+                time = toZonedDateTime(row["start"])
             )
         } else {
             FullScopeInstanceResult(
                 entityId = toUri(row["entity_id"]),
                 scopes = toList(row["value"]),
-                time = toZonedDateTime(row["time"]),
+                time = toZonedDateTime(row["start"]),
                 timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
                 sub = row["sub"] as? String
             )

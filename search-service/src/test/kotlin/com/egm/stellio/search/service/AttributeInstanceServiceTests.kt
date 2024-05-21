@@ -366,6 +366,36 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `it should only return the last n instances asked in an aggregated temporal query`() = runTest {
+        val now = ngsiLdDateTime()
+        (1..10).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                    .copy(
+                        measuredValue = 1.0,
+                        time = now.minusSeconds(index.toLong())
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = now,
+                aggrPeriodDuration = "PT1S",
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                lastN = 5
+            ),
+            withAggregatedValues = true
+        )
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(5)
+            }
+    }
+
+    @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,

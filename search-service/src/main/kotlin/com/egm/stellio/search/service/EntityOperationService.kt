@@ -192,7 +192,8 @@ class EntityOperationService(
                     processedEntity.right().bind()
                 else
                     BadRequestDataException(
-                        ArrayList(processedEntity.notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
+                        ArrayList(processedEntity.notUpdated.map { it.attributeName + " : " + it.reason })
+                            .joinToString()
                     ).left().bind<UpdateResult>()
             }.map {
                 BatchEntitySuccess(entity.entityId(), it)
@@ -203,7 +204,6 @@ class EntityOperationService(
             onFailure = { BatchEntityError(entity.entityId(), arrayListOf(it.message!!)).left() },
             onSuccess = { it }
         )
-
 
     suspend fun replaceEntity(
         entity: JsonLdNgsiLdEntity,
@@ -220,7 +220,6 @@ class EntityOperationService(
         ).bind()
         return@either result
     }
-
 
     suspend fun updateEntity(
         entity: JsonLdNgsiLdEntity,

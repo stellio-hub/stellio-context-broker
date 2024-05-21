@@ -382,4 +382,31 @@ class EntityOperationServiceTests {
         coVerify { entityPayloadService.deleteEntity(firstEntityURI) }
         coVerify { entityPayloadService.deleteEntity(secondEntityURI) }
     }
+
+    @Test
+    fun `batch merge should ask to merge attributes of entities`() = runTest {
+        coEvery {
+            entityPayloadService.mergeEntity(any(), any(), any(), any())
+        } returns EMPTY_UPDATE_RESULT.right()
+
+        val batchOperationResult = entityOperationService.merge(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            sub
+        )
+
+        assertEquals(
+            listOf(firstEntityURI, secondEntityURI),
+            batchOperationResult.getSuccessfulEntitiesIds()
+        )
+
+        coVerify {
+            entityPayloadService.mergeEntity(eq(firstEntityURI), any(), null, sub)
+        }
+        coVerify {
+            entityPayloadService.mergeEntity(eq(secondEntityURI), any(), null, sub)
+        }
+    }
 }

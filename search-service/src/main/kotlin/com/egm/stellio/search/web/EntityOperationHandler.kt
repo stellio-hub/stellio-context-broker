@@ -27,7 +27,7 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.util.*
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
@@ -50,16 +50,10 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (uniqueEntities, duplicateEntities) =
+
             entityOperationService.splitEntitiesByUniqueness(parsedEntities)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(uniqueEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
@@ -94,15 +88,8 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
@@ -165,16 +152,10 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
+
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
@@ -215,15 +196,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
+        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
 
         val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
@@ -450,5 +423,18 @@ class EntityOperationHandler(
                 true
             )
         }
+    }
+
+    private suspend fun getNgsiLdEntities(
+        requestBody: Mono<String>,
+        httpHeaders: HttpHeaders,
+    ): Either<APIException, BatchEntityPreparation> = either {
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+        checkBatchRequestBody(body).bind()
+        checkContentType(httpHeaders, body).bind()
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        return@either expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
     }
 }

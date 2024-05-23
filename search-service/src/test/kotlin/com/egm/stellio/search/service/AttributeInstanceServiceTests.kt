@@ -7,16 +7,19 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import io.mockk.spyk
@@ -60,6 +63,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     private lateinit var outgoingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var jsonTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var languageTemporalEntityAttribute: TemporalEntityAttribute
+    private lateinit var vocabTemporalEntityAttribute: TemporalEntityAttribute
 
     val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -111,6 +115,18 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         runBlocking {
             temporalEntityAttributeService.create(languageTemporalEntityAttribute)
+        }
+
+        vocabTemporalEntityAttribute = TemporalEntityAttribute(
+            entityId = entityId,
+            attributeName = CATEGORY_VOCAPPROPERTY,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = SAMPLE_VOCAB_PROPERTY_PAYLOAD
+        )
+
+        runBlocking {
+            temporalEntityAttributeService.create(vocabTemporalEntityAttribute)
         }
     }
 
@@ -341,6 +357,36 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timeAt = now.minusHours(1),
                 lastN = 5
             )
+        )
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                assertThat(it)
+                    .hasSize(5)
+            }
+    }
+
+    @Test
+    fun `it should only return the last n instances asked in an aggregated temporal query`() = runTest {
+        val now = ngsiLdDateTime()
+        (1..10).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                    .copy(
+                        measuredValue = 1.0,
+                        time = now.minusSeconds(index.toLong())
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = now,
+                aggrPeriodDuration = "PT1S",
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                lastN = 5
+            ),
+            withAggregatedValues = true
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
             .shouldSucceedWith {
@@ -684,6 +730,51 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                         (deserializedPayload[NGSILD_LANGUAGEPROPERTY_VALUE] as List<Map<String, String>>)
                             .all { langMap ->
                                 langMap[JSONLD_LANGUAGE] == "fr" || langMap[JSONLD_LANGUAGE] == "it"
+                            }
+                }
+            }
+    }
+
+    @Test
+    fun `it should modify attribute instance for a VocabProperty property`() = runTest {
+        val attributeInstance = gimmeVocabPropertyAttributeInstance(vocabTemporalEntityAttribute.id)
+        attributeInstanceService.create(attributeInstance)
+
+        val instanceTemporalFragment =
+            loadSampleData("fragments/temporal_instance_vocab_fragment.jsonld")
+        val attributeInstancePayload =
+            mapOf(CATEGORY_COMPACT_VOCABPROPERTY to instanceTemporalFragment.deserializeAsMap())
+        val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
+            attributeInstancePayload,
+            APIC_COMPOUND_CONTEXTS
+        ) as ExpandedAttributes
+
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+            )
+        )
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            CATEGORY_VOCAPPROPERTY,
+            attributeInstance.instanceId,
+            jsonLdAttribute.entries.first().value
+        ).shouldSucceed()
+
+        attributeInstanceService.search(temporalEntitiesQuery, vocabTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).single { result ->
+                    val deserializedPayload = result.payload.deserializeAsMap()
+                    result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
+                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
+                        deserializedPayload.containsKey(NGSILD_VOCABPROPERTY_VALUE) &&
+                        (deserializedPayload[NGSILD_VOCABPROPERTY_VALUE] as List<Map<String, String>>)
+                            .all { entry ->
+                                entry[JSONLD_ID] == "${NGSILD_DEFAULT_VOCAB}stellio" ||
+                                    entry[JSONLD_ID] == "${NGSILD_DEFAULT_VOCAB}egm"
                             }
                 }
             }

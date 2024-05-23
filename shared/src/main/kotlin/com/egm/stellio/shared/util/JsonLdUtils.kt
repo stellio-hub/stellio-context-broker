@@ -44,12 +44,16 @@ object JsonLdUtils {
     const val NGSILD_LANGUAGEPROPERTY_TERM = "LanguageProperty"
     val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
     const val NGSILD_LANGUAGEPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasLanguageMap"
+    const val NGSILD_VOCABPROPERTY_TERM = "VocabProperty"
+    val NGSILD_VOCABPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/VocabProperty")
+    const val NGSILD_VOCABPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasVocab"
 
     const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
     const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
     const val NGSILD_LANGUAGEPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasLanguageMaps"
+    const val NGSILD_VOCABPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasVocabs"
 
     private const val JSONLD_GRAPH = "@graph"
     const val JSONLD_ID_TERM = "id"
@@ -63,6 +67,8 @@ object JsonLdUtils {
     const val JSONLD_JSON_TERM = "json"
     const val JSONLD_LANGUAGE = "@language"
     const val JSONLD_LANGUAGEMAP_TERM = "languageMap"
+    const val JSONLD_VOCAB = "@vocab"
+    const val JSONLD_VOCAB_TERM = "vocab"
     const val JSONLD_JSON = "@json"
     const val JSONLD_CONTEXT = "@context"
     const val NGSILD_SCOPE_TERM = "scope"
@@ -322,7 +328,7 @@ object JsonLdUtils {
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
             val context: Any = when (jsonObject[JSONLD_CONTEXT]) {
-                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { it.toString() }
+                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
                 else -> (jsonObject[JSONLD_CONTEXT] as JsonString).string
             }
             // extract compacted entities from the @graph key

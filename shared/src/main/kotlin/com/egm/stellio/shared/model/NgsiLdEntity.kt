@@ -28,6 +28,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
@@ -69,6 +71,7 @@ class NgsiLdEntity private constructor(
     val geoProperties = getAttributesOfType<NgsiLdGeoProperty>()
     val jsonProperties = getAttributesOfType<NgsiLdJsonProperty>()
     val languageProperties = getAttributesOfType<NgsiLdLanguageProperty>()
+    val vocabProperties = getAttributesOfType<NgsiLdVocabProperty>()
 }
 
 sealed class NgsiLdAttribute(val name: ExpandedTerm) {
@@ -198,6 +201,31 @@ class NgsiLdLanguageProperty private constructor(
     }
 
     override fun getAttributeInstances(): List<NgsiLdLanguagePropertyInstance> = instances
+}
+
+class NgsiLdVocabProperty private constructor(
+    name: ExpandedTerm,
+    val instances: List<NgsiLdVocabPropertyInstance>
+) : NgsiLdAttribute(name) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdVocabProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_VOCABPROPERTY_TYPE).bind()
+
+            val ngsiLdVocabPropertyInstances = instances.parMap { instance ->
+                NgsiLdVocabPropertyInstance.create(name, instance).bind()
+            }
+
+            checkAttributeDefaultInstance(name, ngsiLdVocabPropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdVocabPropertyInstances).bind()
+
+            NgsiLdVocabProperty(name, ngsiLdVocabPropertyInstances)
+        }
+    }
+
+    override fun getAttributeInstances(): List<NgsiLdVocabPropertyInstance> = instances
 }
 
 sealed class NgsiLdAttributeInstance(
@@ -410,6 +438,47 @@ class NgsiLdLanguagePropertyInstance private constructor(
     override fun toString(): String = "NgsiLdLanguagePropertyInstance(languageMap=$languageMap)"
 }
 
+class NgsiLdVocabPropertyInstance private constructor(
+    val vocab: Any,
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    attributes: List<NgsiLdAttribute>
+) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdVocabPropertyInstance> = either {
+            val vocab = values[NGSILD_VOCABPROPERTY_VALUE]
+            ensureNotNull(vocab) {
+                BadRequestDataException("VocabProperty $name has an instance without a vocab member")
+            }
+            ensure(vocab is List<*> && vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID) }) {
+                BadRequestDataException(
+                    "VocabProperty $name has a vocab member that is not a string, nor an array of string"
+                )
+            }
+
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val datasetId = values.getDatasetId()
+
+            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
+
+            val rawAttributes = getNonCoreMembers(values, NGSILD_VOCABPROPERTIES_CORE_MEMBERS)
+            val attributes = parseAttributes(rawAttributes).bind()
+
+            NgsiLdVocabPropertyInstance(
+                vocab,
+                observedAt,
+                datasetId,
+                attributes
+            )
+        }
+    }
+
+    override fun toString(): String = "NgsiLdVocabPropertyInstance(vocab=$vocab)"
+}
+
 @JvmInline
 value class WKTCoordinates(val value: String)
 
@@ -436,6 +505,7 @@ private suspend fun parseAttributes(
                 NGSILD_GEOPROPERTY_TYPE.uri -> NgsiLdGeoProperty.create(it.first, it.second)
                 NGSILD_JSONPROPERTY_TYPE.uri -> NgsiLdJsonProperty.create(it.first, it.second)
                 NGSILD_LANGUAGEPROPERTY_TYPE.uri -> NgsiLdLanguageProperty.create(it.first, it.second)
+                NGSILD_VOCABPROPERTY_TYPE.uri -> NgsiLdVocabProperty.create(it.first, it.second)
                 else -> BadRequestDataException("Attribute ${it.first} has an unknown type: $attributeType").left()
             }
         }.let { l ->
@@ -513,6 +583,8 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
         NgsiLdJsonProperty.create(attributeName, this)
     isAttributeOfType(this[0], NGSILD_LANGUAGEPROPERTY_TYPE) ->
         NgsiLdLanguageProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_VOCABPROPERTY_TYPE) ->
+        NgsiLdVocabProperty.create(attributeName, this)
     else -> BadRequestDataException("Unrecognized type for $attributeName").left()
 }
 
@@ -585,6 +657,16 @@ val NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS = listOf(
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS = listOf(
+    NGSILD_RELATIONSHIP_OBJECT,
+    NGSILD_PROPERTY_VALUE,
+    NGSILD_UNIT_CODE_PROPERTY
+)
+
+val NGSILD_VOCABPROPERTIES_CORE_MEMBERS = listOf(
+    NGSILD_VOCABPROPERTY_VALUE
+).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
+
+val NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
     NGSILD_PROPERTY_VALUE,
     NGSILD_UNIT_CODE_PROPERTY

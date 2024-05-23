@@ -89,7 +89,7 @@ class EntityAccessControlHandlerTests {
         val requestPayload =
             """
             {
-                "rCanRead": {
+                "canRead": {
                     "type": "Relationship",
                     "object": "$entityUri1"
                 },
@@ -114,7 +114,7 @@ class EntityAccessControlHandlerTests {
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
                 eq(entityUri1),
-                eq(AccessRight.R_CAN_READ)
+                eq(AccessRight.CAN_READ)
             )
         }
     }
@@ -125,7 +125,7 @@ class EntityAccessControlHandlerTests {
         val requestPayload =
             """
             {
-                "rCanRead": [{
+                "canRead": [{
                     "type": "Relationship",
                     "object": "$entityUri1",
                     "datasetId": "$entityUri1"
@@ -135,7 +135,7 @@ class EntityAccessControlHandlerTests {
                     "object": "$entityUri2",
                     "datasetId": "$entityUri2"
                 }],
-                "rCanWrite": {
+                "canWrite": {
                     "type": "Relationship",
                     "object": "$entityUri3"
                 },
@@ -163,17 +163,17 @@ class EntityAccessControlHandlerTests {
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
                 eq(entityUri1),
-                eq(AccessRight.R_CAN_READ)
+                eq(AccessRight.CAN_READ)
             )
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
                 eq(entityUri2),
-                eq(AccessRight.R_CAN_READ)
+                eq(AccessRight.CAN_READ)
             )
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
                 eq(entityUri3),
-                eq(AccessRight.R_CAN_WRITE)
+                eq(AccessRight.CAN_WRITE)
             )
         }
     }
@@ -183,7 +183,7 @@ class EntityAccessControlHandlerTests {
         val requestPayload =
             """
             {
-                "rCanRead": [{
+                "canRead": [{
                     "type": "Relationship",
                     "object": "$entityUri1",
                     "datasetId": "$entityUri1"
@@ -211,10 +211,10 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "updated":["https://ontology.eglobalmark.com/authorization#rCanRead"],
+                        "updated":["https://ontology.eglobalmark.com/authorization#canRead"],
                         "notUpdated":[
                           {
-                            "attributeName":"https://ontology.eglobalmark.com/authorization#rCanRead",
+                            "attributeName":"https://ontology.eglobalmark.com/authorization#canRead",
                             "reason":"User is not authorized to manage rights on entity urn:ngsi-ld:Entity:entityId2"
                           }
                         ]
@@ -226,7 +226,7 @@ class EntityAccessControlHandlerTests {
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
                 eq(entityUri1),
-                eq(AccessRight.R_CAN_READ)
+                eq(AccessRight.CAN_READ)
             )
         }
     }
@@ -314,6 +314,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
 
         webClient.delete()
@@ -327,6 +328,33 @@ class EntityAccessControlHandlerTests {
 
             entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1))
         }
+    }
+
+    @Test
+    fun `it should not allow an authorized user to remove access to the owner of an entity`() {
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns true.right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entityAccessControl/$otherUserSub/attrs/$entityUri1")
+            .header(HttpHeaders.LINK, AUTHZ_HEADER_LINK)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "detail": "User forbidden to remove ownership of entity",
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource"
+                }
+                """.trimIndent()
+            )
+
+        coVerify {
+            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            entityAccessRightsService.isOwnerOfEntity(eq(otherUserSub), eq(entityUri1))
+        }
+        coVerify { entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1)) wasNot Called }
     }
 
     @Test
@@ -346,6 +374,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should return a 404 if the subject has no right on the target entity`() {
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery {
             entityAccessRightsService.removeRoleOnEntity(any(), any())
         } returns ResourceNotFoundException("No right found for $subjectId on $entityUri1").left()
@@ -586,14 +615,14 @@ class EntityAccessControlHandlerTests {
                     createEntityAccessRight(
                         "urn:ngsi-ld:Beehive:TESTC".toUri(),
                         BEEHIVE_TYPE,
-                        AccessRight.R_CAN_READ
+                        AccessRight.CAN_READ
                     )
                 ),
                 createJsonLdEntity(
                     createEntityAccessRight(
                         "urn:ngsi-ld:Beehive:TESTD".toUri(),
                         BEEHIVE_TYPE,
-                        AccessRight.R_CAN_ADMIN,
+                        AccessRight.CAN_ADMIN,
                         AUTH_READ,
                         createSubjectRightInfo(subjectId)
                     )
@@ -612,13 +641,13 @@ class EntityAccessControlHandlerTests {
                 [{
                     "id": "urn:ngsi-ld:Beehive:TESTC",
                     "type": "$BEEHIVE_TYPE",
-                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanRead"},
+                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "canRead"},
                     "@context": "${applicationProperties.contexts.authzCompound}"
                 },
                 {
                     "id": "urn:ngsi-ld:Beehive:TESTD",
                     "type": "$BEEHIVE_TYPE",
-                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "rCanAdmin"},
+                    "$AUTH_TERM_RIGHT": {"type":"Property", "value": "canAdmin"},
                     "$AUTH_TERM_SAP": {"type":"Property", "value": "$AUTH_READ"},
                     "$AUTH_TERM_CAN_READ": {
                         "type":"Relationship",
@@ -880,7 +909,7 @@ class EntityAccessControlHandlerTests {
             types = listOf(type),
             right = accessRight,
             specificAccessPolicy = specificAccessPolicy,
-            rCanReadUsers = rCanReadUsers
+            canRead = rCanReadUsers
         )
 
     private fun createSubjectRightInfo(subjectId: URI): List<EntityAccessRights.SubjectRightInfo> {

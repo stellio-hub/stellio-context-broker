@@ -8,13 +8,17 @@ import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -85,8 +89,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ)
+                listOf(AUTH_WRITE, AUTH_READ),
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
             )
         }
     }
@@ -102,8 +106,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_READ)
+                listOf(AUTH_WRITE, AUTH_READ),
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
             )
         }
     }
@@ -122,8 +126,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE)
+                listOf(AUTH_WRITE),
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
             )
         }
     }
@@ -139,8 +143,8 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.checkHasRightOnEntity(
                 eq(Some(subjectUuid)),
                 eq(entityId01),
-                listOf(SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_ADMIN, AccessRight.R_CAN_WRITE)
+                listOf(AUTH_WRITE),
+                listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
             )
         }
     }
@@ -160,7 +164,7 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(AccessRight.R_CAN_ADMIN)
+                listOf(IS_OWNER, CAN_ADMIN)
             )
         }
     }
@@ -177,21 +181,21 @@ class EnabledAuthorizationServiceTests {
                 eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
-                listOf(AccessRight.R_CAN_ADMIN)
+                listOf(IS_OWNER, CAN_ADMIN)
             )
         }
     }
 
     @Test
-    fun `it should create admin link for a set of entities`() = runTest {
-        coEvery { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } returns Unit.right()
+    fun `it should create owner link for a set of entities`() = runTest {
+        coEvery { entityAccessRightsService.setOwnerRoleOnEntity(any(), any()) } returns Unit.right()
 
-        enabledAuthorizationService.createAdminRights(listOf(entityId01, entityId02), Some(subjectUuid))
+        enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02), Some(subjectUuid))
             .shouldSucceed()
 
         coVerifyAll {
-            entityAccessRightsService.setAdminRoleOnEntity(eq(subjectUuid), eq(entityId01))
-            entityAccessRightsService.setAdminRoleOnEntity(eq(subjectUuid), eq(entityId02))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId01))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId02))
         }
     }
 
@@ -329,7 +333,7 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE
+                right = CAN_WRITE
             )
         ).right()
         coEvery {
@@ -371,12 +375,12 @@ class EnabledAuthorizationServiceTests {
             EntityAccessRights(
                 id = entityId01,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_ADMIN
+                right = CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
                 types = listOf(BEEHIVE_TYPE),
-                right = AccessRight.R_CAN_WRITE
+                right = CAN_WRITE
             )
         ).right()
         coEvery {
@@ -386,7 +390,7 @@ class EnabledAuthorizationServiceTests {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
         } returns mapOf(
             entityId01 to mapOf(
-                AccessRight.R_CAN_WRITE to listOf(
+                CAN_WRITE to listOf(
                     SubjectRightInfo(
                         "urn:ngsi-ld:User:01".toUri(),
                         mapOf("kind" to "User", "username" to "stellio")
@@ -410,6 +414,94 @@ class EnabledAuthorizationServiceTests {
             val expandedEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
             assertEquals(4, expandedEntityWithOtherRights.members.size)
             assertTrue(expandedEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
+        }
+
+        coVerify {
+            entityAccessRightsService.getAccessRightsForEntities(
+                eq(Some(subjectUuid)),
+                listOf(entityId01)
+            )
+        }
+    }
+
+    @Test
+    fun `it should return serialized access control entities with other rigths if user is owner`() = runTest {
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
+        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()
+        coEvery {
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+        } returns Either.Right(1)
+        coEvery {
+            entityAccessRightsService.getAccessRightsForEntities(any(), any())
+        } returns mapOf(
+            entityId01 to mapOf(
+                CAN_WRITE to listOf(
+                    SubjectRightInfo(
+                        "urn:ngsi-ld:User:01".toUri(),
+                        mapOf("kind" to "User", "username" to "stellio")
+                    )
+                ),
+                CAN_ADMIN to listOf(
+                    SubjectRightInfo(
+                        "urn:ngsi-ld:User:02".toUri(),
+                        mapOf("kind" to "User", "username" to "jean.dupont")
+                    )
+                )
+            )
+        ).right()
+
+        enabledAuthorizationService.getAuthorizedEntities(
+            EntitiesQuery(
+                typeSelection = BEEHIVE_TYPE,
+                paginationQuery = PaginationQuery(limit = 10, offset = 0),
+                contexts = APIC_COMPOUND_CONTEXTS
+            ),
+            contexts = AUTHZ_TEST_COMPOUND_CONTEXTS,
+            sub = Some(subjectUuid)
+        ).shouldSucceedWith {
+            assertEquals(1, it.first)
+            assertEquals(1, it.second.size)
+
+            val expandedEntityWithOtherRights = it.second.first()
+            val compactedEntity = compactEntity(expandedEntityWithOtherRights, AUTHZ_TEST_COMPOUND_CONTEXTS)
+
+            val expectedEntity = """
+                {
+                    "id": "urn:ngsi-ld:Beehive:01",
+                    "type": "https://ontology.eglobalmark.com/apic#BeeHive",
+                    "right": {
+                        "type": "Property",
+                        "value": "isOwner"
+                    },
+                    "canAdmin": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:User:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "subjectInfo": {
+                            "type": "Property",
+                            "value": {
+                                "kind": "User",
+                                "username": "jean.dupont"
+                            }
+                        }
+                    },
+                    "canWrite": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:User:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01",
+                        "subjectInfo": {
+                            "type": "Property",
+                            "value": {
+                                "kind": "User",
+                                "username": "stellio"
+                            }
+                        }
+                    },
+                    "@context": "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
+                }
+            """.trimIndent()
+            assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
         }
 
         coVerify {

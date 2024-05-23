@@ -11,6 +11,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUES
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI
@@ -48,7 +50,8 @@ data class TemporalEntityAttribute(
         Relationship,
         GeoProperty,
         JsonProperty,
-        LanguageProperty;
+        LanguageProperty,
+        VocabProperty;
 
         fun toExpandedName(): String =
             when (this) {
@@ -57,6 +60,7 @@ data class TemporalEntityAttribute(
                 GeoProperty -> NGSILD_GEOPROPERTY_TYPE.uri
                 JsonProperty -> NGSILD_JSONPROPERTY_TYPE.uri
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_TYPE.uri
+                VocabProperty -> NGSILD_VOCABPROPERTY_TYPE.uri
             }
 
         /**
@@ -69,6 +73,7 @@ data class TemporalEntityAttribute(
                 GeoProperty -> NGSILD_GEOPROPERTY_VALUES
                 JsonProperty -> NGSILD_JSONPROPERTY_VALUES
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_VALUES
+                VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
             }
     }
 }

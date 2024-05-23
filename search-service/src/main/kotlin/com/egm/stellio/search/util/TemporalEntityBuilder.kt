@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
@@ -124,36 +125,49 @@ object TemporalEntityBuilder {
             attributeInstance[valuesKey] =
                 buildExpandedTemporalValue(it.value) { attributeInstanceResult ->
                     attributeInstanceResult as SimplifiedAttributeInstanceResult
-                    if (it.key.attributeType == TemporalEntityAttribute.AttributeType.JsonProperty) {
-                        // flaky way to know if the serialized value is a JSON object or an array of JSON objects
-                        val deserializedJsonValue: Any =
-                            if ((attributeInstanceResult.value as String).startsWith("["))
-                                deserializeListOfObjects(attributeInstanceResult.value)
-                            else deserializeObject(attributeInstanceResult.value)
-                        listOf(
-                            mapOf(
-                                NGSILD_JSONPROPERTY_VALUE to listOf(
-                                    mapOf(
-                                        JSONLD_TYPE to JSONLD_JSON,
-                                        JSONLD_VALUE to deserializedJsonValue
+                    when (it.key.attributeType) {
+                        TemporalEntityAttribute.AttributeType.JsonProperty -> {
+                            // flaky way to know if the serialized value is a JSON object or an array of JSON objects
+                            val deserializedJsonValue: Any =
+                                if ((attributeInstanceResult.value as String).startsWith("["))
+                                    deserializeListOfObjects(attributeInstanceResult.value)
+                                else deserializeObject(attributeInstanceResult.value)
+                            listOf(
+                                mapOf(
+                                    NGSILD_JSONPROPERTY_VALUE to listOf(
+                                        mapOf(
+                                            JSONLD_TYPE to JSONLD_JSON,
+                                            JSONLD_VALUE to deserializedJsonValue
+                                        )
                                     )
-                                )
-                            ),
-                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
-                        )
-                    } else if (it.key.attributeType == TemporalEntityAttribute.AttributeType.LanguageProperty) {
-                        listOf(
-                            mapOf(
-                                NGSILD_LANGUAGEPROPERTY_VALUE to
-                                    deserializeListOfObjects(attributeInstanceResult.value as String)
-                            ),
-                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
-                        )
-                    } else {
-                        listOf(
-                            mapOf(JSONLD_VALUE to attributeInstanceResult.value),
-                            mapOf(JSONLD_VALUE to attributeInstanceResult.time)
-                        )
+                                ),
+                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                            )
+                        }
+                        TemporalEntityAttribute.AttributeType.LanguageProperty -> {
+                            listOf(
+                                mapOf(
+                                    NGSILD_LANGUAGEPROPERTY_VALUE to
+                                        deserializeListOfObjects(attributeInstanceResult.value as String)
+                                ),
+                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                            )
+                        }
+                        TemporalEntityAttribute.AttributeType.VocabProperty -> {
+                            listOf(
+                                mapOf(
+                                    NGSILD_VOCABPROPERTY_VALUE to
+                                        deserializeListOfObjects(attributeInstanceResult.value as String)
+                                ),
+                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                            )
+                        }
+                        else -> {
+                            listOf(
+                                mapOf(JSONLD_VALUE to attributeInstanceResult.value),
+                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                            )
+                        }
                     }
                 }
             attributeInstance.toMap()

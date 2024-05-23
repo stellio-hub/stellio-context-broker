@@ -81,6 +81,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         TemporalEntityAttribute.AttributeType.LanguageProperty,
         TemporalEntityAttribute.AttributeValueType.OBJECT
     )
+    private val categoryVocabProperty = newTemporalEntityAttribute(
+        "urn:ngsi-ld:Apiary:TESTC",
+        CATEGORY_VOCAPPROPERTY,
+        TemporalEntityAttribute.AttributeType.VocabProperty,
+        TemporalEntityAttribute.AttributeValueType.ARRAY
+    )
 
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
@@ -103,6 +109,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         createTemporalEntityAttribute(outgoingProperty)
         createTemporalEntityAttribute(luminosityJsonProperty)
         createTemporalEntityAttribute(friendlyNameLanguageProperty)
+        createTemporalEntityAttribute(categoryVocabProperty)
     }
 
     @Test
@@ -131,7 +138,10 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     EntityType(
                         id = toUri(APIARY_TYPE),
                         typeName = APIARY_COMPACT_TYPE,
-                        attributeNames = listOf(NGSILD_LOCATION_TERM)
+                        attributeNames = listOf(
+                            CATEGORY_COMPACT_VOCABPROPERTY,
+                            NGSILD_LOCATION_TERM
+                        )
                     ),
                     EntityType(
                         id = toUri(BEEHIVE_TYPE),

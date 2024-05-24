@@ -70,7 +70,7 @@ class EntityOperationServiceTests {
     }
 
     @Test
-    fun `filterExistingEntitiesAsIds should split entities per existence`() = runTest {
+    fun `splitEntitiesByExistence should split entities per existence`() = runTest {
         coEvery {
             entityPayloadService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
         } returns listOf(firstEntityURI)
@@ -87,7 +87,7 @@ class EntityOperationServiceTests {
     }
 
     @Test
-    fun `filterExistingEntitiesAsIds should split entities per existence with ids`() = runTest {
+    fun `splitEntitiesByExistence should split entities per existence with ids`() = runTest {
         coEvery {
             entityPayloadService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
         } returns listOf(firstEntityURI)

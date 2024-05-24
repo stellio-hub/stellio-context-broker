@@ -236,14 +236,14 @@ class EntityOperationService(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, UpdateResult> {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityPayloadService.appendAttributes(
+        return entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
-        ).bind()
+        )
     }
 
     @SuppressWarnings("UnusedParameter")

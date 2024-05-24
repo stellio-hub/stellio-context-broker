@@ -1140,7 +1140,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `merge batch entity should return a 400 if JSON-LD payload is not correct`() {
-        shouldReturn400WithBadPayload("update")
+        shouldReturn400WithBadPayload("merge")
     }
 
     @Test

@@ -187,12 +187,12 @@ class EntityOperationService(
     ): Either<BatchEntityError, BatchEntitySuccess> =
         kotlin.runCatching {
             either {
-                val processedEntity = processor(entity, disallowOverwrite, sub).bind()
-                if (processedEntity.notUpdated.isEmpty())
-                    processedEntity.right().bind()
+                val result = processor(entity, disallowOverwrite, sub).bind()
+                if (result.notUpdated.isEmpty())
+                    result.right().bind()
                 else
                     BadRequestDataException(
-                        ArrayList(processedEntity.notUpdated.map { it.attributeName + " : " + it.reason })
+                        ArrayList(result.notUpdated.map { it.attributeName + " : " + it.reason })
                             .joinToString()
                     ).left().bind<UpdateResult>()
             }.map {
@@ -212,13 +212,12 @@ class EntityOperationService(
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
-        val result = entityPayloadService.appendAttributes(
+        entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
         ).bind()
-        return@either result
     }
 
     suspend fun updateEntity(

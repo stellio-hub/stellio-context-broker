@@ -50,7 +50,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val (uniqueEntities, duplicateEntities) =
 
@@ -88,7 +88,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
@@ -152,7 +152,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
@@ -196,7 +196,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val (parsedEntities, unparsableEntities) = getNgsiLdEntities(requestBody, httpHeaders).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
@@ -370,6 +370,22 @@ class EntityOperationHandler(
                 ?: batchEntityPreparation.right()
         }
 
+<<<<<<< HEAD
+=======
+    private suspend fun prepareEntitiesFromRequestBody(
+        requestBody: Mono<String>,
+        httpHeaders: HttpHeaders,
+    ): Either<APIException, BatchEntityPreparation> = either {
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+        checkBatchRequestBody(body).bind()
+        checkContentType(httpHeaders, body).bind()
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
+    }
+
+>>>>>>> d1935841 (fix(EntityOperationHandler): change function name to prepareEntitiesFromRequestBody)
     private suspend fun doBatchCreation(
         entitiesToCreate: List<JsonLdNgsiLdEntity>,
         batchOperationResult: BatchOperationResult,

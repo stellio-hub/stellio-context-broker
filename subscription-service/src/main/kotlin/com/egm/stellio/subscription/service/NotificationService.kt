@@ -13,6 +13,8 @@ import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.service.mqtt.MQTTNotificationService
+import com.egm.stellio.subscription.service.mqtt.Mqtt
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -23,7 +25,8 @@ import org.springframework.web.reactive.function.client.awaitExchange
 
 @Service
 class NotificationService(
-    private val subscriptionService: SubscriptionService
+    private val subscriptionService: SubscriptionService,
+    private val mqttNotificationService: MQTTNotificationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -73,32 +76,50 @@ class NotificationService(
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
-        val request =
-            WebClient.create(uri).post().contentType(mediaType).headers {
-                if (mediaType == MediaType.APPLICATION_JSON) {
-                    it.set(HttpHeaders.LINK, subscriptionService.getContextsLink(subscription))
+
+        val headerMap: MutableMap<String, String> = emptyMap<String, String>().toMutableMap()
+        if (mediaType == MediaType.APPLICATION_JSON) {
+            headerMap[HttpHeaders.LINK] = subscriptionService.getContextsLink(subscription)
+        }
+        if (tenantName != DEFAULT_TENANT_NAME)
+            headerMap[NGSILD_TENANT_HEADER] = tenantName
+        subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
+            headerMap[endpointInfo.key] = endpointInfo.value
+        }
+
+        val result =
+            kotlin.runCatching {
+                if (uri.startsWith(Mqtt.SCHEME.MQTT)) {
+                    headerMap["Content-Type"] = mediaType.toString() // could be common with line 99 ?
+                    Triple(
+                        subscription,
+                        notification,
+                        mqttNotificationService.mqttNotifier(
+                            notification = notification,
+                            subscription = subscription,
+                            headers = headerMap
+                        )
+                    )
+                } else {
+                    val request =
+                        WebClient.create(uri).post().contentType(mediaType).headers { it.setAll(headerMap) }
+                    request
+                        .bodyValue(serializeObject(notification))
+                        .awaitExchange { response ->
+                            val success = response.statusCode() == HttpStatus.OK
+                            logger.info(
+                                "The notification sent has been received with ${if (success) "success" else "failure"}"
+                            )
+                            if (!success) {
+                                logger.error("Failed to send notification to $uri: ${response.statusCode()}")
+                            }
+                            Triple(subscription, notification, success)
+                        }
                 }
-                if (tenantName != DEFAULT_TENANT_NAME)
-                    it.set(NGSILD_TENANT_HEADER, tenantName)
-                subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
-                    it.set(endpointInfo.key, endpointInfo.value)
-                }
+            }.getOrElse {
+                Triple(subscription, notification, false)
             }
 
-        val result = kotlin.runCatching {
-            request
-                .bodyValue(serializeObject(notification))
-                .awaitExchange { response ->
-                    val success = response.statusCode() == HttpStatus.OK
-                    logger.info("The notification sent has been received with ${if (success) "success" else "failure"}")
-                    if (!success) {
-                        logger.error("Failed to send notification to $uri: ${response.statusCode()}")
-                    }
-                    Triple(subscription, notification, success)
-                }
-        }.getOrElse {
-            Triple(subscription, notification, false)
-        }
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
         return result
     }

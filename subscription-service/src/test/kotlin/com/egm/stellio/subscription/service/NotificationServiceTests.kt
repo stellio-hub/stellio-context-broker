@@ -13,9 +13,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.*
+import com.egm.stellio.subscription.service.mqtt.MQTTNotificationService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
@@ -41,6 +43,9 @@ class NotificationServiceTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @MockkBean
+    private lateinit var mqttNotificationService: MQTTNotificationService
 
     @Autowired
     private lateinit var notificationService: NotificationService
@@ -556,6 +561,63 @@ class NotificationServiceTests {
                         .containsEntry(JSONLD_VALUE_TERM, "Le rucher de Nantes")
                         .containsEntry(NGSILD_LANG_TERM, "fr")
                 }
+        }
+    }
+
+    @Test
+    fun `callSuscriber should ask mqttNotifier if the brokerUrl startWith mqtt`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "mqtt://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON
+                )
+            )
+        )
+
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        coEvery { mqttNotificationService.mqttNotifier(any(), any(), any()) } returns true
+
+        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+
+        coVerify(exactly = 1) { mqttNotificationService.mqttNotifier(any(), any(), any()) }
+    }
+
+    @Test
+    fun `callSuscriber should generate headers for mqtt notification`() = runTest {
+        val infoKey = "hello"
+        val infoValue = "world"
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "mqtt://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON,
+                    receiverInfo = listOf(EndpointInfo(key = infoKey, value = infoValue)),
+                )
+            )
+        )
+
+        coEvery { mqttNotificationService.mqttNotifier(any(), any(), any()) } returns true
+
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+
+        coVerify {
+            mqttNotificationService.mqttNotifier(
+                any(),
+                any(),
+                match {
+                    it["Content-Type"] == "application/json" &&
+                        it[infoKey] == infoValue &&
+                        it["Link"] != null
+                }
+            )
         }
     }
 }

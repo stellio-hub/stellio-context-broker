@@ -171,7 +171,7 @@ git checkout master
 git merge develop
 ```
 
-* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file)
+* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file) and in `.env` (`STELLIO_DOCKER_TAG` environment variable)
 * Commit the modification using the following template message
 
 ```

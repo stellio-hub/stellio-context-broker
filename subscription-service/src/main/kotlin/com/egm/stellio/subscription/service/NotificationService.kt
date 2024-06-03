@@ -13,8 +13,8 @@ import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.service.mqtt.MQTTNotificationService
 import com.egm.stellio.subscription.service.mqtt.Mqtt
+import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -26,7 +26,7 @@ import org.springframework.web.reactive.function.client.awaitExchange
 @Service
 class NotificationService(
     private val subscriptionService: SubscriptionService,
-    private val mqttNotificationService: MQTTNotificationService
+    private val mqttNotificationService: MqttNotificationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)

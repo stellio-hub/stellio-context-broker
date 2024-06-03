@@ -1,32 +1,32 @@
-package com.egm.stellio.subscription.service
+package com.egm.stellio.subscription.service.mqtt
 
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.service.mqtt.MQTTNotificationData
-import com.egm.stellio.subscription.service.mqtt.MQTTNotificationService
-import com.egm.stellio.subscription.service.mqtt.MQTTVersionService
-import com.egm.stellio.subscription.service.mqtt.Mqtt
-import com.ninjasquad.springmockk.MockkBean
+import com.egm.stellio.subscription.support.WithMosquittoContainer
+import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.eclipse.paho.client.mqttv3.MqttException
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [MQTTNotificationService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [MqttNotificationService::class])
 @ActiveProfiles("test")
-class MqttNotificationServiceTest {
+class MqttNotificationServiceTest : WithMosquittoContainer {
 
-    @Autowired
-    private lateinit var mqttNotificationService: MQTTNotificationService
+    @SpykBean
+    private lateinit var mqttNotificationService: MqttNotificationService
 
-    @MockkBean
-    private lateinit var mqttVersionService: MQTTVersionService
-
-    private val mqttSubscription = Subscription(
+    private val mqttContainerPort = WithMosquittoContainer.mosquittoContainer.getMappedPort(
+        Mqtt.SCHEME.MQTT_DEFAULT_PORT
+    )
+    private val mqttSubscriptionV3 = Subscription(
         type = NGSILD_SUBSCRIPTION_TERM,
         subscriptionName = "My Subscription",
         description = "My beautiful subscription",
@@ -34,7 +34,7 @@ class MqttNotificationServiceTest {
         notification = NotificationParams(
             attributes = emptyList(),
             endpoint = Endpoint(
-                uri = "mqtt://test@localhost:1883/notification".toUri(),
+                uri = "mqtt://test@localhost:$mqttContainerPort/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 notifierInfo = listOf(
                     EndpointInfo(Mqtt.Version.KEY, Mqtt.Version.V3),
@@ -51,7 +51,7 @@ class MqttNotificationServiceTest {
         notification = NotificationParams(
             attributes = emptyList(),
             endpoint = Endpoint(
-                uri = "mqtt://test@localhost:1883/notification".toUri(),
+                uri = "mqtt://test@localhost:$mqttContainerPort/notification".toUri(),
                 notifierInfo = listOf(
                     EndpointInfo(Mqtt.Version.KEY, Mqtt.Version.V5)
                 )
@@ -59,13 +59,27 @@ class MqttNotificationServiceTest {
         ),
         contexts = emptyList()
     )
-    private val validMqttNotificationData = MQTTNotificationData(
-        brokerUrl = "tcp://localhost:1883",
+    private val validMqttNotificationData = MqttNotificationData(
+        brokerUrl = "tcp://localhost:$mqttContainerPort",
         clientId = "clientId",
         username = "test",
         topic = "/notification",
         qos = 0,
-        mqttMessage = MQTTNotificationData.MqttMessage(getNotificationForSubscription(mqttSubscription), emptyMap())
+        mqttMessage = MqttNotificationData.MqttMessage(getNotificationForSubscription(mqttSubscriptionV3), emptyMap())
+    )
+
+    private val notification = Notification(
+        subscriptionId = URI("1"),
+        data = listOf(mapOf("hello" to "world"))
+    )
+
+    private val invalidUriMqttNotificationData = MqttNotificationData(
+        brokerUrl = "tcp://badHost:1883",
+        clientId = "clientId",
+        username = "test",
+        topic = "notification",
+        qos = 0,
+        mqttMessage = MqttNotificationData.MqttMessage(notification, emptyMap())
     )
 
     private fun getNotificationForSubscription(subscription: Subscription) = Notification(
@@ -75,8 +89,8 @@ class MqttNotificationServiceTest {
 
     @Test
     fun `mqttNotifier should process endpoint uri to get connexion information`() = runTest {
-        val subscription = mqttSubscription
-        coEvery { mqttVersionService.callMqttV3(any()) } returns Unit
+        val subscription = mqttSubscriptionV3
+        coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
         assert(
             mqttNotificationService.mqttNotifier(
                 subscription,
@@ -86,7 +100,7 @@ class MqttNotificationServiceTest {
         )
 
         coVerify {
-            mqttVersionService.callMqttV3(
+            mqttNotificationService.callMqttV3(
                 match {
                     it.username == validMqttNotificationData.username &&
                         it.password == validMqttNotificationData.password &&
@@ -99,9 +113,9 @@ class MqttNotificationServiceTest {
 
     @Test
     fun `mqttNotifier should use notifier info to choose the mqtt version`() = runTest {
-        val subscription = mqttSubscription
-        coEvery { mqttVersionService.callMqttV3(any()) } returns Unit
-        coEvery { mqttVersionService.callMqttV5(any()) } returns Unit
+        val subscription = mqttSubscriptionV3
+        coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
+        coEvery { mqttNotificationService.callMqttV5(any()) } returns Unit
 
         mqttNotificationService.mqttNotifier(
             subscription,
@@ -109,12 +123,12 @@ class MqttNotificationServiceTest {
             mapOf()
         )
         coVerify(exactly = 1) {
-            mqttVersionService.callMqttV3(
+            mqttNotificationService.callMqttV3(
                 any()
             )
         }
         coVerify(exactly = 0) {
-            mqttVersionService.callMqttV5(
+            mqttNotificationService.callMqttV5(
                 any()
             )
         }
@@ -125,13 +139,37 @@ class MqttNotificationServiceTest {
             mapOf()
         )
         coVerify(exactly = 1) {
-            mqttVersionService.callMqttV5(
+            mqttNotificationService.callMqttV5(
                 any()
             )
         }
         coVerify(exactly = 1) {
-            mqttVersionService.callMqttV3(
+            mqttNotificationService.callMqttV3(
                 any()
+            )
+        }
+    }
+
+    @Test
+    fun `sending mqttV3 notification with good uri should succeed`() = runTest {
+        assertDoesNotThrow { mqttNotificationService.callMqttV3(validMqttNotificationData) }
+    }
+
+    @Test
+    fun `sending mqttV3 notification with bad uri should throw an exception`() = runTest {
+        assertThrows<MqttException> { mqttNotificationService.callMqttV3(invalidUriMqttNotificationData) }
+    }
+
+    @Test
+    fun `sending mqttV5 notification with good uri should succeed`() = runTest {
+        assertDoesNotThrow { mqttNotificationService.callMqttV5(validMqttNotificationData) }
+    }
+
+    @Test
+    fun `sending mqttV5 notification with bad uri should throw an exception`() = runTest {
+        assertThrows<org.eclipse.paho.mqttv5.common.MqttException> {
+            mqttNotificationService.callMqttV5(
+                invalidUriMqttNotificationData
             )
         }
     }

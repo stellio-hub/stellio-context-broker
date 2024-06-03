@@ -17,7 +17,7 @@ import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.*
-import com.egm.stellio.subscription.service.mqtt.MQTTNotificationService
+import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
@@ -45,7 +45,7 @@ class NotificationServiceTests {
     private lateinit var subscriptionService: SubscriptionService
 
     @MockkBean
-    private lateinit var mqttNotificationService: MQTTNotificationService
+    private lateinit var mqttNotificationService: MqttNotificationService
 
     @Autowired
     private lateinit var notificationService: NotificationService
@@ -565,7 +565,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `callSuscriber should ask mqttNotifier if the brokerUrl startWith mqtt`() = runTest {
+    fun `callSuscriber should ask mqttNotifier if the endpoint uri startWith mqtt`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),

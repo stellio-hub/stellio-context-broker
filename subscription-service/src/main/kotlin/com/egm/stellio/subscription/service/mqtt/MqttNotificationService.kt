@@ -1,8 +1,16 @@
 package com.egm.stellio.subscription.service.mqtt
 
 import com.egm.stellio.shared.model.BadSchemeException
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
+import org.eclipse.paho.client.mqttv3.MqttClient
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
+import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.eclipse.paho.mqttv5.client.IMqttToken
+import org.eclipse.paho.mqttv5.client.MqttAsyncClient
+import org.eclipse.paho.mqttv5.client.MqttConnectionOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -10,10 +18,9 @@ import org.eclipse.paho.client.mqttv3.MqttException as MqttExceptionV3
 import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
 
 @Service
-class MQTTNotificationService(
+class MqttNotificationService(
     @Value("\${mqtt.clientId}")
     private val clientId: String = "stellio-context-brokerUrl",
-    private val mqttVersionService: MQTTVersionService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -38,12 +45,12 @@ class MQTTNotificationService(
         val qos =
             notifierInfo[Mqtt.QualityOfService.KEY]?.let { Integer.parseInt(it) } ?: Mqtt.QualityOfService.AT_MOST_ONCE
 
-        val data = MQTTNotificationData(
+        val data = MqttNotificationData(
             topic = uri.path,
             brokerUrl = brokerUrl,
             clientId = clientId,
             qos = qos,
-            mqttMessage = MQTTNotificationData.MqttMessage(notification, headers),
+            mqttMessage = MqttNotificationData.MqttMessage(notification, headers),
             username = username,
             password = password
         )
@@ -51,9 +58,9 @@ class MQTTNotificationService(
         try {
             val mqttVersion = notifierInfo[Mqtt.Version.KEY]
             when (mqttVersion) {
-                Mqtt.Version.V3 -> mqttVersionService.callMqttV3(data)
-                Mqtt.Version.V5 -> mqttVersionService.callMqttV5(data)
-                else -> mqttVersionService.callMqttV5(data)
+                Mqtt.Version.V3 -> callMqttV3(data)
+                Mqtt.Version.V5 -> callMqttV5(data)
+                else -> callMqttV5(data)
             }
             logger.info("successfull mqtt notification for uri : ${data.brokerUrl} version: $mqttVersion")
             return true
@@ -64,5 +71,38 @@ class MQTTNotificationService(
             logger.error("failed mqttv5 notification for uri : ${data.brokerUrl}", e)
             return false
         }
+    }
+
+    internal suspend fun callMqttV3(data: MqttNotificationData) {
+        val persistence = MemoryPersistence()
+        val mqttClient = MqttClient(data.brokerUrl, data.clientId, persistence)
+        val connOpts = MqttConnectOptions()
+        connOpts.isCleanSession = true
+        connOpts.userName = data.username
+        connOpts.password = data.password?.toCharArray() ?: "".toCharArray()
+        mqttClient.connect(connOpts)
+        val message = MqttMessage(
+            serializeObject(data.mqttMessage).toByteArray()
+        )
+        message.qos = data.qos
+        mqttClient.publish(data.topic, message)
+        mqttClient.disconnect()
+    }
+
+    internal suspend fun callMqttV5(data: MqttNotificationData) {
+        val persistence = org.eclipse.paho.mqttv5.client.persist.MemoryPersistence()
+        val mqttClient = MqttAsyncClient(data.brokerUrl, data.clientId, persistence)
+        val connOpts = MqttConnectionOptions()
+        connOpts.isCleanStart = true
+        connOpts.userName = data.username
+        connOpts.password = data.password?.toByteArray()
+        var token: IMqttToken = mqttClient.connect(connOpts)
+        token.waitForCompletion()
+        val message = org.eclipse.paho.mqttv5.common.MqttMessage(serializeObject(data.mqttMessage).toByteArray())
+        message.qos = data.qos
+        token = mqttClient.publish(data.topic, message)
+        token.waitForCompletion()
+        mqttClient.disconnect()
+        mqttClient.close()
     }
 }

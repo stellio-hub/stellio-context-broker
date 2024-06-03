@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service.mqtt
 
 import com.egm.stellio.subscription.model.Notification
 
-data class MQTTNotificationData(
+data class MqttNotificationData(
     val topic: String,
     val mqttMessage: MqttMessage,
     val qos: Int,

@@ -4,11 +4,17 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
+val httpHeaderFormatter =
+    DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT"))
 
 fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)
+
+fun ZonedDateTime.toHttpHeaderFormat(): String =
+    httpHeaderFormatter.format(this)
 
 fun ngsiLdDateTime(): ZonedDateTime =
     Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)

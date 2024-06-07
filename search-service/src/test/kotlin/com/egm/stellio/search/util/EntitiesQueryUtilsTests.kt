@@ -421,7 +421,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.lastN)
     }
@@ -433,7 +433,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertNull(temporalQuery.lastN)
     }
@@ -445,7 +445,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertNull(temporalQuery.lastN)
     }
@@ -454,7 +454,7 @@ class EntitiesQueryUtilsTests {
     fun `it should treat time and timerel properties as optional in a temporal query`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertNull(temporalQuery.timeAt)
         assertNull(temporalQuery.timerel)
@@ -465,7 +465,7 @@ class EntitiesQueryUtilsTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "createdAt")
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
     }
@@ -474,7 +474,7 @@ class EntitiesQueryUtilsTests {
     fun `it should set timeproperty to observedAt if no value is provided in query parameters`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
     }

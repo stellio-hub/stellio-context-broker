@@ -91,7 +91,7 @@ class NotificationService(
                     Triple(
                         subscription,
                         notification,
-                        mqttNotificationService.mqttNotifier(
+                        mqttNotificationService.notify(
                             notification = notification,
                             subscription = subscription,
                             headers = headerMap

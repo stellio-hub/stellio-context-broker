@@ -29,7 +29,7 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.Optional
+import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -194,7 +194,8 @@ class EntityHandler(
         val entitiesQuery = composeEntitiesQuery(
             applicationProperties.pagination,
             params,
-            contexts
+            contexts,
+
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 

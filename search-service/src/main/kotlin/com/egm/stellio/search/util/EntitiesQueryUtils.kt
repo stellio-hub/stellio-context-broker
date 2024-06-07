@@ -6,11 +6,12 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime
-import java.util.Optional
+import java.util.*
 
 fun composeEntitiesQuery(
     defaultPagination: ApplicationProperties.Pagination,
@@ -129,7 +130,8 @@ fun composeTemporalEntitiesQuery(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
         OptionsParamValue.AGGREGATED_VALUES
     )
-    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues).bind()
+    val maxLastN = defaultPagination.limitMax
+    val temporalQuery = buildTemporalQuery(requestParams, maxLastN, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
         entitiesQuery = entitiesQuery,
@@ -176,7 +178,12 @@ fun composeTemporalEntitiesQueryFromPostRequest(
         "lastN" to listOf(query.temporalQ?.lastN.toString()),
         "timeproperty" to listOf(query.temporalQ?.timeproperty)
     )
-    val temporalQuery = buildTemporalQuery(MultiValueMapAdapter(temporalParams), true, withAggregatedValues).bind()
+    val temporalQuery = buildTemporalQuery(
+        MultiValueMapAdapter(temporalParams),
+        defaultPagination.limitMax,
+        true,
+        withAggregatedValues,
+    ).bind()
 
     TemporalEntitiesQuery(
         entitiesQuery = entitiesQuery,
@@ -189,8 +196,9 @@ fun composeTemporalEntitiesQueryFromPostRequest(
 
 fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
+    maxLastN: Int,
     inQueryEntities: Boolean = false,
-    withAggregatedValues: Boolean = false
+    withAggregatedValues: Boolean = false,
 ): Either<APIException, TemporalQuery> {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
@@ -229,7 +237,11 @@ fun buildTemporalQuery(
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it >= 1) it else null
+        if (it > maxLastN) return TooManyResultsException(
+            "You asked for the $it last temporal entities, but the supported maximum limit is $maxLastN"
+        ).left()
+        else if (it >= 1) it
+        else null
     }
 
     return TemporalQuery(

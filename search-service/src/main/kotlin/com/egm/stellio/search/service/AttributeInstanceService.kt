@@ -9,14 +9,16 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @Service
 class AttributeInstanceService(
@@ -123,6 +125,7 @@ class AttributeInstanceService(
     ): Either<APIException, List<AttributeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
+        val limit = temporalQuery.lastN ?: temporalEntitiesQuery.entitiesQuery.paginationQuery.limit
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, origin))
 
@@ -151,6 +154,7 @@ class AttributeInstanceService(
             TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
                 " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
+
             null -> Unit
         }
 
@@ -162,7 +166,9 @@ class AttributeInstanceService(
         if (temporalQuery.lastN != null)
             // in order to get last instances, need to order by time desc
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY start DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" ORDER BY start DESC")
+        else sqlQueryBuilder.append(" ORDER BY start ASC")
+        sqlQueryBuilder.append(" LIMIT $limit")
 
         val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 
@@ -218,6 +224,7 @@ class AttributeInstanceService(
             } else
                 "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
         }
+
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
                 TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"

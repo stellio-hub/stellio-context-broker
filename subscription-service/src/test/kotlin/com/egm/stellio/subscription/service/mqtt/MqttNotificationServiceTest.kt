@@ -11,6 +11,7 @@ import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttException
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.eclipse.paho.mqttv5.client.IMqttToken
 import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse
 import org.eclipse.paho.mqttv5.common.MqttSubscription
@@ -106,13 +107,13 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
     )
 
     @Test
-    fun `mqttNotifier should process endpoint uri to get connection information`() = runTest {
+    fun `notify should process endpoint uri to get connection information`() = runTest {
         val subscription = mqttSubscriptionV3
         coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
-        assert(
-            mqttNotificationService.mqttNotifier(
-                subscription,
-                getNotificationForSubscription(subscription),
+        assertTrue(
+            mqttNotificationService.notify(
+                mqttSubscriptionV3,
+                getNotificationForSubscription(mqttSubscriptionV3),
                 mapOf()
             )
         )
@@ -130,14 +131,13 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
     }
 
     @Test
-    fun `mqttNotifier should use notifier info to choose the mqtt version`() = runTest {
-        val subscription = mqttSubscriptionV3
+    fun `notify should use notifier info to choose the mqtt version`() = runTest {
         coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
         coEvery { mqttNotificationService.callMqttV5(any()) } returns Unit
 
-        mqttNotificationService.mqttNotifier(
-            subscription,
-            getNotificationForSubscription(subscription),
+        mqttNotificationService.notify(
+            mqttSubscriptionV3,
+            getNotificationForSubscription(mqttSubscriptionV3),
             mapOf()
         )
         coVerify(exactly = 1) {
@@ -151,9 +151,9 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
             )
         }
 
-        mqttNotificationService.mqttNotifier(
+        mqttNotificationService.notify(
             mqttSubscriptionV5,
-            getNotificationForSubscription(subscription),
+            getNotificationForSubscription(mqttSubscriptionV5),
             mapOf()
         )
         coVerify(exactly = 1) {

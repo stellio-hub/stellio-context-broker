@@ -579,11 +579,11 @@ class NotificationServiceTests {
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
-        coEvery { mqttNotificationService.mqttNotifier(any(), any(), any()) } returns true
+        coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
         notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
 
-        coVerify(exactly = 1) { mqttNotificationService.mqttNotifier(any(), any(), any()) }
+        coVerify(exactly = 1) { mqttNotificationService.notify(any(), any(), any()) }
     }
 
     @Test
@@ -601,7 +601,7 @@ class NotificationServiceTests {
             )
         )
 
-        coEvery { mqttNotificationService.mqttNotifier(any(), any(), any()) } returns true
+        coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
@@ -609,7 +609,7 @@ class NotificationServiceTests {
         notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
 
         coVerify {
-            mqttNotificationService.mqttNotifier(
+            mqttNotificationService.notify(
                 any(),
                 any(),
                 match {

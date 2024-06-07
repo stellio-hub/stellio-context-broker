@@ -5,8 +5,13 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
-import com.egm.stellio.search.service.*
+import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.composeTemporalEntitiesQuery
+import com.egm.stellio.search.web.TemporalApiResponse.buildEntityTemporalResponse
+import com.egm.stellio.search.web.TemporalApiResponse.buildListTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -17,7 +22,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -156,12 +160,11 @@ class TemporalEntityHandler(
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        buildQueryResponse(
-            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
+        buildListTemporalResponse(
+            compactedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",
-            temporalEntitiesQuery.entitiesQuery.paginationQuery,
+            temporalEntitiesQuery,
             params,
             mediaType,
             contexts
@@ -196,9 +199,7 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+        buildEntityTemporalResponse(compactedEntity, temporalEntitiesQuery, mediaType, params, contexts)
     }.fold(
         { it.toErrorResponse() },
         { it }

@@ -1,6 +1,5 @@
 package com.egm.stellio.subscription.service.mqtt
 
-import com.egm.stellio.shared.model.BadSchemeException
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
@@ -25,7 +24,7 @@ class MqttNotificationService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun mqttNotifier(
+    suspend fun notify(
         subscription: Subscription,
         notification: Notification,
         headers: Map<String, String>
@@ -36,12 +35,11 @@ class MqttNotificationService(
         val username = userInfo.getOrNull(0) ?: ""
         val password = userInfo.getOrNull(1)
         val brokerScheme = Mqtt.SCHEME.brokerSchemeMap[uri.scheme]
-            ?: throw BadSchemeException("${uri.scheme} is not a valid mqtt scheme")
 
         val brokerPort = if (uri.port != -1) uri.port else Mqtt.SCHEME.defaultPortMap[uri.scheme]
 
         val brokerUrl = "$brokerScheme://${uri.host}:$brokerPort"
-        val notifierInfo = endpoint.notifierInfo?.map { it.key to it.value }?.toMap() ?: emptyMap()
+        val notifierInfo = endpoint.notifierInfo?.associate { it.key to it.value } ?: emptyMap()
         val qos =
             notifierInfo[Mqtt.QualityOfService.KEY]?.let { Integer.parseInt(it) } ?: Mqtt.QualityOfService.AT_MOST_ONCE
 

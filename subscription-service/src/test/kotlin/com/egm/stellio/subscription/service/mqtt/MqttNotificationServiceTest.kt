@@ -178,7 +178,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         mqttClient.subscribe(validMqttNotificationData.topic)
 
         assertDoesNotThrow { mqttNotificationService.callMqttV3(validMqttNotificationData) }
-        Thread.sleep(10) // wait to receive notification in message receiver
+        Thread.sleep(20) // wait to receive notification in message receiver
         assertEquals(
             serializeObject(validMqttNotificationData.message),
             messageReceiver.lastReceivedMessage

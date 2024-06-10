@@ -19,8 +19,8 @@ import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
 
 @Service
 class MqttNotificationService(
-    @Value("\${mqtt.clientId}")
-    private val clientId: String = "stellio-context-brokerUrl",
+    @Value("\${subscription.mqtt.clientId}")
+    private val clientId: String = "stellio-context-broker",
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)

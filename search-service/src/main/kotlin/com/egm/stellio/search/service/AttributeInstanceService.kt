@@ -125,7 +125,6 @@ class AttributeInstanceService(
     ): Either<APIException, List<AttributeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
-        val limit = temporalQuery.lastN ?: temporalEntitiesQuery.entitiesQuery.paginationQuery.limit
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, temporalEntityAttributes, origin))
 
@@ -163,12 +162,13 @@ class AttributeInstanceService(
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
-        if (temporalQuery.lastN != null)
-            // in order to get last instances, need to order by time desc
-            // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY start DESC")
-        else sqlQueryBuilder.append(" ORDER BY start ASC")
-        sqlQueryBuilder.append(" LIMIT $limit")
+        if (temporalQuery.isChronological == true)
+        // in order to get first or last instances, need to order by time
+        // final ascending ordering of instances is done in query service
+            sqlQueryBuilder.append(" ORDER BY start ASC")
+        else sqlQueryBuilder.append(" ORDER BY start DESC")
+
+        sqlQueryBuilder.append(" LIMIT ${temporalQuery.limit}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 

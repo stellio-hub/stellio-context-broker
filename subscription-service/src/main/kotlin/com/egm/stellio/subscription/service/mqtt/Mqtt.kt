@@ -11,6 +11,7 @@ object Mqtt {
     object QualityOfService {
         const val KEY = "MQTT-QoS"
         const val AT_MOST_ONCE = 0
+        const val EXACTLY_ONCE = 2
     }
 
     object SCHEME {

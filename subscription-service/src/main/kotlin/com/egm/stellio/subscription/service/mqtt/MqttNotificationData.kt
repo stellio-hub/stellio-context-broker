@@ -4,12 +4,9 @@ import com.egm.stellio.subscription.model.Notification
 
 data class MqttNotificationData(
     val topic: String,
-    val mqttMessage: MqttMessage,
+    val message: MqttMessage,
     val qos: Int,
-    val brokerUrl: String,
-    val clientId: String,
-    val username: String,
-    val password: String? = null,
+    val connection: MqttConnectionData
 ) {
 
     data class MqttMessage(
@@ -17,3 +14,10 @@ data class MqttNotificationData(
         val metadata: Map<String, String> = emptyMap(),
     )
 }
+
+data class MqttConnectionData(
+    val brokerUrl: String,
+    val clientId: String,
+    val username: String,
+    val password: String? = null,
+)

@@ -93,11 +93,9 @@ object TemporalApiResponse {
     private fun getAttributesWhoReachedLimit(entities: List<CompactedEntity>, query: TemporalEntitiesQuery):
         CompactedTemporalAttributes {
         val temporalQuery = query.temporalQuery
-        val lastN = temporalQuery.lastN
-        val maxSize = lastN ?: query.entitiesQuery.paginationQuery.limit
         return entities.flatMap {
             it.values.mapNotNull {
-                if (it is List<*> && it.size >= maxSize) it as List<Map<String, Any>> else null
+                if (it is List<*> && it.size >= temporalQuery.limit) it as List<Map<String, Any>> else null
             }
         }
     }
@@ -107,8 +105,8 @@ object TemporalApiResponse {
         query: TemporalEntitiesQuery
     ): String {
         val temporalQuery = query.temporalQuery
-        val lastN = temporalQuery.lastN
-        val maxSize = lastN ?: query.entitiesQuery.paginationQuery.limit
+        val lastN = temporalQuery.limit
+        val maxSize = lastN
         val timeProperty = temporalQuery.timeproperty.propertyName
 
         val attributesTimeRanges = attributesWhoReachedLimit.map { attribute -> attribute.map { it[timeProperty] } }
@@ -137,7 +135,7 @@ object TemporalApiResponse {
             rangeStart to discriminatingTimeRange.second
         }
 
-        val size = lastN?.toString() ?: "*"
+        val size = lastN.toString()
         return "DateTime ${range.first?.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
     }
 }

@@ -134,8 +134,8 @@ fun composeTemporalEntitiesQuery(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
         OptionsParamValue.AGGREGATED_VALUES
     )
-    val maxLastN = defaultPagination.limitMax
-    val temporalQuery = buildTemporalQuery(requestParams, maxLastN, inQueryEntities, withAggregatedValues).bind()
+    val temporalQuery =
+        buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
         entitiesQuery = entitiesQuery,
@@ -184,7 +184,7 @@ fun composeTemporalEntitiesQueryFromPostRequest(
     )
     val temporalQuery = buildTemporalQuery(
         MultiValueMapAdapter(temporalParams),
-        defaultPagination.limitMax,
+        defaultPagination,
         true,
         withAggregatedValues,
     ).bind()
@@ -200,7 +200,7 @@ fun composeTemporalEntitiesQueryFromPostRequest(
 
 fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
-    maxLastN: Int,
+    pagination: ApplicationProperties.Pagination,
     inQueryEntities: Boolean = false,
     withAggregatedValues: Boolean = false,
 ): Either<APIException, TemporalQuery> {
@@ -239,14 +239,16 @@ fun buildTemporalQuery(
                 "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
             ).left()
     }
-
-    val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it > maxLastN) return TooManyResultsException(
-            "You asked for the $it last temporal entities, but the supported maximum limit is $maxLastN"
+    val isChronological = lastNParam == null
+    val limit = lastNParam?.toIntOrNull()?.let {
+        if (it > pagination.temporalLimitMax) return TooManyResultsException(
+            "You asked for the $it last temporal entities, but the supported maximum limit is ${
+                pagination.temporalLimitMax
+            }"
         ).left()
         else if (it >= 1) it
-        else null
-    }
+        else pagination.temporalLimitDefault
+    } ?: pagination.temporalLimitDefault
 
     return TemporalQuery(
         timerel = timerel,
@@ -254,7 +256,8 @@ fun buildTemporalQuery(
         endTimeAt = endTimeAt,
         aggrPeriodDuration = aggrPeriodDurationParam,
         aggrMethods = aggregate,
-        lastN = lastN,
+        limit = limit,
+        isChronological = isChronological,
         timeproperty = timeproperty
     ).right()
 }

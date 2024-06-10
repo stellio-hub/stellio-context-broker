@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.support
 
+import com.egm.stellio.subscription.service.mqtt.Mqtt
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.utility.DockerImageName
 import org.testcontainers.utility.MountableFile
@@ -13,12 +14,16 @@ interface WithMosquittoContainer {
 
         val mosquittoContainer = GenericContainer<Nothing>(mosquittoImage).apply {
             withReuse(true)
-            withExposedPorts(1883)
+            withExposedPorts(Mqtt.SCHEME.MQTT_DEFAULT_PORT)
             withCopyFileToContainer(
                 MountableFile.forClasspathResource("/mosquitto/mosquitto.conf"),
                 "/mosquitto/config/mosquitto.conf"
             )
         }
+
+        fun getBasicPort() = mosquittoContainer.getMappedPort(
+            Mqtt.SCHEME.MQTT_DEFAULT_PORT
+        )
 
         init {
             mosquittoContainer.start()

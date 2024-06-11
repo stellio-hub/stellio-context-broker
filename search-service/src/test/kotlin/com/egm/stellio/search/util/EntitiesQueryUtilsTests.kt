@@ -6,6 +6,8 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.EntitiesQuery
 import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.support.buildDefaultPagination
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -31,7 +33,7 @@ class EntitiesQueryUtilsTests {
     fun `it should parse query parameters`() = runTest {
         val requestParams = gimmeEntitiesQueryParams()
         val entitiesQuery = composeEntitiesQuery(
-            ApplicationProperties.Pagination(1, 20),
+            buildDefaultPagination(1, 20),
             requestParams,
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceedAndResult()
@@ -54,7 +56,7 @@ class EntitiesQueryUtilsTests {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
         val entitiesQuery = composeEntitiesQuery(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             requestParams,
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldSucceedAndResult()
@@ -66,7 +68,7 @@ class EntitiesQueryUtilsTests {
     fun `it should set default values in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         val entitiesQuery = composeEntitiesQuery(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             requestParams,
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldSucceedAndResult()
@@ -125,7 +127,7 @@ class EntitiesQueryUtilsTests {
         """.trimIndent()
 
         composeEntitiesQueryFromPostRequest(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -157,7 +159,7 @@ class EntitiesQueryUtilsTests {
         """.trimIndent()
 
         composeEntitiesQueryFromPostRequest(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -178,7 +180,7 @@ class EntitiesQueryUtilsTests {
         """.trimIndent()
 
         composeEntitiesQueryFromPostRequest(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -198,7 +200,7 @@ class EntitiesQueryUtilsTests {
         """.trimIndent()
 
         composeEntitiesQueryFromPostRequest(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -218,7 +220,7 @@ class EntitiesQueryUtilsTests {
         """.trimIndent()
 
         composeEntitiesQueryFromPostRequest(
-            ApplicationProperties.Pagination(30, 100),
+            buildDefaultPagination(30, 100),
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -302,6 +304,8 @@ class EntitiesQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
+        every { pagination.temporalLimitDefault } returns 100
+        every { pagination.temporalLimitMax } returns 1000
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
@@ -313,7 +317,7 @@ class EntitiesQueryUtilsTests {
         assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.typeSelection)
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
-            TemporalQuery(
+            buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.BETWEEN,
                 timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                 endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
@@ -335,6 +339,8 @@ class EntitiesQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
+        every { pagination.temporalLimitDefault } returns 100
+        every { pagination.temporalLimitMax } returns 1000
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
@@ -362,6 +368,8 @@ class EntitiesQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
+        every { pagination.temporalLimitDefault } returns 100
+        every { pagination.temporalLimitMax } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -380,6 +388,8 @@ class EntitiesQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
+        every { pagination.temporalLimitDefault } returns 100
+        every { pagination.temporalLimitMax } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -398,6 +408,8 @@ class EntitiesQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
+        every { pagination.temporalLimitDefault } returns 100
+        every { pagination.temporalLimitMax } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -415,9 +427,10 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
 
-        assertEquals(2, temporalQuery.lastN)
+        assertEquals(2, temporalQuery.limit)
+        assertFalse(temporalQuery.isChronological)
     }
 
     @Test
@@ -426,10 +439,11 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
+        val pagination = buildDefaultPagination()
+        val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
-
-        assertNull(temporalQuery.lastN)
+        assertEquals(pagination.temporalLimitDefault, temporalQuery.limit)
+        assertTrue(temporalQuery.isChronological)
     }
 
     @Test
@@ -438,17 +452,19 @@ class EntitiesQueryUtilsTests {
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
+        val pagination = buildDefaultPagination()
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
 
-        assertNull(temporalQuery.lastN)
+        assertEquals(pagination.temporalLimitDefault, temporalQuery.limit)
+        assertTrue(temporalQuery.isChronological)
     }
 
     @Test
     fun `it should treat time and timerel properties as optional in a temporal query`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
 
         assertNull(temporalQuery.timeAt)
         assertNull(temporalQuery.timerel)
@@ -459,7 +475,7 @@ class EntitiesQueryUtilsTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "createdAt")
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
     }
@@ -468,7 +484,7 @@ class EntitiesQueryUtilsTests {
     fun `it should set timeproperty to observedAt if no value is provided in query parameters`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, 100).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
     }

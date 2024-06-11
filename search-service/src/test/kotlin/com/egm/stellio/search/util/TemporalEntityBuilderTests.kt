@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateR
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -43,7 +44,7 @@ class TemporalEntityBuilderTests {
             EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
-                temporalQuery = TemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
@@ -76,7 +77,7 @@ class TemporalEntityBuilderTests {
             EntityTemporalResult(entityPayload, scopeHistory, attributeAndResultsMap),
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
-                temporalQuery = TemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
                 false
@@ -101,7 +102,7 @@ class TemporalEntityBuilderTests {
             entityTemporalResults,
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
-                temporalQuery = TemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
                 false
@@ -161,7 +162,7 @@ class TemporalEntityBuilderTests {
                 )
             )
         )
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null,

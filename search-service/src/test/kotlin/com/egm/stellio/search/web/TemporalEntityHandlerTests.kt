@@ -14,6 +14,7 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -39,7 +40,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
@@ -758,7 +759,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")

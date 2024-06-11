@@ -21,7 +21,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.OffsetTime
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -447,7 +447,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         aggrPeriodDuration: String = "P1D"
     ): TemporalEntitiesQuery =
         gimmeTemporalEntitiesQuery(
-            TemporalQuery(
+            buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 aggrPeriodDuration = aggrPeriodDuration,

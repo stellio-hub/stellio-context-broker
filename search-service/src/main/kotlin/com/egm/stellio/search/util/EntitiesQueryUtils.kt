@@ -235,16 +235,18 @@ fun buildTemporalQuery(
                 "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
             ).left()
     }
-    val isChronological = lastNParam == null
-    val limit = lastNParam?.toIntOrNull()?.let {
+
+    val lastN = lastNParam?.toIntOrNull()?.let {
         if (it > pagination.temporalLimitMax) return TooManyResultsException(
             "You asked for the $it last temporal entities, but the supported maximum limit is ${
                 pagination.temporalLimitMax
             }"
         ).left()
         else if (it >= 1) it
-        else pagination.temporalLimitDefault
-    } ?: pagination.temporalLimitDefault
+        else null
+    }
+    val limit = lastN ?: pagination.temporalLimitDefault
+    val isChronological = lastN == null
 
     return TemporalQuery(
         timerel = timerel,

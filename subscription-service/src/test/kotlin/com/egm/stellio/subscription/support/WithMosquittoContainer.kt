@@ -28,7 +28,5 @@ interface WithMosquittoContainer {
         init {
             mosquittoContainer.start()
         }
-
-        fun getMosquittoLogs(): String = mosquittoContainer.logs
     }
 }

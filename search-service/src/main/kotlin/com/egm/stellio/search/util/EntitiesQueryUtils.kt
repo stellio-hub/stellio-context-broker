@@ -194,6 +194,7 @@ fun composeTemporalEntitiesQueryFromPostRequest(
     )
 }
 
+@SuppressWarnings("ReturnCount")
 fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
     pagination: ApplicationProperties.Pagination,

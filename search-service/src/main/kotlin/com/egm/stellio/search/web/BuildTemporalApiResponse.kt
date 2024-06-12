@@ -16,10 +16,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 
-typealias CompactedTemporalAttributes = List<List<Map<String, Any>>>
+typealias CompactedTemporalAttribute = List<Map<String, Any>>
 
 object TemporalApiResponse {
-
+    @SuppressWarnings("LongParameterList")
     fun buildListTemporalResponse(
         entities: List<CompactedEntity>,
         total: Int,
@@ -91,31 +91,31 @@ object TemporalApiResponse {
     }
 
     private fun getAttributesWhoReachedLimit(entities: List<CompactedEntity>, query: TemporalEntitiesQuery):
-        CompactedTemporalAttributes {
+        List<CompactedTemporalAttribute> {
         val temporalQuery = query.temporalQuery
         return entities.flatMap {
             it.values.mapNotNull {
-                if (it is List<*> && it.size >= temporalQuery.limit) it as List<Map<String, Any>> else null
+                if (it is List<*> && it.size >= temporalQuery.limit) it as CompactedTemporalAttribute else null
             }
         }
     }
 
     private fun getTemporalPaginationRange(
-        attributesWhoReachedLimit: CompactedTemporalAttributes,
+        attributesWhoReachedLimit: List<CompactedTemporalAttribute>,
         query: TemporalEntitiesQuery
     ): String {
         val temporalQuery = query.temporalQuery
-        val lastN = temporalQuery.limit
-        val maxSize = lastN
+        val limit = temporalQuery.limit
+        val isChronological = temporalQuery.isChronological
         val timeProperty = temporalQuery.timeproperty.propertyName
 
         val attributesTimeRanges = attributesWhoReachedLimit.map { attribute -> attribute.map { it[timeProperty] } }
             .map {
                 ZonedDateTime.parse(it.getOrNull(0) as String) to
-                    ZonedDateTime.parse(it.getOrNull(maxSize - 1) as String)
+                    ZonedDateTime.parse(it.getOrNull(limit - 1) as String)
             }
 
-        val range = if (lastN == null) {
+        val range = if (isChronological) {
             val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
             val rangeStart = when (temporalQuery.timerel) {
                 TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt
@@ -135,7 +135,7 @@ object TemporalApiResponse {
             rangeStart to discriminatingTimeRange.second
         }
 
-        val size = lastN.toString()
+        val size = limit.toString()
         return "DateTime ${range.first?.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
     }
 }

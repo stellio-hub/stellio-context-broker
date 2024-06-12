@@ -115,6 +115,7 @@ class TemporalEntityBuilderTests {
         )
     }
 
+    @SuppressWarnings("LongMethod")
     @Test
     fun `it should return a temporal entity with values aggregated`() {
         val temporalEntityAttribute = TemporalEntityAttribute(

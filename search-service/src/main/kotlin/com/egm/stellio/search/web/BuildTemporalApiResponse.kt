@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.model.CompactedAttribute
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -17,6 +18,8 @@ import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
 
 typealias CompactedTemporalAttribute = List<Map<String, Any>>
+
+typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
 object TemporalApiResponse {
     @SuppressWarnings("LongParameterList")
@@ -46,15 +49,18 @@ object TemporalApiResponse {
             return successResponse
         }
 
+        val range = getTemporalPaginationRange(attributesWhoReachedLimit, query)
+
+        val filteredEntities = entities.map { filterEntityInRange(it, range, query.temporalQuery) }
         return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
             this.headers(
                 successResponse.headers
             )
             this.header(
                 HttpHeaders.CONTENT_RANGE,
-                getTemporalPaginationRange(attributesWhoReachedLimit, query)
+                getHeaderRange(range, query.temporalQuery)
             )
-        }.build()
+        }.body(serializeObject(filteredEntities.toFinalRepresentation(ngsiLdDataRepresentation)))
     }
 
     fun buildEntityTemporalResponse(
@@ -66,35 +72,42 @@ object TemporalApiResponse {
     ): ResponseEntity<String> {
         val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
 
+        val attributesWhoReachedLimit = getAttributesWhoReachedLimit(listOf(entity), query)
+
         val successResponse = prepareGetSuccessResponseHeaders(mediaType, contexts).body(
             serializeObject(
                 entity.toFinalRepresentation(ngsiLdDataRepresentation)
             )
         )
 
-        val attributesWhoReachedLimit = getAttributesWhoReachedLimit(listOf(entity), query)
-
         if (attributesWhoReachedLimit.isEmpty()) {
             return successResponse
         }
+
+        val range = getTemporalPaginationRange(attributesWhoReachedLimit, query)
+        val filteredEntity = filterEntityInRange(entity, range, query.temporalQuery)
 
         return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
             .apply {
                 this.header(
                     HttpHeaders.CONTENT_RANGE,
-                    getTemporalPaginationRange(attributesWhoReachedLimit, query)
+                    getHeaderRange(range, query.temporalQuery)
                 )
                 this.headers(
                     successResponse.headers
                 )
-            }.build()
+            }.body(
+                serializeObject(
+                    filteredEntity.toFinalRepresentation(ngsiLdDataRepresentation)
+                )
+            )
     }
 
     private fun getAttributesWhoReachedLimit(entities: List<CompactedEntity>, query: TemporalEntitiesQuery):
         List<CompactedTemporalAttribute> {
         val temporalQuery = query.temporalQuery
-        return entities.flatMap {
-            it.values.mapNotNull {
+        return entities.flatMap { attr ->
+            attr.values.mapNotNull {
                 if (it is List<*> && it.size >= temporalQuery.limit) it as CompactedTemporalAttribute else null
             }
         }
@@ -103,7 +116,7 @@ object TemporalApiResponse {
     private fun getTemporalPaginationRange(
         attributesWhoReachedLimit: List<CompactedTemporalAttribute>,
         query: TemporalEntitiesQuery
-    ): String {
+    ): Range {
         val temporalQuery = query.temporalQuery
         val limit = temporalQuery.limit
         val isChronological = temporalQuery.isChronological
@@ -115,11 +128,11 @@ object TemporalApiResponse {
                     ZonedDateTime.parse(it.getOrNull(limit - 1) as String)
             }
 
-        val range = if (isChronological) {
+        return if (isChronological) {
             val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
             val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt
+                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
                 else -> discriminatingTimeRange.first
             }
 
@@ -127,15 +140,49 @@ object TemporalApiResponse {
         } else {
             val discriminatingTimeRange = attributesTimeRanges.maxBy { it.second }
             val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt
+                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
                 else -> discriminatingTimeRange.first
             }
 
             rangeStart to discriminatingTimeRange.second
         }
+    }
 
-        val size = limit.toString()
-        return "DateTime ${range.first?.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
+    private fun filterEntityInRange(entity: CompactedEntity, range: Range, query: TemporalQuery): CompactedEntity {
+        return entity.keys.mapNotNull { key ->
+            when (val attribute = entity[key]) {
+                is List<*> -> {
+                    val temporalAttribute = attribute as CompactedTemporalAttribute
+                    // faster filter possible because list is already order
+                    val filteredAttribute = temporalAttribute.filter { range.contain(it, query) }
+                    if (filteredAttribute.isNotEmpty()) key to filteredAttribute else null
+                }
+
+                is Map<*, *> -> {
+                    val compactAttribute: CompactedAttribute = attribute as CompactedAttribute
+                    if (range.contain(compactAttribute, query)) key to attribute
+                    else key to emptyList<CompactedAttribute>()
+                }
+
+                else -> key to (attribute ?: return@mapNotNull null)
+            }
+        }.toMap()
+    }
+
+    private fun Range.contain(time: ZonedDateTime) =
+        (this.first > time && time > this.second) || (this.first < time && time < this.second)
+
+    private fun Range.contain(attribute: CompactedAttribute, query: TemporalQuery) = this.contain(
+        attribute.getAttributeDate(query)
+    )
+
+    private fun CompactedAttribute.getAttributeDate(query: TemporalQuery) = ZonedDateTime.parse(
+        this[query.timeproperty.propertyName] as String
+    )
+
+    private fun getHeaderRange(range: Range, temporalQuery: TemporalQuery): String {
+        val size = if (temporalQuery.isChronological) "*" else temporalQuery.limit
+        return "DateTime ${range.first.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
     }
 }

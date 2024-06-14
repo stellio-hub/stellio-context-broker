@@ -28,6 +28,7 @@ fun composeEntitiesQuery(
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contexts)
+    val datasetId = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID), contexts)
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -44,6 +45,7 @@ fun composeEntitiesQuery(
         scopeQ = scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
+        datasetId = datasetId,
         geoQuery = geoQuery,
         contexts = contexts
     )
@@ -73,6 +75,7 @@ fun composeEntitiesQueryFromPostRequest(
     val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contexts)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contexts)
+    val datasetId = parseAndExpandRequestParameter(query.datasetId?.joinToString(","), contexts)
     val geoQuery = if (query.geoQ != null) {
         val geoQueryElements = mapOf(
             "geometry" to query.geoQ.geometry,
@@ -97,6 +100,7 @@ fun composeEntitiesQueryFromPostRequest(
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
+        datasetId = datasetId,
         geoQuery = geoQuery,
         contexts = contexts
     )

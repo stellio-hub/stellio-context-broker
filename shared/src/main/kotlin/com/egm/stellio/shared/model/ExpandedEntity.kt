@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import java.net.URI
 import java.time.ZonedDateTime
 
 data class ExpandedEntity(
@@ -86,27 +87,69 @@ data class ExpandedEntity(
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 
-    fun filterOnAttributes(includedAttributes: Set<String>): Map<String, Any> {
+    fun filterOnAttributes(includedAttributes: Set<String>, includedDatasetIds: Set<String>): Map<String, Any> {
         val inputToMap = { i: ExpandedEntity -> i.members }
-        return filterEntityOnAttributes(this, inputToMap, includedAttributes)
+        return filterEntityOnAttributes(this, inputToMap, includedAttributes, includedDatasetIds)
     }
 
-    private fun <T> filterEntityOnAttributes(
-        input: T,
-        inputToMap: (T) -> Map<String, Any>,
-        includedAttributes: Set<String>
+    private fun filterEntityOnAttributes(
+        
+        input: ExpandedEntity,
+        inputToMap: (ExpandedEntity) -> Map<String, Any>,
+        includedAttributes: Set<String>,
+        includedDatasetIds: Set<String>,
     ): Map<String, Any> {
-        return if (includedAttributes.isEmpty()) {
+        return if (includedAttributes.isEmpty() && includedDatasetIds.isEmpty()) {
             inputToMap(input)
-        } else {
+        } else if (includedDatasetIds.isEmpty()) {
             val includedKeys = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes)
             inputToMap(input).filterKeys { includedKeys.contains(it) }
+        }
+        else if (includedAttributes.isEmpty()) {
+            val includedKeys = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes)
+            inputToMap(input).filter { entry ->
+                val expandedAttribute = entry.value as? ExpandedAttributes
+                val datasetIds = expandedAttribute?.flatMap { map ->
+                    map.value.map { instance ->
+                        instance.getDatasetId().toString()
+                    }
+                }
+                 entry.key in includedKeys || datasetIds in includedDatasetIds
+            }
+        }
+        else {
+            val includedKeys = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes)
+
+            inputToMap(input).filter { entry ->
+                val expandedAttribute = entry.value as? ExpandedAttributes
+                val datasetIds = expandedAttribute?.flatMap { map ->
+                    map.value.map { instance ->
+                        instance.getDatasetId().toString()
+                    }
+                }
+                entry.key in includedKeys && datasetIds in includedDatasetIds
+            }
         }
     }
 }
 
-fun List<ExpandedEntity>.filterOnAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
-    this.filter { it.containsAnyOf(includedAttributes) }
-        .map {
-            ExpandedEntity(it.filterOnAttributes(includedAttributes))
+fun List<ExpandedEntity>.filterOnAttributes(includedAttributes: Set<String>, includedDatasetIds: Set<String>): List<ExpandedEntity> =
+    this.map {
+            ExpandedEntity(it.filterOnAttributes(includedAttributes, includedDatasetIds))
         }
+
+//fun List<ExpandedEntity>.filterOnAttributesDataSetIds(expandedEntities: List<ExpandedEntity> , includedDatasetIds: Set<String>): List<ExpandedEntity> {
+//    var filteredAttributes: List<ExpandedAttributeInstance>
+//    expandedEntities.forEach { expandedEntity ->
+//        expandedEntity.getAttributes().values.forEach { expandedAttributeInstanceList ->
+//           filteredAttributes =  expandedAttributeInstanceList.forEach {  expandedAttributeInstance ->
+//                   includedDatasetIds.forEach {includedDataSetId ->
+//                       expandedAttributeInstance.filterValues { it.contains(includedDataSetId) }
+//
+//                   }
+//           }
+//        }
+//    }
+//    return expandedEntities.filterOnAttributes()
+//}
+

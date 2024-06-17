@@ -370,8 +370,6 @@ class EntityOperationHandler(
                 ?: batchEntityPreparation.right()
         }
 
-<<<<<<< HEAD
-=======
     private suspend fun prepareEntitiesFromRequestBody(
         requestBody: Mono<String>,
         httpHeaders: HttpHeaders,
@@ -385,7 +383,6 @@ class EntityOperationHandler(
         expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
     }
 
->>>>>>> d1935841 (fix(EntityOperationHandler): change function name to prepareEntitiesFromRequestBody)
     private suspend fun doBatchCreation(
         entitiesToCreate: List<JsonLdNgsiLdEntity>,
         batchOperationResult: BatchOperationResult,
@@ -439,18 +436,5 @@ class EntityOperationHandler(
                 true
             )
         }
-    }
-
-    private suspend fun getNgsiLdEntities(
-        requestBody: Mono<String>,
-        httpHeaders: HttpHeaders,
-    ): Either<APIException, BatchEntityPreparation> = either {
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-        return@either expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
     }
 }

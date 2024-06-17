@@ -50,16 +50,10 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (uniqueEntities, duplicateEntities) =
+
             entityOperationService.splitEntitiesByUniqueness(parsedEntities)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(uniqueEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
@@ -94,15 +88,8 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
 
         val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
@@ -165,17 +152,11 @@ class EntityOperationHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
-        checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val (parsedEntities, unparsableEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
         val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
+
+        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
             existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
@@ -194,6 +175,48 @@ class EntityOperationHandler(
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
+        }
+
+        if (batchOperationResult.errors.isEmpty() && unknownEntities.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    /**
+     * Implements (6.31.3.1) - Merge Batch of Entities
+     */
+    @PostMapping("/merge", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun merge(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>,
+    ): ResponseEntity<*> = either {
+        val sub = getSubFromSecurityContext()
+
+        val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
+
+        val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
+
+        val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
+            existingEntities.partition { authorizationService.userCanUpdateEntity(it.entityId(), sub).isLeft() }
+
+        val batchOperationResult = BatchOperationResult().apply {
+            addEntitiesToErrors(unparsableEntities)
+            addEntitiesToErrors(unknownEntities.extractNgsiLdEntities(), ENTITY_DOES_NOT_EXIST_MESSAGE)
+            addEntitiesToErrors(existingEntitiesUnauthorized.extractNgsiLdEntities(), ENTITY_UPDATE_FORBIDDEN_MESSAGE)
+        }
+
+        if (existingEntitiesAuthorized.isNotEmpty()) {
+            val mergeOperationResult =
+                entityOperationService.merge(existingEntitiesAuthorized, sub.getOrNull())
+
+            publishUpdateEvents(sub.getOrNull(), mergeOperationResult, parsedEntities)
+
+            batchOperationResult.errors.addAll(mergeOperationResult.errors)
+            batchOperationResult.success.addAll(mergeOperationResult.success)
         }
 
         if (batchOperationResult.errors.isEmpty() && unknownEntities.isEmpty())
@@ -346,6 +369,19 @@ class EntityOperationHandler(
             batchEntityPreparation.errors.find { it.second is LdContextNotAvailableException }?.second?.left()
                 ?: batchEntityPreparation.right()
         }
+
+    private suspend fun prepareEntitiesFromRequestBody(
+        requestBody: Mono<String>,
+        httpHeaders: HttpHeaders,
+    ): Either<APIException, BatchEntityPreparation> = either {
+        val body = requestBody.awaitFirst().deserializeAsList()
+            .checkNamesAreNgsiLdSupported().bind()
+            .checkContentIsNgsiLdSupported().bind()
+        checkBatchRequestBody(body).bind()
+        checkContentType(httpHeaders, body).bind()
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+        expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
+    }
 
     private suspend fun doBatchCreation(
         entitiesToCreate: List<JsonLdNgsiLdEntity>,

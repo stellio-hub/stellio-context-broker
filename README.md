@@ -66,6 +66,10 @@ Please note that the environment and scripts are validated on Ubuntu and macOS. 
 
 We also provide a configuration to deploy Stellio in a k8s cluster. For more information, please look in the [stellio-k8s project](https://github.com/stellio-hub/stellio-k8s)
 
+#### TROUBLESHOOTING
+
+If Kafka container crash when starting, you may need to change "config/kafka/update_run.sh" line separator from CRLF to
+LF
 ## Docker images tagging
 
 Starting from version 2.0.0, a new scheme is used for tagging of Docker images:

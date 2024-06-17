@@ -90,7 +90,7 @@ class NotificationService(
         val result =
             kotlin.runCatching {
                 if (uri.startsWith(Mqtt.SCHEME.MQTT)) {
-                    headerMap["Content-Type"] = mediaType.toString() // could be common with line 99 ?
+                    headerMap[HttpHeaders.CONTENT_TYPE] = mediaType.toString() // could be common with line 99 ?
                     Triple(
                         subscription,
                         notification,

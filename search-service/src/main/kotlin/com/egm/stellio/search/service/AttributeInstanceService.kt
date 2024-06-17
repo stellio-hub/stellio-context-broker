@@ -7,6 +7,7 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.model.TemporalQuery.Timerel
 import com.egm.stellio.search.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
@@ -111,7 +112,7 @@ class AttributeInstanceService(
         return create(attributeInstance)
     }
 
-    suspend fun search(
+    suspend fun search( // que pour les tests?
         temporalEntitiesQuery: TemporalEntitiesQuery,
         temporalEntityAttribute: TemporalEntityAttribute,
         origin: ZonedDateTime? = null
@@ -148,9 +149,9 @@ class AttributeInstanceService(
             )
 
         when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
-            TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
-            TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
+            Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
+            Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
+            Timerel.BETWEEN -> sqlQueryBuilder.append(
                 " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
 
@@ -162,11 +163,11 @@ class AttributeInstanceService(
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
-        if (temporalQuery.isChronological)
-            // in order to get first or last instances, need to order by time
-            // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY start ASC")
-        else sqlQueryBuilder.append(" ORDER BY start DESC")
+        if (temporalQuery.asLastN)
+        // in order to get first or last instances, need to order by time
+        // final ascending ordering of instances is done in query service
+            sqlQueryBuilder.append(" ORDER BY start DESC")
+        else sqlQueryBuilder.append(" ORDER BY start ASC")
 
         sqlQueryBuilder.append(" LIMIT ${temporalQuery.limit}")
 
@@ -200,6 +201,7 @@ class AttributeInstanceService(
         JOIN LATERAL (
             $aiLateralQuery
         ) ai_limited ON true;
+        
         """.trimIndent()
     }
 

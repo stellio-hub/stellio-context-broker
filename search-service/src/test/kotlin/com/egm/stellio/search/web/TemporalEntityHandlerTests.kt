@@ -45,29 +45,29 @@ import java.util.*
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-class TemporalEntityHandlerTests {
+open class TemporalEntityHandlerTests {
 
     @Autowired
-    private lateinit var webClient: WebTestClient
+    protected lateinit var webClient: WebTestClient
 
     @MockkBean(relaxed = true)
-    private lateinit var queryService: QueryService
+    protected lateinit var queryService: QueryService
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    protected lateinit var entityPayloadService: EntityPayloadService
 
     @MockkBean
-    private lateinit var attributeInstanceService: AttributeInstanceService
+    protected lateinit var attributeInstanceService: AttributeInstanceService
 
     @MockkBean(relaxed = true)
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+    protected lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
-    private lateinit var authorizationService: AuthorizationService
+    protected lateinit var authorizationService: AuthorizationService
 
-    private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    private val temporalEntityAttributeName = "speed"
-    private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
+    protected val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    protected val temporalEntityAttributeName = "speed"
+    protected val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
 
     @BeforeAll
     fun configureWebClientDefaults() {

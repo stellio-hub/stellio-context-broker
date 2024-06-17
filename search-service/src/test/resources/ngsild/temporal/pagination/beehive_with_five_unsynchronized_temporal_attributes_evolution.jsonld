@@ -1,0 +1,102 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "type": "BeeHive",
+  "incoming": [
+      {
+          "type": "Property",
+          "value": 1500,
+          "observedAt": "2020-01-24T13:01:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 1501,
+          "observedAt": "2020-01-24T13:02:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 1502,
+          "observedAt": "2020-01-24T13:03:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 1503,
+          "observedAt": "2020-01-24T13:04:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 1504,
+          "observedAt": "2020-01-24T13:05:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      }
+  ],
+  "outgoing": [
+      {
+          "type": "Property",
+          "value": 100,
+          "observedAt": "2020-01-24T13:05:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 101,
+          "observedAt": "2020-01-24T13:06:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 102,
+          "observedAt": "2020-01-24T13:07:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 103,
+          "observedAt": "2020-01-24T13:08:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      },
+      {
+          "type": "Property",
+          "value": 104,
+          "observedAt": "2020-01-24T13:09:22.066Z",
+          "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+          }
+      }
+
+  ],
+  "@context":[
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

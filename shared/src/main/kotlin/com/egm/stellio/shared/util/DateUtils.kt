@@ -14,7 +14,7 @@ fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)
 
 fun ZonedDateTime.toHttpHeaderFormat(): String =
-    httpHeaderFormatter.format(this)
+    formatter.format(this)
 
 fun ngsiLdDateTime(): ZonedDateTime =
     Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)

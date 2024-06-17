@@ -2,6 +2,7 @@ package com.egm.stellio.search.web
 
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.Timerel
 import com.egm.stellio.shared.model.CompactedAttribute
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -72,13 +73,17 @@ object TemporalApiResponse {
     ): ResponseEntity<String> {
         val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
 
-        val attributesWhoReachedLimit = getAttributesWhoReachedLimit(listOf(entity), query)
-
         val successResponse = prepareGetSuccessResponseHeaders(mediaType, contexts).body(
             serializeObject(
                 entity.toFinalRepresentation(ngsiLdDataRepresentation)
             )
         )
+
+        if (query.temporalQuery.asLastN) { // if lastN > limit it throw an error earlier
+            return successResponse
+        }
+
+        val attributesWhoReachedLimit = getAttributesWhoReachedLimit(listOf(entity), query)
 
         if (attributesWhoReachedLimit.isEmpty()) {
             return successResponse
@@ -119,7 +124,6 @@ object TemporalApiResponse {
     ): Range {
         val temporalQuery = query.temporalQuery
         val limit = temporalQuery.limit
-        val isChronological = temporalQuery.isChronological
         val timeProperty = temporalQuery.timeproperty.propertyName
 
         val attributesTimeRanges = attributesWhoReachedLimit.map { attribute -> attribute.map { it[timeProperty] } }
@@ -128,25 +132,14 @@ object TemporalApiResponse {
                     ZonedDateTime.parse(it.getOrNull(limit - 1) as String)
             }
 
-        return if (isChronological) {
-            val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
-            val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-                else -> discriminatingTimeRange.first
-            }
-
-            rangeStart to discriminatingTimeRange.second
-        } else {
-            val discriminatingTimeRange = attributesTimeRanges.maxBy { it.second }
-            val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
-                else -> discriminatingTimeRange.first
-            }
-
-            rangeStart to discriminatingTimeRange.second
+        val discriminatingTimeRange = attributesTimeRanges.maxBy { it.second }
+        val rangeStart = when (temporalQuery.timerel) {
+            Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+            Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
+            else -> discriminatingTimeRange.first
         }
+
+        return rangeStart to discriminatingTimeRange.second
     }
 
     private fun filterEntityInRange(entity: CompactedEntity, range: Range, query: TemporalQuery): CompactedEntity {
@@ -173,16 +166,16 @@ object TemporalApiResponse {
     private fun Range.contain(time: ZonedDateTime) =
         (this.first > time && time > this.second) || (this.first < time && time < this.second)
 
-    private fun Range.contain(attribute: CompactedAttribute, query: TemporalQuery) = this.contain(
-        attribute.getAttributeDate(query)
-    )
+    private fun Range.contain(attribute: CompactedAttribute, query: TemporalQuery) =
+        attribute.getAttributeDate(query) ?.let { this.contain(it) } ?: true // if no date it should not be filtered
 
-    private fun CompactedAttribute.getAttributeDate(query: TemporalQuery) = ZonedDateTime.parse(
-        this[query.timeproperty.propertyName] as String
-    )
+    private fun CompactedAttribute.getAttributeDate(query: TemporalQuery) =
+        this[query.timeproperty.propertyName]?.let {
+            ZonedDateTime.parse(it as String)
+        }
 
     private fun getHeaderRange(range: Range, temporalQuery: TemporalQuery): String {
-        val size = if (temporalQuery.isChronological) "*" else temporalQuery.limit
+        val size = "*"
         return "DateTime ${range.first.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
     }
 }

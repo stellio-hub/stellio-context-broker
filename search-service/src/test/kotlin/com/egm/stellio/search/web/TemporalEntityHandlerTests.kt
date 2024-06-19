@@ -384,7 +384,7 @@ open class TemporalEntityHandlerTests {
         buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=startTime")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=2020-10-29T18:00:00Z")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

@@ -303,7 +303,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                     aggrPeriodDuration = "PT1S",
                     limit = 1,
-                    isChronological = false
+                    asLastN = true
                 ),
                 withTemporalValues = false,
                 withAudit = false,

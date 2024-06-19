@@ -115,11 +115,10 @@ class ScopeService(
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY entity_id")
         if (temporalQuery.asLastN)
-        // in order to get first or last instances, need to order by time
-        // final ascending ordering of instances is done in query service
-        sqlQueryBuilder.append(" ORDER BY start DESC")
+            // in order to get first or last instances, need to order by time
+            // final ascending ordering of instances is done in query service
+            sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
-
 
         sqlQueryBuilder.append(" LIMIT $limit")
 
@@ -279,9 +278,9 @@ class ScopeService(
                 else TemporalProperty.MODIFIED_AT
             addHistoryEntry(entityId, it, temporalPropertyToAdd, modifiedAt, sub).bind()
             if (temporalPropertyToAdd == TemporalProperty.MODIFIED_AT)
-            // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
-            // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
-            // sub-Property
+                // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
+                // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
+                // sub-Property
                 addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
             updateResult
         } ?: UpdateResult(

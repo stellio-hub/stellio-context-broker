@@ -4,7 +4,6 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.model.TemporalQuery.Aggregate
-import com.egm.stellio.search.model.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
@@ -29,7 +28,7 @@ import java.time.ZonedDateTime
 
 @SuppressWarnings("LongParameterList")
 fun buildDefaultTestTemporalQuery(
-    timerel: Timerel? = null,
+    timerel: TemporalQuery.Timerel? = null,
     timeAt: ZonedDateTime? = null,
     endTimeAt: ZonedDateTime? = null,
     aggrPeriodDuration: String? = null,

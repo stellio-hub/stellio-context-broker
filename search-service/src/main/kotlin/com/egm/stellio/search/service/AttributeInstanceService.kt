@@ -164,8 +164,8 @@ class AttributeInstanceService(
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
         if (temporalQuery.asLastN)
-        // in order to get first or last instances, need to order by time
-        // final ascending ordering of instances is done in query service
+            // in order to get first or last instances, need to order by time
+            // final ascending ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 

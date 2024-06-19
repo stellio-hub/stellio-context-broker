@@ -26,7 +26,6 @@ import java.util.*
 typealias CompactedEntity = Map<String, Any>
 typealias CompactedAttribute = Map<String, Any>
 
-
 fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
     this.mapValues { (_, value) ->
         applyAttributeTransformation(value, null, ::simplifyAttribute, ::simplifyMultiInstanceAttribute)

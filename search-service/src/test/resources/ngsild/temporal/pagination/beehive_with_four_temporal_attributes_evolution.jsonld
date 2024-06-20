@@ -37,15 +37,6 @@
             "type": "Relationship",
             "object": "urn:ngsi-ld:Sensor:IncomingSensor"
           }
-      },
-      {
-          "type": "Property",
-          "value": 1504,
-          "observedAt": "2020-01-01T00:05:00.00Z",
-          "observedBy": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
-          }
       }
   ],
   "outgoing": [
@@ -80,15 +71,6 @@
           "type": "Property",
           "value": 103,
           "observedAt": "2020-01-01T00:07:00.00Z",
-          "observedBy": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
-          }
-      },
-      {
-          "type": "Property",
-          "value": 104,
-          "observedAt": "2020-01-01T00:08:00.00Z",
           "observedBy": {
             "type": "Relationship",
             "object": "urn:ngsi-ld:Sensor:IncomingSensor"

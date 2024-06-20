@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -20,7 +21,7 @@ import org.springframework.test.context.TestPropertySource
     properties =
     [
         "application.pagination.temporal-limit-default = 5",
-        "application.pagination.temporal-limit-max = 5"
+        "application.pagination.temporal-limit-max = 10"
     ]
 )
 class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTests() {
@@ -60,6 +61,72 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTests() {
     }
 
     @Test
+    fun `query temporal entity should limit to temporalPaginationLimit`() =
+        runTest {
+            setupTemporalTestWithNonTruncatedValue()
+
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=after&timeAt=$timeAt&" +
+                        "type=BeeHive"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(200)
+
+            coVerify {
+                queryService.queryTemporalEntities(
+                    match { temporalEntitiesQuery ->
+                        temporalEntitiesQuery.temporalQuery.limit == 5 &&
+                            !temporalEntitiesQuery.temporalQuery.asLastN
+                    },
+                    any()
+                )
+            }
+        }
+
+    @Test
+    fun `query temporal entity should limit to lastN`() =
+        runTest {
+            setupTemporalTestWithNonTruncatedValue()
+
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=after&timeAt=$timeAt&" +
+                        "lastN=7&" +
+                        "type=BeeHive"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(200)
+
+            coVerify {
+                queryService.queryTemporalEntities(
+                    match { temporalEntitiesQuery ->
+                        temporalEntitiesQuery.temporalQuery.limit == 7 &&
+                            temporalEntitiesQuery.temporalQuery.asLastN
+                    },
+                    any()
+                )
+            }
+        }
+
+    @Test // no range needed since we use the lastn send by the user
+    fun `query temporal entity with lastN should return 403 if lastN is greater than temporal-max-limit`() = runTest {
+        setupTemporalPaginationTest()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=after&timeAt=$timeAt&" +
+                    "lastN=1000000&" +
+                    "type=BeeHive"
+            )
+            .exchange()
+            .expectStatus().isEqualTo(403)
+    }
+
+    @Test
     fun `query temporal entity should return 200 if there is no truncated attributes`() =
         runTest {
             setupTemporalTestWithNonTruncatedValue()
@@ -87,21 +154,6 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTests() {
             )
             .exchange()
             .expectStatus().isEqualTo(200)
-    }
-
-    @Test // no range needed since we use the lastn send by the user
-    fun `query temporal entity with lastN should return 403 if lastN is greater than temporal-max-limit`() = runTest {
-        setupTemporalPaginationTest()
-
-        webClient.get()
-            .uri(
-                "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=after&timeAt=$timeAt&" +
-                    "lastN=1000000&" +
-                    "type=BeeHive"
-            )
-            .exchange()
-            .expectStatus().isEqualTo(403)
     }
 
     @Test

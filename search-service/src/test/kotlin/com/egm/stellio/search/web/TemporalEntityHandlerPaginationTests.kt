@@ -24,7 +24,7 @@ import org.springframework.test.context.TestPropertySource
         "application.pagination.temporal-limit-max = 10"
     ]
 )
-class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTests() {
+class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
 
     val timeAt = "2019-01-01T00:00:00Z"
     private val mostRecentTimestamp = "2020-01-01T00:05:00Z" // from discrimination attribute

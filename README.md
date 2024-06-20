@@ -134,13 +134,13 @@ If you want to build only one of the services, you can launch:
 Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ### Pre-commit
-The precommit hook use gradle to automatically apply detekt rules.
+The pre-commit hook uses gradle to automatically check and apply (when possible automatically) detekt rules.
 It will not be able to work if gradle is not in your $path variable
 
-#### With [pre-commit](https://pre-commit.com/) tool : (use python if u don't have python use the manual setup)
+#### Automatic setup with [pre-commit](https://pre-commit.com/) tool (if you don't have Python installed, use the manual setup below)
 - install ```pip install pre-commit```
 - then run ```pre-commit install```
-#### Manual setup :
+#### Manual setup
 - copy the script in ```config/detekt/detekt.sh``` in your ```.git/pre-commit.sample``` file
 
 

@@ -4,29 +4,21 @@ import arrow.core.Either
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.core.io.ClassPathResource
@@ -34,10 +26,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
-import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -46,41 +35,11 @@ import java.util.*
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-open class TemporalEntityHandlerTests {
+open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
-    @Autowired
-    protected lateinit var webClient: WebTestClient
-
-    @MockkBean(relaxed = true)
-    protected lateinit var queryService: QueryService
-
-    @MockkBean
-    protected lateinit var entityPayloadService: EntityPayloadService
-
-    @MockkBean
-    protected lateinit var attributeInstanceService: AttributeInstanceService
-
-    @MockkBean(relaxed = true)
-    protected lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
-
-    @MockkBean
-    protected lateinit var authorizationService: AuthorizationService
-
-    protected val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    protected val temporalEntityAttributeName = "speed"
-    protected val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
-
-    @BeforeAll
-    fun configureWebClientDefaults() {
-        webClient = webClient.mutate()
-            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
-            .apply(csrf())
-            .defaultHeaders {
-                it.accept = listOf(JSON_LD_MEDIA_TYPE)
-                it.contentType = JSON_LD_MEDIA_TYPE
-            }
-            .build()
-    }
+    val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    val temporalEntityAttributeName = "speed"
+    val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
 
     private fun buildDefaultMockResponsesForAddAttributes() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()

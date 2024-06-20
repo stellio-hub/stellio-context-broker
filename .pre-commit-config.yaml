@@ -5,5 +5,5 @@ repos:
     name: detekt check
     description: Runs `detekt` on modified .kt files.
     language: script
-    entry: config/detekt/detekt.sh
+    entry: config/detekt/detekt_auto_correct.sh
     files: \.kt

@@ -83,11 +83,11 @@ class NotificationService(
         subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
             headerMap[endpointInfo.key] = endpointInfo.value
         }
+        headerMap[HttpHeaders.CONTENT_TYPE] = mediaType.toString()
 
         val result =
             kotlin.runCatching {
                 if (uri.startsWith(Mqtt.SCHEME.MQTT)) {
-                    headerMap[HttpHeaders.CONTENT_TYPE] = mediaType.toString() // could be common with line 99 ?
                     Triple(
                         subscription,
                         notification,
@@ -99,7 +99,7 @@ class NotificationService(
                     )
                 } else {
                     val request =
-                        WebClient.create(uri).post().contentType(mediaType).headers { it.setAll(headerMap) }
+                        WebClient.create(uri).post().headers { it.setAll(headerMap) }
                     request
                         .bodyValue(serializeObject(notification))
                         .awaitExchange { response ->

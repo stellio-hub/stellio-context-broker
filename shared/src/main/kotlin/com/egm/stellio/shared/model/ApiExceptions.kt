@@ -20,7 +20,6 @@ data class NotImplementedException(override val message: String) : APIException(
 data class LdContextNotAvailableException(override val message: String) : APIException(message)
 data class NonexistentTenantException(override val message: String) : APIException(message)
 data class NotAcceptableException(override val message: String) : APIException(message)
-data class BadSchemeException(override val message: String) : APIException(message)
 
 fun Throwable.toAPIException(specificMessage: String? = null): APIException =
     when (this) {
@@ -29,6 +28,5 @@ fun Throwable.toAPIException(specificMessage: String? = null): APIException =
             if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED)
                 LdContextNotAvailableException(specificMessage ?: "Unable to load remote context (cause was: $this)")
             else BadRequestDataException("Unexpected error while parsing payload (cause was: $this)")
-
         else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
     }

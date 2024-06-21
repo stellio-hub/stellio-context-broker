@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import org.slf4j.LoggerFactory
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
@@ -35,7 +36,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
     @SpykBean
     private lateinit var mqttNotificationService: MqttNotificationService
 
-    private val mqttContainerPort = WithMosquittoContainer.getBasicPort()
+    private val mqttContainerPort = WithMosquittoContainer.getPort()
 
     private val mqttSubscriptionV3 = Subscription(
         type = NGSILD_SUBSCRIPTION_TERM,
@@ -82,11 +83,6 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         message = MqttNotificationData.MqttMessage(getNotificationForSubscription(mqttSubscriptionV3), emptyMap())
     )
 
-    private val notification = Notification(
-        subscriptionId = URI("1"),
-        data = listOf(mapOf("hello" to "world"))
-    )
-
     private val invalidUriMqttNotificationData = MqttNotificationData(
         connection = MqttConnectionData(
             brokerUrl = "tcp://badHost:1883",
@@ -96,7 +92,10 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         topic = "notification",
         qos = 0,
         message = MqttNotificationData.MqttMessage(
-            notification,
+            Notification(
+                subscriptionId = URI("1"),
+                data = listOf(mapOf("hello" to "world"))
+            ),
             emptyMap(),
         )
     )
@@ -108,7 +107,6 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
 
     @Test
     fun `notify should process endpoint uri to get connection information`() = runTest {
-        val subscription = mqttSubscriptionV3
         coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
         assertTrue(
             mqttNotificationService.notify(
@@ -221,45 +219,47 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
 
     private class MqttV3MessageReceiver : MqttCallbackV3 {
         var lastReceivedMessage: String? = null
+        private val logger = LoggerFactory.getLogger(javaClass)
 
         override fun messageArrived(topic: String, message: MqttMessageV3) {
             lastReceivedMessage = message.payload?.decodeToString()
         }
 
         override fun deliveryComplete(p0: IMqttDeliveryToken?) {
-            println("delivery complete")
+            logger.info("delivery complete")
         }
 
         override fun connectionLost(p0: Throwable?) {
-            println("connection lost")
+            logger.info("connection lost")
         }
     }
 
     private class MqttV5MessageReceiver : MqttCallbackV5 {
         var lastReceivedMessage: String? = null
+        private val logger = LoggerFactory.getLogger(javaClass)
 
         override fun messageArrived(topic: String?, message: MqttMessageV5?) {
             lastReceivedMessage = message?.payload?.decodeToString()
         }
 
         override fun disconnected(p0: MqttDisconnectResponse?) {
-            println("connection lost")
+            logger.info("mqtt connection lost")
         }
 
         override fun mqttErrorOccurred(p0: org.eclipse.paho.mqttv5.common.MqttException?) {
-            println("mqtt error occured")
+            logger.info("mqtt error occured")
         }
 
         override fun deliveryComplete(p0: IMqttToken?) {
-            println("delivery complete")
+            logger.info("mqtt delivery complete")
         }
 
         override fun connectComplete(p0: Boolean, p1: String?) {
-            println("connection success")
+            logger.info("mqtt connection success")
         }
 
         override fun authPacketArrived(p0: Int, p1: MqttProperties?) {
-            println("auth")
+            logger.info("mqtt auth")
         }
     }
 }

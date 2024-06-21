@@ -86,10 +86,12 @@ class MqttNotificationService(
     internal suspend fun connectMqttv3(data: MqttConnectionData): MqttClient {
         val persistence = MemoryPersistence()
         val mqttClient = MqttClient(data.brokerUrl, data.clientId, persistence)
-        val connOpts = MqttConnectOptions()
-        connOpts.isCleanSession = true
-        connOpts.userName = data.username
-        connOpts.password = data.password?.toCharArray() ?: "".toCharArray()
+        val connOpts = MqttConnectOptions().apply {
+            isCleanSession = true
+            userName = data.username
+            password = data.password?.toCharArray() ?: "".toCharArray()
+        }
+
         mqttClient.connect(connOpts)
         return mqttClient
     }

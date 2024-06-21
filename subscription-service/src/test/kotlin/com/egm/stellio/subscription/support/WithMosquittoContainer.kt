@@ -12,7 +12,7 @@ interface WithMosquittoContainer {
         private val mosquittoImage: DockerImageName =
             DockerImageName.parse("eclipse-mosquitto:2.0.18")
 
-        val mosquittoContainer = GenericContainer<Nothing>(mosquittoImage).apply {
+        private val mosquittoContainer = GenericContainer<Nothing>(mosquittoImage).apply {
             withReuse(true)
             withExposedPorts(Mqtt.SCHEME.MQTT_DEFAULT_PORT)
             withCopyFileToContainer(
@@ -21,7 +21,7 @@ interface WithMosquittoContainer {
             )
         }
 
-        fun getBasicPort() = mosquittoContainer.getMappedPort(
+        fun getPort(): Int = mosquittoContainer.getMappedPort(
             Mqtt.SCHEME.MQTT_DEFAULT_PORT
         )
 

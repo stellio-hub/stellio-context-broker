@@ -7,7 +7,7 @@ EXIT_CODE=1
 
 
 
-until [ $COUNTER -gt 5 ] || [ $EXIT_CODE -eq 0 ]
+until [ $COUNTER -gt 3 ] || [ $EXIT_CODE -eq 0 ]
 do
 ./gradlew detekt --auto-correct > $OUTPUT
 EXIT_CODE=$?

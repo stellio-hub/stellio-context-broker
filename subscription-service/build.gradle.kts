@@ -20,6 +20,8 @@ dependencies {
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.jayway.jsonpath:json-path:2.9.0")
     implementation(project(":shared"))
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+    implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
 

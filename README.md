@@ -133,6 +133,7 @@ If you want to build only one of the services, you can launch:
 
 Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
 
+
 ### Code quality
 
 Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
@@ -143,6 +144,17 @@ Detekt checks are automatically performed as part of the build and fail the buil
 that applies changed code refactoring and optimized imports on a save.
 
 * You can enable Detekt support with the [Detekt plugin](https://github.com/detekt/detekt-intellij-plugin).
+
+* You can also setup a precommit hook to run detekt autocorrect automatically 
+
+### Pre-commit
+#### Automatic setup with [pre-commit](https://pre-commit.com/) tool 
+(if you don't have Python installed, use the manual setup below)
+* install ```pip install pre-commit```
+* then run ```pre-commit install```
+#### Manual setup
+* copy the script in ```config/detekt/detekt_auto_correct.sh``` in your ```.git/pre-commit``` file
+
 
 ### Working locally with Docker images
 

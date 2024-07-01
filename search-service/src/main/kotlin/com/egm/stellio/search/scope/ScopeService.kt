@@ -89,7 +89,7 @@ class ScopeService(
     ): Either<APIException, List<ScopeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
-
+        val limit = temporalQuery.instanceLimit
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalEntitiesQuery, origin))
 
         sqlQueryBuilder.append(
@@ -106,6 +106,7 @@ class ScopeService(
             TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
                 " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
+
             null -> Unit
         }
 
@@ -113,10 +114,13 @@ class ScopeService(
             sqlQueryBuilder.append(" GROUP BY entity_id, start")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY entity_id")
-        if (temporalQuery.lastN != null)
-            // in order to get last instances, need to order by time desc
+        if (temporalQuery.hasLastN)
+            // in order to get first or last instances, need to order by time
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY start DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" ORDER BY start DESC")
+        else sqlQueryBuilder.append(" ORDER BY start ASC")
+
+        sqlQueryBuilder.append(" LIMIT $limit")
 
         return databaseClient.sql(sqlQueryBuilder.toString())
             .bind("entities_ids", entitiesIds)
@@ -149,11 +153,13 @@ class ScopeService(
             } else
                 "SELECT entity_id, min(time) as start, max(time) as end, $allAggregates "
         }
+
         temporalEntitiesQuery.temporalQuery.timeproperty == TemporalProperty.OBSERVED_AT -> {
             """
                 SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time as start
             """
         }
+
         else -> {
             """
                 SELECT entity_id, ARRAY(SELECT jsonb_array_elements_text(value)) as value, time as start, sub
@@ -245,12 +251,14 @@ class ScopeService(
                     )
                 )
             }
+
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
                 val newScopes = (currentScopes ?: emptyList()).toSet().plus(scopes).toList()
                 val newPayload = newScopes.map { mapOf(JsonLdUtils.JSONLD_VALUE to it) }
                 val updatedPayload = currentPayload.replaceScopeValue(newPayload)
                 Pair(newScopes, updatedPayload)
             }
+
             OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
             OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED,
             OperationType.PARTIAL_ATTRIBUTE_UPDATE,
@@ -258,6 +266,7 @@ class ScopeService(
                 val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
                 Pair(scopes, updatedPayload)
             }
+
             else -> Pair(null, Json.of("{}"))
         }
 

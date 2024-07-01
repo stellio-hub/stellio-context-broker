@@ -5,10 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeService
-import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
-import com.egm.stellio.search.support.EMPTY_PAYLOAD
-import com.egm.stellio.search.support.buildDefaultQueryParams
-import com.egm.stellio.search.support.gimmeEntityPayload
+import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
@@ -108,7 +105,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntity(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = TemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -160,7 +157,7 @@ class QueryServiceTests {
         queryService.queryTemporalEntity(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = TemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -194,7 +191,7 @@ class QueryServiceTests {
         val origin = queryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = TemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -214,7 +211,7 @@ class QueryServiceTests {
         val origin = queryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = TemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = now
                 ),
@@ -245,7 +242,7 @@ class QueryServiceTests {
         val origin = queryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = TemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 entitiesQuery = EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -296,7 +293,7 @@ class QueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -364,7 +361,7 @@ class QueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                     aggrMethods = listOf(TemporalQuery.Aggregate.AVG)

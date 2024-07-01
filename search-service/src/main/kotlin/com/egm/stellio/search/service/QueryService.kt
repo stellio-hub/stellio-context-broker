@@ -185,7 +185,8 @@ class QueryService(
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalEntitiesQuery, it.value, origin).bind()
+                attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttributes = it.value, origin)
+                    .bind()
             }
             .mapValues {
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically

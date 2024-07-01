@@ -10,8 +10,8 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.composeTemporalEntitiesQuery
-import com.egm.stellio.search.web.TemporalApiResponse.buildEntityTemporalResponse
-import com.egm.stellio.search.web.TemporalApiResponse.buildListTemporalResponse
+import com.egm.stellio.search.web.TemporalApiResponseBuilder.buildEntitiesTemporalResponse
+import com.egm.stellio.search.web.TemporalApiResponseBuilder.buildEntityTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -160,7 +160,7 @@ class TemporalEntityHandler(
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
 
-        buildListTemporalResponse(
+        buildEntitiesTemporalResponse(
             compactedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",

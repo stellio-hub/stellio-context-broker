@@ -435,8 +435,8 @@ class EntitiesQueryUtilsTests {
 
         val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
 
-        assertEquals(2, temporalQuery.limit)
-        assertTrue(temporalQuery.asLastN)
+        assertEquals(2, temporalQuery.instanceLimit)
+        assertTrue(temporalQuery.hasLastN)
     }
 
     @Test
@@ -448,8 +448,8 @@ class EntitiesQueryUtilsTests {
         val pagination = buildDefaultPagination()
         val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
 
-        assertEquals(pagination.temporalLimitDefault, temporalQuery.limit)
-        assertFalse(temporalQuery.asLastN)
+        assertEquals(pagination.temporalLimitDefault, temporalQuery.instanceLimit)
+        assertFalse(temporalQuery.hasLastN)
     }
 
     @Test
@@ -462,8 +462,8 @@ class EntitiesQueryUtilsTests {
 
         val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
 
-        assertEquals(pagination.temporalLimitDefault, temporalQuery.limit)
-        assertFalse(temporalQuery.asLastN)
+        assertEquals(pagination.temporalLimitDefault, temporalQuery.instanceLimit)
+        assertFalse(temporalQuery.hasLastN)
     }
 
     @Test

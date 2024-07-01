@@ -89,7 +89,7 @@ class ScopeService(
     ): Either<APIException, List<ScopeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
-        val limit = temporalQuery.limit
+        val limit = temporalQuery.instanceLimit
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalEntitiesQuery, origin))
 
         sqlQueryBuilder.append(
@@ -114,7 +114,7 @@ class ScopeService(
             sqlQueryBuilder.append(" GROUP BY entity_id, start")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY entity_id")
-        if (temporalQuery.asLastN)
+        if (temporalQuery.hasLastN)
             // in order to get first or last instances, need to order by time
             // final ascending ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY start DESC")

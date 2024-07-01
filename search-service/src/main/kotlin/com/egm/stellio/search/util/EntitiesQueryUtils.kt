@@ -245,7 +245,7 @@ fun buildTemporalQuery(
 
     val lastN = lastNParam?.toIntOrNull()?.let {
         if (it > pagination.temporalLimitMax) return TooManyResultsException(
-            "You asked for the $it last temporal entities, but the supported maximum limit is ${
+            "You asked for the $it last temporal instances, but the supported maximum limit is ${
                 pagination.temporalLimitMax
             }"
         ).left()
@@ -261,8 +261,8 @@ fun buildTemporalQuery(
         endTimeAt = endTimeAt,
         aggrPeriodDuration = aggrPeriodDurationParam,
         aggrMethods = aggregate,
-        limit = limit,
-        asLastN = asLastN,
+        instanceLimit = limit,
+        hasLastN = asLastN,
         timeproperty = timeproperty
     ).right()
 }

@@ -18,8 +18,8 @@ data class TemporalQuery(
     val endTimeAt: ZonedDateTime? = null,
     val aggrPeriodDuration: String? = null,
     val aggrMethods: List<Aggregate>? = null,
-    val asLastN: Boolean,
-    val limit: Int,
+    val hasLastN: Boolean,
+    val instanceLimit: Int,
     val timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) {
 

@@ -112,7 +112,7 @@ class AttributeInstanceService(
         return create(attributeInstance)
     }
 
-    suspend fun search( // que pour les tests?
+    suspend fun search(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         temporalEntityAttribute: TemporalEntityAttribute,
         origin: ZonedDateTime? = null
@@ -163,13 +163,13 @@ class AttributeInstanceService(
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
-        if (temporalQuery.asLastN)
+        if (temporalQuery.hasLastN)
             // in order to get first or last instances, need to order by time
             // final ascending ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 
-        sqlQueryBuilder.append(" LIMIT ${temporalQuery.limit}")
+        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(temporalEntityAttributes, sqlQueryBuilder.toString())
 

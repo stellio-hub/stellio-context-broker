@@ -42,8 +42,8 @@ fun buildDefaultTestTemporalQuery(
     endTimeAt = endTimeAt,
     aggrPeriodDuration = aggrPeriodDuration,
     aggrMethods = aggrMethods,
-    asLastN = asLastN,
-    limit = limit,
+    hasLastN = asLastN,
+    instanceLimit = limit,
     timeproperty = timeproperty
 )
 

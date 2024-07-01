@@ -77,8 +77,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             coVerify {
                 queryService.queryTemporalEntities(
                     match { temporalEntitiesQuery ->
-                        temporalEntitiesQuery.temporalQuery.limit == 5 &&
-                            !temporalEntitiesQuery.temporalQuery.asLastN
+                        temporalEntitiesQuery.temporalQuery.instanceLimit == 5 &&
+                            !temporalEntitiesQuery.temporalQuery.hasLastN
                     },
                     any()
                 )
@@ -103,8 +103,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             coVerify {
                 queryService.queryTemporalEntities(
                     match { temporalEntitiesQuery ->
-                        temporalEntitiesQuery.temporalQuery.limit == 7 &&
-                            temporalEntitiesQuery.temporalQuery.asLastN
+                        temporalEntitiesQuery.temporalQuery.instanceLimit == 7 &&
+                            temporalEntitiesQuery.temporalQuery.hasLastN
                     },
                     any()
                 )

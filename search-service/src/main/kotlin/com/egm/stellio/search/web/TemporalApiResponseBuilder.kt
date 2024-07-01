@@ -23,9 +23,9 @@ const val TEMPORAL_VALUE_NAME = "values"
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
-object TemporalApiResponse {
+object TemporalApiResponseBuilder {
     @SuppressWarnings("LongParameterList")
-    fun buildListTemporalResponse(
+    fun buildEntitiesTemporalResponse(
         entities: List<CompactedEntity>,
         total: Int,
         resourceUrl: String,
@@ -46,7 +46,7 @@ object TemporalApiResponse {
             contexts
         )
 
-        if (query.temporalQuery.asLastN) { // if lastN > limit it throw an error earlier
+        if (query.temporalQuery.hasLastN) { // if lastN > limit it throw an error earlier
             return successResponse
         }
 
@@ -78,21 +78,24 @@ object TemporalApiResponse {
         contexts: List<String>,
     ): ResponseEntity<String> {
         val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
+        val successResponseHeader = prepareGetSuccessResponseHeaders(mediaType, contexts)
 
-        val successResponse = prepareGetSuccessResponseHeaders(mediaType, contexts).body(
-            serializeObject(
-                entity.toFinalRepresentation(ngsiLdDataRepresentation)
+        if (query.temporalQuery.hasLastN) { // if lastN > limit it throw an error earlier
+            return successResponseHeader.body(
+                serializeObject(
+                    entity.toFinalRepresentation(ngsiLdDataRepresentation)
+                )
             )
-        )
-
-        if (query.temporalQuery.asLastN) { // if lastN > limit it throw an error earlier
-            return successResponse
         }
 
         val attributesWhoReachedLimit = getAttributesWhoReachedLimit(listOf(entity), query)
 
         if (attributesWhoReachedLimit.isEmpty()) {
-            return successResponse
+            return successResponseHeader.body(
+                serializeObject(
+                    entity.toFinalRepresentation(ngsiLdDataRepresentation)
+                )
+            )
         }
 
         val range = getTemporalPaginationRange(attributesWhoReachedLimit, query)
@@ -105,7 +108,7 @@ object TemporalApiResponse {
                     getHeaderRange(range)
                 )
                 this.headers(
-                    successResponse.headers
+                    successResponseHeader.body("").headers
                 )
             }.body(
                 serializeObject(
@@ -121,10 +124,10 @@ object TemporalApiResponse {
             entity.values.mapNotNull { attr ->
 
                 when (attr) {
-                    is List<*> -> if (attr.size >= temporalQuery.limit) attr else null
+                    is List<*> -> if (attr.size >= temporalQuery.instanceLimit) attr else null
                     is Map<*, *> -> {
                         val attrSize = attr.toTemporalValuesOrNull(query)?.size ?: 1
-                        if (attrSize >= temporalQuery.limit) attr else null
+                        if (attrSize >= temporalQuery.instanceLimit) attr else null
                     }
                     else -> null
                 }
@@ -137,7 +140,7 @@ object TemporalApiResponse {
         query: TemporalEntitiesQuery
     ): Range {
         val temporalQuery = query.temporalQuery
-        val limit = temporalQuery.limit
+        val limit = temporalQuery.instanceLimit
         val timeProperty = temporalQuery.timeproperty.propertyName
 
         val allTimesByAttributes = attributesWhoReachedLimit.mapNotNull { attr ->

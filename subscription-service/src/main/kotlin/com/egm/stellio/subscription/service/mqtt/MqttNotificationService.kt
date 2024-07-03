@@ -86,13 +86,16 @@ class MqttNotificationService(
     internal suspend fun connectMqttv3(data: MqttConnectionData): MqttClient {
         val persistence = MemoryPersistence()
         val mqttClient = MqttClient(data.brokerUrl, data.clientId, persistence)
-        val connOpts = MqttConnectOptions().apply { isCleanSession = true }
-        if (!data.username.isNullOrBlank()) {
-            connOpts.userName = data.username
+        val connOpts = MqttConnectOptions().apply {
+            isCleanSession = true
+            if (!data.username.isNullOrBlank()) {
+                userName = data.username
+            }
+            if (!data.password.isNullOrBlank()) {
+                password = data.password.toCharArray()
+            }
         }
-        if (!data.password.isNullOrBlank()) {
-            connOpts.password = data.password.toCharArray()
-        }
+
         mqttClient.connect(connOpts)
         return mqttClient
     }
@@ -110,13 +113,16 @@ class MqttNotificationService(
     internal suspend fun connectMqttv5(data: MqttConnectionData): MqttAsyncClient {
         val persistence = org.eclipse.paho.mqttv5.client.persist.MemoryPersistence()
         val mqttClient = MqttAsyncClient(data.brokerUrl, data.clientId, persistence)
-        val connOpts = MqttConnectionOptions().apply { isCleanStart = true }
-        if (!data.username.isNullOrBlank()) {
-            connOpts.userName = data.username
+        val connOpts = MqttConnectionOptions().apply {
+            isCleanStart = true
+            if (!data.username.isNullOrBlank()) {
+                userName = data.username
+            }
+            if (!data.password.isNullOrBlank()) {
+                password = data.password.toByteArray()
+            }
         }
-        if (!data.password.isNullOrBlank()) {
-            connOpts.password = data.password.toByteArray()
-        }
+
         val token: IMqttToken = mqttClient.connect(connOpts)
         token.waitForCompletion()
         return mqttClient

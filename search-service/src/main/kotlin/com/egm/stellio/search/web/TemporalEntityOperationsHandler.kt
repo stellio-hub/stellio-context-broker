@@ -5,8 +5,8 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
+import com.egm.stellio.search.web.TemporalApiResponseBuilder.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import kotlinx.coroutines.reactive.awaitFirst
@@ -56,17 +56,15 @@ class TemporalEntityOperationsHandler(
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-            .copy(languageFilter = query.lang)
-
-        buildQueryResponse(
-            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
+        buildEntitiesTemporalResponse(
+            compactedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",
-            temporalEntitiesQuery.entitiesQuery.paginationQuery,
+            temporalEntitiesQuery,
             params,
             mediaType,
-            contexts
+            contexts,
+            query.lang
         )
     }.fold(
         { it.toErrorResponse() },

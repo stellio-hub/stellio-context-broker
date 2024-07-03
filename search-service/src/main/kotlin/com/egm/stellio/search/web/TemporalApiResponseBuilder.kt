@@ -32,10 +32,11 @@ object TemporalApiResponseBuilder {
         query: TemporalEntitiesQuery,
         requestParams: MultiValueMap<String, String>,
         mediaType: MediaType,
-        contexts: List<String>
+        contexts: List<String>,
+        lang: String? = null
     ): ResponseEntity<String> {
         val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
-
+        lang?.let { ngsiLdDataRepresentation.copy(languageFilter = it) }
         val successResponse = buildQueryResponse(
             entities.toFinalRepresentation(ngsiLdDataRepresentation),
             total,

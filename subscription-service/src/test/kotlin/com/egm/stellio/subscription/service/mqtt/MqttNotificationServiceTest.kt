@@ -78,7 +78,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
             clientId = "clientId",
             username = "test",
         ),
-        topic = "/notification",
+        topic = "notification",
         qos = 0,
         message = MqttNotificationData.MqttMessage(getNotificationForSubscription(mqttSubscriptionV3), emptyMap())
     )

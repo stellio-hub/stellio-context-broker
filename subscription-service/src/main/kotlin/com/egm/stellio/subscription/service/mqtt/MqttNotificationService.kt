@@ -31,9 +31,9 @@ class MqttNotificationService(
     ): Boolean {
         val endpoint = subscription.notification.endpoint
         val uri = endpoint.uri
-        val userInfo = uri.userInfo.split(':')
-        val username = userInfo.getOrNull(0) ?: ""
-        val password = userInfo.getOrNull(1)
+        val userInfo = uri.userInfo?.split(':')
+        val username = userInfo?.getOrNull(0)
+        val password = userInfo?.getOrNull(1)
         val brokerScheme = Mqtt.SCHEME.brokerSchemeMap[uri.scheme]
 
         val brokerPort = if (uri.port != -1) uri.port else Mqtt.SCHEME.defaultPortMap[uri.scheme]
@@ -44,7 +44,7 @@ class MqttNotificationService(
             notifierInfo[Mqtt.QualityOfService.KEY]?.let { Integer.parseInt(it) } ?: Mqtt.QualityOfService.AT_MOST_ONCE
 
         val data = MqttNotificationData(
-            topic = uri.path,
+            topic = uri.path.trimStart('/', '\\'),
             qos = qos,
             message = MqttNotificationData.MqttMessage(notification, headers),
             connection = MqttConnectionData(
@@ -86,12 +86,13 @@ class MqttNotificationService(
     internal suspend fun connectMqttv3(data: MqttConnectionData): MqttClient {
         val persistence = MemoryPersistence()
         val mqttClient = MqttClient(data.brokerUrl, data.clientId, persistence)
-        val connOpts = MqttConnectOptions().apply {
-            isCleanSession = true
-            userName = data.username
-            password = data.password?.toCharArray() ?: "".toCharArray()
+        val connOpts = MqttConnectOptions().apply { isCleanSession = true }
+        if (!data.username.isNullOrBlank()) {
+            connOpts.userName = data.username
         }
-
+        if (!data.password.isNullOrBlank()) {
+            connOpts.password = data.password.toCharArray()
+        }
         mqttClient.connect(connOpts)
         return mqttClient
     }
@@ -109,10 +110,13 @@ class MqttNotificationService(
     internal suspend fun connectMqttv5(data: MqttConnectionData): MqttAsyncClient {
         val persistence = org.eclipse.paho.mqttv5.client.persist.MemoryPersistence()
         val mqttClient = MqttAsyncClient(data.brokerUrl, data.clientId, persistence)
-        val connOpts = MqttConnectionOptions()
-        connOpts.isCleanStart = true
-        connOpts.userName = data.username
-        connOpts.password = data.password?.toByteArray()
+        val connOpts = MqttConnectionOptions().apply { isCleanStart = true }
+        if (!data.username.isNullOrBlank()) {
+            connOpts.userName = data.username
+        }
+        if (!data.password.isNullOrBlank()) {
+            connOpts.password = data.password.toByteArray()
+        }
         val token: IMqttToken = mqttClient.connect(connOpts)
         token.waitForCompletion()
         return mqttClient

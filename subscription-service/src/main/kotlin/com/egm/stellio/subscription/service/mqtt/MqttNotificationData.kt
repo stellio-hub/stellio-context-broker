@@ -18,6 +18,6 @@ data class MqttNotificationData(
 data class MqttConnectionData(
     val brokerUrl: String,
     val clientId: String,
-    val username: String,
+    val username: String? = null,
     val password: String? = null,
 )

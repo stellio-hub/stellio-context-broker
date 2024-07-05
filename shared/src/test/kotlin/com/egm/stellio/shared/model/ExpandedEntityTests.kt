@@ -3,11 +3,13 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
+import java.net.URI
 class ExpandedEntityTests {
     @Test
     fun `it should find an expanded attribute contained in the entity`() {
@@ -59,6 +61,66 @@ class ExpandedEntityTests {
         assertThat(expandedAttributes)
             .hasSize(1)
             .containsKey(NGSILD_NAME_PROPERTY)
+    }
+
+    @Test
+    fun `it should filter the attributes based on the datasetIds and attrs`() = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": [
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Property:english-name",
+                        "value": "beehive"
+                    },
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Property:english-name",
+                        "value": "second-beehive"
+                    },
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Property:french-name",
+                        "value": "ruche"
+                    }
+                ],
+                "@context": [
+                    "$APIC_COMPOUND_CONTEXT"
+                ]
+            }
+        """.trimIndent()
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": [
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Property:english-name",
+                        "value": "beehive"
+                    },
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Property:english-name",
+                        "value": "second-beehive"
+                    }
+                ],
+                "@context": [
+                    "$APIC_COMPOUND_CONTEXT"
+                ]
+            }
+        """.trimIndent()
+
+        val toFilterAttributes: Set<String> = parseAndExpandRequestParameter("name",listOf("$APIC_COMPOUND_CONTEXT") )
+        val toFilterDataSetIds: Set<URI> = setOf(URI("urn:ngsi-ld:Property:english-name"))
+
+
+        val filteredEntity = ExpandedEntity(expandJsonLdEntity(entity).filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
+        val compactedEntity = compactEntity(filteredEntity, listOf("$APIC_COMPOUND_CONTEXT"))
+        assertEquals(expectedEntity, compactedEntity)
     }
 
     @Test

@@ -14,7 +14,7 @@ data class EntitiesQuery(
     val scopeQ: String? = null,
     val paginationQuery: PaginationQuery,
     val attrs: Set<ExpandedTerm> = emptySet(),
-    val datasetId: Set<String> = emptySet(),
+    val datasetId: Set<URI>? = emptySet(),
     val geoQuery: GeoQuery? = null,
     val contexts: List<String>
 )

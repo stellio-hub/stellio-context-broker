@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Optional
 
@@ -29,7 +28,7 @@ fun composeEntitiesQuery(
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contexts)
-    val datasetId = parseRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID)).map { URI(it) }.toSet()
+    val datasetId = parseRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID)).map { it }.toSet()
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -76,7 +75,7 @@ fun composeEntitiesQueryFromPostRequest(
     val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contexts)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contexts)
-    val datasetId = query.datasetId
+    val datasetId = parseRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID)).map { it }.toSet()
     val geoQuery = if (query.geoQ != null) {
         val geoQueryElements = mapOf(
             "geometry" to query.geoQ.geometry,

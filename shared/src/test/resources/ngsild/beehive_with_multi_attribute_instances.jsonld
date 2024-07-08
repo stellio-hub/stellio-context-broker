@@ -1,0 +1,33 @@
+{
+    "id": "urn:ngsi-ld:Entity:01",
+    "type": "Entity",
+    "name": [
+        {
+            "type": "Property",
+            "value": "default"
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Property:english-name",
+            "value": "beehive"
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Property:english-name",
+            "value": "second-beehive"
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Property:french-name",
+            "value": "ruche"
+        }
+    ],
+    "managedBy": {
+        "type": "Property",
+        "datasetId": "urn:ngsi-ld:Dataset:managedBy:0215",
+        "object": "urn:ngsi-ld:Beekeeper:1230"
+    },
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

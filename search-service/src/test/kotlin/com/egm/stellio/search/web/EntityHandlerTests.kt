@@ -815,66 +815,6 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should correctly return attribute instances only with the specified datasetId`() {
-        mockkDefaultBehaviorForGetEntityById()
-
-        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
-            mapOf(
-                "https://uri.etsi.org/ngsi-ld/default-context/name" to
-                    listOf(
-                        mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                            NGSILD_PROPERTY_VALUE to "beehive",
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Property:english-name"
-                            )
-                        ),
-                        mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                            NGSILD_PROPERTY_VALUE to "second-beehive",
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Property:english-name"
-                            )
-                        ),
-                        mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                            NGSILD_PROPERTY_VALUE to "ruche",
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Property:french-name"
-                            )
-                        )
-                    ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
-            )
-        ).right()
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/entities/$beehiveId/?datasetId=urn:ngsi-ld:Property:english-name")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .exchange()
-            .expectStatus().isOk
-            .expectBody().json(
-                """
-                 {
-                    "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
-                    "name":[
-                        {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
-                        },
-                        {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"second-beehive"
-                        }
-                        ]
-                    ,
-                    "@context": "${applicationProperties.contexts.core}"
-                }
-                """.trimIndent()
-            )
-    }
-
-    @Test
     fun `get entity by id should return 404 when entity does not exist`() {
         coEvery {
             entityPayloadService.checkEntityExistence(any())

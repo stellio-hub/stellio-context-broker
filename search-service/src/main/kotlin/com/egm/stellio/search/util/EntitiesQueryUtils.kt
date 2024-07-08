@@ -29,8 +29,7 @@ fun composeEntitiesQuery(
     val q = requestParams.getFirst(QUERY_PARAM_Q)?.decode()
     val scopeQ = requestParams.getFirst(QUERY_PARAM_SCOPEQ)
     val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QUERY_PARAM_ATTRS), contexts)
-    val datasetId = requestParams[QUERY_PARAM_DATASET_ID]?.toString()?.replace("[", "")?.replace("]", "")
-        ?.split(",")?.map { URI(it) }?.toSet() ?: emptySet()
+    val datasetId = parseRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID)).map { URI(it) }.toSet()
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,

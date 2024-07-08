@@ -19,7 +19,7 @@ import java.time.ZonedDateTime
 
 typealias CompactedTemporalAttribute = List<Map<String, Any>>
 typealias TemporalValue = List<Any>
-const val TEMPORAL_VALUE_NAME = "values"
+const val SIMPLIFIED_TEMPORAL_VALUE_NAME = "values"
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
@@ -46,8 +46,8 @@ object TemporalApiResponseBuilder {
             mediaType,
             contexts
         )
-
-        if (query.temporalQuery.hasLastN) { // if lastN > limit it throw an error earlier
+        val temporalQuery = query.temporalQuery
+        if (temporalQuery.isLastNInsideLimit()) {
             return successResponse
         }
 
@@ -81,7 +81,7 @@ object TemporalApiResponseBuilder {
         val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
         val successResponseHeader = prepareGetSuccessResponseHeaders(mediaType, contexts)
 
-        if (query.temporalQuery.hasLastN) { // if lastN > limit it throw an error earlier
+        if (query.temporalQuery.isLastNInsideLimit()) {
             return successResponseHeader.body(
                 serializeObject(
                     entity.toFinalRepresentation(ngsiLdDataRepresentation)
@@ -136,6 +136,7 @@ object TemporalApiResponseBuilder {
         }
     }
 
+    @SuppressWarnings("CyclomaticComplexMethod")
     private fun getTemporalPaginationRange(
         attributesWhoReachedLimit: List<Any>,
         query: TemporalEntitiesQuery
@@ -161,14 +162,23 @@ object TemporalApiResponseBuilder {
                 ZonedDateTime.parse(it.getOrNull(limit - 1) as String)
         }
 
-        val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
-        val rangeStart = when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-            TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-            else -> discriminatingTimeRange.first
+        if (temporalQuery.hasLastN()) {
+            val discriminatingTimeRange = attributesTimeRanges.maxBy { it.second }
+            val rangeStart = when (temporalQuery.timerel) {
+                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
+                else -> discriminatingTimeRange.first
+            }
+            return rangeStart to discriminatingTimeRange.second
+        } else {
+            val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
+            val rangeStart = when (temporalQuery.timerel) {
+                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                else -> discriminatingTimeRange.first
+            }
+            return rangeStart to discriminatingTimeRange.second
         }
-
-        return rangeStart to discriminatingTimeRange.second
     }
 
     private fun filterEntityInRange(
@@ -198,23 +208,23 @@ object TemporalApiResponseBuilder {
         }.toMap()
     }
 
-    private fun Range.contain(time: ZonedDateTime) =
+    private fun Range.contain(time: ZonedDateTime): Boolean =
         (this.first >= time && time >= this.second) || (this.first <= time && time <= this.second)
 
-    private fun Range.contain(temporalValue: TemporalValue) =
+    private fun Range.contain(temporalValue: TemporalValue): Boolean =
         this.contain(ZonedDateTime.parse(temporalValue[1] as String))
 
-    private fun Range.contain(attribute: CompactedAttribute, query: TemporalQuery) =
+    private fun Range.contain(attribute: CompactedAttribute, query: TemporalQuery): Boolean =
         attribute.getAttributeDate(query) ?.let { this.contain(it) } ?: true // if no date it should not be filtered
 
-    private fun CompactedAttribute.getAttributeDate(query: TemporalQuery) =
+    private fun CompactedAttribute.getAttributeDate(query: TemporalQuery): ZonedDateTime? =
         this[query.timeproperty.propertyName]?.let {
             ZonedDateTime.parse(it as String)
         }
 
-    private fun Map<*, *>.toTemporalValuesOrNull(query: TemporalEntitiesQuery) =
-        if (query.withTemporalValues && this[TEMPORAL_VALUE_NAME] is List<*>)
-            this[TEMPORAL_VALUE_NAME] as List<TemporalValue>
+    private fun Map<*, *>.toTemporalValuesOrNull(query: TemporalEntitiesQuery): List<TemporalValue>? =
+        if (query.withTemporalValues && this[SIMPLIFIED_TEMPORAL_VALUE_NAME] is List<*>)
+            this[SIMPLIFIED_TEMPORAL_VALUE_NAME] as List<TemporalValue>
         else null
 
     private fun getHeaderRange(range: Range): String {

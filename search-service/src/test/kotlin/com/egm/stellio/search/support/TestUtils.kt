@@ -33,8 +33,8 @@ fun buildDefaultTestTemporalQuery(
     endTimeAt: ZonedDateTime? = null,
     aggrPeriodDuration: String? = null,
     aggrMethods: List<Aggregate>? = null,
-    asLastN: Boolean = false,
-    limit: Int = 100,
+    lastN: Int? = null,
+    instanceLimit: Int = 100,
     timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) = TemporalQuery(
     timerel = timerel,
@@ -42,21 +42,19 @@ fun buildDefaultTestTemporalQuery(
     endTimeAt = endTimeAt,
     aggrPeriodDuration = aggrPeriodDuration,
     aggrMethods = aggrMethods,
-    hasLastN = asLastN,
-    instanceLimit = limit,
+    lastN = lastN,
+    instanceLimit = instanceLimit,
     timeproperty = timeproperty
 )
 
 fun buildDefaultPagination(
     limitDefault: Int = 50,
     limitMax: Int = 100,
-    temporalLimitDefault: Int = 100,
-    temporalLimitMax: Int = 1000
+    temporalLimit: Int = 100
 ) = ApplicationProperties.Pagination(
     limitDefault = limitDefault,
     limitMax = limitMax,
-    temporalLimitDefault = temporalLimitDefault,
-    temporalLimitMax = temporalLimitMax,
+    temporalLimit = temporalLimit,
 )
 
 fun buildAttributeInstancePayload(

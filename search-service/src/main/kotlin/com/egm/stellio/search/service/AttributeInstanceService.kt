@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class AttributeInstanceService(
@@ -163,7 +163,7 @@ class AttributeInstanceService(
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
-        if (temporalQuery.hasLastN)
+        if (temporalQuery.hasLastN())
             // in order to get first or last instances, need to order by time
             // final ascending ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY start DESC")

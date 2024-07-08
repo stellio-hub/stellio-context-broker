@@ -302,8 +302,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     timeAt = ngsiLdDateTime(),
                     aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                     aggrPeriodDuration = "PT1S",
-                    limit = 1,
-                    asLastN = true
+                    instanceLimit = 1,
+                    lastN = 1
                 ),
                 withTemporalValues = false,
                 withAudit = false,

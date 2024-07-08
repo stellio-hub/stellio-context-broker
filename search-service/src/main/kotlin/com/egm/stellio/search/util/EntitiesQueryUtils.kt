@@ -7,12 +7,11 @@ import com.egm.stellio.search.model.TemporalQuery.*
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Optional
 
 fun composeEntitiesQuery(
     defaultPagination: ApplicationProperties.Pagination,
@@ -244,16 +243,10 @@ fun buildTemporalQuery(
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it > pagination.temporalLimitMax) return TooManyResultsException(
-            "You asked for the $it last temporal instances, but the supported maximum limit is ${
-                pagination.temporalLimitMax
-            }"
-        ).left()
-        else if (it >= 1) it
+        if (it >= 1) it
         else null
     }
-    val limit = lastN ?: pagination.temporalLimitDefault
-    val asLastN = lastN != null
+    val limit = if (lastN != null && lastN < pagination.temporalLimit) lastN else pagination.temporalLimit
 
     return TemporalQuery(
         timerel = timerel,
@@ -262,7 +255,7 @@ fun buildTemporalQuery(
         aggrPeriodDuration = aggrPeriodDurationParam,
         aggrMethods = aggregate,
         instanceLimit = limit,
-        hasLastN = asLastN,
+        lastN = lastN,
         timeproperty = timeproperty
     ).right()
 }

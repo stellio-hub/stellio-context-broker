@@ -357,8 +357,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
-                limit = 5,
-                asLastN = false
+                instanceLimit = 5,
+                lastN = 5
             )
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
@@ -387,7 +387,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timeAt = now,
                 aggrPeriodDuration = "PT1S",
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
-                limit = 5,
+                instanceLimit = 5,
             ),
             withAggregatedValues = true
         )

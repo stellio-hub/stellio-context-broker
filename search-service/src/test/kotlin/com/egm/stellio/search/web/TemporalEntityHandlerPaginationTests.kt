@@ -20,13 +20,13 @@ import org.springframework.test.context.TestPropertySource
 @TestPropertySource(
     properties =
     [
-        "application.pagination.temporal-limit-default = 5",
-        "application.pagination.temporal-limit-max = 10"
+        "application.pagination.temporal-limit = 5"
     ]
 )
 class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
 
     val timeAt = "2019-01-01T00:00:00Z"
+    val endTimeAt = "2021-01-01T00:00:00Z"
     private val mostRecentTimestamp = "2020-01-01T00:05:00Z" // from discrimination attribute
     private val leastRecentTimestamp = "2020-01-01T00:01:00Z"
 
@@ -39,14 +39,20 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
 
     private suspend fun setupTemporalPaginationTest() {
         val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/pagination/beehive_with_five_unsynchronized_temporal_attributes_evolution.jsonld"
+            "/temporal/pagination/beehive_with_five_temporal_attributes_evolution.jsonld"
+        )
+        mockService(firstTemporalEntity)
+    }
+    private suspend fun setupTemporalPaginationWithLastNTest() {
+        val firstTemporalEntity = loadAndExpandSampleData(
+            "/temporal/pagination/beehive_with_five_temporal_attributes_evolution_temporal_values_and_lastN.jsonld"
         )
         mockService(firstTemporalEntity)
     }
 
     private suspend fun setupTemporalPaginationTestwithTemporalValues() {
         val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/pagination/beehive_with_five_unsynchronized_temporal_attributes_evolution_temporal_values.jsonld"
+            "/temporal/pagination/beehive_with_five_temporal_attributes_evolution_temporal_values.jsonld"
         )
 
         mockService(firstTemporalEntity)
@@ -78,7 +84,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 queryService.queryTemporalEntities(
                     match { temporalEntitiesQuery ->
                         temporalEntitiesQuery.temporalQuery.instanceLimit == 5 &&
-                            !temporalEntitiesQuery.temporalQuery.hasLastN
+                            !temporalEntitiesQuery.temporalQuery.hasLastN()
                     },
                     any()
                 )
@@ -86,45 +92,30 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
         }
 
     @Test
-    fun `query temporal entity should limit to lastN`() =
+    fun `query temporal entity should limit to temporalLimit if lastN greater than temporalLimit`() =
         runTest {
-            setupTemporalTestWithNonTruncatedValue()
+            setupTemporalPaginationWithLastNTest()
 
             webClient.get()
                 .uri(
                     "/ngsi-ld/v1/temporal/entities?" +
                         "timerel=after&timeAt=$timeAt&" +
                         "lastN=7&" +
-                        "type=BeeHive"
+                        "type=BeeHive&options=temporalValues"
                 )
                 .exchange()
-                .expectStatus().isEqualTo(200)
+                .expectStatus().isEqualTo(206)
 
             coVerify {
                 queryService.queryTemporalEntities(
                     match { temporalEntitiesQuery ->
-                        temporalEntitiesQuery.temporalQuery.instanceLimit == 7 &&
-                            temporalEntitiesQuery.temporalQuery.hasLastN
+                        temporalEntitiesQuery.temporalQuery.instanceLimit == 5 &&
+                            temporalEntitiesQuery.temporalQuery.lastN == 7
                     },
                     any()
                 )
             }
         }
-
-    @Test // no range needed since we use the lastn send by the user
-    fun `query temporal entity with lastN should return 403 if lastN is greater than temporal-max-limit`() = runTest {
-        setupTemporalPaginationTest()
-
-        webClient.get()
-            .uri(
-                "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=after&timeAt=$timeAt&" +
-                    "lastN=1000000&" +
-                    "type=BeeHive"
-            )
-            .exchange()
-            .expectStatus().isEqualTo(403)
-    }
 
     @Test
     fun `query temporal entity should return 200 if there is no truncated attributes`() =
@@ -141,23 +132,24 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .expectStatus().isEqualTo(200)
         }
 
-    @Test // no range needed since we use the lastn send by the user
-    fun `query temporal entity with lastN should return 200 even if its reached limit`() = runTest {
-        setupTemporalPaginationTest()
+    @Test
+    fun `query temporal entity should return 200 if there is truncated attribute to lastN`() =
+        runTest {
+            setupTemporalPaginationWithLastNTest()
 
-        webClient.get()
-            .uri(
-                "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=after&timeAt=$timeAt&" +
-                    "lastN=5&" +
-                    "type=BeeHive"
-            )
-            .exchange()
-            .expectStatus().isEqualTo(200)
-    }
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=after&timeAt=$timeAt&" +
+                        "lastN=5&" +
+                        "type=BeeHive&options=temporalValues"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(200)
+        }
 
     @Test
-    fun `query temporal entity without lastN should return 206 if there is truncated attributes`() =
+    fun `query temporal entity should return 206 if there is truncated attributes`() =
         runTest {
             setupTemporalPaginationTest()
 
@@ -180,7 +172,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             webClient.get()
                 .uri(
                     "/ngsi-ld/v1/temporal/entities?" +
-                        "timerel=between&timeAt=$timeAt&endTimeAt=2021-01-01T00:00:00Z&" +
+                        "timerel=between&timeAt=$timeAt&endTimeAt=$endTimeAt&" +
                         "type=BeeHive"
                 )
                 .exchange()
@@ -229,6 +221,68 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .valueEquals(
                     "Content-Range",
                     "date-time $leastRecentTimestamp-$mostRecentTimestamp/*"
+                )
+        }
+
+    @Test
+    fun `query temporal entity with lastN and timerel between should return range-start = endTimeAt`() =
+        runTest {
+            setupTemporalPaginationWithLastNTest()
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=between&timeAt=$timeAt&endTimeAt=$endTimeAt&" +
+                        "lastN=100&" +
+                        "type=BeeHive&options=temporalValues"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(206)
+                .expectHeader()
+                .valueEquals(
+                    "Content-Range",
+                    "date-time $endTimeAt-$leastRecentTimestamp/*"
+                )
+        }
+
+    @Test
+    fun `query temporal entity with lastN and timerel after should return range-start = most recent timestamp`() =
+        runTest {
+            setupTemporalPaginationWithLastNTest()
+
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=after&timeAt=$timeAt&" +
+                        "lastN=100&" +
+                        "type=BeeHive&options=temporalValues"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(206)
+                .expectHeader()
+                .valueEquals(
+                    "Content-Range",
+                    "date-time $mostRecentTimestamp-$leastRecentTimestamp/*"
+                )
+        }
+
+    @Test
+    fun `query temporal entity with lastN and timerel before should return range-start = timeAt`() =
+        runTest {
+            setupTemporalPaginationWithLastNTest()
+
+            webClient.get()
+                .uri(
+                    "/ngsi-ld/v1/temporal/entities?" +
+                        "timerel=before&timeAt=$timeAt&" +
+                        "lastN=100&" +
+                        "type=BeeHive&options=temporalValues"
+                )
+                .exchange()
+                .expectStatus().isEqualTo(206)
+                .expectHeader()
+                .valueEquals(
+                    "Content-Range",
+                    "date-time $timeAt-$leastRecentTimestamp/*"
                 )
         }
 

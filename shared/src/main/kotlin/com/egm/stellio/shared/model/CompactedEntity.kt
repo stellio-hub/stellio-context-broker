@@ -21,7 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TERM
-import java.util.*
+import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
 typealias CompactedAttribute = Map<String, Any>

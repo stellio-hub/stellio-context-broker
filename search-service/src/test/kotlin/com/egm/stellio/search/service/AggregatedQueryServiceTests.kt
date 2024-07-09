@@ -21,7 +21,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.OffsetTime
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")

@@ -19,7 +19,8 @@ import java.time.ZonedDateTime
 
 typealias CompactedTemporalAttribute = List<Map<String, Any>>
 typealias TemporalValue = List<Any>
-const val SIMPLIFIED_TEMPORAL_VALUE_NAME = "values"
+val SIMPLIFIED_TEMPORAL_VALUE_NAMES =
+    listOf("values", "languageMaps", "valueLists", "jsons", "vocabs", "objects", "objectLists")
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
@@ -163,7 +164,8 @@ object TemporalApiResponseBuilder {
         }
 
         if (temporalQuery.hasLastN()) {
-            val discriminatingTimeRange = attributesTimeRanges.maxBy { it.second }
+            val discriminatingTimeRange = attributesTimeRanges.maxOf { it.first } to
+                attributesTimeRanges.maxOf { it.second }
             val rangeStart = when (temporalQuery.timerel) {
                 TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
                 TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
@@ -171,7 +173,8 @@ object TemporalApiResponseBuilder {
             }
             return rangeStart to discriminatingTimeRange.second
         } else {
-            val discriminatingTimeRange = attributesTimeRanges.minBy { it.second }
+            val discriminatingTimeRange = attributesTimeRanges.minOf { it.first } to
+                attributesTimeRanges.minOf { it.second }
             val rangeStart = when (temporalQuery.timerel) {
                 TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
                 TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
@@ -222,10 +225,14 @@ object TemporalApiResponseBuilder {
             ZonedDateTime.parse(it as String)
         }
 
-    private fun Map<*, *>.toTemporalValuesOrNull(query: TemporalEntitiesQuery): List<TemporalValue>? =
-        if (query.withTemporalValues && this[SIMPLIFIED_TEMPORAL_VALUE_NAME] is List<*>)
-            this[SIMPLIFIED_TEMPORAL_VALUE_NAME] as List<TemporalValue>
-        else null
+    private fun Map<*, *>.toTemporalValuesOrNull(query: TemporalEntitiesQuery): List<TemporalValue>? {
+        if (!query.withTemporalValues) null
+        SIMPLIFIED_TEMPORAL_VALUE_NAMES.forEach { name ->
+            if (this[name] is List<*>)
+                return this[name] as List<TemporalValue>
+        }
+        return null
+    }
 
     private fun getHeaderRange(range: Range): String {
         val size = "*"

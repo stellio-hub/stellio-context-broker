@@ -186,7 +186,7 @@ fun composeTemporalEntitiesQueryFromPostRequest(
         MultiValueMapAdapter(temporalParams),
         defaultPagination,
         true,
-        withAggregatedValues,
+        withAggregatedValues
     ).bind()
 
     TemporalEntitiesQuery(

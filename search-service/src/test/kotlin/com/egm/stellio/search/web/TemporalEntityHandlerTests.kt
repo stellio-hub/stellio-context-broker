@@ -30,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.web.reactive.function.BodyInserters
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)

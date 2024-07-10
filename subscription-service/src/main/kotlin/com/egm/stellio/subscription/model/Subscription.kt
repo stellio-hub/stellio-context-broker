@@ -51,7 +51,8 @@ data class Subscription(
     @JsonProperty(value = JSONLD_CONTEXT)
     val contexts: List<ExpandedTerm>,
     val throttling: Int? = null,
-    val lang: String? = null
+    val lang: String? = null,
+    val datasetId: List<String>? = null
 ) {
 
     @Transient

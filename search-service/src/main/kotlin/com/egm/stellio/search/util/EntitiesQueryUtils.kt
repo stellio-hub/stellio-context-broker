@@ -74,8 +74,8 @@ fun composeEntitiesQueryFromPostRequest(
     val entitySelector = query.entities?.get(0)
     val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contexts)
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
-    val attrs = parseAndExpandRequestParameter(query.attrs?.joinToString(","), contexts)
-    val datasetId = parseRequestParameter(requestParams.getFirst(QUERY_PARAM_DATASET_ID)).map { it }.toSet()
+    val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
+    val datasetId = query.datasetId.orEmpty().toSet()
     val geoQuery = if (query.geoQ != null) {
         val geoQueryElements = mapOf(
             "geometry" to query.geoQ.geometry,

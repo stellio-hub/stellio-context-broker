@@ -201,7 +201,7 @@ class EntityHandler(
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
         val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
 
-        val filteredEntities = entities.filterOnAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
@@ -248,7 +248,7 @@ class EntityHandler(
         expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
         val filteredExpandedEntity = ExpandedEntity(
-            expandedEntity.filterOnAttributes(queryParams.attrs, queryParams.datasetId)
+            expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
         )
         val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 

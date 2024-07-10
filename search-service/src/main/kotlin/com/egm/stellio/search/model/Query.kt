@@ -8,7 +8,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.JsonUtils
-import java.net.URI
 
 /**
  * A Query data type as defined in 5.2.23.
@@ -25,7 +24,7 @@ data class Query private constructor(
     val temporalQ: UnparsedTemporalQuery? = null,
     val scopeQ: String? = null,
     val lang: String? = null,
-    val datasetId: Set<URI>? = null,
+    val datasetId: List<String>? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {

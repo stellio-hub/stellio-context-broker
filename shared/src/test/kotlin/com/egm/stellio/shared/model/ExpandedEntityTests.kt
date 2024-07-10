@@ -3,6 +3,7 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
@@ -71,19 +72,25 @@ class ExpandedEntityTests {
             {
                 "id": "urn:ngsi-ld:Entity:01",
                 "type": "Entity",
-                "managedBy":
+                "managedBy": [
                     {
-                        "type": "Property",
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:Beekeeper:Default"
+                    },
+                    {
+                        "type": "Relationship",
                         "datasetId": "urn:ngsi-ld:Dataset:managedBy:0215",
                         "object": "urn:ngsi-ld:Beekeeper:1230"
-                    },
+                    }
+                ],
                 "@context" : "$APIC_COMPOUND_CONTEXT"
             }
         """.trimIndent()
 
-        val toFilterAttributes: Set<String> = parseAndExpandRequestParameter("managedBy", listOf(APIC_COMPOUND_CONTEXT))
-        val toFilterDataSetIds: Set<String> = emptySet()
-        val filteredEntity = ExpandedEntity(entity.filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("managedBy", listOf(APIC_COMPOUND_CONTEXT))
+
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, emptySet()))
+
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -96,25 +103,18 @@ class ExpandedEntityTests {
             {
                 "id": "urn:ngsi-ld:Entity:01",
                 "type": "Entity",
-                "name": [
-                    {
-                        "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:english-name",
-                        "value": "beehive"
-                    },
-                    {
-                        "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:english-name",
-                        "value": "second-beehive"
-                    }
-                ],
+                "name": {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:english-name",
+                    "value": "beehive"
+                },
                 "@context": "$APIC_COMPOUND_CONTEXT"
             }
         """.trimIndent()
 
-        val toFilterAttributes: Set<String> = parseAndExpandRequestParameter("name", listOf(APIC_COMPOUND_CONTEXT))
-        val toFilterDataSetIds: Set<String> = setOf("urn:ngsi-ld:Property:english-name")
-        val filteredEntity = ExpandedEntity(entity.filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("name", listOf(APIC_COMPOUND_CONTEXT))
+        val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:english-name")
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, datasetIdToMatch))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -127,19 +127,17 @@ class ExpandedEntityTests {
             {
                 "id": "urn:ngsi-ld:Entity:01",
                 "type": "Entity",
-                "name":
-                    {
-                        "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:french-name",
-                        "value": "ruche"
-                    },
+                "name": {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                    "value": "ruche"
+                },
                 "@context" : "$APIC_COMPOUND_CONTEXT"
             }
         """.trimIndent()
 
-        val toFilterAttributes: Set<String> = emptySet()
-        val toFilterDataSetIds: Set<String> = setOf("urn:ngsi-ld:Property:french-name")
-        val filteredEntity = ExpandedEntity(entity.filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
+        val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:french-name")
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -152,19 +150,20 @@ class ExpandedEntityTests {
             {
                 "id": "urn:ngsi-ld:Entity:01",
                 "type": "Entity",
-                "name":
-                    {
-                        "type": "Property",
-                        "value": "default"
-                    },
+                "name": {
+                    "type": "Property",
+                    "value": "default"
+                },
+                "managedBy": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Beekeeper:Default"
+                },
                 "@context" : "$APIC_COMPOUND_CONTEXT"
             }
         """.trimIndent()
 
-        val toFilterAttributes: Set<String> = emptySet()
-        val toFilterDataSetIds: Set<String> = setOf("@none")
-        val filteredEntity = ExpandedEntity(entity.filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
-        val compactedEntity = compactEntity(filteredEntity, listOf("$APIC_COMPOUND_CONTEXT"))
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), setOf(NGSILD_NONE_TERM)))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
@@ -179,17 +178,12 @@ class ExpandedEntityTests {
                 "name": [
                     {
                         "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:english-name",
+                        "datasetId": "urn:ngsi-ld:Dataset:english-name",
                         "value": "beehive"
-                    },
-                    {
-                        "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:english-name",
-                        "value": "second-beehive"
                     },
                      {
                         "type": "Property",
-                        "datasetId": "urn:ngsi-ld:Property:french-name",
+                        "datasetId": "urn:ngsi-ld:Dataset:french-name",
                         "value": "ruche"
                     }
                     
@@ -198,10 +192,11 @@ class ExpandedEntityTests {
             }
         """.trimIndent()
 
-        val toFilterAttributes: Set<String> = emptySet()
-        val toFilterDataSetIds: Set<String> = setOf("urn:ngsi-ld:Property:english-name",
-            "urn:ngsi-ld:Property:french-name")
-        val filteredEntity = ExpandedEntity(entity.filterOnAttributes(toFilterAttributes, toFilterDataSetIds))
+        val datasetIdToMatch: Set<String> = setOf(
+            "urn:ngsi-ld:Dataset:english-name",
+            "urn:ngsi-ld:Dataset:french-name"
+        )
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }

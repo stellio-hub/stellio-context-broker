@@ -35,7 +35,10 @@ class NotificationService(
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
         subscriptionService.getMatchingSubscriptions(expandedEntity, updatedAttributes, notificationTrigger).bind()
             .map {
-                val filteredEntity = expandedEntity.filterOnAttributes(it.notification.attributes?.toSet().orEmpty())
+                val filteredEntity = expandedEntity.filterAttributes(
+                    it.notification.attributes?.toSet().orEmpty(),
+                    it.datasetId?.toSet().orEmpty()
+                )
                 val entityRepresentation =
                     EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
                 val attributeRepresentation =

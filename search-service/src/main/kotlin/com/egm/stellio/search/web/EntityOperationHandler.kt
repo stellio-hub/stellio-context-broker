@@ -309,7 +309,7 @@ class EntityOperationHandler(
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
         val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
 
-        val filteredEntities = entities.filterOnAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 

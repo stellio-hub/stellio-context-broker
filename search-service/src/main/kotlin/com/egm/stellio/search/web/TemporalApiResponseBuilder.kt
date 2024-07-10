@@ -67,7 +67,7 @@ object TemporalApiResponseBuilder {
             )
             this.header(
                 HttpHeaders.CONTENT_RANGE,
-                getHeaderRange(range)
+                getHeaderRange(range, query.temporalQuery)
             )
         }.body(serializeObject(filteredEntities.toFinalRepresentation(ngsiLdDataRepresentation)))
     }
@@ -107,7 +107,7 @@ object TemporalApiResponseBuilder {
             .apply {
                 this.header(
                     HttpHeaders.CONTENT_RANGE,
-                    getHeaderRange(range)
+                    getHeaderRange(range, query.temporalQuery)
                 )
                 this.headers(
                     successResponseHeader.body("").headers
@@ -234,8 +234,8 @@ object TemporalApiResponseBuilder {
         return null
     }
 
-    private fun getHeaderRange(range: Range): String {
-        val size = "*"
+    private fun getHeaderRange(range: Range, temporalQuery: TemporalQuery): String {
+        val size = temporalQuery.lastN ?: "*"
         return "date-time ${range.first.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
     }
 }

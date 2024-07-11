@@ -29,7 +29,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     val endTimeAt = "2021-01-01T00:00:00Z"
     private val mostRecentTimestamp = "2020-01-01T00:05:00Z" // from discrimination attribute
     private val leastRecentTimestamp = "2020-01-01T00:01:00Z"
-
+    private val lastN = "100"
     private suspend fun setupTemporalTestWithNonTruncatedValue() {
         val firstTemporalEntity = loadAndExpandSampleData(
             "/temporal/pagination/beehive_with_four_temporal_attributes_evolution.jsonld"
@@ -232,7 +232,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .uri(
                     "/ngsi-ld/v1/temporal/entities?" +
                         "timerel=between&timeAt=$timeAt&endTimeAt=$endTimeAt&" +
-                        "lastN=100&" +
+                        "lastN=$lastN&" +
                         "type=BeeHive&options=temporalValues"
                 )
                 .exchange()
@@ -240,7 +240,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .expectHeader()
                 .valueEquals(
                     "Content-Range",
-                    "date-time $endTimeAt-$leastRecentTimestamp/*"
+                    "date-time $endTimeAt-$leastRecentTimestamp/$lastN"
                 )
         }
 
@@ -253,7 +253,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .uri(
                     "/ngsi-ld/v1/temporal/entities?" +
                         "timerel=after&timeAt=$timeAt&" +
-                        "lastN=100&" +
+                        "lastN=$lastN&" +
                         "type=BeeHive&options=temporalValues"
                 )
                 .exchange()
@@ -261,7 +261,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .expectHeader()
                 .valueEquals(
                     "Content-Range",
-                    "date-time $mostRecentTimestamp-$leastRecentTimestamp/*"
+                    "date-time $mostRecentTimestamp-$leastRecentTimestamp/$lastN"
                 )
         }
 
@@ -274,7 +274,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .uri(
                     "/ngsi-ld/v1/temporal/entities?" +
                         "timerel=before&timeAt=$timeAt&" +
-                        "lastN=100&" +
+                        "lastN=$lastN&" +
                         "type=BeeHive&options=temporalValues"
                 )
                 .exchange()
@@ -282,7 +282,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .expectHeader()
                 .valueEquals(
                     "Content-Range",
-                    "date-time $timeAt-$leastRecentTimestamp/*"
+                    "date-time $timeAt-$leastRecentTimestamp/$lastN"
                 )
         }
 

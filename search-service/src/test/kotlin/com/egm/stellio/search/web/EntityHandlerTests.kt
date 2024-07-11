@@ -27,6 +27,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -327,27 +328,29 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should correctly filter the asked attributes`() {
+    fun `get entity by id should correctly filter the asked attributes`() = runTest {
         mockkDefaultBehaviorForGetEntityById()
 
-        coEvery { queryService.queryEntity(any()) } returns ExpandedEntity(
-            mapOf(
-                "@id" to beehiveId.toString(),
-                "@type" to listOf("Beehive"),
-                "https://uri.etsi.org/ngsi-ld/default-context/attr1" to mapOf(
-                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        "@value" to "some value 1"
-                    )
-                ),
-                "https://uri.etsi.org/ngsi-ld/default-context/attr2" to mapOf(
-                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        "@value" to "some value 2"
-                    )
-                )
-            )
-        ).right()
+        val entity = """
+            {
+                "id": "$beehiveId",
+                "type": "Beehive",
+                "attr1": {
+                    "type": "Property",
+                    "value": "some value 1"
+                },
+                "attr2": {
+                    "type": "Property",
+                    "value": "some value 2"
+                },
+                "@context" : [
+                     "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+                ]
+            }
+        """.trimIndent()
+        val expandedEntity = expandJsonLdEntity(entity)
+
+        coEvery { queryService.queryEntity(any()) } returns expandedEntity.right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId?attrs=attr2")

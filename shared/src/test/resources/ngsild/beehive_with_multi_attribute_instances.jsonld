@@ -24,8 +24,13 @@
         },
         {
             "type": "Relationship",
-            "datasetId": "urn:ngsi-ld:Dataset:managedBy:0215",
+            "datasetId": "urn:ngsi-ld:Dataset:managedBy",
             "object": "urn:ngsi-ld:Beekeeper:1230"
+        },
+        {
+            "type": "Relationship",
+            "datasetId": "urn:ngsi-ld:Dataset:french-name",
+             "object": "urn:ngsi-ld:Apiculteur:1230"
         }
     ],
     "@context": [

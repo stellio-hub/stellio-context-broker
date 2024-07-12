@@ -167,17 +167,17 @@ object TemporalApiResponseBuilder {
             val discriminatingTimeRange = attributesTimeRanges.maxOf { it.first } to
                 attributesTimeRanges.maxOf { it.second }
             val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt ?: discriminatingTimeRange.first
-                else -> discriminatingTimeRange.first
+                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt!!
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt!!
+                else -> discriminatingTimeRange.second
             }
-            return rangeStart to discriminatingTimeRange.second
+            return rangeStart to discriminatingTimeRange.first
         } else {
             val discriminatingTimeRange = attributesTimeRanges.minOf { it.first } to
                 attributesTimeRanges.minOf { it.second }
             val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt ?: discriminatingTimeRange.first
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt ?: discriminatingTimeRange.first
+                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt!!
+                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt!!
                 else -> discriminatingTimeRange.first
             }
             return rangeStart to discriminatingTimeRange.second
@@ -193,9 +193,9 @@ object TemporalApiResponseBuilder {
             when (val attribute = entity[key]) {
                 is List<*> -> {
                     val temporalAttribute = attribute as CompactedTemporalAttribute
-                    // faster filter possible because list is already order
+                    // faster filter possible because list is already ordered
                     val filteredAttribute = temporalAttribute.filter { range.contain(it, query.temporalQuery) }
-                    if (filteredAttribute.isNotEmpty()) key to filteredAttribute else null
+                    if (filteredAttribute.isNotEmpty()) key to filteredAttribute else key to emptyList()
                 }
 
                 is Map<*, *> -> {

@@ -13,6 +13,7 @@ import org.eclipse.paho.mqttv5.client.MqttConnectionOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.util.*
 import org.eclipse.paho.client.mqttv3.MqttException as MqttExceptionV3
 import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
 
@@ -49,7 +50,7 @@ class MqttNotificationService(
             message = MqttNotificationData.MqttMessage(notification, headers),
             connection = MqttConnectionData(
                 brokerUrl = brokerUrl,
-                clientId = clientId,
+                clientId = "${clientId}_${UUID.randomUUID()}",
                 username = username,
                 password = password
             )

@@ -665,6 +665,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             )
 
         assertEquals(2, temporalEntityAttributes.size)
-        assertTrue(listOf(INCOMING_PROPERTY).contains(temporalEntityAttributes[0].attributeName))
+        assertEquals(INCOMING_PROPERTY, temporalEntityAttributes[0].attributeName)
     }
 }

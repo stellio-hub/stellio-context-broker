@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -360,42 +359,29 @@ class TemporalEntityAttributeService(
         entitiesIds: List<URI>,
         entitiesQuery: EntitiesQuery
     ): List<TemporalEntityAttribute> {
-        val expandedAttrsList = entitiesQuery.attrs.joinToString(",") { "'$it'" }
+        val filterOnAttributes =
+            if (entitiesQuery.attrs.isNotEmpty())
+                " AND " + entitiesQuery.attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else ""
+
         val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
-
-        val datasetIdDefaultValueQuery = " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList))" +
-            "OR dataset_id IS NULL)"
-        val filterQuery = when {
-            entitiesQuery.attrs.isNotEmpty() && entitiesQuery.datasetId.isNotEmpty() -> {
-                if (entitiesQuery.datasetId.contains(NGSILD_NONE_TERM)) {
-                    " AND attribute_name IN ($expandedAttrsList) $datasetIdDefaultValueQuery"
-                } else {
-                    " AND attribute_name IN ($expandedAttrsList) AND dataset_id IN ($datasetIdsList)"
-                }
-            }
-
-            entitiesQuery.attrs.isEmpty() && entitiesQuery.datasetId.isNotEmpty() -> {
-                if (entitiesQuery.datasetId.contains(NGSILD_NONE_TERM)) {
-                    "$datasetIdDefaultValueQuery"
-                } else {
-                    " AND dataset_id IN ($datasetIdsList)"
-                }
-            }
-
-            entitiesQuery.attrs.isNotEmpty() && entitiesQuery.datasetId.isEmpty() -> {
-                " AND attribute_name IN ($expandedAttrsList)"
-            }
-
-            else -> ""
-        }
-
+        val filterOnDatasetId =
+            if (entitiesQuery.datasetId.isNotEmpty())
+                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList) " +
+                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList))"
+            else ""
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id IN (:entities_ids) 
-            $filterQuery
+            $filterOnAttributes
+            $filterOnDatasetId
             ORDER BY entity_id
             """.trimIndent()
 
@@ -406,41 +392,34 @@ class TemporalEntityAttributeService(
     }
 
     suspend fun getForEntity(id: URI, attrs: Set<String>, datasetIds: Set<String>): List<TemporalEntityAttribute> {
+        val filterOnAttributes =
+            if (attrs.isNotEmpty())
+                " AND " + attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else ""
+        val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
+
+        val filterOnDatasetId =
+            if (datasetIds.isNotEmpty())
+                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
+            else ""
+
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
+            $filterOnAttributes
+            $filterOnDatasetId
             """.trimIndent()
 
-        val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
-        val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
-        val datasetIdDefaultValueQuery = "AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList))" +
-            "OR dataset_id IS NULL)"
-        val finalQuery = when {
-            attrs.isNotEmpty() && datasetIds.isNotEmpty() -> {
-                if (datasetIds.contains(NGSILD_NONE_TERM)) {
-                    "$selectQuery AND attribute_name in ($expandedAttrsList) $datasetIdDefaultValueQuery"
-                } else {
-                    "$selectQuery AND attribute_name in ($expandedAttrsList) AND dataset_id in ($datasetIdsList)"
-                }
-            }
-            attrs.isEmpty() && datasetIds.isNotEmpty() -> {
-                if (datasetIds.contains(NGSILD_NONE_TERM)) {
-                    "$selectQuery $datasetIdDefaultValueQuery"
-                } else {
-                    "$selectQuery AND dataset_id in ($datasetIdsList)"
-                }
-            }
-            attrs.isNotEmpty() && datasetIds.isEmpty() -> {
-                "$selectQuery AND attribute_name in ($expandedAttrsList)"
-            }
-            else -> selectQuery
-        }
-
         return databaseClient
-            .sql(finalQuery)
+            .sql(selectQuery)
             .bind("entity_id", id)
             .allToMappedList { rowToTemporalEntityAttribute(it) }
     }

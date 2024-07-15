@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
@@ -329,15 +328,6 @@ class EntityPayloadService(
                     postfix = ")"
                 ) { "'$it'" }
             else null
-        val formattedDatasetId =
-            if (entitiesQuery.datasetId.isNotEmpty() && entitiesQuery.datasetId.contains(NGSILD_NONE_TERM)) {
-                "((dataset_id IS NOT NULL AND dataset_id in ($entitiesQuery.datasetId))" +
-                    "OR dataset_id IS NULL)"
-            } else if (entitiesQuery.datasetId.isNotEmpty() && !entitiesQuery.datasetId.contains(NGSILD_NONE_TERM)) {
-                "dataset_id in ($entitiesQuery.datasetId)"
-            } else {
-                null
-            }
 
         val queryFilter =
             listOfNotNull(
@@ -345,7 +335,6 @@ class EntityPayloadService(
                 formattedIdPattern,
                 formattedType,
                 formattedAttrs,
-                formattedDatasetId,
                 accessRightFilter()
             )
 

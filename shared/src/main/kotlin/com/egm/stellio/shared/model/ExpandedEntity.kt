@@ -100,8 +100,8 @@ data class ExpandedEntity(
             members
         } else
             members.filterKeys {
-                if (includedAttributes.isEmpty()) true
-                else JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
+                includedAttributes.isEmpty() ||
+                    JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
             }.mapNotNull { entry ->
                 if (entry.key in JSONLD_EXPANDED_ENTITY_CORE_MEMBERS)
                     entry.value

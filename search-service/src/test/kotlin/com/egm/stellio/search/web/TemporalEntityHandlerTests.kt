@@ -712,7 +712,7 @@ class TemporalEntityHandlerTests {
 
         val entityWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
-            temporalEntityAttributeService.getForEntity(any(), any())
+            temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
 
         val attributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)

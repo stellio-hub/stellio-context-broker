@@ -203,7 +203,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             emptyList()
         ).right()
         coEvery {
-            temporalEntityAttributeService.getForEntity(any(), any())
+            temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns emptyList()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -247,6 +247,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             )
             temporalEntityAttributeService.getForEntity(
                 eq(beehiveTestCId),
+                emptySet(),
                 emptySet()
             )
         }
@@ -264,7 +265,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             emptyList()
         ).right()
         coEvery {
-            temporalEntityAttributeService.getForEntity(any(), any())
+            temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns emptyList()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -309,7 +310,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.partialUpdateEntityAttribute(any(), any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            temporalEntityAttributeService.getForEntity(any(), any())
+            temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns emptyList()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -394,7 +395,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should replace an attribute`() = runTest {
-        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns emptyList()
+        coEvery { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery {
             temporalEntityAttributeService.replaceEntityAttribute(any(), any(), any(), any(), any())
         } returns UpdateResult(
@@ -690,7 +691,7 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
             temporalEntityAttributeService.addAttribute(any(), any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            temporalEntityAttributeService.getForEntity(any(), any())
+            temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns emptyList()
 
         loadSampleData("beehive_with_scope.jsonld")

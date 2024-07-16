@@ -64,7 +64,7 @@ class ParsingUtilsTests {
             assertTrue(it is LdContextNotAvailableException)
             assertEquals(
                 "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
-                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There wa a problem " +
+                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem " +
                     "encountered loading a remote context " +
                     "[https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld]])",
                 it.message

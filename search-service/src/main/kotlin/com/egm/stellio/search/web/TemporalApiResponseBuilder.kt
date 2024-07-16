@@ -164,14 +164,14 @@ object TemporalApiResponseBuilder {
         }
 
         if (temporalQuery.hasLastN()) {
-            val discriminatingTimeRange = attributesTimeRanges.maxOf { it.first } to
-                attributesTimeRanges.maxOf { it.second }
+            val discriminatingTimeRange = attributesTimeRanges.maxOf { it.second } to
+                attributesTimeRanges.maxOf { it.first }
             val rangeStart = when (temporalQuery.timerel) {
                 TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt!!
                 TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt!!
-                else -> discriminatingTimeRange.second
+                else -> discriminatingTimeRange.first
             }
-            return rangeStart to discriminatingTimeRange.first
+            return rangeStart to discriminatingTimeRange.second
         } else {
             val discriminatingTimeRange = attributesTimeRanges.minOf { it.first } to
                 attributesTimeRanges.minOf { it.second }

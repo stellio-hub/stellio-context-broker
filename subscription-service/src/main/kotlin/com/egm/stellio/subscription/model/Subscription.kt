@@ -52,7 +52,8 @@ data class Subscription(
     val contexts: List<ExpandedTerm>,
     val throttling: Int? = null,
     val lang: String? = null,
-    val datasetId: List<String>? = emptyList()
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val datasetId: List<String>? = null
 ) {
 
     @Transient

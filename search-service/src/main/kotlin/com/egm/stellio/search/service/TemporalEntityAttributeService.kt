@@ -371,8 +371,8 @@ class TemporalEntityAttributeService(
         val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
         val filterOnDatasetId =
             if (entitiesQuery.datasetId.isNotEmpty())
-                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList) " +
-                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList))"
+                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
             else ""
         val selectQuery =
             """

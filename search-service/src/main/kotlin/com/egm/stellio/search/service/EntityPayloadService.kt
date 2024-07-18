@@ -570,8 +570,7 @@ class EntityPayloadService(
             updateState(
                 entityId,
                 createdAt,
-                temporalEntityAttributeService
-                    .getForEntity(entityId, emptySet(), emptySet())
+                temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             ).bind()
         }
 

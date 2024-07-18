@@ -1,12 +1,10 @@
 {
   "id": "urn:ngsi-ld:BeeHive:TESTC",
   "type": "BeeHive",
-  "createdAt": "2020-01-24T13:01:21.938Z",
   "incoming": [
     {
       "type": "Property",
       "value": 1543,
-      "createdAt": "2020-01-24T13:01:21.938Z",
       "observedAt": "2020-01-24T14:01:22.066Z",
       "datasetId": "urn:ngsi-ld:Dataset:01234",
       "observedBy": {
@@ -17,7 +15,6 @@
     {
       "type": "Property",
       "value": 1618,
-      "createdAt": "2020-01-24T13:01:21.942Z",
       "observedAt": "2020-01-24T14:08:22.066Z",
       "datasetId": "urn:ngsi-ld:Dataset:45678",
       "observedBy": {

@@ -124,9 +124,7 @@ class EntitiesQueryUtilsTests {
                     "timeproperty": "observedAt"
                 },
                 "scopeQ": "/Nantes",
-                "datasetId": [
-                "urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"
-                ]
+                "datasetId": ["urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"]
             }
         """.trimIndent()
 
@@ -495,7 +493,7 @@ class EntitiesQueryUtilsTests {
         val temporalQuery =
             composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
         assertEquals(1, temporalQuery.entitiesQuery.datasetId.size)
-        assertTrue(temporalQuery.entitiesQuery.datasetId.contains("urn:ngsi-ld:Dataset:Test1"))
+        assertEquals("urn:ngsi-ld:Dataset:Test1", temporalQuery.entitiesQuery.datasetId.first())
     }
 
     @Test

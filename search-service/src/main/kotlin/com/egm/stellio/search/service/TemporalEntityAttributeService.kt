@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -368,12 +369,13 @@ class TemporalEntityAttributeService(
                 ) { "'$it'" }
             else ""
 
-        val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
         val filterOnDatasetId =
-            if (entitiesQuery.datasetId.isNotEmpty())
+            if (entitiesQuery.datasetId.isNotEmpty()) {
+                val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
                 " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
-            else ""
+                    "OR (dataset_id IS NULL AND '$NGSILD_NONE_TERM' in ($datasetIdsList)))"
+            } else ""
+
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
@@ -400,13 +402,13 @@ class TemporalEntityAttributeService(
                     postfix = ")"
                 ) { "'$it'" }
             else ""
-        val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
 
         val filterOnDatasetId =
-            if (datasetIds.isNotEmpty())
+            if (datasetIds.isNotEmpty()) {
+                val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
                 " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
                     "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
-            else ""
+            } else ""
 
         val selectQuery =
             """

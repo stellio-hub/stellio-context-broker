@@ -649,7 +649,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should filter temporal attribute instances based on the datasetId`() = runTest {
+    fun `it should filter temporal attribute instances based on a datasetId`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -661,10 +661,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             temporalEntityAttributeService.getForEntity(
                 beehiveTestCId,
                 emptySet(),
-                setOf("urn:ngsi-ld:Dataset:01234", "urn:ngsi-ld:Dataset:45678")
+                setOf("urn:ngsi-ld:Dataset:01234")
             )
 
-        assertEquals(2, temporalEntityAttributes.size)
+        assertEquals(1, temporalEntityAttributes.size)
         assertEquals(INCOMING_PROPERTY, temporalEntityAttributes[0].attributeName)
+        assertEquals("urn:ngsi-ld:Dataset:01234", temporalEntityAttributes[0].datasetId.toString())
     }
 }

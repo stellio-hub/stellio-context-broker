@@ -277,7 +277,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult {
-                toList(it["contexts"])
+                toList(it["contexts"]!!)
             }
     }
 
@@ -673,7 +673,7 @@ class SubscriptionService(
             expiresAt = toNullableZonedDateTime(row["expires_at"]),
             description = row["description"] as? String,
             watchedAttributes = (row["watched_attributes"] as? String)?.split(","),
-            notificationTrigger = toList(row["notification_trigger"]),
+            notificationTrigger = toList(row["notification_trigger"]!!),
             timeInterval = toNullableInt(row["time_interval"]),
             q = row["q"] as? String,
             entities = rowToEntityInfo(row)?.let { setOf(it) },
@@ -696,10 +696,10 @@ class SubscriptionService(
                 sysAttrs = row["sys_attrs"] as Boolean
             ),
             isActive = toBoolean(row["is_active"]),
-            contexts = toList(row["contexts"]),
+            contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
-            datasetId = toList(row["datasetId"])
+            datasetId = toNullableList(row["datasetId"])
         )
     }
 
@@ -729,10 +729,10 @@ class SubscriptionService(
                 lastSuccess = null,
                 sysAttrs = row["sys_attrs"] as Boolean
             ),
-            contexts = toList(row["contexts"]),
+            contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
-            datasetId = toList(row["datasetId"])
+            datasetId = toNullableList(row["datasetId"])
         )
     }
 

@@ -1,0 +1,39 @@
+{
+    "id": "urn:ngsi-ld:Entity:01",
+    "type": "Entity",
+    "name": [
+        {
+            "type": "Property",
+            "value": "default"
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Dataset:english-name",
+            "value": "beehive"
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Dataset:french-name",
+            "value": "ruche"
+        }
+    ],
+    "managedBy": [
+        {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Beekeeper:Default"
+        },
+        {
+            "type": "Relationship",
+            "datasetId": "urn:ngsi-ld:Dataset:managedBy",
+            "object": "urn:ngsi-ld:Beekeeper:1230"
+        },
+        {
+            "type": "Relationship",
+            "datasetId": "urn:ngsi-ld:Dataset:french-name",
+             "object": "urn:ngsi-ld:Apiculteur:1230"
+        }
+    ],
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

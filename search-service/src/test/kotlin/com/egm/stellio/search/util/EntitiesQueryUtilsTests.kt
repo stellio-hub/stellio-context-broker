@@ -44,6 +44,7 @@ class EntitiesQueryUtilsTests {
         )
         assertEquals(".*BeeHive.*", entitiesQuery.idPattern)
         assertEquals("brandName!=Mercedes", entitiesQuery.q)
+        assertEquals(setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"), entitiesQuery.datasetId)
         assertEquals(true, entitiesQuery.paginationQuery.count)
         assertEquals(1, entitiesQuery.paginationQuery.offset)
         assertEquals(10, entitiesQuery.paginationQuery.limit)
@@ -76,6 +77,7 @@ class EntitiesQueryUtilsTests {
         assertEquals(emptySet<URI>(), entitiesQuery.ids)
         assertEquals(null, entitiesQuery.idPattern)
         assertEquals(null, entitiesQuery.q)
+        assertEquals(emptySet<String>(), entitiesQuery.datasetId)
         assertEquals(false, entitiesQuery.paginationQuery.count)
         assertEquals(0, entitiesQuery.paginationQuery.offset)
         assertEquals(30, entitiesQuery.paginationQuery.limit)
@@ -88,6 +90,7 @@ class EntitiesQueryUtilsTests {
         requestParams.add("id", "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTB")
         requestParams.add("idPattern", ".*BeeHive.*")
         requestParams.add("q", "brandName!=Mercedes")
+        requestParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1,urn:ngsi-ld:Dataset:Test2")
         requestParams.add("count", "true")
         requestParams.add("offset", "1")
         requestParams.add("limit", "10")
@@ -120,7 +123,8 @@ class EntitiesQueryUtilsTests {
                     "lastN": 10,
                     "timeproperty": "observedAt"
                 },
-                "scopeQ": "/Nantes"
+                "scopeQ": "/Nantes",
+                "datasetId": ["urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"]
             }
         """.trimIndent()
 
@@ -140,6 +144,7 @@ class EntitiesQueryUtilsTests {
             assertEquals(GEO_QUERY_GEOREL_EQUALS, it.geoQuery?.georel)
             assertEquals(NGSILD_OBSERVATION_SPACE_PROPERTY, it.geoQuery?.geoproperty)
             assertEquals("/Nantes", it.scopeQ)
+            assertEquals(setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"), it.datasetId)
         }
     }
 
@@ -350,6 +355,7 @@ class EntitiesQueryUtilsTests {
         queryParams.add("type", "BeeHive,Apiary")
         queryParams.add("attrs", "incoming,outgoing")
         queryParams.add("id", "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTB")
+        queryParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1,urn:ngsi-ld:Dataset:Test2")
         queryParams.add("options", "temporalValues")
         queryParams.add("limit", "10")
         queryParams.add("offset", "2")
@@ -471,5 +477,42 @@ class EntitiesQueryUtilsTests {
         val temporalQuery = buildTemporalQuery(queryParams).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
+    }
+
+    @Test
+    fun `it should parse a temporal query containing one datasetId parameter`() = runTest {
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("timeAt", "2024-11-07T07:31:39Z")
+        queryParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1")
+
+        val temporalQuery =
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        assertEquals(1, temporalQuery.entitiesQuery.datasetId.size)
+        assertEquals("urn:ngsi-ld:Dataset:Test1", temporalQuery.entitiesQuery.datasetId.first())
+    }
+
+    @Test
+    fun `it should parse a temporal query containing two datasetIds parameter`() = runTest {
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("timeAt", "2024-11-07T07:31:39Z")
+        queryParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1,urn:ngsi-ld:Dataset:Test2")
+
+        val temporalQuery =
+            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        assertEquals(2, temporalQuery.entitiesQuery.datasetId.size)
+        assertIterableEquals(
+            setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"),
+            temporalQuery.entitiesQuery.datasetId
+        )
     }
 }

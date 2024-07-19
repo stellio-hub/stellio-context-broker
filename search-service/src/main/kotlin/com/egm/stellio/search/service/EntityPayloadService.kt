@@ -106,7 +106,7 @@ class EntityPayloadService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been merged
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             updateState(entityId, mergedAt, teas).bind()
         }
         updateResult
@@ -330,7 +330,13 @@ class EntityPayloadService(
             else null
 
         val queryFilter =
-            listOfNotNull(formattedIds, formattedIdPattern, formattedType, formattedAttrs, accessRightFilter())
+            listOfNotNull(
+                formattedIds,
+                formattedIdPattern,
+                formattedType,
+                formattedAttrs,
+                accessRightFilter()
+            )
 
         return queryFilter.joinToString(separator = " AND ")
     }
@@ -485,7 +491,7 @@ class EntityPayloadService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
             updateState(entityUri, createdAt, teas).bind()
         }
         updateResult
@@ -513,7 +519,7 @@ class EntityPayloadService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+            val teas = temporalEntityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
             updateState(entityUri, createdAt, teas).bind()
         }
         updateResult
@@ -533,7 +539,7 @@ class EntityPayloadService(
             sub
         ).bind()
         if (updateResult.isSuccessful()) {
-            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             updateState(entityId, modifiedAt, teas).bind()
         }
         updateResult
@@ -561,7 +567,11 @@ class EntityPayloadService(
                     ).bind()
                 }
             }
-            updateState(entityId, createdAt, temporalEntityAttributeService.getForEntity(entityId, emptySet())).bind()
+            updateState(
+                entityId,
+                createdAt,
+                temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            ).bind()
         }
 
     @Transactional
@@ -583,7 +593,7 @@ class EntityPayloadService(
 
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            val teas = temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             updateState(entityId, replacedAt, teas).bind()
         }
         updateResult
@@ -689,7 +699,7 @@ class EntityPayloadService(
         updateState(
             entityId,
             ngsiLdDateTime(),
-            temporalEntityAttributeService.getForEntity(entityId, emptySet())
+            temporalEntityAttributeService.getForEntity(entityId, emptySet(), emptySet())
         ).bind()
     }
 

@@ -321,6 +321,22 @@ class EntityAccessRightsService(
             }
     }
 
+    suspend fun getEntitiesIdsOwnedBySubject(
+        subjectId: Sub
+    ): Either<APIException, List<URI>> = either {
+        databaseClient
+            .sql(
+                """
+                SELECT entity_id 
+                FROM entity_access_rights
+                WHERE subject_id = :sub
+                AND access_right = 'isOwner'
+                """.trimIndent()
+            )
+            .bind("sub", subjectId)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         databaseClient

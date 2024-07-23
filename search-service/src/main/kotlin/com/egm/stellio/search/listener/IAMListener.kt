@@ -4,9 +4,12 @@ import arrow.core.Either
 import arrow.core.flattenOption
 import arrow.core.left
 import arrow.core.raise.either
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.authorization.toSubjectInfo
+import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
@@ -32,7 +35,10 @@ import reactor.core.publisher.Mono
 
 @Component
 class IAMListener(
-    private val subjectReferentialService: SubjectReferentialService
+    private val subjectReferentialService: SubjectReferentialService,
+    private val searchProperties: SearchProperties,
+    private val entityAccessRightsService: EntityAccessRightsService,
+    private val entityPayloadService: EntityPayloadService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -99,9 +105,19 @@ class IAMListener(
         tenantName: String,
         entityDeleteEvent: EntityDeleteEvent
     ): Either<APIException, Unit> = either {
+        val subjectType = SubjectType.valueOf(entityDeleteEvent.entityTypes.first().uppercase())
         mono {
             subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
+        if (searchProperties.deleteEntityByCreator && subjectType == SubjectType.USER) {
+            val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(
+                entityDeleteEvent.entityId.extractSub()
+            )
+                .getOrNull()
+            entitiesIds?.forEach { entityId ->
+                entityPayloadService.deleteEntity(entityId)
+            }
+        }
     }
 
     private suspend fun updateSubjectProfile(

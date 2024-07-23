@@ -4,5 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties("search")
 data class SearchProperties(
-    val payloadMaxBodySize: Int
+    val payloadMaxBodySize: Int,
+    var deleteEntityByCreator: Boolean
 )

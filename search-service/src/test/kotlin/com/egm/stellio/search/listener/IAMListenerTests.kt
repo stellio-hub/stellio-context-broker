@@ -368,7 +368,7 @@ class IAMListenerTests {
 
         coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
         every {
-            searchProperties.deleteEntityByCreator
+            searchProperties.ownerDeleteCascadeEntities
         } returns true
         coEvery {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")

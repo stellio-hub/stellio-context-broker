@@ -110,13 +110,16 @@ class IAMListener(
         mono {
             subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
-        if (searchProperties.ownerDeleteCascadeEntities && subjectType == SubjectType.USER) {
+        if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
             val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(
                 sub
             )
                 .getOrNull()
             entitiesIds?.forEach { entityId ->
                 entityPayloadService.deleteEntity(entityId)
+            }
+            if (entitiesIds != null) {
+                entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds)
             }
         }
     }

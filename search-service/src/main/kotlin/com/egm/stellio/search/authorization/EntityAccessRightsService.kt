@@ -349,6 +349,18 @@ class EntityAccessRightsService(
             .bind("subject_id", sub)
             .execute()
 
+    @Transactional
+    suspend fun deleteAllAccessRightsOnEntities(entitiesIds: List<URI>): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                DELETE FROM entity_access_rights
+                WHERE entity_id IN (:entities_ids)
+                """.trimIndent()
+            )
+            .bind("entities_ids", entitiesIds)
+            .execute()
+
     private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessRights {
         val accessRight =
             if (isStellioAdmin) CAN_ADMIN

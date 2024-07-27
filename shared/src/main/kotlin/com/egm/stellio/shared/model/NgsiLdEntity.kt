@@ -453,7 +453,7 @@ class NgsiLdVocabPropertyInstance private constructor(
             ensureNotNull(vocab) {
                 BadRequestDataException("VocabProperty $name has an instance without a vocab member")
             }
-            ensure(vocab is List<*> && vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID) }) {
+            ensure(vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID) }) {
                 BadRequestDataException(
                     "VocabProperty $name has a vocab member that is not a string, nor an array of string"
                 )

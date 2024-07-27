@@ -35,7 +35,7 @@ private fun sqlAggregateForJsonNumber(aggregate: TemporalQuery.Aggregate): Strin
     TemporalQuery.Aggregate.AVG -> "avg(measured_value)"
     TemporalQuery.Aggregate.MIN -> "min(measured_value)"
     TemporalQuery.Aggregate.MAX -> "max(measured_value)"
-    TemporalQuery.Aggregate.STDDEV -> "stddev_samp(measured_value)"
+    TemporalQuery.Aggregate.STDDEV -> "round(stddev_samp(measured_value)::numeric,10)"
     TemporalQuery.Aggregate.SUMSQ -> "sum(power(measured_value,2))"
 }
 

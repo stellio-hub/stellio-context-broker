@@ -1,8 +1,6 @@
 package com.egm.stellio.search.listener
 
-import arrow.core.Either
-import arrow.core.flattenOption
-import arrow.core.left
+import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferential
@@ -109,19 +107,20 @@ class IAMListener(
         val sub = entityDeleteEvent.entityId.extractSub()
         mono {
             subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
+            (
+                if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
+                    entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
+                        ?.let {
+                            entityAccessRightsService.deleteAllAccessRightsOnEntities(it)
+                            it.forEach { entityId ->
+                                entityPayloadService.deleteEntity(entityId)
+                            }
+                        }
+                } else {
+                    Either.right()
+                }
+                ) as Either<APIException, Unit>
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
-        if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
-            val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(
-                sub
-            )
-                .getOrNull()
-            entitiesIds?.forEach { entityId ->
-                entityPayloadService.deleteEntity(entityId)
-            }
-            if (entitiesIds != null) {
-                entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds)
-            }
-        }
     }
 
     private suspend fun updateSubjectProfile(

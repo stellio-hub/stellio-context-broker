@@ -109,13 +109,13 @@ class IAMListener(
         val subjectType = SubjectType.valueOf(entityDeleteEvent.entityTypes.first().uppercase())
         val sub = entityDeleteEvent.entityId.extractSub()
         mono {
-            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub()).bind()
+            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
             val result: Either<APIException, Unit> =
                 if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
-                    val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).bind()
-                    entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds).bind()
-                    entitiesIds.map { entityId ->
-                        entityPayloadService.deleteEntity(entityId).bind()
+                    val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
+                    entitiesIds?.let { entityAccessRightsService.deleteAllAccessRightsOnEntities(it) }
+                    entitiesIds?.map { entityId ->
+                        entityPayloadService.deleteEntity(entityId)
                     }
                     Unit.right()
                 } else Unit.right()

@@ -1,7 +1,10 @@
 package com.egm.stellio.search.listener
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flattenOption
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
@@ -106,20 +109,17 @@ class IAMListener(
         val subjectType = SubjectType.valueOf(entityDeleteEvent.entityTypes.first().uppercase())
         val sub = entityDeleteEvent.entityId.extractSub()
         mono {
-            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
-            (
+            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub()).bind()
+            val result: Either<APIException, Unit> =
                 if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
-                    entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
-                        ?.let {
-                            entityAccessRightsService.deleteAllAccessRightsOnEntities(it)
-                            it.forEach { entityId ->
-                                entityPayloadService.deleteEntity(entityId)
-                            }
-                        }
-                } else {
-                    Either.right()
-                }
-                ) as Either<APIException, Unit>
+                    val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).bind()
+                    entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds).bind()
+                    entitiesIds.map { entityId ->
+                        entityPayloadService.deleteEntity(entityId).bind()
+                    }
+                    Unit.right()
+                } else Unit.right()
+            result
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
     }
 

@@ -610,6 +610,31 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             }
     }
 
+    @Test
+    fun `it should get Ids of all entities owned by a user`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId02).shouldSucceed()
+        entityAccessRightsService.getEntitiesIdsOwnedBySubject(userUuid)
+            .shouldSucceedWith {
+                assertEquals(1, it.size)
+                assertEquals(entityId01, it[0])
+            }
+    }
+
+    @Test
+    fun `it should delete all access rights on entities`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId02).shouldSucceed()
+        val entitiesIds = listOf(entityId01, entityId02)
+        entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds)
+            .shouldSucceed()
+        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), entitiesIds)
+            .shouldSucceedWith { assertTrue(it.isEmpty()) }
+    }
     private suspend fun createEntityPayload(
         entityId: URI,
         types: Set<ExpandedTerm>,

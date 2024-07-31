@@ -10,6 +10,7 @@ import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.authorization.toSubjectInfo
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
@@ -39,7 +40,8 @@ class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
     private val searchProperties: SearchProperties,
     private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityPayloadService: EntityPayloadService
+    private val entityPayloadService: EntityPayloadService,
+    private val entityEventService: EntityEventService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -114,8 +116,10 @@ class IAMListener(
                 if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
                     val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
                     entitiesIds?.let { entityAccessRightsService.deleteAllAccessRightsOnEntities(it) }
-                    entitiesIds?.map { entityId ->
-                        entityPayloadService.deleteEntity(entityId)
+                    entitiesIds?.forEach { entityId ->
+                        entityPayloadService.deleteEntity(entityId).getOrNull()?.also {
+                            entityEventService.publishEntityDeleteEvent(null, it)
+                        }
                     }
                     Unit.right()
                 } else Unit.right()

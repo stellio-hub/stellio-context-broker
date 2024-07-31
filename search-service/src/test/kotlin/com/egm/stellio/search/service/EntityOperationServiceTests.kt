@@ -344,7 +344,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch delete should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
@@ -376,7 +376,7 @@ class EntityOperationServiceTests {
     @Test
     fun `batch delete should return deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
-            coEvery { entityPayloadService.deleteEntity(firstEntityURI) } returns Unit.right()
+            coEvery { entityPayloadService.deleteEntity(firstEntityURI) } returns mockkClass(EntityPayload::class).right()
             coEvery {
                 entityPayloadService.deleteEntity(secondEntityURI)
             } returns InternalErrorException("Something went wrong during deletion").left()

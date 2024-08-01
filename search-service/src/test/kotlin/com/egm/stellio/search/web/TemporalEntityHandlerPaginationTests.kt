@@ -63,7 +63,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
     }
 
     @Test

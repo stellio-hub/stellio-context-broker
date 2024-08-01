@@ -92,6 +92,7 @@ object TemporalPaginationService {
         teaWithInstances: TEAWithinstances,
         query: TemporalEntitiesQuery,
     ): Pair<TEAWithinstances, Range?> {
+        if (teaWithInstances.values.isEmpty()) return teaWithInstances to null
         // simpler for aggregated value since all values already are synchronized.
         val firstAttributeInstanceResult = teaWithInstances.values.first().first() as AggregatedAttributeInstanceResult
         val asReachLimit = firstAttributeInstanceResult.values.size >= query.temporalQuery.instanceLimit

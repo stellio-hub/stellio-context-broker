@@ -58,7 +58,7 @@ class TemporalEntityOperationsHandlerTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {
@@ -107,7 +107,7 @@ class TemporalEntityOperationsHandlerTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {

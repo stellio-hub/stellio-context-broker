@@ -5,7 +5,7 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.Query
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.util.composeTemporalEntitiesQueryFromPostRequest
-import com.egm.stellio.search.web.TemporalApiResponseBuilder.buildEntitiesTemporalResponse
+import com.egm.stellio.search.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -49,7 +49,7 @@ class TemporalEntityOperationsHandler(
 
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
 
-        val (temporalEntities, total) = queryService.queryTemporalEntities(
+        val (temporalEntities, total, range) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             accessRightFilter
         ).bind()
@@ -64,6 +64,7 @@ class TemporalEntityOperationsHandler(
             params,
             mediaType,
             contexts,
+            range,
             query.lang
         )
     }.fold(

@@ -7,8 +7,10 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.scope.ScopeService
+import com.egm.stellio.search.service.TemporalPaginationService.getRangeAndPaginatedTEA
 import com.egm.stellio.search.util.TemporalEntityBuilder
 import com.egm.stellio.search.util.deserializeAsMap
+import com.egm.stellio.search.web.Range
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -18,6 +20,8 @@ import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.ZonedDateTime
+
+typealias TEAWithinstances = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
 
 @Service
 class QueryService(
@@ -51,7 +55,7 @@ class QueryService(
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Either<APIException, ExpandedEntity> = either {
+    ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
@@ -73,13 +77,18 @@ class QueryService(
         val temporalEntityAttributesWithMatchingInstances =
             searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery, origin).bind()
 
+        val (paginatedTEA, range) = getRangeAndPaginatedTEA(
+            temporalEntityAttributesWithMatchingInstances,
+            temporalEntitiesQuery
+        )
+
         val temporalEntityAttributesWithInstances =
-            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
+            fillWithTEAWithEmptyInstances(temporalEntityAttributes, paginatedTEA)
 
         TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entityPayload, scopeHistory, temporalEntityAttributesWithInstances),
             temporalEntitiesQuery
-        )
+        ) to range
     }
 
     internal suspend fun calculateOldestTimestamp(
@@ -120,7 +129,7 @@ class QueryService(
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         accessRightFilter: () -> String?
-    ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
+    ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
         val count = entityPayloadService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
@@ -128,7 +137,7 @@ class QueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
+            return@either Triple<List<ExpandedEntity>, Int, Range?>(emptyList(), count, null)
 
         val temporalEntityAttributes = temporalEntityAttributeService.getForTemporalEntities(
             entitiesIds,
@@ -143,8 +152,12 @@ class QueryService(
         val temporalEntityAttributesWithMatchingInstances =
             searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalEntitiesQuery).bind()
 
+        val (paginatedTEA, range) = getRangeAndPaginatedTEA(
+            temporalEntityAttributesWithMatchingInstances,
+            temporalEntitiesQuery
+        )
         val temporalEntityAttributesWithInstances =
-            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
+            fillWithTEAWithEmptyInstances(temporalEntityAttributes, paginatedTEA)
 
         val attributeInstancesPerEntityAndAttribute =
             temporalEntityAttributesWithInstances
@@ -166,12 +179,13 @@ class QueryService(
                     EntityTemporalResult(it.first, scopesHistory[it.first.entityId] ?: emptyList(), it.second)
                 }
 
-        Pair(
+        Triple(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
                 temporalEntitiesQuery
             ),
-            count
+            count,
+            range
         )
     }
 
@@ -179,7 +193,7 @@ class QueryService(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         origin: ZonedDateTime? = null
-    ): Either<APIException, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>> = either {
+    ): Either<APIException, TEAWithinstances> = either {
         // split the group according to attribute type as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
         temporalEntityAttributes
@@ -214,10 +228,10 @@ class QueryService(
             .mapValues { it.value.sorted() }
     }
 
-    private fun fillWithTEAWithoutInstances(
+    private fun fillWithTEAWithEmptyInstances(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        temporalEntityAttributesWithInstances: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
-    ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> {
+        temporalEntityAttributesWithInstances: TEAWithinstances
+    ): TEAWithinstances {
         // filter the temporal entity attributes for which there are no attribute instances
         val temporalEntityAttributesWithoutInstances =
             temporalEntityAttributes.filter {

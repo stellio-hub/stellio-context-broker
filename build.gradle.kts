@@ -10,7 +10,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2023.0.0"
+extra["springCloudVersion"] = "2023.0.3"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -18,14 +18,14 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.2.5" apply false
-    id("io.spring.dependency-management") version "1.1.5" apply false
+    id("org.springframework.boot") version "3.3.2" apply false
+    id("io.spring.dependency-management") version "1.1.6" apply false
     id("org.graalvm.buildtools.native") version "0.10.2"
     kotlin("jvm") version "1.9.24" apply false
     kotlin("plugin.spring") version "1.9.24" apply false
-    id("com.google.cloud.tools.jib") version "3.4.2" apply false
+    id("com.google.cloud.tools.jib") version "3.4.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
-    id("org.sonarqube") version "5.0.0.4638"
+    id("org.sonarqube") version "5.1.0.4882"
     jacoco
 }
 
@@ -64,7 +64,7 @@ subprojects {
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-        implementation("com.apicatalog:titanium-json-ld:1.4.0")
+        implementation("com.apicatalog:titanium-json-ld:1.4.1")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")

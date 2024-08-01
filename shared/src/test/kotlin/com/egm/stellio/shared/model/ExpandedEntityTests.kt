@@ -3,6 +3,9 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -59,6 +62,198 @@ class ExpandedEntityTests {
         assertThat(expandedAttributes)
             .hasSize(1)
             .containsKey(NGSILD_NAME_PROPERTY)
+    }
+
+    @Test
+    fun `it should filter the attributes based on the attrs only`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "managedBy": [
+                    {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:Beekeeper:Default"
+                    },
+                    {
+                        "type": "Relationship",
+                        "datasetId": "urn:ngsi-ld:Dataset:managedBy",
+                        "object": "urn:ngsi-ld:Beekeeper:1230"
+                    },
+                    {
+                       "type": "Relationship",
+                        "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                        "object": "urn:ngsi-ld:Apiculteur:1230"
+                    }
+                ],
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("managedBy", listOf(APIC_COMPOUND_CONTEXT))
+
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, emptySet()))
+
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should filter the attributes based on the datasetId and attrs`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:english-name",
+                    "value": "beehive"
+                },
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("name", listOf(APIC_COMPOUND_CONTEXT))
+        val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:english-name")
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, datasetIdToMatch))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should filter the attributes based on the datasetIds only`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                    "value": "ruche"
+                },
+                "managedBy": {
+                     "type": "Relationship",
+                     "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                     "object": "urn:ngsi-ld:Apiculteur:1230"
+                },
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:french-name")
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should return the default instance if @none is in the datasetId request parameter`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "type": "Property",
+                    "value": "default"
+                },
+                "managedBy": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Beekeeper:Default"
+                },
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), setOf(NGSILD_NONE_TERM)))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should filter attributes on @none and attrs`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "type": "Property",
+                    "value": "default"
+                },
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("name", listOf(APIC_COMPOUND_CONTEXT))
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, setOf(NGSILD_NONE_TERM)))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should filter the attributes based on multiple datasetIds`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": [
+                    {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Dataset:english-name",
+                        "value": "beehive"
+                    },
+                     {
+                        "type": "Property",
+                        "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                        "value": "ruche"
+                    }           
+                ],
+                "managedBy": {
+                     "type": "Relationship",
+                     "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                     "object": "urn:ngsi-ld:Apiculteur:1230"
+                },
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val datasetIdToMatch: Set<String> = setOf(
+            "urn:ngsi-ld:Dataset:english-name",
+            "urn:ngsi-ld:Dataset:french-name"
+        )
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should return no attributes if datasetIds and attrs don't match`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val attributesToMatch: Set<String> = parseAndExpandRequestParameter("name", listOf(APIC_COMPOUND_CONTEXT))
+        val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:managedBy")
+        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, datasetIdToMatch))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test

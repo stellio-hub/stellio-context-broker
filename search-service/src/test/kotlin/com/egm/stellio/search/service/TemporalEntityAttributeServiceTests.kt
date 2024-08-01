@@ -99,7 +99,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 setOf(
                     INCOMING_PROPERTY,
                     OUTGOING_PROPERTY
-                )
+                ),
+                emptySet()
             )
 
         assertEquals(2, temporalEntityAttributes.size)
@@ -120,7 +121,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
+        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
         assertEquals(4, teas.size)
 
         coVerify {
@@ -171,7 +172,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
-        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet())
+        val teas = temporalEntityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
         assertEquals(2, teas.size)
 
         coVerify {
@@ -228,7 +229,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ).shouldSucceed()
         }
 
-        val teas = temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri(), emptySet())
+        val teas = temporalEntityAttributeService.getForEntity(
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            emptySet(),
+            emptySet()
+        )
         assertTrue(teas.isEmpty())
     }
 
@@ -376,6 +381,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         val teas = temporalEntityAttributeService.getForEntity(
             beehiveTestCId,
+            emptySet(),
             emptySet()
         )
         assertEquals(6, teas.size)
@@ -640,5 +646,26 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             { assertEquals("Entity urn:ngsi-ld:Entity:01 was not found", it.message) },
             { fail("The referred resource should have not been found") }
         )
+    }
+
+    @Test
+    fun `it should filter temporal attribute instances based on a datasetId`() = runTest {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, APIC_COMPOUND_CONTEXTS)
+            .shouldSucceed()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntity(
+                beehiveTestCId,
+                emptySet(),
+                setOf("urn:ngsi-ld:Dataset:01234")
+            )
+
+        assertEquals(1, temporalEntityAttributes.size)
+        assertEquals(INCOMING_PROPERTY, temporalEntityAttributes[0].attributeName)
+        assertEquals("urn:ngsi-ld:Dataset:01234", temporalEntityAttributes[0].datasetId.toString())
     }
 }

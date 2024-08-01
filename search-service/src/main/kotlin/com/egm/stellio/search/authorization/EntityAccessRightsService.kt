@@ -321,6 +321,22 @@ class EntityAccessRightsService(
             }
     }
 
+    suspend fun getEntitiesIdsOwnedBySubject(
+        subjectId: Sub
+    ): Either<APIException, List<URI>> = either {
+        databaseClient
+            .sql(
+                """
+                SELECT entity_id 
+                FROM entity_access_rights
+                WHERE subject_id = :sub
+                AND access_right = 'isOwner'
+                """.trimIndent()
+            )
+            .bind("sub", subjectId)
+            .allToMappedList { toUri(it["entity_id"]) }
+    }
+
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         databaseClient
@@ -331,6 +347,18 @@ class EntityAccessRightsService(
                 """.trimIndent()
             )
             .bind("subject_id", sub)
+            .execute()
+
+    @Transactional
+    suspend fun deleteAllAccessRightsOnEntities(entitiesIds: List<URI>): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                DELETE FROM entity_access_rights
+                WHERE entity_id IN (:entities_ids)
+                """.trimIndent()
+            )
+            .bind("entities_ids", entitiesIds)
             .execute()
 
     private fun rowToEntityAccessControl(row: Map<String, Any>, isStellioAdmin: Boolean): EntityAccessRights {

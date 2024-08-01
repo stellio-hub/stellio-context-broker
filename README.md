@@ -66,6 +66,10 @@ Please note that the environment and scripts are validated on Ubuntu and macOS. 
 
 We also provide a configuration to deploy Stellio in a k8s cluster. For more information, please look in the [stellio-k8s project](https://github.com/stellio-hub/stellio-k8s)
 
+#### TROUBLESHOOTING
+
+If Kafka container crash when starting, you may need to change "config/kafka/update_run.sh" line separator from CRLF to
+LF
 ## Docker images tagging
 
 Starting from version 2.0.0, a new scheme is used for tagging of Docker images:
@@ -129,6 +133,7 @@ If you want to build only one of the services, you can launch:
 
 Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
 
+
 ### Code quality
 
 Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
@@ -139,6 +144,17 @@ Detekt checks are automatically performed as part of the build and fail the buil
 that applies changed code refactoring and optimized imports on a save.
 
 * You can enable Detekt support with the [Detekt plugin](https://github.com/detekt/detekt-intellij-plugin).
+
+* You can also setup a precommit hook to run detekt autocorrect automatically 
+
+### Pre-commit
+#### Automatic setup with [pre-commit](https://pre-commit.com/) tool 
+(if you don't have Python installed, use the manual setup below)
+* install ```pip install pre-commit```
+* then run ```pre-commit install```
+#### Manual setup
+* copy the script in ```config/detekt/detekt_auto_correct.sh``` in your ```.git/pre-commit``` file
+
 
 ### Working locally with Docker images
 
@@ -171,7 +187,7 @@ git checkout master
 git merge develop
 ```
 
-* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file)
+* Update version number in `build.gradle.kts` (`allprojects.version` near the bottom of the file) and in `.env` (`STELLIO_DOCKER_TAG` environment variable)
 * Commit the modification using the following template message
 
 ```

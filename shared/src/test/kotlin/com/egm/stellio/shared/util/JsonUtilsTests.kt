@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -156,15 +157,7 @@ class JsonUtilsTests {
         val exception = assertThrows<InvalidRequestException> {
             rawEntity.deserializeAsMap()
         }
-        Assertions.assertEquals(
-            """
-            Unexpected character (',' (code 44)): was expecting double-quote to start field name
-             at [Source: (String)"{
-                "id": "urn:ngsi-ld:Device:01234",,
-                "type": "Device"
-            }"; line: 2, column: 39]
-            """.trimIndent(),
-            exception.message
-        )
+        assertThat(exception.message)
+            .startsWith("Unexpected character (',' (code 44)): was expecting double-quote to start field name")
     }
 }

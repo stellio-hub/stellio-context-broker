@@ -103,7 +103,7 @@ class QueryServiceTests {
 
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {
-        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns emptyList()
+        coEvery { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
 
         queryService.queryTemporalEntity(
             entityUri,
@@ -146,7 +146,7 @@ class QueryServiceTests {
                 )
             }
 
-        coEvery { temporalEntityAttributeService.getForEntity(any(), any()) } returns teas
+        coEvery { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns teas
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
@@ -175,7 +175,7 @@ class QueryServiceTests {
         )
 
         coVerify {
-            temporalEntityAttributeService.getForEntity(entityUri, emptySet())
+            temporalEntityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&

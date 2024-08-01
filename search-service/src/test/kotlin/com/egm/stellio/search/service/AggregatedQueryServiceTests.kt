@@ -65,7 +65,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         "avg, 5.5",
         "min, 1.0",
         "max, 10.0",
-        "stddev, 3.0276503540974917",
+        "stddev, 3.0276503541",
         "sumsq, 385.0"
     )
     fun `it should correctly aggregate on JSON Number values`(aggrMethod: String, expectedValue: String) = runTest {

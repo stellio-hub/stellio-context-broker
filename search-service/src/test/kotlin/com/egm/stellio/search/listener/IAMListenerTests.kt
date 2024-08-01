@@ -1,13 +1,15 @@
 package com.egm.stellio.search.listener
 
 import arrow.core.right
+import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferentialService
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +24,18 @@ class IAMListenerTests {
     private lateinit var iamListener: IAMListener
 
     @MockkBean(relaxed = true)
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
+
+    @MockkBean(relaxed = true)
+    private lateinit var entityPayloadService: EntityPayloadService
+
+    @MockkBean(relaxed = true)
+    private lateinit var searchProperties: SearchProperties
+
+    @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
+
+    private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
     fun `it should handle a create event for an user`() = runTest {
@@ -337,6 +350,45 @@ class IAMListenerTests {
                 eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"),
                 match {
                     it.first == "givenName" && it.second == "Jonathan"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should delete all entities owned by a user if user is deleted`() = runTest {
+        val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
+        loadSampleData("beehive.jsonld").sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+        coEvery {
+            entityAccessRightsService.setOwnerRoleOnEntity(
+                "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+                entityId
+            )
+        } returns Unit.right()
+
+        coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
+        every {
+            searchProperties.onOwnerDeleteCascadeEntities
+        } returns true
+        coEvery {
+            entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
+        } returns listOf(
+            entityId
+        ).right()
+
+        iamListener.dispatchIamMessage(subjectDeleteEvent)
+
+        coVerify(timeout = 1000L) {
+            subjectReferentialService.delete(
+                match {
+                    it == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"
+                }
+            )
+        }
+        coVerify {
+            entityPayloadService.deleteEntity(
+                match {
+                    it == entityId
                 }
             )
         }

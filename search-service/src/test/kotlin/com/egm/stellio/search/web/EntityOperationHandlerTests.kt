@@ -38,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
 
-@AutoConfigureWebTestClient(timeout = "30000")
+@AutoConfigureWebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
@@ -120,18 +120,27 @@ class EntityOperationHandlerTests {
     private val batchUpsertEndpoint = "/ngsi-ld/v1/entityOperations/upsert"
     private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
     private val batchUpdateEndpoint = "/ngsi-ld/v1/entityOperations/update"
+    private val batchUpdateEndpointWithNoOverwriteOption = "/ngsi-ld/v1/entityOperations/update?options=noOverwrite"
     private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
     private val queryEntitiesEndpoint = "/ngsi-ld/v1/entityOperations/query"
+    private val batchMergeEndpoint = "/ngsi-ld/v1/entityOperations/merge"
+
+    private val validJsonFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+    private val twoEntityOneInvalidJsonLDFile = ClassPathResource("/ngsild/two_sensors_one_invalid.jsonld")
+    private val missingContextJsonFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
+    private val oneEntityMissingContextJsonFile =
+        ClassPathResource("/ngsild/hcmr/HCMR_test_file_one_entity_missing_context.json")
+    private val deleteAllJsonFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
 
     @Test
     fun `update batch entity should return a 204 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
-                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
-                Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)
+                mockedTemperatureSensorExpandedEntity to mockedTemperatureSensorEntity,
+                mockedDissolvedOxygenSensorExpandedEntity to mockedDissolvedOxygenSensorEntity,
+                mockedDeviceExpandedEntity to mockedDeviceEntity
             ),
             emptyList()
         )
@@ -154,7 +163,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val errors = arrayListOf(
             BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
             BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
@@ -199,7 +208,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `update batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/two_sensors_one_invalid.jsonld")
+        val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
@@ -240,7 +249,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `update batch entity should return 204 if JSON-LD payload is correct and noOverwrite is asked`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(
@@ -255,7 +264,7 @@ class EntityOperationHandlerTests {
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/update?options=noOverwrite")
+            .uri(batchUpdateEndpointWithNoOverwriteOption)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -268,7 +277,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `update batch entity should return 207 if there is a non existing entity in the payload`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
@@ -302,7 +311,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityTypes = slot<List<String>>()
@@ -348,7 +357,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 207 when some entities already exist`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
         val capturedEntitiesIds = mutableListOf<URI>()
@@ -416,7 +425,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 207 when some entities have the same id`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
         val capturedEntitiesIds = mutableListOf<URI>()
@@ -475,7 +484,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should not authorize user without creator role`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
 
         coEvery {
             entityOperationService.splitEntitiesByUniqueness(any())
@@ -516,9 +525,9 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 400 if one JSON-LD entity misses a context`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_one_entity_missing_context.json")
+        val jsonLdFile = oneEntityMissingContextJsonFile
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
+            .uri(batchCreateEndpoint)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -536,7 +545,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(temperatureSensorUri)
         val updatedEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
@@ -598,7 +607,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch entity should return a 204 if it has only updated existing entities`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
 
         coEvery {
@@ -628,7 +637,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val errors = arrayListOf(
             BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
@@ -687,7 +696,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch entity without option should replace existing entities`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val entitiesIds = arrayListOf(temperatureSensorUri, dissolvedOxygenSensorUri)
 
@@ -728,7 +737,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch should not authorize user to create entities without creator role`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
 
         coEvery {
@@ -769,7 +778,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch should not authorize user to updates entities without write right`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
 
         coEvery {
@@ -830,7 +839,7 @@ class EntityOperationHandlerTests {
     }
 
     private fun shouldReturn400WithBadPayload(method: String) {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
+        val jsonLdFile = missingContextJsonFile
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/$method")
             .bodyValue(jsonLdFile)
@@ -850,7 +859,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch for correct entities should return a 204`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
+        val jsonLdFile = deleteAllJsonFile
 
         coEvery { entityOperationService.splitEntitiesIdsByUniqueness(any()) } answers {
             Pair(allEntitiesUris, emptyList())
@@ -963,7 +972,7 @@ class EntityOperationHandlerTests {
     }
 
     private fun performBatchDeleteAndCheck207Response(expectedErrorMessage: String) {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
+        val jsonLdFile = deleteAllJsonFile
         webClient.post()
             .uri(batchDeleteEndpoint)
             .bodyValue(jsonLdFile)
@@ -1018,5 +1027,154 @@ class EntityOperationHandlerTests {
                 any()
             )
         }
+    }
+
+    @Test
+    fun `merge batch entity should return a 204 if JSON-LD payload is correct`() = runTest {
+        val jsonLdFile = validJsonFile
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns (
+            listOf(
+                mockedTemperatureSensorExpandedEntity to mockedTemperatureSensorEntity,
+                mockedDissolvedOxygenSensorExpandedEntity to mockedDissolvedOxygenSensorEntity,
+                mockedDeviceExpandedEntity to mockedDeviceEntity,
+            ) to emptyList()
+            )
+
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery {
+            entityOperationService.merge(any(), any())
+        } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
+
+        webClient.post()
+            .uri(batchMergeEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify {
+            entityOperationService.merge(any(), eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+        }
+    }
+
+    @Test
+    fun `merge batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
+        val jsonLdFile = validJsonFile
+        val errors = arrayListOf(
+            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
+            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+        )
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns (
+            listOf(
+                mockedTemperatureSensorExpandedEntity to mockedTemperatureSensorEntity,
+                mockedDissolvedOxygenSensorExpandedEntity to mockedDissolvedOxygenSensorEntity,
+            ) to
+                emptyList()
+            )
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+            mutableListOf(),
+            errors
+        )
+
+        webClient.post()
+            .uri(batchMergeEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
+                            "error": [ "Update unexpectedly failed." ] 
+                        }, 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
+                            "error": [ "Update unexpectedly failed." ] 
+                        }
+                    ], 
+                    "success": [] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
+        val jsonLdFile = twoEntityOneInvalidJsonLDFile
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns (
+            listOf(mockedTemperatureSensorExpandedEntity to mockedTemperatureSensorEntity) to emptyList()
+            )
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
+            mutableListOf()
+        )
+
+        webClient.post()
+            .uri(batchMergeEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
+                            "error": [ "Unable to expand input payload" ] 
+                        }
+                    ], 
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+                    ] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `merge batch entity should return a 400 if JSON-LD payload is not correct`() {
+        shouldReturn400WithBadPayload("merge")
+    }
+
+    @Test
+    fun `merge batch entity should return 207 if there is a non existing entity in the payload`() = runTest {
+        val jsonLdFile = validJsonFile
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns (
+            listOf(mockedTemperatureSensorExpandedEntity to mockedTemperatureSensorEntity)
+                to
+                listOf(mockedDeviceExpandedEntity to mockedDeviceEntity)
+            )
+        coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
+        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+            success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
+            errors = mutableListOf()
+        )
+
+        webClient.post()
+            .uri(batchMergeEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+                            "error": [ "Entity does not exist" ]
+                        }
+                    ],
+                    "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
+                }
+                """.trimIndent()
+            )
     }
 }

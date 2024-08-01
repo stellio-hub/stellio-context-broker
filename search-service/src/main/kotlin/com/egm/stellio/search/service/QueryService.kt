@@ -53,7 +53,8 @@ class QueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, ExpandedEntity> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs).let {
+        val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
+        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
                     entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)

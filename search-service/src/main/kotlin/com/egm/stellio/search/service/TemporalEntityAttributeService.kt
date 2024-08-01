@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -368,6 +369,13 @@ class TemporalEntityAttributeService(
                 ) { "'$it'" }
             else ""
 
+        val filterOnDatasetId =
+            if (entitiesQuery.datasetId.isNotEmpty()) {
+                val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
+                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                    "OR (dataset_id IS NULL AND '$NGSILD_NONE_TERM' in ($datasetIdsList)))"
+            } else ""
+
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
@@ -375,6 +383,7 @@ class TemporalEntityAttributeService(
             FROM temporal_entity_attribute            
             WHERE entity_id IN (:entities_ids) 
             $filterOnAttributes
+            $filterOnDatasetId
             ORDER BY entity_id
             """.trimIndent()
 
@@ -384,24 +393,35 @@ class TemporalEntityAttributeService(
             .allToMappedList { rowToTemporalEntityAttribute(it) }
     }
 
-    suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {
+    suspend fun getForEntity(id: URI, attrs: Set<String>, datasetIds: Set<String>): List<TemporalEntityAttribute> {
+        val filterOnAttributes =
+            if (attrs.isNotEmpty())
+                " AND " + attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else ""
+
+        val filterOnDatasetId =
+            if (datasetIds.isNotEmpty()) {
+                val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
+                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
+            } else ""
+
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
+            $filterOnAttributes
+            $filterOnDatasetId
             """.trimIndent()
 
-        val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
-        val finalQuery =
-            if (attrs.isNotEmpty())
-                "$selectQuery AND attribute_name in ($expandedAttrsList)"
-            else
-                selectQuery
-
         return databaseClient
-            .sql(finalQuery)
+            .sql(selectQuery)
             .bind("entity_id", id)
             .allToMappedList { rowToTemporalEntityAttribute(it) }
     }

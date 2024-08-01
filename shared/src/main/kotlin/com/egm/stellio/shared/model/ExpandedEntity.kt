@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.mapNotNull
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -10,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import java.time.ZonedDateTime
 
@@ -86,27 +88,37 @@ data class ExpandedEntity(
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 
-    fun filterOnAttributes(includedAttributes: Set<String>): Map<String, Any> {
-        val inputToMap = { i: ExpandedEntity -> i.members }
-        return filterEntityOnAttributes(this, inputToMap, includedAttributes)
-    }
+    fun filterAttributes(includedAttributes: Set<String>, includedDatasetIds: Set<String>): Map<String, Any> =
+        filterEntityOnAttributes(this.members, includedAttributes, includedDatasetIds)
 
-    private fun <T> filterEntityOnAttributes(
-        input: T,
-        inputToMap: (T) -> Map<String, Any>,
-        includedAttributes: Set<String>
-    ): Map<String, Any> {
-        return if (includedAttributes.isEmpty()) {
-            inputToMap(input)
-        } else {
-            val includedKeys = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes)
-            inputToMap(input).filterKeys { includedKeys.contains(it) }
-        }
-    }
+    private fun filterEntityOnAttributes(
+        members: Map<String, Any>,
+        includedAttributes: Set<String>,
+        includedDatasetIds: Set<String>,
+    ): Map<String, Any> =
+        if (includedAttributes.isEmpty() && includedDatasetIds.isEmpty()) {
+            members
+        } else
+            members.filterKeys {
+                includedAttributes.isEmpty() ||
+                    JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
+            }.mapNotNull { entry ->
+                if (entry.key in JSONLD_EXPANDED_ENTITY_CORE_MEMBERS)
+                    entry.value
+                else (entry.value as ExpandedAttributeInstances).filter { expandedAttributeInstance ->
+                    includedDatasetIds.isEmpty() ||
+                        includedDatasetIds.contains(NGSILD_NONE_TERM) &&
+                        expandedAttributeInstance.getDatasetId() == null ||
+                        expandedAttributeInstance.getDatasetId() != null &&
+                        includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())
+                }.ifEmpty { null }
+            }
 }
 
-fun List<ExpandedEntity>.filterOnAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
-    this.filter { it.containsAnyOf(includedAttributes) }
-        .map {
-            ExpandedEntity(it.filterOnAttributes(includedAttributes))
-        }
+fun List<ExpandedEntity>.filterAttributes(
+    includedAttributes: Set<String>,
+    includedDatasetIds: Set<String>
+): List<ExpandedEntity> =
+    this.map {
+        ExpandedEntity(it.filterAttributes(includedAttributes, includedDatasetIds))
+    }

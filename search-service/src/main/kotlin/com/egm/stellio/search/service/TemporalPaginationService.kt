@@ -19,10 +19,6 @@ object TemporalPaginationService {
             return teaWithInstances to null
         }
 
-        if (query.withAggregatedValues) {
-            return getRangeAndPaginatedTEAForAggregatedValue(teaWithInstances, query)
-        }
-
         val attributeInstancesWhoReachedLimit = getAttributesWhoReachedLimit(teaWithInstances, query)
 
         if (attributeInstancesWhoReachedLimit.isEmpty()) {
@@ -52,7 +48,12 @@ object TemporalPaginationService {
         val limit = temporalQuery.instanceLimit
 
         val attributesTimeRanges = attributeInstancesWhoReachedLimit.map {
-            it[0].getComparableTime() to it[limit - 1].getComparableTime()
+            return@map it[0].getComparableTime() to if (query.withAggregatedValues) {
+                val lastInstance = it[limit - 1] as AggregatedAttributeInstanceResult
+                lastInstance.values.first().endDateTime
+            } else {
+                it[limit - 1].getComparableTime()
+            }
         }
 
         if (temporalQuery.hasLastN()) {
@@ -87,19 +88,4 @@ object TemporalPaginationService {
 
     private fun Range.contain(time: ZonedDateTime): Boolean =
         (this.first >= time && time >= this.second) || (this.first <= time && time <= this.second)
-
-    private fun getRangeAndPaginatedTEAForAggregatedValue(
-        teaWithInstances: TEAWithinstances,
-        query: TemporalEntitiesQuery,
-    ): Pair<TEAWithinstances, Range?> {
-        if (teaWithInstances.values.isEmpty()) return teaWithInstances to null
-        // simpler for aggregated value since all values already are synchronized.
-        val firstAttributeInstanceResult = teaWithInstances.values.first().first() as AggregatedAttributeInstanceResult
-        val asReachLimit = firstAttributeInstanceResult.values.size >= query.temporalQuery.instanceLimit
-        if (!asReachLimit) return teaWithInstances to null
-
-        val range = firstAttributeInstanceResult.values[0].startDateTime to
-            firstAttributeInstanceResult.values.last().endDateTime
-        return teaWithInstances to range
-    }
 }

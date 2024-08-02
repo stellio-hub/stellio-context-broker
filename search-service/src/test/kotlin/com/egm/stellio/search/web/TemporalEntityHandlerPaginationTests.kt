@@ -4,6 +4,7 @@ import arrow.core.Either
 import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -161,7 +162,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 .expectHeader()
                 .valueEquals(
                     "Content-Range",
-                    "date-time ${range.first}-${range.second}/$lastN"
+                    "date-time ${range.first.toNgsiLdFormat()}-${range.second.toNgsiLdFormat()}/$lastN"
                 )
         }
 }

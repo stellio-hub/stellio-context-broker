@@ -670,8 +670,11 @@ class EntityPayloadServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 )
             }
 
-        val deleteResult = entityPayloadService.deleteEntity(entity01Uri)
-        assertTrue(deleteResult.isRight())
+        entityPayloadService.deleteEntity(entity01Uri)
+            .shouldSucceedWith {
+                assertEquals(entity01Uri, it.entityId)
+                assertNotNull(it.payload)
+            }
 
         // if correctly deleted, we should be able to create a new one
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))

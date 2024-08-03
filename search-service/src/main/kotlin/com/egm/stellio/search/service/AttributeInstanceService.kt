@@ -154,7 +154,6 @@ class AttributeInstanceService(
             Timerel.BETWEEN -> sqlQueryBuilder.append(
                 " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
-
             null -> Unit
         }
 
@@ -226,7 +225,6 @@ class AttributeInstanceService(
             } else
                 "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
         }
-
         else -> {
             val valueColumn = when (temporalEntityAttributes[0].attributeValueType) {
                 TemporalEntityAttribute.AttributeValueType.NUMBER -> "measured_value as value"

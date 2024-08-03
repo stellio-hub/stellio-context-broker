@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.ZonedDateTime
 
-typealias TEAWithinstances = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
+typealias TEAWithInstances = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
 
 @Service
 class QueryService(
@@ -193,15 +193,14 @@ class QueryService(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
         origin: ZonedDateTime? = null
-    ): Either<APIException, TEAWithinstances> = either {
+    ): Either<APIException, TEAWithInstances> = either {
         // split the group according to attribute type as this currently triggers 2 different queries
         // then do one search for each type of attribute (fewer queries for improved performance)
         temporalEntityAttributes
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalEntitiesQuery, temporalEntityAttributes = it.value, origin)
-                    .bind()
+                attributeInstanceService.search(temporalEntitiesQuery, it.value, origin).bind()
             }
             .mapValues {
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
@@ -230,8 +229,8 @@ class QueryService(
 
     private fun fillWithTEAWithEmptyInstances(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
-        temporalEntityAttributesWithInstances: TEAWithinstances
-    ): TEAWithinstances {
+        temporalEntityAttributesWithInstances: TEAWithInstances
+    ): TEAWithInstances {
         // filter the temporal entity attributes for which there are no attribute instances
         val temporalEntityAttributesWithoutInstances =
             temporalEntityAttributes.filter {

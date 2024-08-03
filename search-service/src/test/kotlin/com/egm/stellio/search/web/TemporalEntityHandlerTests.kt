@@ -35,11 +35,11 @@ import java.util.UUID
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
+class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
-    val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    val temporalEntityAttributeName = "speed"
-    val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
+    private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    private val temporalEntityAttributeName = "speed"
+    private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
 
     private fun buildDefaultMockResponsesForAddAttributes() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
@@ -323,10 +323,10 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) to null
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -513,10 +513,10 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `it should return a 200 if minimal required parameters are valid`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) to null
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -547,10 +547,10 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) to null
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -568,10 +568,10 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
         buildDefaultMockResponsesForGetEntity()
 
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) to null
+        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -671,7 +671,7 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         else
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
-        val entityResponseWith2temporalEvolutions = loadAndExpandSampleData(entityFileName) to null
+        val entityResponseWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
@@ -695,7 +695,7 @@ open class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns entityResponseWith2temporalEvolutions.right()
+        } returns (entityResponseWith2temporalEvolutions to null).right()
     }
 
     @Test

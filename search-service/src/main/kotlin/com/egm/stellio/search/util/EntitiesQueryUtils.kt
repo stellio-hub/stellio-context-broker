@@ -3,7 +3,8 @@ package com.egm.stellio.search.util
 import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.model.TemporalQuery.*
+import com.egm.stellio.search.model.TemporalQuery.Aggregate
+import com.egm.stellio.search.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -243,8 +244,7 @@ fun buildTemporalQuery(
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it >= 1) it
-        else null
+        if (it >= 1) it else null
     }
     val limit = if (lastN != null && lastN < pagination.temporalLimit) lastN else pagination.temporalLimit
 

@@ -11,25 +11,25 @@ import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
 import java.time.ZonedDateTime.now
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalPaginationService::class])
 @EnableConfigurationProperties(SearchProperties::class)
 class TemporalPaginationServiceTests {
 
-    val timeAt = ZonedDateTime.parse("2019-01-01T00:00:00Z")
-    val endTimeAt = ZonedDateTime.parse("2021-01-01T00:00:00Z")
+    private val timeAt = ZonedDateTime.parse("2019-01-01T00:00:00Z")
+    private val endTimeAt = ZonedDateTime.parse("2021-01-01T00:00:00Z")
     private val leastRecentTimestamp = ZonedDateTime.parse("2020-01-01T00:01:00Z")
     private val mostRecentTimestamp = leastRecentTimestamp.plusMinutes(4) // from discrimination attribute
-    private val lastN = "100"
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     private val teaIncoming = TemporalEntityAttribute(
@@ -39,6 +39,7 @@ class TemporalPaginationServiceTests {
         createdAt = now(),
         payload = EMPTY_JSON_PAYLOAD
     )
+
     private val teaOutgoing = TemporalEntityAttribute(
         entityId = entityUri,
         attributeName = OUTGOING_PROPERTY,
@@ -46,11 +47,12 @@ class TemporalPaginationServiceTests {
         createdAt = now(),
         payload = EMPTY_JSON_PAYLOAD
     )
+
     private fun getInstance(time: ZonedDateTime): AttributeInstanceResult {
         return SimplifiedAttributeInstanceResult(value = 1, time = time, temporalEntityAttribute = UUID.randomUUID())
     }
 
-    private val teaWithInstances: TEAWithinstances = mapOf(
+    private val teaWithInstances: TEAWithInstances = mapOf(
         teaIncoming to listOf(
             getInstance(leastRecentTimestamp),
             getInstance(leastRecentTimestamp.plusMinutes(1)),
@@ -67,7 +69,7 @@ class TemporalPaginationServiceTests {
         )
     )
 
-    private val teaWithInstancesForLastN: TEAWithinstances = mapOf(
+    private val teaWithInstancesForLastN: TEAWithInstances = mapOf(
         teaIncoming to listOf(
             getInstance(leastRecentTimestamp),
             getInstance(leastRecentTimestamp.plusMinutes(1)),
@@ -84,11 +86,10 @@ class TemporalPaginationServiceTests {
         )
     )
 
-    val aggregationInstances = listOf(
+    private val aggregationInstances = listOf(
         AggregatedAttributeInstanceResult(
             temporalEntityAttribute = UUID.randomUUID(),
             values = listOf(
-
                 AggregatedAttributeInstanceResult.AggregateResult(
                     TemporalQuery.Aggregate.SUM,
                     1,
@@ -135,174 +136,160 @@ class TemporalPaginationServiceTests {
     )
 
     @Test
-    fun `range calculation with timerel between should return range-start = timeAt`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.BETWEEN,
-                    timeAt = timeAt,
-                    endTimeAt = endTimeAt
-                )
+    fun `range calculation with timerel between should return range-start = timeAt`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                timeAt = timeAt,
+                endTimeAt = endTimeAt
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
-            assertNotNull(range)
-            if (range == null) return@runTest
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(timeAt, range.first)
-            assertEquals(mostRecentTimestamp, range.second)
-        }
+        assertEquals(timeAt, range!!.first)
+        assertEquals(mostRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with timerel after should return range-start = timeAt`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.AFTER,
-                    timeAt = timeAt,
-                )
+    fun `range calculation with timerel after should return range-start = timeAt`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(timeAt, range.first)
-            assertEquals(mostRecentTimestamp, range.second)
-        }
+        assertEquals(timeAt, range!!.first)
+        assertEquals(mostRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with timerel before should return range-start = least recent timestamp`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    timeAt = endTimeAt,
-                )
+    fun `range calculation with timerel before should return range-start = least recent timestamp`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = endTimeAt,
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(leastRecentTimestamp, range.first)
-            assertEquals(mostRecentTimestamp, range.second)
-        }
+        assertEquals(leastRecentTimestamp, range!!.first)
+        assertEquals(mostRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with lastN and timerel between should return range-start = endTimeAt`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.BETWEEN,
-                    timeAt = timeAt,
-                    endTimeAt = endTimeAt,
-                    lastN = 100
-                )
+    fun `range calculation with lastN and timerel between should return range-start = endTimeAt`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                timeAt = timeAt,
+                endTimeAt = endTimeAt,
+                lastN = 100
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(endTimeAt, range.first)
-            assertEquals(leastRecentTimestamp, range.second)
-        }
+        assertEquals(endTimeAt, range!!.first)
+        assertEquals(leastRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with lastN and timerel after should return range-start = most recent timestamp`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.AFTER,
-                    timeAt = timeAt,
-                    lastN = 100
+    fun `range calculation with lastN and timerel after should return range-start = most recent timestamp`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
+                lastN = 100
 
-                )
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(mostRecentTimestamp, range.first)
-            assertEquals(leastRecentTimestamp, range.second)
-        }
+        assertEquals(mostRecentTimestamp, range!!.first)
+        assertEquals(leastRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with lastN and timerel before should return range-start = timeAt`() =
-        runTest {
-            val query = getQuery(
-                buildDefaultTestTemporalQuery(
-                    instanceLimit = 5,
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    timeAt = endTimeAt,
-                    lastN = 100
-                )
+    fun `range calculation with lastN and timerel before should return range-start = timeAt`() = runTest {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = endTimeAt,
+                lastN = 100
             )
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
+        )
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstancesForLastN, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(5, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(5, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(endTimeAt, range.first)
-            assertEquals(leastRecentTimestamp, range.second)
-        }
+        assertEquals(endTimeAt, range!!.first)
+        assertEquals(leastRecentTimestamp, range.second)
+    }
 
     @Test
-    fun `range calculation with aggregatedValues`() =
-        runTest {
-            val query = TemporalEntitiesQuery(
-                temporalQuery = buildDefaultTestTemporalQuery(
-                    instanceLimit = 2,
-                    timerel = TemporalQuery.Timerel.AFTER,
-                    timeAt = timeAt,
-                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
-                    aggrPeriodDuration = "P1M"
-                ),
-                entitiesQuery = EntitiesQuery(
-                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    contexts = APIC_COMPOUND_CONTEXTS
-                ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
-            )
+    fun `range calculation with aggregatedValues`() = runTest {
+        val query = TemporalEntitiesQuery(
+            temporalQuery = buildDefaultTestTemporalQuery(
+                instanceLimit = 2,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
+                aggrPeriodDuration = "P1M"
+            ),
+            entitiesQuery = EntitiesQuery(
+                paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                contexts = APIC_COMPOUND_CONTEXTS
+            ),
+            withTemporalValues = false,
+            withAudit = false,
+            withAggregatedValues = true
+        )
 
-            val teaWithInstances: TEAWithinstances =
-                mapOf(teaIncoming to aggregationInstances, teaOutgoing to aggregationInstances)
-            val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
+        val teaWithInstances: TEAWithInstances =
+            mapOf(teaIncoming to aggregationInstances, teaOutgoing to aggregationInstances)
+        val (newTeas, range) = getRangeAndPaginatedTEA(teaWithInstances, query)
 
-            assertNotNull(range)
-            if (range == null) return@runTest
+        assertNotNull(range)
 
-            assertEquals(2, newTeas[teaIncoming]?.size)
-            assertEquals(2, newTeas[teaOutgoing]?.size)
+        assertEquals(2, newTeas[teaIncoming]?.size)
+        assertEquals(2, newTeas[teaOutgoing]?.size)
 
-            assertEquals(leastRecentTimestamp.plusMinutes(1).plusSeconds(59), range.second)
-            assertEquals(timeAt, range.first)
-        }
+        assertEquals(leastRecentTimestamp.plusMinutes(1).plusSeconds(59), range!!.second)
+        assertEquals(timeAt, range.first)
+    }
 }

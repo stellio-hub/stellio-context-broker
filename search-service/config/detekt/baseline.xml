@@ -14,7 +14,6 @@
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should return an empty list for an attribute if it has no temporal values`()</ID>
-    <ID>LongMethod:TemporalEntityBuilderTests.kt$TemporalEntityBuilderTests$@Test fun `it should return a temporal entity with values aggregated`()</ID>
     <ID>LongMethod:TemporalScopeBuilderTests.kt$TemporalScopeBuilderTests$@Test fun `it should build an aggregated temporal representation of scopes`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI = generateRandomInstanceId(), timeAndProperty: Pair&lt;ZonedDateTime, TemporalProperty&gt;, value: Triple&lt;String?, Double?, WKTCoordinates?&gt;, payload: ExpandedAttributeInstance, sub: String? )</ID>
@@ -27,7 +26,6 @@
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( temporalEntityAttribute: TemporalEntityAttribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>ReturnCount:EntitiesQueryUtils.kt$fun buildTemporalQuery( params: MultiValueMap&lt;String, String&gt;, inQueryEntities: Boolean = false, withAggregatedValues: Boolean = false ): Either&lt;APIException, TemporalQuery&gt;</ID>
     <ID>SwallowedException:EntitiesQueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>TooManyFunctions:EntityPayloadService.kt$EntityPayloadService</ID>
   </CurrentIssues>

@@ -45,11 +45,9 @@ object TemporalApiResponses {
             contexts
         )
 
-        if (range == null) {
-            return successResponse
-        }
-
-        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
+        return if (range == null)
+            successResponse
+        else ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
             this.headers(
                 successResponse.headers
             )
@@ -67,17 +65,18 @@ object TemporalApiResponses {
         range: Range?
     ): ResponseEntity.BodyBuilder {
         val successResponseHeader = prepareGetSuccessResponseHeaders(mediaType, contexts)
-        if (range == null) return successResponseHeader
-        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-            .apply {
-                this.header(
-                    HttpHeaders.CONTENT_RANGE,
-                    getHeaderRange(range, query.temporalQuery)
-                )
-                this.headers(
-                    successResponseHeader.body("").headers
-                )
-            }
+
+        return if (range == null)
+            successResponseHeader
+        else ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
+            this.headers(
+                successResponseHeader.body("").headers
+            )
+            this.header(
+                HttpHeaders.CONTENT_RANGE,
+                getHeaderRange(range, query.temporalQuery)
+            )
+        }
     }
 
     private fun getHeaderRange(range: Range, temporalQuery: TemporalQuery): String {

@@ -11,9 +11,9 @@ typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 object TemporalPaginationService {
 
     fun getRangeAndPaginatedTEA(
-        teaWithInstances: TEAWithinstances,
+        teaWithInstances: TEAWithInstances,
         query: TemporalEntitiesQuery,
-    ): Pair<TEAWithinstances, Range?> {
+    ): Pair<TEAWithInstances, Range?> {
         val temporalQuery = query.temporalQuery
         if (temporalQuery.isLastNInsideLimit()) {
             return teaWithInstances to null
@@ -31,14 +31,13 @@ object TemporalPaginationService {
         return paginatedTEAWithinstances to range
     }
 
-    private fun getAttributesWhoReachedLimit(teaWithInstances: TEAWithinstances, query: TemporalEntitiesQuery):
-        List<List<AttributeInstanceResult>> {
-        val temporalQuery = query.temporalQuery
-
-        return teaWithInstances.values.filter { instances ->
-            instances.size >= temporalQuery.instanceLimit
+    private fun getAttributesWhoReachedLimit(
+        teaWithInstances: TEAWithInstances,
+        query: TemporalEntitiesQuery
+    ): List<List<AttributeInstanceResult>> =
+        teaWithInstances.values.filter { instances ->
+            instances.size >= query.temporalQuery.instanceLimit
         }
-    }
 
     private fun getTemporalPaginationRange(
         attributeInstancesWhoReachedLimit: List<List<AttributeInstanceResult>>,
@@ -48,7 +47,7 @@ object TemporalPaginationService {
         val limit = temporalQuery.instanceLimit
 
         val attributesTimeRanges = attributeInstancesWhoReachedLimit.map {
-            return@map it[0].getComparableTime() to if (query.withAggregatedValues) {
+            it[0].getComparableTime() to if (query.withAggregatedValues) {
                 val lastInstance = it[limit - 1] as AggregatedAttributeInstanceResult
                 lastInstance.values.first().endDateTime
             } else {
@@ -78,13 +77,12 @@ object TemporalPaginationService {
     }
 
     private fun filterInRange(
-        teaWithInstances: TEAWithinstances,
+        teaWithInstances: TEAWithInstances,
         range: Range,
-    ): TEAWithinstances {
-        return teaWithInstances.mapNotNull { (key, value) ->
-            return@mapNotNull key to value.filter { range.contain(it.getComparableTime()) }
-        }.toMap()
-    }
+    ): TEAWithInstances =
+        teaWithInstances.mapValues { (_, value) ->
+            value.filter { range.contain(it.getComparableTime()) }
+        }
 
     private fun Range.contain(time: ZonedDateTime): Boolean =
         (this.first >= time && time >= this.second) || (this.first <= time && time <= this.second)

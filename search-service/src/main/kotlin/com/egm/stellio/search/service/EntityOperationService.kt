@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.AuthorizationService
+import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
 import com.egm.stellio.search.web.*
 import com.egm.stellio.shared.model.APIException
@@ -21,7 +22,8 @@ import java.net.URI
 class EntityOperationService(
     private val entityPayloadService: EntityPayloadService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -85,7 +87,13 @@ class EntityOperationService(
         val creationResults = entities.map { jsonLdNgsiLdEntity ->
             either {
                 entityPayloadService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub)
-                    .map {
+                    .onRight {
+                        entityEventService.publishEntityCreateEvent(
+                            sub,
+                            jsonLdNgsiLdEntity.second.id,
+                            jsonLdNgsiLdEntity.second.types
+                        )
+                    }.map {
                         BatchEntitySuccess(jsonLdNgsiLdEntity.entityId())
                     }.mapLeft { apiException ->
                         BatchEntityError(jsonLdNgsiLdEntity.entityId(), arrayListOf(apiException.message))
@@ -104,13 +112,16 @@ class EntityOperationService(
         return BatchOperationResult(creationResults.second.toMutableList(), creationResults.first.toMutableList())
     }
 
-    suspend fun delete(entitiesIds: Set<URI>): BatchOperationResult {
-        val deletionResults = entitiesIds.map {
-            val entityId = it
+    suspend fun delete(entities: Set<EntityPayload>, sub: Sub?): BatchOperationResult {
+        val deletionResults = entities.map { entity ->
+            val entityId = entity.entityId
             either {
                 entityPayloadService.deleteEntity(entityId)
-                    .map {
+                    .onRight {
                         authorizationService.removeRightsOnEntity(entityId)
+                    }
+                    .onRight {
+                        entityEventService.publishEntityDeleteEvent(sub, entity)
                     }
                     .map {
                         BatchEntitySuccess(entityId)
@@ -229,21 +240,35 @@ class EntityOperationService(
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
-        ).bind()
+        ).bind().also {
+            entityEventService.publishEntityReplaceEvent(
+                sub,
+                ngsiLdEntity.id,
+                ngsiLdEntity.types
+            )
+        }
     }
 
     suspend fun updateEntity(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
-    ): Either<APIException, UpdateResult> {
+    ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        return entityPayloadService.appendAttributes(
+        entityPayloadService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
-        )
+        ).bind().also {
+            entityEventService.publishAttributeChangeEvents(
+                sub,
+                ngsiLdEntity.id,
+                jsonLdEntity.members,
+                it,
+                true
+            )
+        }
     }
 
     @SuppressWarnings("UnusedParameter")
@@ -251,13 +276,21 @@ class EntityOperationService(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
-    ): Either<APIException, UpdateResult> {
+    ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        return entityPayloadService.mergeEntity(
+        entityPayloadService.mergeEntity(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             null,
             sub
-        )
+        ).bind().also {
+            entityEventService.publishAttributeChangeEvents(
+                sub,
+                ngsiLdEntity.id,
+                jsonLdEntity.members,
+                it,
+                true
+            )
+        }
     }
 }

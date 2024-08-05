@@ -1,8 +1,9 @@
 package com.egm.stellio.search.web
 
 import arrow.core.Either
+import arrow.core.right
 import com.egm.stellio.search.config.SearchProperties
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.mockk.coEvery
@@ -25,29 +26,12 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     private val endTimeAt = "2021-01-01T00:00:00Z"
     private val range = ZonedDateTime.parse(timeAt) to ZonedDateTime.parse(endTimeAt)
     private val lastN = "100"
+    private val entityId = "urn:ngsi-ld:BeeHive:TESTC"
 
-    private suspend fun setupTemporalTestWithNonTruncatedValue() {
+    private suspend fun mockQueryEntitiesService(range: Range? = null) {
         val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/pagination/beehive_with_four_temporal_attributes_evolution.jsonld"
+            "/temporal/beehive_create_temporal_entity.jsonld"
         )
-        mockService(firstTemporalEntity)
-    }
-
-    private suspend fun setupTemporalPaginationTest() {
-        val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/pagination/beehive_with_five_temporal_attributes_evolution.jsonld"
-        )
-        mockService(firstTemporalEntity, range)
-    }
-
-    private suspend fun setupTemporalPaginationWithLastNTest() {
-        val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/pagination/beehive_with_five_temporal_attributes_evolution_temporal_values_and_lastN.jsonld"
-        )
-        mockService(firstTemporalEntity, range)
-    }
-
-    private suspend fun mockService(firstTemporalEntity: ExpandedEntity, range: Range? = null) {
         val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
@@ -61,9 +45,23 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
         )
     }
 
+    private suspend fun mockQueryEntityService(range: Range? = null) {
+        val firstTemporalEntity = loadAndExpandSampleData(
+            "/temporal/beehive_create_temporal_entity.jsonld"
+        )
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
+        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery {
+            queryService.queryTemporalEntity(any(), any())
+        } returns Either.Right(
+            firstTemporalEntity to range
+        )
+    }
+
     @Test
     fun `query temporal entity should limit to temporal pagination limit`() = runTest {
-        setupTemporalTestWithNonTruncatedValue()
+        mockQueryEntitiesService()
 
         webClient.get()
             .uri(
@@ -85,8 +83,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `query temporal entity should limit to temporal limit if lastN greater than temporal limit`() = runTest {
-        setupTemporalPaginationTest()
+    fun `query temporal entities should limit to temporal limit if lastN greater than temporal limit`() = runTest {
+        mockQueryEntitiesService()
 
         webClient.get()
             .uri(
@@ -109,8 +107,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `query temporal entity should return 200 if pagination was not triggered`() = runTest {
-        setupTemporalTestWithNonTruncatedValue()
+    fun `query temporal entities should return 200 if pagination was not triggered`() = runTest {
+        mockQueryEntitiesService()
 
         webClient.get()
             .uri(
@@ -123,8 +121,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `query temporal entity should return 206 if pagination was triggered`() = runTest {
-        setupTemporalPaginationTest()
+    fun `query temporal entities should return 206 if pagination was triggered`() = runTest {
+        mockQueryEntitiesService(range)
 
         webClient.get()
             .uri(
@@ -138,8 +136,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `query temporal entity with lastN should return well formed Content-Range header`() = runTest {
-        setupTemporalPaginationWithLastNTest()
+    fun `query temporal entities with lastN should return well formed Content-Range header`() = runTest {
+        mockQueryEntitiesService(range)
 
         webClient.get()
             .uri(
@@ -154,6 +152,24 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             .valueEquals(
                 "Content-Range",
                 "date-time ${range.first.toNgsiLdFormat()}-${range.second.toNgsiLdFormat()}/$lastN"
+            )
+    }
+
+    @Test
+    fun `query temporal entity should return 206 if pagination was triggered`() = runTest {
+        mockQueryEntityService(range)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityId?" +
+                    "timerel=after&timeAt=$timeAt"
+            )
+            .exchange()
+            .expectStatus().isEqualTo(206)
+            .expectHeader()
+            .valueEquals(
+                "Content-Range",
+                "date-time ${range.first.toNgsiLdFormat()}-${range.second.toNgsiLdFormat()}/*"
             )
     }
 }

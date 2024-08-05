@@ -31,12 +31,12 @@ object TemporalApiResponses {
         range: Range?,
         lang: String? = null,
     ): ResponseEntity<String> {
-        val ngsiLdDataRepresentation = parseRepresentations(requestParams, mediaType)
+        val baseRepresentation = parseRepresentations(requestParams, mediaType)
 
-        lang?.let { ngsiLdDataRepresentation.copy(languageFilter = it) }
+        val representation = lang?.let { baseRepresentation.copy(languageFilter = it) } ?: baseRepresentation
 
         val successResponse = buildQueryResponse(
-            entities.toFinalRepresentation(ngsiLdDataRepresentation),
+            entities.toFinalRepresentation(representation),
             total,
             resourceUrl,
             query.entitiesQuery.paginationQuery,
@@ -55,7 +55,7 @@ object TemporalApiResponses {
                 HttpHeaders.CONTENT_RANGE,
                 getHeaderRange(range, query.temporalQuery)
             )
-        }.body(serializeObject(entities.toFinalRepresentation(ngsiLdDataRepresentation)))
+        }.body(serializeObject(entities.toFinalRepresentation(representation)))
     }
 
     fun buildEntityTemporalResponse(

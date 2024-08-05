@@ -7,8 +7,6 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
-val httpHeaderFormatter =
-    DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT"))
 
 fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)

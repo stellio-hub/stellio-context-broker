@@ -15,7 +15,7 @@ object TemporalPaginationService {
         query: TemporalEntitiesQuery,
     ): Pair<TEAWithInstances, Range?> {
         val temporalQuery = query.temporalQuery
-        if (temporalQuery.isLastNInsideLimit()) {
+        if (temporalQuery.isLastNTheLimit()) {
             return teaWithInstances to null
         }
 
@@ -44,14 +44,13 @@ object TemporalPaginationService {
         query: TemporalEntitiesQuery
     ): Range {
         val temporalQuery = query.temporalQuery
-        val limit = temporalQuery.instanceLimit
 
         val attributesTimeRanges = attributeInstancesWhoReachedLimit.map {
-            it[0].getComparableTime() to if (query.withAggregatedValues) {
-                val lastInstance = it[limit - 1] as AggregatedAttributeInstanceResult
+            it.first().getComparableTime() to if (query.withAggregatedValues) {
+                val lastInstance = it.last() as AggregatedAttributeInstanceResult
                 lastInstance.values.first().endDateTime
             } else {
-                it[limit - 1].getComparableTime()
+                it.last().getComparableTime()
             }
         }
 

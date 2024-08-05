@@ -200,7 +200,6 @@ class AttributeInstanceService(
         JOIN LATERAL (
             $aiLateralQuery
         ) ai_limited ON true;
-        
         """.trimIndent()
     }
 

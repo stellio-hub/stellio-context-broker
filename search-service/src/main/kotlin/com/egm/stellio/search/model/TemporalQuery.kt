@@ -14,7 +14,7 @@ data class TemporalQuery(
 ) {
     fun hasLastN(): Boolean = lastN != null
 
-    fun isLastNInsideLimit(): Boolean = lastN != null && instanceLimit == lastN
+    fun isLastNTheLimit(): Boolean = lastN != null && instanceLimit == lastN
 
     enum class Timerel {
         BEFORE,

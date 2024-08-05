@@ -2110,7 +2110,7 @@ class EntityHandlerTests {
         coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntity(any()) } returns Unit.right()
+        coEvery { entityPayloadService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 

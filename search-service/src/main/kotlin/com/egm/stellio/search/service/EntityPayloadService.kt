@@ -659,18 +659,23 @@ class EntityPayloadService(
             .execute()
 
     @Transactional
-    suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> = either {
-        databaseClient.sql(
+    suspend fun deleteEntity(entityId: URI): Either<APIException, EntityPayload> = either {
+        val entity = databaseClient.sql(
             """
-            DELETE FROM entity_payload WHERE entity_id = :entity_id
+            DELETE FROM entity_payload
+            WHERE entity_id = :entity_id
+            RETURNING *
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .execute()
+            .oneToResult {
+                rowToEntityPaylaod(it)
+            }
             .bind()
 
         temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId).bind()
         scopeService.deleteHistory(entityId).bind()
+        entity
     }
 
     @Transactional

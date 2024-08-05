@@ -4,7 +4,6 @@ import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.model.Query
-import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
@@ -36,8 +35,7 @@ class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
     private val entityPayloadService: EntityPayloadService,
     private val queryService: QueryService,
-    private val authorizationService: AuthorizationService,
-    private val entityEventService: EntityEventService
+    private val authorizationService: AuthorizationService
 ) {
 
     /**
@@ -53,7 +51,6 @@ class EntityOperationHandler(
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val (uniqueEntities, duplicateEntities) =
-
             entityOperationService.splitEntitiesByUniqueness(parsedEntities)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(uniqueEntities)
         val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
@@ -121,11 +118,6 @@ class EntityOperationHandler(
                 else -> entityOperationService.replace(existingEntitiesAuthorized, sub.getOrNull())
             }
 
-            if (options == "update")
-                publishUpdateEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
-            else
-                publishReplaceEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
-
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
@@ -171,8 +163,6 @@ class EntityOperationHandler(
             val updateOperationResult =
                 entityOperationService.update(existingEntitiesAuthorized, disallowOverwrite, sub.getOrNull())
 
-            publishUpdateEvents(sub.getOrNull(), updateOperationResult, parsedEntities)
-
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
@@ -212,8 +202,6 @@ class EntityOperationHandler(
         if (existingEntitiesAuthorized.isNotEmpty()) {
             val mergeOperationResult =
                 entityOperationService.merge(existingEntitiesAuthorized, sub.getOrNull())
-
-            publishUpdateEvents(sub.getOrNull(), mergeOperationResult, parsedEntities)
 
             batchOperationResult.errors.addAll(mergeOperationResult.errors)
             batchOperationResult.success.addAll(mergeOperationResult.success)
@@ -261,15 +249,7 @@ class EntityOperationHandler(
         }
 
         if (entitiesUserCanDelete.isNotEmpty()) {
-            val deleteOperationResult = entityOperationService.delete(entitiesUserCanDelete.toSet())
-
-            deleteOperationResult.success.map { it.entityId }.forEach { uri ->
-                val entity = entitiesBeforeDelete.find { it.entityId == uri }!!
-                entityEventService.publishEntityDeleteEvent(
-                    sub.getOrNull(),
-                    entity
-                )
-            }
+            val deleteOperationResult = entityOperationService.delete(entitiesBeforeDelete.toSet(), sub.getOrNull())
 
             batchOperationResult.errors.addAll(deleteOperationResult.errors)
             batchOperationResult.success.addAll(deleteOperationResult.success)
@@ -391,50 +371,8 @@ class EntityOperationHandler(
         if (entitiesToCreate.isNotEmpty()) {
             val createOperationResult = entityOperationService.create(entitiesToCreate, sub.getOrNull())
             authorizationService.createOwnerRights(createOperationResult.getSuccessfulEntitiesIds(), sub)
-            entitiesToCreate
-                .filter { it.second.id in createOperationResult.getSuccessfulEntitiesIds() }
-                .forEach {
-                    val ngsiLdEntity = it.second
-                    entityEventService.publishEntityCreateEvent(
-                        sub.getOrNull(),
-                        ngsiLdEntity.id,
-                        ngsiLdEntity.types
-                    )
-                }
             batchOperationResult.errors.addAll(createOperationResult.errors)
             batchOperationResult.success.addAll(createOperationResult.success)
-        }
-    }
-
-    private suspend fun publishReplaceEvents(
-        sub: String?,
-        updateBatchOperationResult: BatchOperationResult,
-        jsonLdNgsiLdEntities: List<JsonLdNgsiLdEntity>
-    ) = jsonLdNgsiLdEntities.filter { it.entityId() in updateBatchOperationResult.getSuccessfulEntitiesIds() }
-        .forEach {
-            entityEventService.publishEntityReplaceEvent(
-                sub,
-                it.entityId(),
-                it.second.types
-            )
-        }
-
-    private suspend fun publishUpdateEvents(
-        sub: String?,
-        updateBatchOperationResult: BatchOperationResult,
-        jsonLdNgsiLdEntities: List<JsonLdNgsiLdEntity>
-    ) {
-        updateBatchOperationResult.success.forEach {
-            val (jsonLdEntity, _) = jsonLdNgsiLdEntities.find { jsonLdNgsiLdEntity ->
-                jsonLdNgsiLdEntity.entityId() == it.entityId
-            }!!
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                it.entityId,
-                jsonLdEntity.members,
-                it.updateResult!!,
-                true
-            )
         }
     }
 }

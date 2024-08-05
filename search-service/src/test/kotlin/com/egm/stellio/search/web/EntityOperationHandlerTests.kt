@@ -7,7 +7,6 @@ import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.UpdateResult
-import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityOperationService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.service.QueryService
@@ -19,10 +18,8 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -58,9 +55,6 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var authorizationService: AuthorizationService
-
-    @MockkBean(relaxed = true)
-    private lateinit var entityEventService: EntityEventService
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -313,8 +307,6 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
-        val capturedEntitiesIds = mutableListOf<URI>()
-        val capturedEntityTypes = slot<List<String>>()
 
         coEvery {
             entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities))
@@ -328,13 +320,6 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
-        coEvery {
-            entityEventService.publishEntityCreateEvent(
-                any(),
-                capture(capturedEntitiesIds),
-                capture(capturedEntityTypes)
-            )
-        } returns Job()
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -348,11 +333,6 @@ class EntityOperationHandlerTests {
         assertEquals(allEntitiesUris, capturedExpandedEntities.captured.map { it.entityId() })
 
         coVerify { authorizationService.createOwnerRights(allEntitiesUris, sub) }
-        coVerify(timeout = 1000, exactly = 3) {
-            entityEventService.publishEntityCreateEvent(any(), any(), any())
-        }
-        capturedEntitiesIds.forEach { assertTrue(it in allEntitiesUris) }
-        assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
     }
 
     @Test
@@ -360,8 +340,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
-        val capturedEntitiesIds = mutableListOf<URI>()
-        val capturedEntityTypes = slot<List<String>>()
 
         coEvery {
             entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities))
@@ -385,13 +363,6 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
-        coEvery {
-            entityEventService.publishEntityCreateEvent(
-                any(),
-                capture(capturedEntitiesIds),
-                capture(capturedEntityTypes)
-            )
-        } returns Job()
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -416,11 +387,6 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createOwnerRights(createdEntitiesIds, sub) }
-        coVerify(timeout = 1000, exactly = 2) {
-            entityEventService.publishEntityCreateEvent(any(), any(), any())
-        }
-        capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
-        assertTrue(capturedEntityTypes.captured[0] in listOf(SENSOR_TYPE, DEVICE_TYPE))
     }
 
     @Test
@@ -428,8 +394,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
         val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
-        val capturedEntitiesIds = mutableListOf<URI>()
-        val capturedEntityTypes = slot<List<String>>()
 
         coEvery {
             entityOperationService.splitEntitiesByUniqueness(any())
@@ -451,13 +415,6 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
-        coEvery {
-            entityEventService.publishEntityCreateEvent(
-                any(),
-                capture(capturedEntitiesIds),
-                capture(capturedEntityTypes)
-            )
-        } returns Job()
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -514,8 +471,6 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
-
-        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -570,13 +525,9 @@ class EntityOperationHandlerTests {
         coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
         coEvery { authorizationService.createOwnerRights(any(), eq(sub)) } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
-        coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
-        } returns Job()
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -587,22 +538,6 @@ class EntityOperationHandlerTests {
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
         coVerify { authorizationService.createOwnerRights(createdEntitiesIds, sub) }
-        coVerify {
-            entityEventService.publishEntityCreateEvent(
-                eq(sub.value),
-                match { it in createdEntitiesIds },
-                eq(listOf(SENSOR_TYPE))
-            )
-        }
-        coVerify(timeout = 1000, exactly = 2) {
-            entityEventService.publishAttributeChangeEvents(
-                eq(sub.value),
-                match { it in updatedEntitiesIds },
-                any(),
-                match { it in updatedBatchResult.success.map { it.updateResult } },
-                true
-            )
-        }
     }
 
     @Test
@@ -691,7 +626,6 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { authorizationService.createOwnerRights(listOf(deviceUri), sub) }
-        coVerify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any()) }
     }
 
     @Test
@@ -715,7 +649,6 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -726,13 +659,6 @@ class EntityOperationHandlerTests {
         coVerify { entityOperationService.create(any(), any()) wasNot Called }
         coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
         coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
-        coVerify(timeout = 1000, exactly = 2) {
-            entityEventService.publishEntityReplaceEvent(
-                eq(sub.value),
-                match { it in entitiesIds },
-                eq(listOf(SENSOR_TYPE))
-            )
-        }
     }
 
     @Test
@@ -772,7 +698,6 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { entityEventService wasNot called }
         coVerify { entityOperationService.replace(any(), any()) wasNot Called }
     }
 
@@ -824,13 +749,6 @@ class EntityOperationHandlerTests {
             )
 
         coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
-        coVerify {
-            entityEventService.publishEntityReplaceEvent(
-                eq(sub.value),
-                eq(temperatureSensorUri),
-                eq(listOf(SENSOR_TYPE))
-            )
-        }
     }
 
     @Test
@@ -868,7 +786,7 @@ class EntityOperationHandlerTests {
             Pair(allEntitiesUris, emptyList())
         }
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityOperationService.delete(any()) } returns
+        coEvery { entityOperationService.delete(any(), any()) } returns
             BatchOperationResult(
                 allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
                 mutableListOf()
@@ -889,20 +807,12 @@ class EntityOperationHandlerTests {
                     every { types } returns listOf(DEVICE_TYPE)
                 }
             )
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         webClient.post()
             .uri(batchDeleteEndpoint)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
-
-        coVerify(timeout = 1000, exactly = 3) {
-            entityEventService.publishEntityDeleteEvent(
-                eq(sub.value),
-                any()
-            )
-        }
     }
 
     @Test
@@ -919,8 +829,7 @@ class EntityOperationHandlerTests {
 
         coVerify { entityOperationService.splitEntitiesIdsByExistence(allEntitiesUris) }
         coVerify { entityPayloadService wasNot called }
-        coVerify { entityOperationService.delete(any()) wasNot Called }
-        verify { entityEventService wasNot called }
+        coVerify { entityOperationService.delete(any(), any()) wasNot Called }
     }
 
     @Test
@@ -967,8 +876,7 @@ class EntityOperationHandlerTests {
 
         performBatchDeleteAndCheck207Response(ENTITY_DELETE_FORBIDDEN_MESSAGE)
 
-        coVerify { entityOperationService.delete(any()) wasNot Called }
-        verify { entityEventService wasNot called }
+        coVerify { entityOperationService.delete(any(), any()) wasNot Called }
     }
 
     private fun performBatchDeleteAndCheck207Response(expectedErrorMessage: String) {

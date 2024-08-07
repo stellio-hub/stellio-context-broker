@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.util.toExpandedAttributeInstance
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
@@ -94,7 +95,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val expandedAttributes = JsonLdUtils.expandAttributes(
             """
             { 
-                "scope": [${inputScopes.joinToString(",") { "\"$it\"" } }]
+                "scope": [${inputScopes.joinToString(",") { "\"$it\"" }}]
             }
             """.trimIndent(),
             APIC_COMPOUND_CONTEXTS
@@ -138,7 +139,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
+                buildDefaultTestTemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false
@@ -164,7 +165,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime()
@@ -194,7 +195,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
@@ -228,7 +229,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
@@ -263,7 +264,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         paginationQuery = PaginationQuery(limit = 100, offset = 0),
                         contexts = APIC_COMPOUND_CONTEXTS
                     ),
-                    TemporalQuery(
+                    buildDefaultTestTemporalQuery(
                         timeproperty = TemporalProperty.MODIFIED_AT,
                         aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                         aggrPeriodDuration = "PT0S"
@@ -295,12 +296,13 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(
+                buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
                     aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                     aggrPeriodDuration = "PT1S",
+                    instanceLimit = 1,
                     lastN = 1
                 ),
                 withTemporalValues = false,
@@ -338,7 +340,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                TemporalQuery(),
+                buildDefaultTestTemporalQuery(),
                 withTemporalValues = false,
                 withAudit = false,
                 withAggregatedValues = false

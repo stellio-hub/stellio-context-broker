@@ -2,8 +2,6 @@ package com.egm.stellio.search.model
 
 import java.time.ZonedDateTime
 
-const val WHOLE_TIME_RANGE_DURATION = "PT0S"
-
 data class TemporalQuery(
     val timerel: Timerel? = null,
     val timeAt: ZonedDateTime? = null,
@@ -11,8 +9,13 @@ data class TemporalQuery(
     val aggrPeriodDuration: String? = null,
     val aggrMethods: List<Aggregate>? = null,
     val lastN: Int? = null,
+    val instanceLimit: Int,
     val timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) {
+    fun hasLastN(): Boolean = lastN != null
+
+    fun isLastNTheLimit(): Boolean = lastN != null && instanceLimit == lastN
+
     enum class Timerel {
         BEFORE,
         AFTER,

@@ -113,10 +113,13 @@ class ScopeService(
             sqlQueryBuilder.append(" GROUP BY entity_id, start")
         else if (temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(" GROUP BY entity_id")
-        if (temporalQuery.lastN != null)
-            // in order to get last instances, need to order by time desc
+        if (temporalQuery.hasLastN())
+            // in order to get first or last instances, need to order by time
             // final ascending ordering of instances is done in query service
-            sqlQueryBuilder.append(" ORDER BY start DESC LIMIT ${temporalQuery.lastN}")
+            sqlQueryBuilder.append(" ORDER BY start DESC")
+        else sqlQueryBuilder.append(" ORDER BY start ASC")
+
+        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit}")
 
         return databaseClient.sql(sqlQueryBuilder.toString())
             .bind("entities_ids", entitiesIds)

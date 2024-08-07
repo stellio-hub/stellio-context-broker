@@ -1,6 +1,10 @@
 package com.egm.stellio.search.support
 
+import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.TemporalQuery.Aggregate
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.AuthContextModel
@@ -21,6 +25,37 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
+
+@SuppressWarnings("LongParameterList")
+fun buildDefaultTestTemporalQuery(
+    timerel: TemporalQuery.Timerel? = null,
+    timeAt: ZonedDateTime? = null,
+    endTimeAt: ZonedDateTime? = null,
+    aggrPeriodDuration: String? = null,
+    aggrMethods: List<Aggregate>? = null,
+    lastN: Int? = null,
+    instanceLimit: Int = 100,
+    timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+) = TemporalQuery(
+    timerel = timerel,
+    timeAt = timeAt,
+    endTimeAt = endTimeAt,
+    aggrPeriodDuration = aggrPeriodDuration,
+    aggrMethods = aggrMethods,
+    lastN = lastN,
+    instanceLimit = instanceLimit,
+    timeproperty = timeproperty
+)
+
+fun buildDefaultPagination(
+    limitDefault: Int = 50,
+    limitMax: Int = 100,
+    temporalLimit: Int = 100
+) = ApplicationProperties.Pagination(
+    limitDefault = limitDefault,
+    limitMax = limitMax,
+    temporalLimit = temporalLimit,
+)
 
 fun buildAttributeInstancePayload(
     value: Any,

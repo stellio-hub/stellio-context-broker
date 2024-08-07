@@ -447,7 +447,7 @@ class AggregatedQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         aggrPeriodDuration: String = "P1D"
     ): TemporalEntitiesQuery =
         gimmeTemporalEntitiesQuery(
-            TemporalQuery(
+            buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 aggrPeriodDuration = aggrPeriodDuration,

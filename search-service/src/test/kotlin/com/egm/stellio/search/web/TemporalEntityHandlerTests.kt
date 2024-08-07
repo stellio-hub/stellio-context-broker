@@ -4,28 +4,21 @@ import arrow.core.Either
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.core.io.ClassPathResource
@@ -33,10 +26,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
-import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -45,41 +35,11 @@ import java.util.UUID
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
-class TemporalEntityHandlerTests {
-
-    @Autowired
-    private lateinit var webClient: WebTestClient
-
-    @MockkBean(relaxed = true)
-    private lateinit var queryService: QueryService
-
-    @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
-
-    @MockkBean
-    private lateinit var attributeInstanceService: AttributeInstanceService
-
-    @MockkBean(relaxed = true)
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
-
-    @MockkBean
-    private lateinit var authorizationService: AuthorizationService
+class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val temporalEntityAttributeName = "speed"
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
-
-    @BeforeAll
-    fun configureWebClientDefaults() {
-        webClient = webClient.mutate()
-            .apply(mockJwt().jwt { it.subject(MOCK_USER_SUB) })
-            .apply(csrf())
-            .defaultHeaders {
-                it.accept = listOf(JSON_LD_MEDIA_TYPE)
-                it.contentType = JSON_LD_MEDIA_TYPE
-            }
-            .build()
-    }
 
     private fun buildDefaultMockResponsesForAddAttributes() {
         coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
@@ -366,7 +326,7 @@ class TemporalEntityHandlerTests {
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -383,7 +343,7 @@ class TemporalEntityHandlerTests {
         buildDefaultMockResponsesForGetEntity()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=startTime")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=2020-10-29T18:00:00Z")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -556,7 +516,7 @@ class TemporalEntityHandlerTests {
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -590,7 +550,7 @@ class TemporalEntityHandlerTests {
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -611,7 +571,7 @@ class TemporalEntityHandlerTests {
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns returnedExpandedEntity.right()
+        } returns (returnedExpandedEntity to null).right()
 
         webClient.get()
             .uri(
@@ -711,7 +671,7 @@ class TemporalEntityHandlerTests {
         else
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
-        val entityWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
+        val entityResponseWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
             temporalEntityAttributeService.getForEntity(any(), any(), any())
         } returns listOf(entityTemporalProperties[0], entityTemporalProperties[1])
@@ -735,7 +695,7 @@ class TemporalEntityHandlerTests {
 
         coEvery {
             queryService.queryTemporalEntity(any(), any())
-        } returns entityWith2temporalEvolutions.right()
+        } returns (entityResponseWith2temporalEvolutions to null).right()
     }
 
     @Test
@@ -759,7 +719,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
@@ -768,7 +728,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(emptyList(), 2))
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -804,7 +764,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -830,7 +790,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -858,7 +818,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -880,7 +840,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -896,7 +856,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -918,7 +878,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -945,7 +905,7 @@ class TemporalEntityHandlerTests {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any())
-        } returns Either.Right(Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3))
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 3, null))
 
         webClient.get()
             .uri(

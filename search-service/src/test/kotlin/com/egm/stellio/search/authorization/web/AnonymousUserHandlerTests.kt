@@ -4,8 +4,8 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.web.EntityHandler
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -30,7 +30,7 @@ class AnonymousUserHandlerTests {
     private lateinit var webClient: WebTestClient
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var entityAttributeService: EntityAttributeService

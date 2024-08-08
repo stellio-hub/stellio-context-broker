@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono
 
 @Component
 class ObservationEventListener(
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -70,7 +70,7 @@ class ObservationEventListener(
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
         mono {
-            entityPayloadService.createEntity(
+            entityService.createEntity(
                 ngsiLdEntity,
                 expandedEntity,
                 observationEvent.sub
@@ -95,7 +95,7 @@ class ObservationEventListener(
         )
 
         mono {
-            entityPayloadService.partialUpdateAttribute(
+            entityService.partialUpdateAttribute(
                 observationEvent.entityId,
                 expandedAttribute,
                 observationEvent.sub
@@ -132,7 +132,7 @@ class ObservationEventListener(
         )
 
         mono {
-            entityPayloadService.appendAttributes(
+            entityService.appendAttributes(
                 observationEvent.entityId,
                 expandedAttribute.toExpandedAttributes(),
                 !observationEvent.overwrite,

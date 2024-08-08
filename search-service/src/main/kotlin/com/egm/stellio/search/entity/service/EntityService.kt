@@ -29,7 +29,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
-class EntityPayloadService(
+class EntityService(
     private val databaseClient: DatabaseClient,
     private val entityAttributeService: EntityAttributeService,
     private val scopeService: ScopeService

@@ -6,8 +6,8 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQuery
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -35,7 +35,7 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val queryService: EntityQueryService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
@@ -56,9 +56,9 @@ class EntityHandler(
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
         authorizationService.userCanCreateEntities(sub).bind()
-        entityPayloadService.checkEntityExistence(ngsiLdEntity.id, true).bind()
+        entityService.checkEntityExistence(ngsiLdEntity.id, true).bind()
 
-        entityPayloadService.createEntity(
+        entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
             sub.getOrNull()
@@ -91,7 +91,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val (body, contexts) =
@@ -103,7 +103,7 @@ class EntityHandler(
 
         val expandedAttributes = expandAttributes(body, contexts)
 
-        val updateResult = entityPayloadService.mergeEntity(
+        val updateResult = entityService.mergeEntity(
             entityId,
             expandedAttributes,
             observedAt,
@@ -149,14 +149,14 @@ class EntityHandler(
         val expandedEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         if (ngsiLdEntity.id != entityId)
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
                 .left().bind<ResponseEntity<*>>()
 
-        entityPayloadService.replaceEntity(
+        entityService.replaceEntity(
             entityId,
             ngsiLdEntity,
             expandedEntity,
@@ -239,7 +239,7 @@ class EntityHandler(
             contexts
         ).bind()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
 
         authorizationService.userCanReadEntity(entityId, sub).bind()
 
@@ -269,11 +269,11 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        val entity = entityPayloadService.retrieve(entityId).bind()
-        entityPayloadService.deleteEntity(entityId).bind()
+        val entity = entityService.retrieve(entityId).bind()
+        entityService.deleteEntity(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
         entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entity)
@@ -298,7 +298,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
@@ -306,7 +306,7 @@ class EntityHandler(
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val updateResult = entityPayloadService.appendAttributes(
+        val updateResult = entityService.appendAttributes(
             entityId,
             expandedAttributes,
             disallowOverwrite,
@@ -354,10 +354,10 @@ class EntityHandler(
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        val updateResult = entityPayloadService.updateAttributes(
+        val updateResult = entityService.updateAttributes(
             entityId,
             expandedAttributes,
             sub.getOrNull()
@@ -402,7 +402,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
@@ -411,7 +411,7 @@ class EntityHandler(
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
-        entityPayloadService.partialUpdateAttribute(
+        entityService.partialUpdateAttribute(
             entityId,
             expandedAttribute,
             sub.getOrNull()
@@ -460,7 +460,7 @@ class EntityHandler(
 
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
-        entityPayloadService.deleteAttribute(
+        entityService.deleteAttribute(
             entityId,
             expandedAttrId,
             datasetId,
@@ -498,12 +498,12 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        entityPayloadService.checkEntityExistence(entityId).bind()
+        entityService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
-        entityPayloadService.replaceAttribute(entityId, expandedAttribute, sub.getOrNull()).bind()
+        entityService.replaceAttribute(entityId, expandedAttribute, sub.getOrNull()).bind()
             .let {
                 if (it.updated.isEmpty())
                     ResourceNotFoundException(it.notUpdated[0].reason).left()

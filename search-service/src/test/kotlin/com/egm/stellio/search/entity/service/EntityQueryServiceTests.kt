@@ -25,13 +25,13 @@ class EntityQueryServiceTests {
     private lateinit var queryService: EntityQueryService
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
 
         queryService.queryEntity(entityUri)
             .shouldSucceedWith {
@@ -43,7 +43,7 @@ class EntityQueryServiceTests {
 
     @Test
     fun `it should return an API exception if no entity exists with the given id`() = runTest {
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns ResourceNotFoundException("").left()
+        coEvery { entityService.retrieve(any<URI>()) } returns ResourceNotFoundException("").left()
 
         queryService.queryEntity(entityUri)
             .shouldFail {
@@ -53,9 +53,9 @@ class EntityQueryServiceTests {
 
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
-        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
-        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
-        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns listOf(gimmeEntityPayload())
+        coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityService.retrieve(any<List<URI>>()) } returns listOf(gimmeEntityPayload())
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
             .shouldSucceedWith {
@@ -68,8 +68,8 @@ class EntityQueryServiceTests {
 
     @Test
     fun `it should return an empty list if no entity matched the query`() = runTest {
-        coEvery { entityPayloadService.queryEntities(any(), any()) } returns emptyList()
-        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 0.right()
+        coEvery { entityService.queryEntities(any(), any()) } returns emptyList()
+        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 0.right()
 
         queryService.queryEntities(buildDefaultQueryParams()) { null }
             .shouldSucceedWith {

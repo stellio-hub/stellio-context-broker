@@ -20,7 +20,7 @@ import java.net.URI
  */
 @Component
 class EntityOperationService(
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val entityAttributeService: EntityAttributeService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
@@ -49,7 +49,7 @@ class EntityOperationService(
         extractIdFunc: (T) -> URI
     ): Pair<List<T>, List<T>> {
         val existingEntitiesIds =
-            entityPayloadService.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
+            entityService.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
         return entities.partition { existingEntitiesIds.contains(extractIdFunc.invoke(it)) }
     }
 
@@ -86,7 +86,7 @@ class EntityOperationService(
     ): BatchOperationResult {
         val creationResults = entities.map { jsonLdNgsiLdEntity ->
             either {
-                entityPayloadService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub)
+                entityService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub)
                     .onRight {
                         entityEventService.publishEntityCreateEvent(
                             sub,
@@ -116,7 +116,7 @@ class EntityOperationService(
         val deletionResults = entities.map { entity ->
             val entityId = entity.entityId
             either {
-                entityPayloadService.deleteEntity(entityId)
+                entityService.deleteEntity(entityId)
                     .onRight {
                         authorizationService.removeRightsOnEntity(entityId)
                     }
@@ -235,7 +235,7 @@ class EntityOperationService(
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
         entityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
-        entityPayloadService.appendAttributes(
+        entityService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
@@ -255,7 +255,7 @@ class EntityOperationService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityPayloadService.appendAttributes(
+        entityService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
@@ -278,7 +278,7 @@ class EntityOperationService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityPayloadService.mergeEntity(
+        entityService.mergeEntity(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),
             null,

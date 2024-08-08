@@ -7,7 +7,7 @@ import com.egm.stellio.search.authorization.model.User
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.authorization.service.EntityAccessRightsService
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -61,7 +61,7 @@ class EntityAccessControlHandlerTests {
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @MockkBean(relaxed = true)
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
@@ -405,7 +405,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+        coEvery { entityService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -418,7 +418,7 @@ class EntityAccessControlHandlerTests {
         coVerify {
             authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
-            entityPayloadService.updateSpecificAccessPolicy(
+            entityService.updateSpecificAccessPolicy(
                 eq(entityUri1),
                 match {
                     it.getAttributeInstances().size == 1 &&
@@ -442,7 +442,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+        coEvery { entityService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -453,7 +453,7 @@ class EntityAccessControlHandlerTests {
         coVerify {
             authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
-            entityPayloadService.updateSpecificAccessPolicy(
+            entityService.updateSpecificAccessPolicy(
                 eq(entityUri1),
                 match {
                     it.getAttributeInstances().size == 1 &&
@@ -477,7 +477,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
+        coEvery { entityService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         val expectedAttr = "https://uri.etsi.org/ngsi-ld/default-context/specificAccessPolicy"
 
@@ -509,7 +509,7 @@ class EntityAccessControlHandlerTests {
 
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.updateSpecificAccessPolicy(any(), any())
+            entityService.updateSpecificAccessPolicy(any(), any())
         } returns BadRequestDataException("Bad request").left()
 
         webClient.post()
@@ -533,7 +533,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.updateSpecificAccessPolicy(any(), any()) } throws RuntimeException()
+        coEvery { entityService.updateSpecificAccessPolicy(any(), any()) } throws RuntimeException()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -562,7 +562,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should allow an authorized user to delete the specific access policy on an entity`() {
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.removeSpecificAccessPolicy(any()) } returns Unit.right()
+        coEvery { entityService.removeSpecificAccessPolicy(any()) } returns Unit.right()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -573,7 +573,7 @@ class EntityAccessControlHandlerTests {
         coVerify {
             authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
 
-            entityPayloadService.removeSpecificAccessPolicy(eq(entityUri1))
+            entityService.removeSpecificAccessPolicy(eq(entityUri1))
         }
     }
 

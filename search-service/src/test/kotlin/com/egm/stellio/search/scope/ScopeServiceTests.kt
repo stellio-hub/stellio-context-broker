@@ -3,7 +3,7 @@ package com.egm.stellio.search.scope
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.EntityPayload
 import com.egm.stellio.search.entity.model.OperationType
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
@@ -38,7 +38,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private lateinit var scopeService: ScopeService
 
     @Autowired
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -95,7 +95,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         val expandedAttributes = JsonLdUtils.expandAttributes(
             """
@@ -113,7 +113,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             operationType
         ).shouldSucceed()
 
-        entityPayloadService.retrieve(beehiveTestCId)
+        entityService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()
@@ -124,7 +124,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private suspend fun createScopeHistory() {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),
@@ -421,7 +421,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 

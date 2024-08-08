@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   kafka:
     image: confluentinc/cp-kafka:7.6.0

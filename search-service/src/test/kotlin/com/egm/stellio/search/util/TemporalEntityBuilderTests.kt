@@ -1,11 +1,15 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.temporal.util.TemporalEntityAttributeInstancesResult
+import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

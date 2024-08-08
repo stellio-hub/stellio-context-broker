@@ -1,11 +1,11 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeEntityPayload
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData

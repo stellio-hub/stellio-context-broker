@@ -1,6 +1,12 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.model.*
+import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty

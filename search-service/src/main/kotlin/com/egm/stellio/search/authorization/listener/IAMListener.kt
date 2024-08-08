@@ -11,7 +11,7 @@ import com.egm.stellio.search.authorization.service.EntityAccessRightsService
 import com.egm.stellio.search.authorization.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
@@ -40,7 +40,7 @@ class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
     private val searchProperties: SearchProperties,
     private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val entityEventService: EntityEventService
 ) {
 
@@ -117,7 +117,7 @@ class IAMListener(
                     val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
                     entitiesIds?.let { entityAccessRightsService.deleteAllAccessRightsOnEntities(it) }
                     entitiesIds?.forEach { entityId ->
-                        entityPayloadService.deleteEntity(entityId).getOrNull()?.also {
+                        entityService.deleteEntity(entityId).getOrNull()?.also {
                             entityEventService.publishEntityDeleteEvent(null, it)
                         }
                     }

@@ -6,8 +6,8 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -59,7 +59,7 @@ class EntityHandlerTests {
     private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var queryService: EntityQueryService
@@ -94,9 +94,9 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
@@ -110,8 +110,8 @@ class EntityHandlerTests {
 
         coVerify {
             authorizationService.userCanCreateEntities(sub)
-            entityPayloadService.checkEntityExistence(any(), true)
-            entityPayloadService.createEntity(
+            entityService.checkEntityExistence(any(), true)
+            entityService.createEntity(
                 match<NgsiLdEntity> {
                     it.id == breedingServiceId
                 },
@@ -135,7 +135,7 @@ class EntityHandlerTests {
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.checkEntityExistence(any(), any())
+            entityService.checkEntityExistence(any(), any())
         } returns AlreadyExistsException("Already Exists").left()
 
         webClient.post()
@@ -157,9 +157,9 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
         } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -229,10 +229,10 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any(), any()) } returns Unit.right()
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         coEvery {
-            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
         } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
 
         webClient.post()
@@ -276,8 +276,8 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForGetEntityById() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanReadEntity(beehiveId, sub) } returns Unit.right()
     }
 
@@ -820,7 +820,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should return 404 when entity does not exist`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")).left()
 
         webClient.get()
@@ -837,8 +837,8 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 403 if user is not authorized to read an entity`() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanReadEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub)
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
@@ -1131,10 +1131,10 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(breedingServiceId) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(breedingServiceId, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
+            entityService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityReplaceEvent(any(), any(), any()) } returns Job()
 
@@ -1146,8 +1146,8 @@ class EntityHandlerTests {
 
         coVerify {
             authorizationService.userCanUpdateEntity(breedingServiceId, sub)
-            entityPayloadService.checkEntityExistence(breedingServiceId)
-            entityPayloadService.replaceEntity(
+            entityService.checkEntityExistence(breedingServiceId)
+            entityService.replaceEntity(
                 eq(breedingServiceId),
                 match<NgsiLdEntity> {
                     it.id == breedingServiceId
@@ -1170,7 +1170,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(breedingServiceId) } returns Unit.right()
         coEvery {
             authorizationService.userCanUpdateEntity(breedingServiceId, sub)
         } returns AccessDeniedException("User forbidden to modify entity").left()
@@ -1197,7 +1197,7 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery {
-            entityPayloadService.checkEntityExistence(eq(breedingServiceId))
+            entityService.checkEntityExistence(eq(breedingServiceId))
         } returns ResourceNotFoundException(entityNotFoundMessage(breedingServiceId.toString())).left()
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1205,7 +1205,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
 
-        coVerify { entityPayloadService.checkEntityExistence(eq(breedingServiceId)) }
+        coVerify { entityService.checkEntityExistence(eq(breedingServiceId)) }
     }
 
     @Test
@@ -1213,7 +1213,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0215".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(breedingServiceId) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(breedingServiceId) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(breedingServiceId, sub) } returns Unit.right()
 
         webClient.put()
@@ -1250,8 +1250,8 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForAppendAttribute() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(breedingServiceType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(breedingServiceType).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns Unit.right()
@@ -1277,7 +1277,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1289,9 +1289,9 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.appendAttributes(
+            entityService.appendAttributes(
                 eq(entityId),
                 any(),
                 eq(false),
@@ -1326,7 +1326,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns appendResult.right()
 
         webClient.post()
@@ -1346,8 +1346,8 @@ class EntityHandlerTests {
             )
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.appendAttributes(
+            entityService.checkEntityExistence(eq(entityId))
+            entityService.appendAttributes(
                 eq(entityId),
                 any(),
                 eq(false),
@@ -1376,7 +1376,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns appendTypeResult.right()
 
         webClient.post()
@@ -1388,8 +1388,8 @@ class EntityHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.NO_CONTENT)
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
-            entityPayloadService.appendAttributes(
+            entityService.checkEntityExistence(eq(entityId))
+            entityService.appendAttributes(
                 eq(entityId),
                 any(),
                 eq(false),
@@ -1422,7 +1422,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForAppendAttribute()
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns appendTypeResult.mergeWith(appendResult).right()
 
         webClient.post()
@@ -1461,7 +1461,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         coEvery {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
         } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
 
         webClient.post()
@@ -1477,7 +1477,7 @@ class EntityHandlerTests {
             )
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
         }
         verify {
             entityEventService wasNot called
@@ -1497,10 +1497,10 @@ class EntityHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns BadRequestDataException(
             "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
         ).left()
@@ -1528,8 +1528,8 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(breedingServiceType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(breedingServiceType).right()
         coEvery {
             authorizationService.userCanUpdateEntity(entityId, sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:BreedingService:0214").left()
@@ -1555,8 +1555,8 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForPartialUpdateAttribute() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
@@ -1574,7 +1574,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
@@ -1589,9 +1589,9 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
+            entityService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1611,7 +1611,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
 
         webClient.patch()
@@ -1622,7 +1622,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
 
-        coVerify { entityPayloadService.checkEntityExistence(eq(entityId)) }
+        coVerify { entityService.checkEntityExistence(eq(entityId)) }
     }
 
     @Test
@@ -1633,7 +1633,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForPartialUpdateAttribute()
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(),
             notUpdated = arrayListOf(
@@ -1653,7 +1653,7 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         coVerify {
-            entityPayloadService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
+            entityService.partialUpdateAttribute(eq(entityId), any(), sub.getOrNull())
         }
     }
 
@@ -1663,8 +1663,8 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val attrId = "fishNumber"
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
@@ -1690,8 +1690,8 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForUpdateAttribute() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
@@ -1715,10 +1715,10 @@ class EntityHandlerTests {
             notUpdated = emptyList()
         )
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any())
+            entityService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
@@ -1733,9 +1733,9 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.mergeEntity(eq(entityId), any(), any(), any())
+            entityService.mergeEntity(eq(entityId), any(), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1768,10 +1768,10 @@ class EntityHandlerTests {
             notUpdated = emptyList()
         )
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityPayloadService.mergeEntity(any(), any(), any(), any())
+            entityService.mergeEntity(any(), any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
@@ -1786,9 +1786,9 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.mergeEntity(
+            entityService.mergeEntity(
                 eq(entityId),
                 any(),
                 eq(ZonedDateTime.parse("2019-12-04T12:00:00.00Z")),
@@ -1811,7 +1811,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
 
         webClient.patch()
@@ -1837,7 +1837,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
 
         webClient.patch()
@@ -1861,7 +1861,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_mergeEntity.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
@@ -1923,7 +1923,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any())
+            entityService.updateAttributes(any(), any(), any())
         } returns updateResult.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), true)
@@ -1938,9 +1938,9 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.checkEntityExistence(eq(entityId))
+            entityService.checkEntityExistence(eq(entityId))
             authorizationService.userCanUpdateEntity(eq(entityId), eq(sub))
-            entityPayloadService.updateAttributes(eq(entityId), any(), any())
+            entityService.updateAttributes(eq(entityId), any(), any())
         }
         coVerify {
             entityEventService.publishAttributeChangeEvents(
@@ -1963,7 +1963,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any())
+            entityService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
@@ -1992,7 +1992,7 @@ class EntityHandlerTests {
 
         mockkDefaultBehaviorForUpdateAttribute()
         coEvery {
-            entityPayloadService.updateAttributes(any(), any(), any())
+            entityService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = emptyList(),
             notUpdated = listOf(NotUpdatedDetails("type", "A type cannot be removed"))
@@ -2010,7 +2010,7 @@ class EntityHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
 
         coVerify {
-            entityPayloadService.updateAttributes(eq(entityId), any(), any())
+            entityService.updateAttributes(eq(entityId), any(), any())
         }
     }
 
@@ -2058,7 +2058,7 @@ class EntityHandlerTests {
             """.trimIndent()
 
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.patch()
@@ -2078,8 +2078,8 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(deadFishesType).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(deadFishesType).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC").left()
@@ -2106,11 +2106,11 @@ class EntityHandlerTests {
     fun `delete entity should return a 204 if an entity has been successfully deleted`() {
         val entity = mockkClass(EntityPayload::class, relaxed = true)
 
-        coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
+        coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
+        coEvery { entityService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
@@ -2121,10 +2121,10 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.checkEntityExistence(beehiveId)
-            entityPayloadService.retrieve(eq(beehiveId))
+            entityService.checkEntityExistence(beehiveId)
+            entityService.retrieve(eq(beehiveId))
             authorizationService.userCanAdminEntity(eq(beehiveId), eq(sub))
-            entityPayloadService.deleteEntity(eq(beehiveId))
+            entityService.deleteEntity(eq(beehiveId))
             authorizationService.removeRightsOnEntity(eq(beehiveId))
         }
         coVerify {
@@ -2138,7 +2138,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity should return a 404 if entity to be deleted has not been found`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(beehiveId)
+            entityService.checkEntityExistence(beehiveId)
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.delete()
@@ -2161,12 +2161,12 @@ class EntityHandlerTests {
     @Test
     fun `delete entity should return a 500 if entity could not be deleted`() {
         val entity = mockkClass(EntityPayload::class, relaxed = true)
-        coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns entity.right()
+        coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
+        coEvery { entityService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntity(any())
+            entityService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -2187,8 +2187,8 @@ class EntityHandlerTests {
     @Test
     fun `delete entity should return a 403 is user is not authorized to delete an entity`() {
         val entity = mockkClass(EntityPayload::class, relaxed = true)
-        coEvery { entityPayloadService.checkEntityExistence(beehiveId) } returns Unit.right()
-        coEvery { entityPayloadService.retrieve(beehiveId) } returns entity.right()
+        coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
+        coEvery { entityService.retrieve(beehiveId) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
             authorizationService.userCanAdminEntity(beehiveId, sub)
@@ -2211,7 +2211,7 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any())
@@ -2222,7 +2222,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2235,7 +2235,7 @@ class EntityHandlerTests {
 
         coVerify {
             authorizationService.userCanUpdateEntity(eq(beehiveId), eq(sub))
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 null
@@ -2256,7 +2256,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2268,7 +2268,7 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -2291,7 +2291,7 @@ class EntityHandlerTests {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -2303,7 +2303,7 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(beehiveId),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri())
@@ -2324,7 +2324,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the entity is not found`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2346,7 +2346,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the attribute is not found`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any(), any())
         } throws ResourceNotFoundException("Attribute Not Found")
 
         webClient.method(HttpMethod.DELETE)
@@ -2368,7 +2368,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 400 if the request is not correct`() {
         mockkDefaultBehaviorForDeleteAttribute()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -2392,7 +2392,7 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 403 if user is not allowed to update entity`() {
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $beehiveId").left()
@@ -2416,7 +2416,7 @@ class EntityHandlerTests {
     }
 
     private fun mockkDefaultBehaviorForReplaceAttribute() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
@@ -2428,7 +2428,7 @@ class EntityHandlerTests {
         mockkDefaultBehaviorForReplaceAttribute()
         val attributeFragment = ClassPathResource("/ngsild/fragments/beehive_new_incoming_property.json")
         coEvery {
-            entityPayloadService.replaceAttribute(any(), any(), any())
+            entityService.replaceAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)
@@ -2445,7 +2445,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.replaceAttribute(
+            entityService.replaceAttribute(
                 beehiveId,
                 match {
                     it.first == INCOMING_PROPERTY
@@ -2460,7 +2460,7 @@ class EntityHandlerTests {
         mockkDefaultBehaviorForReplaceAttribute()
         val attributeFragment = ClassPathResource("/ngsild/fragments/beehive_new_incoming_property.json")
         coEvery {
-            entityPayloadService.replaceAttribute(any(), any(), any())
+            entityService.replaceAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = emptyList(),
             notUpdated = arrayListOf(

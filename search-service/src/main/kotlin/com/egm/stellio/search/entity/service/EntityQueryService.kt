@@ -13,11 +13,11 @@ import java.net.URI
 
 @Service
 class EntityQueryService(
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
 ) {
     suspend fun queryEntity(entityId: URI): Either<APIException, ExpandedEntity> =
         either {
-            val entityPayload = entityPayloadService.retrieve(entityId).bind()
+            val entityPayload = entityService.retrieve(entityId).bind()
             toJsonLdEntity(entityPayload)
         }
 
@@ -25,14 +25,14 @@ class EntityQueryService(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
     ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
-        val entitiesIds = entityPayloadService.queryEntities(entitiesQuery, accessRightFilter)
-        val count = entityPayloadService.queryEntitiesCount(entitiesQuery, accessRightFilter).bind()
+        val entitiesIds = entityService.queryEntities(entitiesQuery, accessRightFilter)
+        val count = entityService.queryEntitiesCount(entitiesQuery, accessRightFilter).bind()
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
             return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
 
-        val entitiesPayloads = entityPayloadService.retrieve(entitiesIds).map { toJsonLdEntity(it) }
+        val entitiesPayloads = entityService.retrieve(entitiesIds).map { toJsonLdEntity(it) }
 
         Pair(entitiesPayloads, count).right().bind()
     }

@@ -6,7 +6,7 @@ import com.egm.stellio.search.authorization.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EntityPayload
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.loadSampleData
@@ -34,7 +34,7 @@ class IAMListenerTests {
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @MockkBean(relaxed = true)
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
     private lateinit var searchProperties: SearchProperties
@@ -380,7 +380,7 @@ class IAMListenerTests {
         coEvery {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
         } returns listOf(entityId).right()
-        coEvery { entityPayloadService.deleteEntity(entityId) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(entityId) } returns mockkClass(EntityPayload::class).right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
@@ -393,7 +393,7 @@ class IAMListenerTests {
             )
         }
         coVerify {
-            entityPayloadService.deleteEntity(
+            entityService.deleteEntity(
                 match {
                     it == entityId
                 }

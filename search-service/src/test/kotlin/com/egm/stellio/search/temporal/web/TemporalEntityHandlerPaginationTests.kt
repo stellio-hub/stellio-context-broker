@@ -50,8 +50,8 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             "/temporal/beehive_create_temporal_entity.jsonld"
         )
         coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
         } returns Either.Right(

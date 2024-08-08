@@ -4,7 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.*
@@ -37,7 +37,7 @@ class TemporalQueryServiceTests {
     private lateinit var queryService: TemporalQueryService
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var scopeService: ScopeService
@@ -98,7 +98,7 @@ class TemporalQueryServiceTests {
             }
 
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns teas
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
@@ -222,13 +222,13 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
-        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns
@@ -275,7 +275,7 @@ class TemporalQueryServiceTests {
                 },
                 any<List<TemporalEntityAttribute>>()
             )
-            entityPayloadService.queryEntitiesCount(
+            entityService.queryEntitiesCount(
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
@@ -297,7 +297,7 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { entityPayloadService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForTemporalEntities(any(), any())
         } returns listOf(temporalEntityAttribute)
@@ -305,8 +305,8 @@ class TemporalQueryServiceTests {
         coEvery {
             attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
-        coEvery { entityPayloadService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
-        coEvery { entityPayloadService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
 
         queryService.queryTemporalEntities(
             TemporalEntitiesQuery(

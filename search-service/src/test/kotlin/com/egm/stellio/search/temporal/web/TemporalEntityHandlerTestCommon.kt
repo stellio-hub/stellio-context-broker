@@ -3,7 +3,7 @@ package com.egm.stellio.search.temporal.web
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -30,7 +30,7 @@ open class TemporalEntityHandlerTestCommon {
     protected lateinit var temporalQueryService: TemporalQueryService
 
     @MockkBean
-    protected lateinit var entityPayloadService: EntityPayloadService
+    protected lateinit var entityService: EntityService
 
     @MockkBean
     protected lateinit var attributeInstanceService: AttributeInstanceService

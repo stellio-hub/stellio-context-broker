@@ -6,7 +6,7 @@ import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -31,7 +31,7 @@ class ObservationEventListenerTests {
     private lateinit var observationEventListener: ObservationEventListener
 
     @MockkBean(relaxed = true)
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
@@ -44,14 +44,14 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
         coVerify {
-            entityPayloadService.createEntity(
+            entityService.createEntity(
                 any<NgsiLdEntity>(),
                 any(),
                 eq("0123456789-1234-5678-987654321")
@@ -72,7 +72,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(
@@ -91,7 +91,7 @@ class ObservationEventListenerTests {
         observationEventListener.dispatchObservationMessage(observationEvent)
 
         coVerify {
-            entityPayloadService.partialUpdateAttribute(
+            entityService.partialUpdateAttribute(
                 expectedEntityId,
                 match { it.first == TEMPERATURE_PROPERTY },
                 null
@@ -118,7 +118,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeUpdateNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.partialUpdateAttribute(any(), any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property does not exist"))
@@ -134,7 +134,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
             listOf(
                 UpdatedDetails(
@@ -154,7 +154,7 @@ class ObservationEventListenerTests {
         observationEventListener.dispatchObservationMessage(observationEvent)
 
         coVerify {
-            entityPayloadService.appendAttributes(
+            entityService.appendAttributes(
                 expectedEntityId,
                 any(),
                 false,
@@ -184,7 +184,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/attributeAppendNumericPropDatasetIdEvent.json")
 
         coEvery {
-            entityPayloadService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(NotUpdatedDetails(TEMPERATURE_PROPERTY, "Property could not be appended"))
@@ -208,7 +208,7 @@ class ObservationEventListenerTests {
             observationEventListener.dispatchObservationMessage(invalidObservationEvent)
         }
 
-        verify { entityPayloadService wasNot called }
+        verify { entityService wasNot called }
         verify { entityEventService wasNot called }
     }
 
@@ -225,7 +225,7 @@ class ObservationEventListenerTests {
             observationEventListener.dispatchObservationMessage(invalidObservationEvent)
         }
 
-        verify { entityPayloadService wasNot called }
+        verify { entityService wasNot called }
         verify { entityEventService wasNot called }
     }
 }

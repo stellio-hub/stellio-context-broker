@@ -1,9 +1,9 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.model.TemporalQuery.Aggregate
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes

@@ -1,8 +1,8 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.model.EntityPayload
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE

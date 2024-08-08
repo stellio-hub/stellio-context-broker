@@ -1,10 +1,11 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.*
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.scope.FullScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
 import com.egm.stellio.search.support.*
+import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri

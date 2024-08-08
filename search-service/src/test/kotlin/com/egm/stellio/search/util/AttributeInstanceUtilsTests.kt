@@ -1,6 +1,7 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.temporal.util.guessAttributeValueType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime

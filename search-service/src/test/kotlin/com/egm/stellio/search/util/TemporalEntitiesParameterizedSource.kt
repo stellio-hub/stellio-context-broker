@@ -1,8 +1,12 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.model.*
+import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
+import com.egm.stellio.search.temporal.model.EntityTemporalResult
+import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData

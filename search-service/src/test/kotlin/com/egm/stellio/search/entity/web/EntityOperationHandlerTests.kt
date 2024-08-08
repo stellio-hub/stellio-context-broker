@@ -8,8 +8,8 @@ import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.EntityPayload
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
-import com.egm.stellio.search.entity.service.EntityPayloadService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -48,7 +48,7 @@ class EntityOperationHandlerTests {
     private lateinit var entityOperationService: EntityOperationService
 
     @MockkBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var queryService: EntityQueryService
@@ -792,7 +792,7 @@ class EntityOperationHandlerTests {
                 mutableListOf()
             )
 
-        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns
+        coEvery { entityService.retrieve(any<List<URI>>()) } returns
             listOf(
                 mockkClass(EntityPayload::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri
@@ -828,7 +828,7 @@ class EntityOperationHandlerTests {
         performBatchDeleteAndCheck207Response(ENTITY_DOES_NOT_EXIST_MESSAGE)
 
         coVerify { entityOperationService.splitEntitiesIdsByExistence(allEntitiesUris) }
-        coVerify { entityPayloadService wasNot called }
+        coVerify { entityService wasNot called }
         coVerify { entityOperationService.delete(any(), any()) wasNot Called }
     }
 
@@ -855,7 +855,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(allEntitiesUris, emptyList())
         }
-        coEvery { entityPayloadService.retrieve(any<List<URI>>()) } returns
+        coEvery { entityService.retrieve(any<List<URI>>()) } returns
             listOf(
                 mockkClass(EntityPayload::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri

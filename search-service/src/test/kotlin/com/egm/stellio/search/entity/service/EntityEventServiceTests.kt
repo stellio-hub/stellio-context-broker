@@ -35,7 +35,7 @@ class EntityEventServiceTests {
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     @MockkBean(relaxed = true)
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     private val breedingServiceUri = "urn:ngsi-ld:BreedingService:0214".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
@@ -128,7 +128,7 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish a single ATTRIBUTE_APPEND event if an attribute was appended`() = runTest {
         val entityPayload = mockk<EntityPayload>(relaxed = true)
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
@@ -163,7 +163,7 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish a single ATTRIBUTE_REPLACE event if an attribute was replaced`() = runTest {
         val entityPayload = mockk<EntityPayload>(relaxed = true)
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
@@ -215,7 +215,7 @@ class EntityEventServiceTests {
                 emptyList()
             )
 
-            coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+            coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
             every { entityPayload.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeChangeEvents(
@@ -280,7 +280,7 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -339,7 +339,7 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -387,7 +387,7 @@ class EntityEventServiceTests {
             UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.UPDATED)
         )
 
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -418,7 +418,7 @@ class EntityEventServiceTests {
         runTest {
             val entityPayload = mockk<EntityPayload>(relaxed = true)
 
-            coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+            coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
             every { entityPayload.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeDeleteEvent(
@@ -448,7 +448,7 @@ class EntityEventServiceTests {
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
         val entityPayload = mockk<EntityPayload>(relaxed = true)
 
-        coEvery { entityPayloadService.retrieve(breedingServiceUri) } returns entityPayload.right()
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
         every { entityPayload.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeDeleteEvent(

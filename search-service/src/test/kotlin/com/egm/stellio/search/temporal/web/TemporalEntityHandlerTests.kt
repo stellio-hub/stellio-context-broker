@@ -42,8 +42,8 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
 
     private fun buildDefaultMockResponsesForAddAttributes() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
     }
 
@@ -51,10 +51,10 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `create temporal entity should return a 201`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/temporal/beehive_create_temporal_entity.jsonld")
 
-        coEvery { entityPayloadService.checkEntityExistence(any(), any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanCreateEntities(sub) } returns Unit.right()
-        coEvery { entityPayloadService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val data =
@@ -73,16 +73,16 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/temporal/entities/$entityUri"))
 
         coVerify { authorizationService.userCanCreateEntities(eq(sub)) }
-        coVerify { entityPayloadService.checkEntityExistence(eq(entityUri), true) }
+        coVerify { entityService.checkEntityExistence(eq(entityUri), true) }
         coVerify {
-            entityPayloadService.createEntity(
+            entityService.createEntity(
                 any(),
                 eq(expandedEntity),
                 eq(sub.value)
             )
         }
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)
@@ -97,9 +97,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery { authorizationService.userCanUpdateEntity(entityUri, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.checkEntityExistence(any(), any())
+            entityService.checkEntityExistence(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TESTC")).left()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         val expectedInstancesFilePath =
             "/temporal/beehive_update_temporal_entity_without_mandatory_fields_expanded.jsonld"
@@ -114,7 +114,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coVerify { authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub)) }
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 eq(jsonInstances),
                 eq(sub.value)
@@ -128,7 +128,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -139,7 +139,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 match {
                     it.size == 1
@@ -155,7 +155,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -166,7 +166,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 match {
                     it.size == 1
@@ -182,7 +182,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -193,7 +193,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 match {
                     it.size == 2
@@ -209,7 +209,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
         buildDefaultMockResponsesForAddAttributes()
-        coEvery { entityPayloadService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -220,7 +220,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
 
         coVerify {
-            entityPayloadService.upsertAttributes(
+            entityService.upsertAttributes(
                 eq(entityUri),
                 match {
                     it.size == 2
@@ -257,8 +257,8 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
@@ -276,8 +276,8 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     private fun buildDefaultMockResponsesForGetEntity() {
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
     }
 
@@ -1016,7 +1016,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery { attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
@@ -1029,7 +1029,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
         coVerify {
             attributeInstanceService.modifyAttributeInstance(
@@ -1046,7 +1046,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
@@ -1068,7 +1068,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """.trimIndent()
             )
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
     }
 
@@ -1078,7 +1078,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
 
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.patch()
@@ -1097,7 +1097,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 }
                 """.trimIndent()
             )
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
     }
 
     @Test
@@ -1106,7 +1106,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
-        coEvery { entityPayloadService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
             attributeInstanceService.modifyAttributeInstance(any(), any(), any(), any())
@@ -1131,15 +1131,15 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """.trimIndent()
             )
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify { authorizationService.userCanUpdateEntity(entityUri, sub) }
     }
 
     @Test
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
-        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
-        coEvery { entityPayloadService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         webClient.delete()
@@ -1149,9 +1149,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.checkEntityExistence(entityUri)
+            entityService.checkEntityExistence(entityUri)
             authorizationService.userCanAdminEntity(eq(entityUri), eq(sub))
-            entityPayloadService.deleteEntity(eq(entityUri))
+            entityService.deleteEntity(eq(entityUri))
             authorizationService.removeRightsOnEntity(eq(entityUri))
         }
     }
@@ -1159,7 +1159,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete temporal entity should return a 404 if entity to be deleted has not been found`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(entityUri)
+            entityService.checkEntityExistence(entityUri)
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.delete()
@@ -1204,10 +1204,10 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete temporal entity should return a 500 if entity could not be deleted`() {
-        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteEntity(any())
+            entityService.deleteEntity(any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1227,7 +1227,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete temporal entity should return a 403 is user is not authorized to delete an entity`() {
-        coEvery { entityPayloadService.checkEntityExistence(entityUri) } returns Unit.right()
+        coEvery { entityService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery {
             authorizationService.userCanAdminEntity(entityUri, sub)
         } returns AccessDeniedException("User forbidden admin access to entity $entityUri").left()
@@ -1253,7 +1253,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1267,7 +1267,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             entityAttributeService.checkEntityAndAttributeExistence(eq(entityUri), eq(TEMPERATURE_PROPERTY))
             authorizationService.userCanUpdateEntity(eq(entityUri), eq(sub))
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null
@@ -1280,7 +1280,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1292,7 +1292,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -1310,7 +1310,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1322,7 +1322,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityPayloadService.deleteAttribute(
+            entityService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri())
@@ -1358,7 +1358,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any(), any())
         } throws ResourceNotFoundException("Attribute Not Found")
 
         webClient.method(HttpMethod.DELETE)
@@ -1383,7 +1383,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
         coEvery {
-            entityPayloadService.deleteAttribute(any(), any(), any())
+            entityService.deleteAttribute(any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1457,7 +1457,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 403 if user is not allowed to update entity`() {
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any()) } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
@@ -1483,9 +1483,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `delete attribute instance temporal should return 204`() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteInstance(any(), any(), any())
@@ -1499,7 +1499,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1511,7 +1511,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute instance temporal should return 404 if entityId is not found`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient
@@ -1531,9 +1531,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             )
 
         coVerify {
-            entityPayloadService.checkEntityExistence(entityUri)
+            entityService.checkEntityExistence(entityUri)
         }
-        confirmVerified(entityPayloadService)
+        confirmVerified(entityService)
     }
 
     @Test
@@ -1541,9 +1541,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             attributeInstanceService.deleteInstance(any(), any(), any())
@@ -1567,7 +1567,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """.trimIndent()
             )
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify {
             attributeInstanceService.deleteInstance(entityUri, expandedAttr, attributeInstanceId)
         }
@@ -1582,9 +1582,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute instance temporal should return 403 if user is not allowed`() {
         coEvery {
-            entityPayloadService.checkEntityExistence(any())
+            entityService.checkEntityExistence(any())
         } returns Unit.right()
-        coEvery { entityPayloadService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
         coEvery {
             authorizationService.userCanUpdateEntity(any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
@@ -1605,7 +1605,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """.trimIndent()
             )
 
-        coVerify { entityPayloadService.checkEntityExistence(entityUri) }
+        coVerify { entityService.checkEntityExistence(entityUri) }
         coVerify {
             authorizationService.userCanUpdateEntity(
                 eq(entityUri),

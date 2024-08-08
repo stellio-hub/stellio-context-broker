@@ -7,7 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getRangeAndPaginatedTEA
@@ -26,7 +26,7 @@ import java.time.ZonedDateTime
 
 @Service
 class TemporalQueryService(
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val scopeService: ScopeService,
     private val attributeInstanceService: AttributeInstanceService,
     private val entityAttributeService: EntityAttributeService
@@ -46,7 +46,7 @@ class TemporalQueryService(
             else it.right()
         }.bind()
 
-        val entityPayload = entityPayloadService.retrieve(entityId).bind()
+        val entityPayload = entityService.retrieve(entityId).bind()
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, temporalEntityAttributes)
 
         val scopeHistory =
@@ -111,8 +111,8 @@ class TemporalQueryService(
         accessRightFilter: () -> String?
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val entitiesIds = entityPayloadService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-        val count = entityPayloadService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val entitiesIds = entityService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val count = entityService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
             .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
@@ -146,7 +146,7 @@ class TemporalQueryService(
                     // then, group them by entity
                     it.first.entityId
                 }.mapKeys {
-                    entityPayloadService.retrieve(it.key).bind()
+                    entityService.retrieve(it.key).bind()
                 }
                 .mapValues {
                     it.value.toMap()

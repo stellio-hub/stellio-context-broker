@@ -5,7 +5,7 @@ import arrow.core.raise.either
 import com.egm.stellio.search.authorization.model.EntityAccessRights
 import com.egm.stellio.search.authorization.model.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.common.util.*
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -32,7 +32,7 @@ class EntityAccessRightsService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient,
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityPayloadService: EntityPayloadService
+    private val entityService: EntityService
 ) {
     @Transactional
     suspend fun setReadRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
@@ -144,7 +144,7 @@ class EntityAccessRightsService(
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
                 if (!it)
-                    entityPayloadService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
+                    entityService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
                 else true.right()
             }.flatMap {
                 if (!it)

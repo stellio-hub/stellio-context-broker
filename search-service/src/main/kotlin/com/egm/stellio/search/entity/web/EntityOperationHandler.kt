@@ -5,8 +5,8 @@ import arrow.core.raise.either
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.service.EntityOperationService
-import com.egm.stellio.search.entity.service.EntityPayloadService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -33,7 +33,7 @@ import java.util.Optional
 class EntityOperationHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
-    private val entityPayloadService: EntityPayloadService,
+    private val entityService: EntityService,
     private val queryService: EntityQueryService,
     private val authorizationService: AuthorizationService
 ) {
@@ -239,7 +239,7 @@ class EntityOperationHandler(
 
         val entitiesBeforeDelete =
             if (entitiesUserCanDelete.isNotEmpty())
-                entityPayloadService.retrieve(entitiesUserCanDelete.toList())
+                entityService.retrieve(entitiesUserCanDelete.toList())
             else emptyList()
 
         val batchOperationResult = BatchOperationResult().apply {

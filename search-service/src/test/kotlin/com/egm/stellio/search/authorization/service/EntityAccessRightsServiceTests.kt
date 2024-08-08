@@ -8,7 +8,7 @@ import com.egm.stellio.search.authorization.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.model.SubjectAccessRight
 import com.egm.stellio.search.authorization.model.SubjectReferential
 import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.service.EntityPayloadService
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedTerm
@@ -53,7 +53,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     private lateinit var subjectReferentialService: SubjectReferentialService
 
     @SpykBean
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     private val userUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
     private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
@@ -79,7 +79,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should add a new entity in the allowed list of read entities`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
 
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
 
@@ -89,7 +89,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should remove an entity from the allowed list of read entities`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
         entityAccessRightsService.removeRoleOnEntity(userUuid, entityId01)
@@ -102,7 +102,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should remove an entity from the list of known entities`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
 
@@ -118,7 +118,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow the owner of entity to administrate the entity`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01)
 
@@ -133,7 +133,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having a direct read role on a entity`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
         entityAccessRightsService.setWriteRoleOnEntity(userUuid, "urn:ngsi-ld:Entity:6666".toUri())
@@ -153,7 +153,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow an user having a read role on a entity via a group membership`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } returns listOf(groupUuid, userUuid).right()
@@ -178,7 +178,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } answers { listOf(groupUuid, userUuid).right() }
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
@@ -217,7 +217,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow user who have read right on entity`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
 
@@ -226,7 +226,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow user who have write right on entity`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
         entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId01)
 
@@ -236,7 +236,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @Test
     fun `it should not allow user who have not read right on entity and entity has not a specific access policy`() =
         runTest {
-            coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+            coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
             runBlocking {
                 entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).fold(
@@ -249,7 +249,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @Test
     fun `it should not allow user who have not write right on entity and entity has not a specific access policy`() =
         runTest {
-            coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
+            coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns false.right()
 
             entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).fold(
                 { assertEquals("User forbidden write access to entity $entityId01", it.message) },
@@ -259,7 +259,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow user it has no right on entity but entity has a specific access policy`() = runTest {
-        coEvery { entityPayloadService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
+        coEvery { entityService.hasSpecificAccessPolicies(any(), any()) } returns true.right()
 
         entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
         entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
@@ -650,7 +650,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
                 loadMinimalEntityWithSap(entityId, types, specificAccessPolicy, AUTHZ_TEST_COMPOUND_CONTEXTS)
             else loadMinimalEntity(entityId, types)
         rawEntity.sampleDataToNgsiLdEntity().map {
-            entityPayloadService.createEntityPayload(
+            entityService.createEntityPayload(
                 ngsiLdEntity = it.second,
                 expandedEntity = it.first,
                 createdAt = ngsiLdDateTime()

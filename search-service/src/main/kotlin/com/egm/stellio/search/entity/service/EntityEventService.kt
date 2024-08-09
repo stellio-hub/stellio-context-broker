@@ -1,7 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
@@ -71,18 +71,18 @@ class EntityEventService(
 
     suspend fun publishEntityDeleteEvent(
         sub: String?,
-        entityPayload: EntityPayload
+        entity: Entity
     ): Job {
         val tenantName = getTenantFromContext()
         return coroutineScope.launch {
-            logger.debug("Sending delete event for entity {} in tenant {}", entityPayload.entityId, tenantName)
+            logger.debug("Sending delete event for entity {} in tenant {}", entity.entityId, tenantName)
             publishEntityEvent(
                 EntityDeleteEvent(
                     sub,
                     tenantName,
-                    entityPayload.entityId,
-                    entityPayload.types,
-                    entityPayload.payload.asString(),
+                    entity.entityId,
+                    entity.types,
+                    entity.payload.asString(),
                     emptyList()
                 )
             )

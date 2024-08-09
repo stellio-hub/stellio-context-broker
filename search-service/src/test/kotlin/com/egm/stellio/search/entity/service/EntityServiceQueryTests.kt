@@ -3,7 +3,7 @@ package com.egm.stellio.search.entity.service
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.update
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
@@ -466,17 +467,13 @@ class EntityServiceQueryTests : WithTimescaleContainer, WithKafkaContainer {
     private fun updateSpecificAccessPolicy(
         entityId: URI,
         specificAccessPolicy: AuthContextModel.SpecificAccessPolicy
-    ) = r2dbcEntityTemplate.update(
-        Query.query(Criteria.where("entity_id").`is`(entityId)),
-        Update.update("specific_access_policy", specificAccessPolicy.toString()),
-        EntityPayload::class.java
-    ).block()
+    ) = r2dbcEntityTemplate.update(Entity::class.java).inTable("entity_payload")
+        .matching(Query.query(Criteria.where("entity_id").`is`(entityId)))
+        .apply(Update.update("specific_access_policy", specificAccessPolicy.toString())).block()
 
     private fun resetSpecificAccessPolicy(
         entityId: URI
-    ) = r2dbcEntityTemplate.update(
-        Query.query(Criteria.where("entity_id").`is`(entityId)),
-        Update.update("specific_access_policy", null),
-        EntityPayload::class.java
-    ).block()
+    ) = r2dbcEntityTemplate.update(Entity::class.java).inTable("entity_payload")
+        .matching(Query.query(Criteria.where("entity_id").`is`(entityId)))
+        .apply(Update.update("specific_access_policy", null)).block()
 }

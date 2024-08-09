@@ -1,14 +1,14 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
-import com.egm.stellio.search.temporal.util.TemporalEntityAttributeInstancesResult
+import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -28,24 +28,24 @@ class TemporalEntityBuilderTests {
 
     @Test
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
-        val temporalEntityAttribute = TemporalEntityAttribute(
+        val attribute = Attribute(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             attributeName = OUTGOING_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+            attributeValueType = Attribute.AttributeValueType.STRING,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
-            temporalEntityAttribute to emptyList<AttributeInstanceResult>()
+            attribute to emptyList<AttributeInstanceResult>()
         )
-        val entityPayload = EntityPayload(
+        val entity = Entity(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
+            EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
@@ -65,12 +65,12 @@ class TemporalEntityBuilderTests {
     @MethodSource("com.egm.stellio.search.util.TemporalEntityParameterizedSource#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
+        attributeAndResultsMap: AttributesWithInstances,
         withTemporalValues: Boolean,
         withAudit: Boolean,
         expectation: String
     ) {
-        val entityPayload = EntityPayload(
+        val entity = Entity(
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
@@ -78,7 +78,7 @@ class TemporalEntityBuilderTests {
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entityPayload, scopeHistory, attributeAndResultsMap),
+            EntityTemporalResult(entity, scopeHistory, attributeAndResultsMap),
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
@@ -122,17 +122,17 @@ class TemporalEntityBuilderTests {
     @SuppressWarnings("LongMethod")
     @Test
     fun `it should return a temporal entity with values aggregated`() {
-        val temporalEntityAttribute = TemporalEntityAttribute(
+        val attribute = Attribute(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             attributeName = OUTGOING_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
         val attributeAndResultsMap = mapOf(
-            temporalEntityAttribute to listOf(
+            attribute to listOf(
                 AggregatedAttributeInstanceResult(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    attribute = attribute.id,
                     listOf(
                         AggregateResult(
                             TemporalQuery.Aggregate.SUM,
@@ -149,7 +149,7 @@ class TemporalEntityBuilderTests {
                     )
                 ),
                 AggregatedAttributeInstanceResult(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    attribute = attribute.id,
                     listOf(
                         AggregateResult(
                             TemporalQuery.Aggregate.SUM,
@@ -174,7 +174,7 @@ class TemporalEntityBuilderTests {
             "P1D",
             listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG)
         )
-        val entityPayload = EntityPayload(
+        val entity = Entity(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             types = listOf(BEEHIVE_TYPE),
             createdAt = now,
@@ -182,7 +182,7 @@ class TemporalEntityBuilderTests {
         )
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entityPayload, emptyList(), attributeAndResultsMap),
+            EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQuery(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,

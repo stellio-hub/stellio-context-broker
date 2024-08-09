@@ -4,39 +4,39 @@ import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.search.temporal.util.TemporalEntityAttributeInstancesResult
+import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import java.time.ZonedDateTime
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
 object TemporalPaginationService {
 
-    fun getRangeAndPaginatedTEA(
-        teaWithInstances: TemporalEntityAttributeInstancesResult,
+    fun getPaginatedAttributeWithInstancesAndRange(
+        attributesWithInstances: AttributesWithInstances,
         query: TemporalEntitiesQuery,
-    ): Pair<TemporalEntityAttributeInstancesResult, Range?> {
+    ): Pair<AttributesWithInstances, Range?> {
         val temporalQuery = query.temporalQuery
         if (temporalQuery.isLastNTheLimit()) {
-            return teaWithInstances to null
+            return attributesWithInstances to null
         }
 
-        val attributeInstancesWhoReachedLimit = getAttributesWhoReachedLimit(teaWithInstances, query)
+        val attributeInstancesWhoReachedLimit = getAttributesWhoReachedLimit(attributesWithInstances, query)
 
         if (attributeInstancesWhoReachedLimit.isEmpty()) {
-            return teaWithInstances to null
+            return attributesWithInstances to null
         }
 
         val range = getTemporalPaginationRange(attributeInstancesWhoReachedLimit, query)
-        val paginatedTEAWithinstances = filterInRange(teaWithInstances, range)
+        val paginatedAttributesWithInstances = filterInRange(attributesWithInstances, range)
 
-        return paginatedTEAWithinstances to range
+        return paginatedAttributesWithInstances to range
     }
 
     private fun getAttributesWhoReachedLimit(
-        teaWithInstances: TemporalEntityAttributeInstancesResult,
+        attributesWithInstances: AttributesWithInstances,
         query: TemporalEntitiesQuery
     ): List<List<AttributeInstanceResult>> =
-        teaWithInstances.values.filter { instances ->
+        attributesWithInstances.values.filter { instances ->
             instances.size >= query.temporalQuery.instanceLimit
         }
 
@@ -77,10 +77,10 @@ object TemporalPaginationService {
     }
 
     private fun filterInRange(
-        teaWithInstances: TemporalEntityAttributeInstancesResult,
+        attributesWithInstances: AttributesWithInstances,
         range: Range,
-    ): TemporalEntityAttributeInstancesResult =
-        teaWithInstances.mapValues { (_, value) ->
+    ): AttributesWithInstances =
+        attributesWithInstances.mapValues { (_, value) ->
             value.filter { range.contain(it.getComparableTime()) }
         }
 

@@ -7,10 +7,10 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.OperationType.*
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.scope.ScopeService
-import com.egm.stellio.search.temporal.util.prepareTemporalAttributes
+import com.egm.stellio.search.temporal.util.prepareAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
@@ -43,7 +43,7 @@ class EntityService(
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
-        val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+        val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
         createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub = sub).bind()
@@ -108,8 +108,8 @@ class EntityService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been merged
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, mergedAt, teas).bind()
+            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            updateState(entityId, mergedAt, attributes).bind()
         }
         updateResult
     }
@@ -122,7 +122,7 @@ class EntityService(
         sub: String? = null
     ): Either<APIException, Unit> = either {
         val replacedAt = ngsiLdDateTime()
-        val attributesMetadata = ngsiLdEntity.prepareTemporalAttributes().bind()
+        val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
         entityAttributeService.deleteTemporalAttributesOfEntity(entityId)
@@ -251,8 +251,8 @@ class EntityService(
             """
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
-            LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
+            LEFT JOIN attribute
+            ON attribute.entity_id = entity_payload.entity_id
             WHERE $filterQuery
             ORDER BY entity_id
             LIMIT :limit
@@ -276,8 +276,8 @@ class EntityService(
             """
             SELECT count(distinct(entity_payload.entity_id)) as count_entity
             FROM entity_payload
-            LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
+            LEFT JOIN attribute
+            ON attribute.entity_id = entity_payload.entity_id
             WHERE $filterQuery
             """.trimIndent()
 
@@ -493,8 +493,8 @@ class EntityService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
-            updateState(entityUri, createdAt, teas).bind()
+            val attributes = entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
+            updateState(entityUri, createdAt, attributes).bind()
         }
         updateResult
     }
@@ -521,8 +521,8 @@ class EntityService(
         val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
-            updateState(entityUri, createdAt, teas).bind()
+            val attributes = entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
+            updateState(entityUri, createdAt, attributes).bind()
         }
         updateResult
     }
@@ -541,8 +541,8 @@ class EntityService(
             sub
         ).bind()
         if (updateResult.isSuccessful()) {
-            val teas = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, modifiedAt, teas).bind()
+            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            updateState(entityId, modifiedAt, attributes).bind()
         }
         updateResult
     }
@@ -595,8 +595,8 @@ class EntityService(
 
         // update modifiedAt in entity if at least one attribute has been added
         if (updateResult.hasSuccessfulUpdate()) {
-            val teas = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, replacedAt, teas).bind()
+            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            updateState(entityId, replacedAt, attributes).bind()
         }
         updateResult
     }
@@ -605,12 +605,12 @@ class EntityService(
     suspend fun updateState(
         entityUri: URI,
         modifiedAt: ZonedDateTime,
-        temporalEntityAttributes: List<TemporalEntityAttribute>
+        attributes: List<Attribute>
     ): Either<APIException, Unit> =
         retrieve(entityUri)
             .map { entityPayload ->
                 val payload = buildJsonLdEntity(
-                    temporalEntityAttributes,
+                    attributes,
                     entityPayload.copy(modifiedAt = modifiedAt)
                 )
                 databaseClient.sql(
@@ -628,18 +628,18 @@ class EntityService(
             }
 
     private fun buildJsonLdEntity(
-        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        attributes: List<Attribute>,
         entityPayload: EntityPayload
     ): Map<String, Any> {
         val entityCoreAttributes = entityPayload.serializeProperties()
-        val expandedAttributes = temporalEntityAttributes
-            .groupBy { tea ->
-                tea.attributeName
+        val expandedAttributes = attributes
+            .groupBy { attribute ->
+                attribute.attributeName
             }
-            .mapValues { (_, teas) ->
-                teas.map { tea ->
-                    tea.payload.deserializeExpandedPayload()
-                        .addSysAttrs(withSysAttrs = true, tea.createdAt, tea.modifiedAt)
+            .mapValues { (_, attributes) ->
+                attributes.map { attribute ->
+                    attribute.payload.deserializeExpandedPayload()
+                        .addSysAttrs(withSysAttrs = true, attribute.createdAt, attribute.modifiedAt)
                 }
             }
 

@@ -8,8 +8,8 @@ data class AttributeMetadata(
     val measuredValue: Double?,
     val value: String?,
     val geoValue: WKTCoordinates?,
-    val valueType: TemporalEntityAttribute.AttributeValueType,
+    val valueType: Attribute.AttributeValueType,
     val datasetId: URI?,
-    val type: TemporalEntityAttribute.AttributeType,
+    val type: Attribute.AttributeType,
     val observedAt: ZonedDateTime?
 )

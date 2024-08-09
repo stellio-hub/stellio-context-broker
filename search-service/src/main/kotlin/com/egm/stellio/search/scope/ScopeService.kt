@@ -6,7 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute.AttributeValueType
+import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery

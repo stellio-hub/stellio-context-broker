@@ -1,10 +1,10 @@
 package db.migration
 
 import arrow.core.Either
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.util.guessPropertyValueType
-import com.egm.stellio.search.temporal.util.toTemporalAttributeMetadata
+import com.egm.stellio.search.temporal.util.toAttributeMetadata
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -203,7 +203,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         ngsiLdAttributeInstance: NgsiLdAttributeInstance,
         defaultCreatedAt: ZonedDateTime
     ) {
-        when (val temporalAttributesMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata()) {
+        when (val temporalAttributesMetadata = ngsiLdAttributeInstance.toAttributeMetadata()) {
             is Either.Left ->
                 logger.warn("Unable to process attribute $attributeName ($datasetId) from entity $entityId")
             is Either.Right -> {
@@ -267,11 +267,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
         val valueType = when (ngsiLdAttributeInstance) {
             is NgsiLdPropertyInstance -> guessPropertyValueType(ngsiLdAttributeInstance).first
-            is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeValueType.URI
-            is NgsiLdGeoPropertyInstance -> TemporalEntityAttribute.AttributeValueType.GEOMETRY
-            is NgsiLdJsonPropertyInstance -> TemporalEntityAttribute.AttributeValueType.OBJECT
-            is NgsiLdLanguagePropertyInstance -> TemporalEntityAttribute.AttributeValueType.ARRAY
-            is NgsiLdVocabPropertyInstance -> TemporalEntityAttribute.AttributeValueType.ARRAY
+            is NgsiLdRelationshipInstance -> Attribute.AttributeValueType.URI
+            is NgsiLdGeoPropertyInstance -> Attribute.AttributeValueType.GEOMETRY
+            is NgsiLdJsonPropertyInstance -> Attribute.AttributeValueType.OBJECT
+            is NgsiLdLanguagePropertyInstance -> Attribute.AttributeValueType.ARRAY
+            is NgsiLdVocabPropertyInstance -> Attribute.AttributeValueType.ARRAY
         }
 
         jdbcTemplate.execute(

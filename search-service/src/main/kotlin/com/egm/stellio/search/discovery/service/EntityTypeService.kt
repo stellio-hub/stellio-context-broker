@@ -37,7 +37,7 @@ class EntityTypeService(
             """
             SELECT unnest(types) as type, attribute_name
             FROM entity_payload
-            JOIN temporal_entity_attribute ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+            JOIN attribute ON entity_payload.entity_id = attribute.entity_id
             ORDER BY type
             """.trimIndent()
         ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()
@@ -63,7 +63,7 @@ class EntityTypeService(
                 WHERE :type_name = any (types)
             )    
             SELECT attribute_name, attribute_type, (select count(entity_id) from entities) as entity_count
-            FROM temporal_entity_attribute
+            FROM attribute
             WHERE entity_id IN (SELECT entity_id FROM entities)
             GROUP BY attribute_name, attribute_type
             """.trimIndent()

@@ -19,7 +19,7 @@ import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
-data class TemporalEntityAttribute(
+data class Attribute(
     @Id
     val id: UUID = UUID.randomUUID(),
     val entityId: URI,

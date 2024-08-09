@@ -1,9 +1,9 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -39,7 +39,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     @SpykBean
@@ -76,7 +76,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @AfterEach
-    fun clearPreviousTemporalEntityAttributesAndObservations() {
+    fun clearPreviousAttributesAndObservations() {
         r2dbcEntityTemplate.delete(EntityPayload::class.java)
             .all()
             .block()
@@ -85,7 +85,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             .all()
             .block()
 
-        r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.delete(Attribute::class.java)
             .all()
             .block()
     }
@@ -98,7 +98,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
 
         entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        val temporalEntityAttributes =
+        val attributes =
             entityAttributeService.getForEntity(
                 beehiveTestDId,
                 setOf(
@@ -108,8 +108,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
                 emptySet()
             )
 
-        assertEquals(2, temporalEntityAttributes.size)
-        assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(temporalEntityAttributes[0].attributeName))
+        assertEquals(2, attributes.size)
+        assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(attributes[0].attributeName))
 
         coVerify(exactly = 6) { attributeInstanceService.create(any()) }
     }
@@ -126,8 +126,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             "0123456789-1234-5678-987654321"
         ).shouldSucceed()
 
-        val teas = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
-        assertEquals(4, teas.size)
+        val attributes = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        assertEquals(4, attributes.size)
 
         coVerify {
             attributeInstanceService.create(
@@ -177,8 +177,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
-        val teas = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
-        assertEquals(2, teas.size)
+        val attributes = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        assertEquals(2, attributes.size)
 
         coVerify {
             attributeInstanceService.create(
@@ -234,12 +234,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             ).shouldSucceed()
         }
 
-        val teas = entityAttributeService.getForEntity(
+        val attributes = entityAttributeService.getForEntity(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             emptySet(),
             emptySet()
         )
-        assertTrue(teas.isEmpty())
+        assertTrue(attributes.isEmpty())
     }
 
     @Test
@@ -251,7 +251,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
-        val temporalEntityAttribute = entityAttributeService.getForEntityAndAttribute(
+        val attribute = entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedAndResult()
@@ -261,15 +261,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val expandedAttribute = expandAttribute(newProperty, APIC_COMPOUND_CONTEXTS)
         val newNgsiLdProperty = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
         entityAttributeService.replaceAttribute(
-            temporalEntityAttribute,
+            attribute,
             newNgsiLdProperty,
             AttributeMetadata(
                 null,
                 "It's a string now",
                 null,
-                TemporalEntityAttribute.AttributeValueType.STRING,
+                Attribute.AttributeValueType.STRING,
                 null,
-                TemporalEntityAttribute.AttributeType.Property,
+                Attribute.AttributeType.Property,
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
@@ -281,8 +281,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedWith {
-            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
-            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertEquals(Attribute.AttributeType.Property, it.attributeType)
+            assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
             assertEquals(beehiveTestCId, it.entityId)
             assertJsonPayloadsAreEqual(serializeObject(expandedAttribute.second[0]), it.payload.asString())
             assertTrue(it.createdAt.isBefore(createdAt))
@@ -299,7 +299,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
-        val temporalEntityAttribute = entityAttributeService.getForEntityAndAttribute(
+        val attribute = entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedAndResult()
@@ -308,15 +308,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
         val expandedAttribute = expandAttribute(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         entityAttributeService.mergeAttribute(
-            temporalEntityAttribute,
+            attribute,
             INCOMING_PROPERTY,
             AttributeMetadata(
                 null,
                 "It's a string now",
                 null,
-                TemporalEntityAttribute.AttributeValueType.STRING,
+                Attribute.AttributeValueType.STRING,
                 null,
-                TemporalEntityAttribute.AttributeType.Property,
+                Attribute.AttributeType.Property,
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             mergedAt,
@@ -346,8 +346,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedWith {
-            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
-            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertEquals(Attribute.AttributeType.Property, it.attributeType)
+            assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
             assertJsonPayloadsAreEqual(serializeObject(expectedMergedPayload.second[0]), it.payload.asString())
             assertTrue(it.createdAt.isBefore(mergedAt))
             assertEquals(mergedAt, it.modifiedAt)
@@ -384,12 +384,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
 
-        val teas = entityAttributeService.getForEntity(
+        val attributes = entityAttributeService.getForEntity(
             beehiveTestCId,
             emptySet(),
             emptySet()
         )
-        assertEquals(6, teas.size)
+        assertEquals(6, attributes.size)
         coVerify {
             attributeInstanceService.create(
                 match {
@@ -485,8 +485,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
             beehiveTestCId,
             INCOMING_PROPERTY
         ).shouldSucceedWith {
-            assertEquals(TemporalEntityAttribute.AttributeType.Property, it.attributeType)
-            assertEquals(TemporalEntityAttribute.AttributeValueType.STRING, it.attributeValueType)
+            assertEquals(Attribute.AttributeType.Property, it.attributeType)
+            assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
             assertJsonPayloadsAreEqual(serializeObject(expandedAttribute.second[0]), it.payload.asString())
             assertTrue(it.createdAt.isBefore(replacedAt))
             assertEquals(replacedAt, it.modifiedAt)
@@ -522,7 +522,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() = runTest {
+    fun `it should return the attributeId of a given entityId and attributeName`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -536,7 +536,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should return the temporalEntityAttributeId of a given entityId attributeName and datasetId`() = runTest {
+    fun `it should return the attributeId of a given entityId attributeName and datasetId`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -551,7 +551,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should not return a temporalEntityAttributeId if the datasetId is unknown`() = runTest {
+    fun `it should not return a attributeId if the datasetId is unknown`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -662,15 +662,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaCon
         entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
-        val temporalEntityAttributes =
+        val attributes =
             entityAttributeService.getForEntity(
                 beehiveTestCId,
                 emptySet(),
                 setOf("urn:ngsi-ld:Dataset:01234")
             )
 
-        assertEquals(1, temporalEntityAttributes.size)
-        assertEquals(INCOMING_PROPERTY, temporalEntityAttributes[0].attributeName)
-        assertEquals("urn:ngsi-ld:Dataset:01234", temporalEntityAttributes[0].datasetId.toString())
+        assertEquals(1, attributes.size)
+        assertEquals(INCOMING_PROPERTY, attributes[0].attributeName)
+        assertEquals("urn:ngsi-ld:Dataset:01234", attributes[0].datasetId.toString())
     }
 }

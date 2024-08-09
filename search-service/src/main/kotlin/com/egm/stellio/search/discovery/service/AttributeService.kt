@@ -29,7 +29,7 @@ class AttributeService(
         val attributeNames = databaseClient.sql(
             """
             SELECT DISTINCT(attribute_name)
-            FROM temporal_entity_attribute
+            FROM attribute
             ORDER BY attribute_name
             """.trimIndent()
         ).allToMappedList { rowToAttributeNames(it) }
@@ -42,7 +42,7 @@ class AttributeService(
             """
             SELECT types, attribute_name
             FROM entity_payload
-            JOIN temporal_entity_attribute ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+            JOIN attribute ON entity_payload.entity_id = attribute.entity_id
             ORDER BY attribute_name
             """.trimIndent()
         ).allToMappedList { rowToAttributeDetails(it) }.flatten().groupBy({ it.second }, { it.first }).toList()
@@ -64,7 +64,7 @@ class AttributeService(
             """
             WITH entities AS (
                 SELECT entity_id, attribute_name, attribute_type
-                FROM temporal_entity_attribute 
+                FROM attribute 
                 WHERE  attribute_name = :attribute_name
             )    
             SELECT attribute_name, attribute_type, types, count(distinct(attribute_name)) as attribute_count

@@ -1,6 +1,6 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.scope.FullScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
@@ -28,16 +28,16 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     550.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -49,7 +49,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     650.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -71,36 +71,36 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeType = Attribute.AttributeType.Relationship,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "urn:ngsi-ld:Entity:1234",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                     null,
                                     "urn:ngsi-ld:Instance:45678".toUri(),
-                                    TemporalEntityAttribute.AttributeType.Relationship
+                                    Attribute.AttributeType.Relationship
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                 timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "urn:ngsi-ld:Entity:5678",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                     null,
                                     "urn:ngsi-ld:Instance:45679".toUri(),
-                                    TemporalEntityAttribute.AttributeType.Relationship
+                                    Attribute.AttributeType.Relationship
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                 timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
@@ -117,17 +117,17 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     550.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -139,7 +139,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     650.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -151,17 +151,17 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             )
                         ),
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     487.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -173,7 +173,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     698.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -195,17 +195,17 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -217,7 +217,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -239,17 +239,17 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -261,7 +261,7 @@ class TemporalEntityParameterizedSource {
                                 sub = "sub1"
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -283,16 +283,16 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -304,7 +304,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -328,21 +328,21 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 550.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 650.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -359,42 +359,42 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         datasetId = "urn:ngsi-ld:Dataset:01234".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 550.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 650.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         ),
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                        attributeValueType = Attribute.AttributeValueType.NUMBER,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 487.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 698.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -409,22 +409,22 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "Beehive_incoming_123",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "Beehive_incoming_124",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -439,21 +439,21 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "Beehive_incoming_123",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "Beehive_incoming_124",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -470,23 +470,23 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                        attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.STRING,
+                        attributeType = Attribute.AttributeType.Relationship,
+                        attributeValueType = Attribute.AttributeValueType.STRING,
                         datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Entity:1234",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Entity:5678",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -511,7 +511,7 @@ class TemporalEntityParameterizedSource {
                         time = ZonedDateTime.parse("2020-03-25T09:29:17.965206Z")
                     )
                 ),
-                emptyMap<TemporalEntityAttribute, List<AttributeInstanceResult>>(),
+                emptyMap<Attribute, List<AttributeInstanceResult>>(),
                 true,
                 false,
                 loadSampleData("expectations/beehive_scope_multi_instances_temporal_values.jsonld")
@@ -533,7 +533,7 @@ class TemporalEntityParameterizedSource {
                         time = ZonedDateTime.parse("2020-03-25T09:29:17.965206Z")
                     )
                 ),
-                emptyMap<TemporalEntityAttribute, List<AttributeInstanceResult>>(),
+                emptyMap<Attribute, List<AttributeInstanceResult>>(),
                 false,
                 false,
                 loadSampleData("expectations/beehive_scope_multi_instances.jsonld")
@@ -543,25 +543,25 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#luminosity",
-                        attributeType = TemporalEntityAttribute.AttributeType.JsonProperty,
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.JSON,
+                        attributeType = Attribute.AttributeType.JsonProperty,
+                        attributeValueType = Attribute.AttributeValueType.JSON,
                         datasetId = null,
                         createdAt = now,
                         payload = SAMPLE_JSON_PROPERTY_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     { "id": "123", "stringValue": "value", "nullValue": null }
                                 """,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     { "id": "456", "stringValue": "anotherValue" }
                                 """,
@@ -578,18 +578,18 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#friendlyName",
-                        attributeType = TemporalEntityAttribute.AttributeType.LanguageProperty,
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.OBJECT,
+                        attributeType = Attribute.AttributeType.LanguageProperty,
+                        attributeValueType = Attribute.AttributeValueType.OBJECT,
                         datasetId = null,
                         createdAt = now,
                         payload = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@value": "One beautiful beehive",
@@ -603,7 +603,7 @@ class TemporalEntityParameterizedSource {
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@value": "My beautiful beehive",
@@ -627,18 +627,18 @@ class TemporalEntityParameterizedSource {
             Arguments.arguments(
                 emptyList<ScopeInstanceResult>(),
                 mapOf(
-                    TemporalEntityAttribute(
+                    Attribute(
                         entityId = entityId,
                         attributeName = "https://ontology.eglobalmark.com/apic#category",
-                        attributeType = TemporalEntityAttribute.AttributeType.VocabProperty,
-                        attributeValueType = TemporalEntityAttribute.AttributeValueType.ARRAY,
+                        attributeType = Attribute.AttributeType.VocabProperty,
+                        attributeValueType = Attribute.AttributeValueType.ARRAY,
                         datasetId = null,
                         createdAt = now,
                         payload = SAMPLE_VOCAB_PROPERTY_PAYLOAD
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
@@ -650,7 +650,7 @@ class TemporalEntityParameterizedSource {
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"

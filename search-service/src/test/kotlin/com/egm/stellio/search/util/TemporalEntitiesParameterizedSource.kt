@@ -1,7 +1,7 @@
 package com.egm.stellio.search.util
 
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
@@ -35,15 +35,15 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 20,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -59,15 +59,15 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 25,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -87,15 +87,15 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     20,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -118,15 +118,15 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     25,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -153,29 +153,29 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 20,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         ),
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
-                            attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeType = Attribute.AttributeType.Relationship,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:1234",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -191,29 +191,29 @@ class TemporalEntitiesParameterizedSource {
                     ),
                     emptyList(),
                     mapOf(
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/apic#outgoing",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = 25,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         ),
-                        TemporalEntityAttribute(
+                        Attribute(
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
-                            attributeType = TemporalEntityAttribute.AttributeType.Relationship,
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                            attributeType = Attribute.AttributeType.Relationship,
+                            attributeValueType = Attribute.AttributeValueType.NUMBER,
                             createdAt = now,
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                temporalEntityAttribute = UUID.randomUUID(),
+                                attribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:5678",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )

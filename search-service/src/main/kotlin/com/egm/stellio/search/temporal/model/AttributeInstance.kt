@@ -15,7 +15,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 data class AttributeInstance private constructor(
-    val temporalEntityAttribute: UUID,
+    val attribute: UUID,
     val instanceId: URI,
     val timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
     val time: ZonedDateTime,
@@ -28,7 +28,7 @@ data class AttributeInstance private constructor(
     companion object {
 
         operator fun invoke(
-            temporalEntityAttribute: UUID,
+            attribute: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
             modifiedAt: ZonedDateTime? = null,
@@ -37,7 +37,7 @@ data class AttributeInstance private constructor(
             time: ZonedDateTime,
             sub: String? = null
         ): AttributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttribute,
+            attribute = attribute,
             instanceId = instanceId,
             timeProperty = timeProperty,
             time = time,
@@ -49,14 +49,14 @@ data class AttributeInstance private constructor(
         )
 
         operator fun invoke(
-            temporalEntityAttribute: UUID,
+            attribute: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeAndProperty: Pair<ZonedDateTime, TemporalProperty>,
             value: Triple<String?, Double?, WKTCoordinates?>,
             payload: ExpandedAttributeInstance,
             sub: String?
         ): AttributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttribute,
+            attribute = attribute,
             instanceId = instanceId,
             timeProperty = timeAndProperty.second,
             time = timeAndProperty.first,

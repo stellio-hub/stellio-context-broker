@@ -71,8 +71,8 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEvent.json")
+    fun `it should handle a create event with unknwon properties for an user`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventUnknownProperties.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
@@ -81,11 +81,11 @@ class IAMListenerTests {
         coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                        it.subjectType == SubjectType.USER &&
                         it.subjectInfo.asString() ==
                         """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
+                        {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -94,8 +94,8 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event with unknwon properties for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEventUnknownProperties.json")
+    fun `it should handle a create event with the default tenant for an user`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventWithDefaultTenant.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
@@ -104,34 +104,11 @@ class IAMListenerTests {
         coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                        it.subjectType == SubjectType.USER &&
                         it.subjectInfo.asString() ==
                         """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
-                        """.trimIndent() &&
-                        it.globalRoles == null
-                }
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle a create event with the default tenant for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEventWithDefaultTenant.json")
-
-        coEvery { subjectReferentialService.create(any()) } returns Unit.right()
-
-        iamListener.dispatchIamMessage(subjectCreateEvent)
-
-        coVerify(timeout = 1000L) {
-            subjectReferentialService.create(
-                match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
-                        it.subjectInfo.asString() ==
-                        """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
+                        {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -310,26 +287,6 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding a service account id to a client`() = runTest {
-        val roleAppendEvent = loadSampleData("events/authorization/ServiceAccountIdAppendEvent.json")
-
-        coEvery { subjectReferentialService.addServiceAccountIdToClient(any(), any()) } returns Unit.right()
-
-        iamListener.dispatchIamMessage(roleAppendEvent)
-
-        coVerify(timeout = 1000L) {
-            subjectReferentialService.addServiceAccountIdToClient(
-                match {
-                    it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5"
-                },
-                match {
-                    it == "7cdad168-96ee-4649-b768-a060ac2ef435"
-                }
-            )
-        }
-    }
-
-    @Test
     fun `it should handle a replace event changing the name of a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/GroupUpdateEvent.json")
 
@@ -360,6 +317,24 @@ class IAMListenerTests {
                 eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"),
                 match {
                     it.first == "givenName" && it.second == "Jonathan"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should handle a replace event changing the clientId of a client`() = runTest {
+        val clientIdReplaceEvent = loadSampleData("events/authorization/ClientIdAppendToClient.json")
+
+        coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(clientIdReplaceEvent)
+
+        coVerify(timeout = 1000L) {
+            subjectReferentialService.updateSubjectInfo(
+                eq("191a6f0d-df07-4697-afde-da9d8a91d954"),
+                match {
+                    it.first == "clientId" && it.second == "friendly-client-id"
                 }
             )
         }

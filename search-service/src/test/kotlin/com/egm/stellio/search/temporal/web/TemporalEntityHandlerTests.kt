@@ -5,8 +5,8 @@ import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
@@ -38,7 +38,7 @@ import java.util.UUID
 class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    private val temporalEntityAttributeName = "speed"
+    private val attributeName = "speed"
     private val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
 
     private fun buildDefaultMockResponsesForAddAttributes() {
@@ -658,10 +658,10 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     private suspend fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
         val entityTemporalProperties = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             .map {
-                TemporalEntityAttribute(
+                Attribute(
                     entityId = entityUri,
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                    attributeValueType = Attribute.AttributeValueType.NUMBER,
                     createdAt = ZonedDateTime.now(ZoneOffset.UTC),
                     payload = EMPTY_JSON_PAYLOAD
                 )
@@ -681,7 +681,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val attInstanceResults = attributes.flatMap {
             values.map {
                 SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = UUID.randomUUID(),
+                    attribute = UUID.randomUUID(),
                     value = it.first,
                     time = ZonedDateTime.parse(it.second)
                 )
@@ -1104,7 +1104,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `modify attribute instance should return a 404 if attributeInstanceId or attribute name is not found`() {
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(attributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any(), sub) } returns Unit.right()
@@ -1139,7 +1139,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
         coEvery { entityService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
-        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(Entity::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         webClient.delete()
@@ -1481,7 +1481,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete attribute instance temporal should return 204`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(attributeName, NGSILD_TEST_CORE_CONTEXT)
         coEvery {
             entityService.checkEntityExistence(any())
         } returns Unit.right()
@@ -1493,7 +1493,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         webClient
             .method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$attributeName/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNoContent
@@ -1516,7 +1516,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         webClient
             .method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$attributeName/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
@@ -1538,7 +1538,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete attribute instance temporal should return 404 if attributeInstanceId or attribute name is not found`() {
-        val expandedAttr = JsonLdUtils.expandJsonLdTerm(temporalEntityAttributeName, NGSILD_TEST_CORE_CONTEXT)
+        val expandedAttr = JsonLdUtils.expandJsonLdTerm(attributeName, NGSILD_TEST_CORE_CONTEXT)
 
         coEvery {
             entityService.checkEntityExistence(any())
@@ -1553,7 +1553,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         webClient
             .method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$attributeName/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isNotFound
@@ -1591,7 +1591,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         webClient
             .method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$temporalEntityAttributeName/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$attributeName/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isForbidden

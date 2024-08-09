@@ -7,7 +7,7 @@ import com.egm.stellio.search.authorization.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.model.SubjectAccessRight
 import com.egm.stellio.search.authorization.model.SubjectReferential
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -72,9 +72,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     @AfterEach
     fun clearEntityAccessRightsTable() {
         r2dbcEntityTemplate.delete<SubjectAccessRight>().from("entity_access_rights").all().block()
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
     }
 
     @Test

@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
 
@@ -55,9 +56,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
     }
 
     @Test

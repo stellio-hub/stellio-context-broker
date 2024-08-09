@@ -2,12 +2,15 @@ package com.egm.stellio.search.util
 
 import arrow.core.Either
 import arrow.core.raise.either
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.EntitiesQuery
-import com.egm.stellio.search.model.Query
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.common.model.Query
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.util.composeEntitiesQuery
 import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.buildTemporalQuery
+import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -242,7 +245,12 @@ class EntitiesQueryUtilsTests {
         contexts: List<String>
     ): Either<APIException, EntitiesQuery> = either {
         val query = Query(requestBody).bind()
-        composeEntitiesQueryFromPostRequest(defaultPagination, query, requestParams, contexts).bind()
+        com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest(
+            defaultPagination,
+            query,
+            requestParams,
+            contexts
+        ).bind()
     }
 
     @Test

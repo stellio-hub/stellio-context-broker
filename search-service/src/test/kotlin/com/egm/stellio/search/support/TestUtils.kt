@@ -1,9 +1,9 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.model.TemporalQuery.Aggregate
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
@@ -62,7 +62,7 @@ fun buildAttributeInstancePayload(
     observedAt: ZonedDateTime,
     datasetId: URI? = null,
     instanceId: URI,
-    attributeType: TemporalEntityAttribute.AttributeType = TemporalEntityAttribute.AttributeType.Property
+    attributeType: Attribute.AttributeType = Attribute.AttributeType.Property
 ): String = serializeObject(
     mutableMapOf(
         JSONLD_TYPE to listOf(attributeType.toExpandedName()),
@@ -71,7 +71,7 @@ fun buildAttributeInstancePayload(
     ).apply {
         if (datasetId != null)
             put(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedPropertyValue(datasetId.toString()))
-        if (attributeType == TemporalEntityAttribute.AttributeType.Property)
+        if (attributeType == Attribute.AttributeType.Property)
             put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE to value)))
         else
             put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID to value.toString())))

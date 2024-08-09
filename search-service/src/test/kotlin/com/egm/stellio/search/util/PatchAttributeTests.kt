@@ -1,5 +1,7 @@
 package com.egm.stellio.search.util
 
+import com.egm.stellio.search.temporal.util.mergePatch
+import com.egm.stellio.search.temporal.util.partialUpdatePatch
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS

@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 
 @SpringBootApplication(scanBasePackages = ["com.egm.stellio.search", "com.egm.stellio.shared"])
-@ConfigurationPropertiesScan("com.egm.stellio.search.config", "com.egm.stellio.shared.config")
+@ConfigurationPropertiesScan("com.egm.stellio.search.common.config", "com.egm.stellio.shared.config")
 class SearchServiceApplication
 
 @Suppress("SpreadOperator")

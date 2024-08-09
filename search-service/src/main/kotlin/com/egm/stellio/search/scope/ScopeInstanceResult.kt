@@ -1,6 +1,6 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import java.net.URI
 import java.time.ZonedDateTime
 

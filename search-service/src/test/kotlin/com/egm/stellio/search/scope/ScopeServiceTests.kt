@@ -1,12 +1,16 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.OperationType
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
-import com.egm.stellio.search.util.toExpandedAttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.toExpandedAttributeInstance
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
@@ -22,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.util.stream.Stream
 
@@ -33,7 +38,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private lateinit var scopeService: ScopeService
 
     @Autowired
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -42,9 +47,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
 
         runBlocking {
             scopeService.delete(beehiveTestCId)
@@ -90,7 +93,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         val expandedAttributes = JsonLdUtils.expandAttributes(
             """
@@ -108,7 +111,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             operationType
         ).shouldSucceed()
 
-        entityPayloadService.retrieve(beehiveTestCId)
+        entityService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()
@@ -119,7 +122,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private suspend fun createScopeHistory() {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),
@@ -324,7 +327,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 

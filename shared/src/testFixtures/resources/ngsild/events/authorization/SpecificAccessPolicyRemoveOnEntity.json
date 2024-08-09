@@ -5,7 +5,7 @@
   "attributeName": "specificAccessPolicy",
   "updatedEntity": "",
   "contexts": [
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld"
+    "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ],
   "operationType": "ATTRIBUTE_DELETE"
 }

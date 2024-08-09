@@ -15,7 +15,6 @@ import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
@@ -143,13 +142,6 @@ class IAMListener(
                         subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
                     else
                         subjectReferentialService.resetGlobalRoles(subjectUuid)
-                }
-                AUTH_TERM_SID -> {
-                    val serviceAccountId = operationPayload[JSONLD_VALUE_TERM] as String
-                    subjectReferentialService.addServiceAccountIdToClient(
-                        subjectUuid,
-                        serviceAccountId.extractSub()
-                    )
                 }
                 AUTH_TERM_IS_MEMBER_OF -> {
                     val groupId = operationPayload[JSONLD_OBJECT] as String

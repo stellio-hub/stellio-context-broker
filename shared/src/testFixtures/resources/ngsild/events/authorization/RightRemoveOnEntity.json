@@ -5,7 +5,7 @@
   "attributeName": "urn:ngsi-ld:Beekeeper:01",
   "updatedEntity": "",
   "contexts": [
-    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ],
   "operationType": "ATTRIBUTE_DELETE"
 }

@@ -3,7 +3,7 @@ package com.egm.stellio.search.entity.service
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
@@ -469,7 +469,7 @@ class EntityServiceQueryTests : WithTimescaleContainer, WithKafkaContainer {
     ) = r2dbcEntityTemplate.update(
         Query.query(Criteria.where("entity_id").`is`(entityId)),
         Update.update("specific_access_policy", specificAccessPolicy.toString()),
-        EntityPayload::class.java
+        Entity::class.java
     ).block()
 
     private fun resetSpecificAccessPolicy(
@@ -477,6 +477,6 @@ class EntityServiceQueryTests : WithTimescaleContainer, WithKafkaContainer {
     ) = r2dbcEntityTemplate.update(
         Query.query(Criteria.where("entity_id").`is`(entityId)),
         Update.update("specific_access_policy", null),
-        EntityPayload::class.java
+        Entity::class.java
     ).block()
 }

@@ -2104,13 +2104,13 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity should return a 204 if an entity has been successfully deleted`() {
-        val entity = mockkClass(EntityPayload::class, relaxed = true)
+        val entity = mockkClass(Entity::class, relaxed = true)
 
         coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         coEvery { authorizationService.userCanAdminEntity(beehiveId, sub) } returns Unit.right()
-        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(Entity::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
@@ -2160,7 +2160,7 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity should return a 500 if entity could not be deleted`() {
-        val entity = mockkClass(EntityPayload::class, relaxed = true)
+        val entity = mockkClass(Entity::class, relaxed = true)
         coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityService.retrieve(any<URI>()) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)
@@ -2186,7 +2186,7 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity should return a 403 is user is not authorized to delete an entity`() {
-        val entity = mockkClass(EntityPayload::class, relaxed = true)
+        val entity = mockkClass(Entity::class, relaxed = true)
         coEvery { entityService.checkEntityExistence(beehiveId) } returns Unit.right()
         coEvery { entityService.retrieve(beehiveId) } returns entity.right()
         every { entity.types } returns listOf(BEEHIVE_TYPE)

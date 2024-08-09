@@ -5,7 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -794,15 +794,15 @@ class EntityOperationHandlerTests {
 
         coEvery { entityService.retrieve(any<List<URI>>()) } returns
             listOf(
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri
                     every { types } returns listOf(SENSOR_TYPE)
                 },
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns temperatureSensorUri
                     every { types } returns listOf(SENSOR_TYPE)
                 },
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns deviceUri
                     every { types } returns listOf(DEVICE_TYPE)
                 }
@@ -857,15 +857,15 @@ class EntityOperationHandlerTests {
         }
         coEvery { entityService.retrieve(any<List<URI>>()) } returns
             listOf(
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri
                     every { types } returns listOf(SENSOR_TYPE)
                 },
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns temperatureSensorUri
                     every { types } returns listOf(SENSOR_TYPE)
                 },
-                mockkClass(EntityPayload::class, relaxed = true) {
+                mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns deviceUri
                     every { types } returns listOf(DEVICE_TYPE)
                 }

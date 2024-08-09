@@ -182,7 +182,7 @@ class EntityService(
             .bind("entity_id", entityId)
             .oneToResult { toZonedDateTime(it["created_at"]) }
 
-    suspend fun retrieve(entityId: URI): Either<APIException, EntityPayload> =
+    suspend fun retrieve(entityId: URI): Either<APIException, Entity> =
         databaseClient.sql(
             """
             SELECT * from entity_payload
@@ -192,7 +192,7 @@ class EntityService(
             .bind("entity_id", entityId)
             .oneToResult { rowToEntityPaylaod(it) }
 
-    suspend fun retrieve(entitiesIds: List<URI>): List<EntityPayload> =
+    suspend fun retrieve(entitiesIds: List<URI>): List<Entity> =
         databaseClient.sql(
             """
             SELECT * from entity_payload
@@ -202,8 +202,8 @@ class EntityService(
             .bind("entities_ids", entitiesIds)
             .allToMappedList { rowToEntityPaylaod(it) }
 
-    private fun rowToEntityPaylaod(row: Map<String, Any>): EntityPayload =
-        EntityPayload(
+    private fun rowToEntityPaylaod(row: Map<String, Any>): Entity =
+        Entity(
             entityId = toUri(row["entity_id"]),
             types = toList(row["types"]),
             scopes = toOptionalList(row["scopes"]),
@@ -629,9 +629,9 @@ class EntityService(
 
     private fun buildJsonLdEntity(
         attributes: List<Attribute>,
-        entityPayload: EntityPayload
+        entity: Entity
     ): Map<String, Any> {
-        val entityCoreAttributes = entityPayload.serializeProperties()
+        val entityCoreAttributes = entity.serializeProperties()
         val expandedAttributes = attributes
             .groupBy { attribute ->
                 attribute.attributeName
@@ -661,7 +661,7 @@ class EntityService(
             .execute()
 
     @Transactional
-    suspend fun deleteEntity(entityId: URI): Either<APIException, EntityPayload> = either {
+    suspend fun deleteEntity(entityId: URI): Either<APIException, Entity> = either {
         val entity = databaseClient.sql(
             """
             DELETE FROM entity_payload

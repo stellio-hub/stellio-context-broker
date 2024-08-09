@@ -8,7 +8,7 @@ import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.EntityType
 import com.egm.stellio.search.discovery.model.EntityTypeInfo
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -94,7 +94,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearPreviousAttributesAndObservations() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+        r2dbcEntityTemplate.delete(Entity::class.java)
             .all()
             .block()
         r2dbcEntityTemplate.delete(Attribute::class.java)
@@ -267,7 +267,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
 
     private fun createEntityPayload(
-        entityPayload: EntityPayload
+        entity: Entity
     ): Either<APIException, Unit> =
         runBlocking {
             databaseClient.sql(
@@ -276,8 +276,8 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 VALUES (:entity_id, :types)
                 """.trimIndent()
             )
-                .bind("entity_id", entityPayload.entityId)
-                .bind("types", entityPayload.types.toTypedArray())
+                .bind("entity_id", entity.entityId)
+                .bind("types", entity.types.toTypedArray())
                 .execute()
         }
 }

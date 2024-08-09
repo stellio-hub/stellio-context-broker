@@ -6,7 +6,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
@@ -1139,7 +1139,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
         coEvery { entityService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanAdminEntity(entityUri, sub) } returns Unit.right()
-        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(Entity::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
         webClient.delete()

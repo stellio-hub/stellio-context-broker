@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.*
 import com.egm.stellio.shared.model.APIException
@@ -112,7 +112,7 @@ class EntityOperationService(
         return BatchOperationResult(creationResults.second.toMutableList(), creationResults.first.toMutableList())
     }
 
-    suspend fun delete(entities: Set<EntityPayload>, sub: Sub?): BatchOperationResult {
+    suspend fun delete(entities: Set<Entity>, sub: Sub?): BatchOperationResult {
         val deletionResults = entities.map { entity ->
             val entityId = entity.entityId
             either {

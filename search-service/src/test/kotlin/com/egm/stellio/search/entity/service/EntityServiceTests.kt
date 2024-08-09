@@ -55,7 +55,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+        r2dbcEntityTemplate.delete(Entity::class.java)
             .all()
             .block()
     }

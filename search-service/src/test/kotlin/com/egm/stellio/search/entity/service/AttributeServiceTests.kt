@@ -3,7 +3,7 @@ package com.egm.stellio.search.entity.service
 import arrow.core.right
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -56,8 +56,8 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @BeforeEach
     fun bootstrapEntities() {
-        r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
-            EntityPayload(
+        r2dbcEntityTemplate.insert<Entity>().into("entity").using(
+            Entity(
                 entityId = beehiveTestCId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
@@ -65,8 +65,8 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             )
         ).block()
 
-        r2dbcEntityTemplate.insert<EntityPayload>().into("entity_payload").using(
-            EntityPayload(
+        r2dbcEntityTemplate.insert<Entity>().into("entity").using(
+            Entity(
                 entityId = beehiveTestDId,
                 types = listOf(BEEHIVE_TYPE),
                 createdAt = Instant.now().atZone(UTC),
@@ -77,7 +77,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearPreviousAttributesAndObservations() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+        r2dbcEntityTemplate.delete(Entity::class.java)
             .all()
             .block()
 

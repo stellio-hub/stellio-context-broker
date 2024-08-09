@@ -47,12 +47,12 @@ object TemporalEntityBuilder {
         )
 
         val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityTemporalResult.entityPayload,
+            entityTemporalResult.entity,
             entityTemporalResult.scopeHistory,
             temporalEntitiesQuery
         )
 
-        val expandedTemporalEntity = entityTemporalResult.entityPayload.serializeProperties()
+        val expandedTemporalEntity = entityTemporalResult.entity.serializeProperties()
             .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
         return ExpandedEntity(expandedTemporalEntity)

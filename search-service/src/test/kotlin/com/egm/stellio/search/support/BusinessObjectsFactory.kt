@@ -3,7 +3,7 @@ package com.egm.stellio.search.support
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
@@ -21,15 +21,15 @@ fun gimmeEntityPayload(
     entityId: String,
     types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
     payload: String = EMPTY_PAYLOAD
-): EntityPayload =
+): Entity =
     gimmeEntityPayload(entityId.toUri(), types, payload)
 
 fun gimmeEntityPayload(
     entityId: URI,
     types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
     payload: String = EMPTY_PAYLOAD
-): EntityPayload =
-    EntityPayload(
+): Entity =
+    Entity(
         entityId = entityId,
         types = types,
         createdAt = ngsiLdDateTime(),

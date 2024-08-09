@@ -4,7 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.BatchEntityError
@@ -344,14 +344,14 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch delete should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityService.deleteEntity(any()) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityService.deleteEntity(any()) } returns mockkClass(Entity::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         val batchOperationResult = entityOperationService.delete(
             setOf(
-                mockkClass(EntityPayload::class) { every { entityId } returns firstEntityURI },
-                mockkClass(EntityPayload::class) { every { entityId } returns secondEntityURI },
+                mockkClass(Entity::class) { every { entityId } returns firstEntityURI },
+                mockkClass(Entity::class) { every { entityId } returns secondEntityURI },
             ),
             sub
         )
@@ -378,7 +378,7 @@ class EntityOperationServiceTests {
         runTest {
             coEvery {
                 entityService.deleteEntity(firstEntityURI)
-            } returns mockkClass(EntityPayload::class).right()
+            } returns mockkClass(Entity::class).right()
             coEvery {
                 entityService.deleteEntity(secondEntityURI)
             } returns InternalErrorException("Something went wrong during deletion").left()
@@ -387,8 +387,8 @@ class EntityOperationServiceTests {
 
             val batchOperationResult = entityOperationService.delete(
                 setOf(
-                    mockkClass(EntityPayload::class) { every { entityId } returns firstEntityURI },
-                    mockkClass(EntityPayload::class) { every { entityId } returns secondEntityURI },
+                    mockkClass(Entity::class) { every { entityId } returns firstEntityURI },
+                    mockkClass(Entity::class) { every { entityId } returns secondEntityURI },
                 ),
                 sub
             )
@@ -422,8 +422,8 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.delete(
             setOf(
-                mockkClass(EntityPayload::class) { every { entityId } returns firstEntityURI },
-                mockkClass(EntityPayload::class) { every { entityId } returns secondEntityURI },
+                mockkClass(Entity::class) { every { entityId } returns firstEntityURI },
+                mockkClass(Entity::class) { every { entityId } returns secondEntityURI },
             ),
             sub
         )

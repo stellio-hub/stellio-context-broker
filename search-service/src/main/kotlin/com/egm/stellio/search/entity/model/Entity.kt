@@ -15,7 +15,7 @@ import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
 
-data class EntityPayload(
+data class Entity(
     val entityId: URI,
     val types: List<ExpandedTerm>,
     val scopes: List<String>? = null,

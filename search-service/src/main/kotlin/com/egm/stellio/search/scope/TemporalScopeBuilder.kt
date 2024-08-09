@@ -1,6 +1,6 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
@@ -17,12 +17,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 object TemporalScopeBuilder {
 
     fun buildScopeAttributeInstances(
-        entityPayload: EntityPayload,
+        entity: Entity,
         scopeInstances: List<ScopeInstanceResult>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Map<String, Any> =
         // if no history, add an empty map only if entity has a scope
-        if (entityPayload.scopes == null && scopeInstances.isEmpty())
+        if (entity.scopes == null && scopeInstances.isEmpty())
             emptyMap()
         // if no history but entity has a scope, add an empty scope list (no history in the given time range)
         else if (scopeInstances.isEmpty())

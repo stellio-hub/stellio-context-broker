@@ -1,7 +1,7 @@
 package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -46,7 +46,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+        r2dbcEntityTemplate.delete(Entity::class.java)
             .all()
             .block()
 

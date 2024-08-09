@@ -6,9 +6,9 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.valueToDoubleOrNull
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
 import com.egm.stellio.search.entity.model.AttributeMetadata
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute.AttributeValueType
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
-fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
+fun NgsiLdEntity.prepareAttributes(): Either<APIException, List<Pair<String, AttributeMetadata>>> {
     val ngsiLdEntity = this
     return either {
         ngsiLdEntity.attributes
@@ -32,44 +32,44 @@ fun NgsiLdEntity.prepareTemporalAttributes(): Either<APIException, List<Pair<Str
                 ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) }
             }
             .map {
-                Pair(it.first.name, it.second.toTemporalAttributeMetadata().bind())
+                Pair(it.first.name, it.second.toAttributeMetadata().bind())
             }
     }
 }
 
-fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, AttributeMetadata> {
+fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, AttributeMetadata> {
     val (attributeType, attributeValueType, attributeValue) = when (this) {
         is NgsiLdPropertyInstance ->
             guessPropertyValueType(this).let {
-                Triple(TemporalEntityAttribute.AttributeType.Property, it.first, it.second)
+                Triple(Attribute.AttributeType.Property, it.first, it.second)
             }
         is NgsiLdRelationshipInstance ->
             Triple(
-                TemporalEntityAttribute.AttributeType.Relationship,
+                Attribute.AttributeType.Relationship,
                 AttributeValueType.URI,
                 Triple(this.objectId.toString(), null, null)
             )
         is NgsiLdGeoPropertyInstance ->
             Triple(
-                TemporalEntityAttribute.AttributeType.GeoProperty,
+                Attribute.AttributeType.GeoProperty,
                 AttributeValueType.GEOMETRY,
                 Triple(null, null, this.coordinates)
             )
         is NgsiLdJsonPropertyInstance ->
             Triple(
-                TemporalEntityAttribute.AttributeType.JsonProperty,
+                Attribute.AttributeType.JsonProperty,
                 AttributeValueType.JSON,
                 Triple(serializeObject(this.json), null, null)
             )
         is NgsiLdLanguagePropertyInstance ->
             Triple(
-                TemporalEntityAttribute.AttributeType.LanguageProperty,
+                Attribute.AttributeType.LanguageProperty,
                 AttributeValueType.ARRAY,
                 Triple(serializeObject(this.languageMap), null, null)
             )
         is NgsiLdVocabPropertyInstance ->
             Triple(
-                TemporalEntityAttribute.AttributeType.VocabProperty,
+                Attribute.AttributeType.VocabProperty,
                 AttributeValueType.ARRAY,
                 Triple(serializeObject(this.vocab), null, null)
             )
@@ -91,17 +91,17 @@ fun NgsiLdAttributeInstance.toTemporalAttributeMetadata(): Either<APIException, 
 }
 
 fun guessAttributeValueType(
-    attributeType: TemporalEntityAttribute.AttributeType,
+    attributeType: Attribute.AttributeType,
     expandedAttributeInstance: ExpandedAttributeInstance
 ): AttributeValueType =
     when (attributeType) {
-        TemporalEntityAttribute.AttributeType.Property ->
+        Attribute.AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
-        TemporalEntityAttribute.AttributeType.Relationship -> AttributeValueType.URI
-        TemporalEntityAttribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
-        TemporalEntityAttribute.AttributeType.JsonProperty -> AttributeValueType.JSON
-        TemporalEntityAttribute.AttributeType.LanguageProperty -> AttributeValueType.ARRAY
-        TemporalEntityAttribute.AttributeType.VocabProperty -> AttributeValueType.ARRAY
+        Attribute.AttributeType.Relationship -> AttributeValueType.URI
+        Attribute.AttributeType.GeoProperty -> AttributeValueType.GEOMETRY
+        Attribute.AttributeType.JsonProperty -> AttributeValueType.JSON
+        Attribute.AttributeType.LanguageProperty -> AttributeValueType.ARRAY
+        Attribute.AttributeType.VocabProperty -> AttributeValueType.ARRAY
     }
 
 fun guessPropertyValueType(

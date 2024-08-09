@@ -1,8 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import arrow.core.right
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.scope.ScopeInstanceResult
@@ -86,26 +86,26 @@ class TemporalQueryServiceTests {
 
     @Test
     fun `it should query a temporal entity as requested by query params`() = runTest {
-        val teas =
+        val attributes =
             listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).map {
-                TemporalEntityAttribute(
+                Attribute(
                     entityId = entityUri,
                     attributeName = it,
-                    attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+                    attributeValueType = Attribute.AttributeValueType.NUMBER,
                     createdAt = now,
                     payload = EMPTY_JSON_PAYLOAD
                 )
             }
 
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns teas
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns attributes
         coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns
             listOf(
-                FullAttributeInstanceResult(teas[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null),
-                FullAttributeInstanceResult(teas[1].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
+                FullAttributeInstanceResult(attributes[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null),
+                FullAttributeInstanceResult(attributes[1].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
             ).right()
 
         queryService.queryTemporalEntity(
@@ -134,7 +134,7 @@ class TemporalQueryServiceTests {
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         )
                 },
-                any<List<TemporalEntityAttribute>>()
+                any<List<Attribute>>()
             )
             scopeService.retrieveHistory(listOf(entityUri), any())
         }
@@ -214,10 +214,10 @@ class TemporalQueryServiceTests {
 
     @Test
     fun `it should query temporal entities as requested by query params`() = runTest {
-        val temporalEntityAttribute = TemporalEntityAttribute(
+        val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
@@ -225,16 +225,16 @@ class TemporalQueryServiceTests {
         coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForTemporalEntities(any(), any())
-        } returns listOf(temporalEntityAttribute)
+        } returns listOf(attribute)
         coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    attribute = attribute.id,
                     value = 2.0,
                     time = ngsiLdDateTime()
                 )
@@ -273,7 +273,7 @@ class TemporalQueryServiceTests {
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         )
                 },
-                any<List<TemporalEntityAttribute>>()
+                any<List<Attribute>>()
             )
             entityService.queryEntitiesCount(
                 EntitiesQuery(
@@ -289,10 +289,10 @@ class TemporalQueryServiceTests {
 
     @Test
     fun `it should return an empty list for an attribute if it has no temporal values`() = runTest {
-        val temporalEntityAttribute = TemporalEntityAttribute(
+        val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_PROPERTY,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
@@ -300,10 +300,10 @@ class TemporalQueryServiceTests {
         coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForTemporalEntities(any(), any())
-        } returns listOf(temporalEntityAttribute)
+        } returns listOf(attribute)
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
         coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()

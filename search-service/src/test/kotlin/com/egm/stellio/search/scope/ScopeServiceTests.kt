@@ -1,7 +1,7 @@
 package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.util.stream.Stream
 
@@ -46,9 +47,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
 
         runBlocking {
             scopeService.delete(beehiveTestCId)

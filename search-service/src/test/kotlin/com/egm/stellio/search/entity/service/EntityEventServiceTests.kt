@@ -1,7 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
@@ -115,21 +115,21 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_DELETE event`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true) {
+        val entity = mockk<Entity>(relaxed = true) {
             every { entityId } returns breedingServiceUri
         }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        entityEventService.publishEntityDeleteEvent(null, entityPayload).join()
+        entityEventService.publishEntityDeleteEvent(null, entity).join()
 
         verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }
 
     @Test
     fun `it should publish a single ATTRIBUTE_APPEND event if an attribute was appended`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        val entity = mockk<Entity>(relaxed = true)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -162,9 +162,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish a single ATTRIBUTE_REPLACE event if an attribute was replaced`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        val entity = mockk<Entity>(relaxed = true)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -198,7 +198,7 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`() =
         runTest {
-            val entityPayload = mockk<EntityPayload>(relaxed = true)
+            val entity = mockk<Entity>(relaxed = true)
             val attributesPayload =
                 """
                 {
@@ -215,8 +215,8 @@ class EntityEventServiceTests {
                 emptyList()
             )
 
-            coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-            every { entityPayload.types } returns listOf(breedingServiceType)
+            coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+            every { entity.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeChangeEvents(
                 null,
@@ -263,7 +263,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
+        val entity = mockk<Entity>(relaxed = true)
         val attributesPayload =
             """
             {
@@ -280,8 +280,8 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
             null,
@@ -315,7 +315,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
+        val entity = mockk<Entity>(relaxed = true)
         val fishNameAttributeFragment2 =
             """
             {
@@ -339,8 +339,8 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
             null,
@@ -376,7 +376,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE event if an attribute is updated`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
+        val entity = mockk<Entity>(relaxed = true)
 
         val expandedAttribute = expandAttribute(
             fishNameTerm,
@@ -387,8 +387,8 @@ class EntityEventServiceTests {
             UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.UPDATED)
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
             null,
@@ -416,10 +416,10 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish ATTRIBUTE_DELETE_ALL_INSTANCE event if all instances of an attribute are deleted`() =
         runTest {
-            val entityPayload = mockk<EntityPayload>(relaxed = true)
+            val entity = mockk<Entity>(relaxed = true)
 
-            coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-            every { entityPayload.types } returns listOf(breedingServiceType)
+            coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+            every { entity.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeDeleteEvent(
                 null,
@@ -446,10 +446,10 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
-        val entityPayload = mockk<EntityPayload>(relaxed = true)
+        val entity = mockk<Entity>(relaxed = true)
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entityPayload.right()
-        every { entityPayload.types } returns listOf(breedingServiceType)
+        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeDeleteEvent(
             null,

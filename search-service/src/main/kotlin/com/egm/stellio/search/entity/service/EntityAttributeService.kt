@@ -9,7 +9,7 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.search.temporal.util.*
@@ -47,7 +47,7 @@ class EntityAttributeService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    suspend fun create(temporalEntityAttribute: TemporalEntityAttribute): Either<APIException, Unit> =
+    suspend fun create(attribute: Attribute): Either<APIException, Unit> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
@@ -58,19 +58,19 @@ class EntityAttributeService(
                     :payload)
             """.trimIndent()
         )
-            .bind("id", temporalEntityAttribute.id)
-            .bind("entity_id", temporalEntityAttribute.entityId)
-            .bind("attribute_name", temporalEntityAttribute.attributeName)
-            .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
-            .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
-            .bind("created_at", temporalEntityAttribute.createdAt)
-            .bind("dataset_id", temporalEntityAttribute.datasetId)
-            .bind("payload", temporalEntityAttribute.payload)
+            .bind("id", attribute.id)
+            .bind("entity_id", attribute.entityId)
+            .bind("attribute_name", attribute.attributeName)
+            .bind("attribute_type", attribute.attributeType.toString())
+            .bind("attribute_value_type", attribute.attributeValueType.toString())
+            .bind("created_at", attribute.createdAt)
+            .bind("dataset_id", attribute.datasetId)
+            .bind("payload", attribute.payload)
             .execute()
 
     @Transactional
     suspend fun updateOnReplace(
-        teaUUID: UUID,
+        attributeUUID: UUID,
         attributeMetadata: AttributeMetadata,
         modifiedAt: ZonedDateTime,
         payload: String
@@ -86,7 +86,7 @@ class EntityAttributeService(
             WHERE id = :id
             """.trimIndent()
         )
-            .bind("id", teaUUID)
+            .bind("id", attributeUUID)
             .bind("attribute_type", attributeMetadata.type.toString())
             .bind("attribute_value_type", attributeMetadata.valueType.toString())
             .bind("modified_at", modifiedAt)
@@ -95,8 +95,8 @@ class EntityAttributeService(
 
     @Transactional
     suspend fun updateOnUpdate(
-        teaUUID: UUID,
-        valueType: TemporalEntityAttribute.AttributeValueType,
+        attributeUUID: UUID,
+        valueType: Attribute.AttributeValueType,
         modifiedAt: ZonedDateTime,
         payload: String
     ): Either<APIException, Unit> =
@@ -106,10 +106,10 @@ class EntityAttributeService(
             SET payload = :payload,
                 attribute_value_type = :attribute_value_type,
                 modified_at = :modified_at
-            WHERE id = :tea_uuid
+            WHERE id = :attribute_uuid
             """.trimIndent()
         )
-            .bind("tea_uuid", teaUUID)
+            .bind("attribute_uuid", attributeUUID)
             .bind("payload", Json.of(payload))
             .bind("attribute_value_type", valueType.toString())
             .bind("modified_at", modifiedAt)
@@ -129,7 +129,7 @@ class EntityAttributeService(
         val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
         val expandedEntity = expandJsonLdEntity(payload, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
-        ngsiLdEntity.prepareTemporalAttributes()
+        ngsiLdEntity.prepareAttributes()
             .map {
                 createEntityAttributes(ngsiLdEntity, expandedEntity, it, createdAt, sub).bind()
             }.bind()
@@ -178,7 +178,7 @@ class EntityAttributeService(
     ): Either<APIException, Unit> =
         either {
             logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
-            val temporalEntityAttribute = TemporalEntityAttribute(
+            val attribute = Attribute(
                 entityId = entityId,
                 attributeName = attributeName,
                 attributeType = attributeMetadata.type,
@@ -187,10 +187,10 @@ class EntityAttributeService(
                 createdAt = createdAt,
                 payload = Json.of(serializeObject(attributePayload))
             )
-            create(temporalEntityAttribute).bind()
+            create(attribute).bind()
 
             val attributeInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute.id,
+                attribute = attribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                 time = createdAt,
                 attributeMetadata = attributeMetadata,
@@ -201,7 +201,7 @@ class EntityAttributeService(
 
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
-                    temporalEntityAttribute = temporalEntityAttribute.id,
+                    attribute = attribute.id,
                     time = attributeMetadata.observedAt,
                     attributeMetadata = attributeMetadata,
                     payload = attributePayload
@@ -212,7 +212,7 @@ class EntityAttributeService(
 
     @Transactional
     suspend fun replaceAttribute(
-        temporalEntityAttribute: TemporalEntityAttribute,
+        attribute: Attribute,
         ngsiLdAttribute: NgsiLdAttribute,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
@@ -223,17 +223,17 @@ class EntityAttributeService(
             "Replacing attribute {} ({}) in entity {}",
             ngsiLdAttribute.name,
             attributeMetadata.datasetId,
-            temporalEntityAttribute.entityId
+            attribute.entityId
         )
         updateOnReplace(
-            temporalEntityAttribute.id,
+            attribute.id,
             attributeMetadata,
             createdAt,
             serializeObject(attributePayload)
         ).bind()
 
         val attributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttribute.id,
+            attribute = attribute.id,
             timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
             time = createdAt,
             attributeMetadata = attributeMetadata,
@@ -244,7 +244,7 @@ class EntityAttributeService(
 
         if (attributeMetadata.observedAt != null) {
             val attributeObservedAtInstance = AttributeInstance(
-                temporalEntityAttribute = temporalEntityAttribute.id,
+                attribute = attribute.id,
                 time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = attributePayload
@@ -255,7 +255,7 @@ class EntityAttributeService(
 
     @Transactional
     suspend fun mergeAttribute(
-        tea: TemporalEntityAttribute,
+        attribute: Attribute,
         attributeName: ExpandedTerm,
         attributeMetadata: AttributeMetadata,
         mergedAt: ZonedDateTime,
@@ -267,21 +267,21 @@ class EntityAttributeService(
             "Merging attribute {} ({}) in entity {}",
             attributeName,
             attributeMetadata.datasetId,
-            tea.entityId
+            attribute.entityId
         )
         val (processedAttributePayload, processedAttributeMetadata) = processObservedAtInMergeOperation(
-            tea,
+            attribute,
             attributePayload,
             attributeMetadata,
             observedAt
         )
         val (jsonTargetObject, updatedAttributeInstance) =
-            mergePatch(tea.payload.toExpandedAttributeInstance(), processedAttributePayload)
-        val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
-        updateOnUpdate(tea.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
+            mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload)
+        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
+        updateOnUpdate(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
         val attributeInstance =
-            createContextualAttributeInstance(tea, updatedAttributeInstance, value, mergedAt, sub)
+            createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt, sub)
         attributeInstanceService.create(attributeInstance).bind()
     }
 
@@ -363,7 +363,7 @@ class EntityAttributeService(
     suspend fun getForTemporalEntities(
         entitiesIds: List<URI>,
         entitiesQuery: EntitiesQuery
-    ): List<TemporalEntityAttribute> {
+    ): List<Attribute> {
         val filterOnAttributes =
             if (entitiesQuery.attrs.isNotEmpty())
                 " AND " + entitiesQuery.attrs.joinToString(
@@ -394,10 +394,10 @@ class EntityAttributeService(
         return databaseClient
             .sql(selectQuery)
             .bind("entities_ids", entitiesIds)
-            .allToMappedList { rowToTemporalEntityAttribute(it) }
+            .allToMappedList { rowToAttribute(it) }
     }
 
-    suspend fun getForEntity(id: URI, attrs: Set<String>, datasetIds: Set<String>): List<TemporalEntityAttribute> {
+    suspend fun getForEntity(id: URI, attrs: Set<String>, datasetIds: Set<String>): List<Attribute> {
         val filterOnAttributes =
             if (attrs.isNotEmpty())
                 " AND " + attrs.joinToString(
@@ -427,14 +427,14 @@ class EntityAttributeService(
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", id)
-            .allToMappedList { rowToTemporalEntityAttribute(it) }
+            .allToMappedList { rowToAttribute(it) }
     }
 
     suspend fun getForEntityAndAttribute(
         id: URI,
         attributeName: String,
         datasetId: URI? = null
-    ): Either<APIException, TemporalEntityAttribute> {
+    ): Either<APIException, Attribute> {
         val selectQuery =
             """
             SELECT *
@@ -453,7 +453,7 @@ class EntityAttributeService(
                 else it
             }
             .oneToResult {
-                rowToTemporalEntityAttribute(it)
+                rowToAttribute(it)
             }
     }
 
@@ -484,13 +484,13 @@ class EntityAttributeService(
             }
     }
 
-    private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =
-        TemporalEntityAttribute(
+    private fun rowToAttribute(row: Map<String, Any>) =
+        Attribute(
             id = toUuid(row["id"]),
             entityId = toUri(row["entity_id"]),
             attributeName = row["attribute_name"] as ExpandedTerm,
-            attributeType = TemporalEntityAttribute.AttributeType.valueOf(row["attribute_type"] as String),
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
+            attributeType = Attribute.AttributeType.valueOf(row["attribute_type"] as String),
+            attributeValueType = Attribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),
             datasetId = toOptionalUri(row["dataset_id"]),
@@ -551,15 +551,15 @@ class EntityAttributeService(
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-            val currentTea =
+            val currentAttribute =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
-            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
             val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
-            if (currentTea == null) {
+            if (currentAttribute == null) {
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -586,7 +586,7 @@ class EntityAttributeService(
                 ).right().bind()
             } else {
                 replaceAttribute(
-                    currentTea,
+                    currentAttribute,
                     ngsiLdAttribute,
                     attributeMetadata,
                     createdAt,
@@ -615,17 +615,17 @@ class EntityAttributeService(
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-            val currentTea =
+            val currentAttribute =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
-            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
             val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
-            if (currentTea != null) {
+            if (currentAttribute != null) {
                 replaceAttribute(
-                    currentTea,
+                    currentAttribute,
                     ngsiLdAttribute,
                     attributeMetadata,
                     createdAt,
@@ -680,21 +680,21 @@ class EntityAttributeService(
         val updateAttributeResult =
             if (exists) {
                 // first update payload in temporal entity attribute
-                val tea = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
+                val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
                 attributeValues[JSONLD_TYPE]?.let {
-                    ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + tea.attributeType))) {
+                    ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
                         BadRequestDataException("The type of the attribute has to be the same as the existing one")
                     }
                 }
                 val (jsonTargetObject, updatedAttributeInstance) =
-                    partialUpdatePatch(tea.payload.toExpandedAttributeInstance(), attributeValues)
-                val value = getValueFromPartialAttributePayload(tea, updatedAttributeInstance)
-                val attributeValueType = guessAttributeValueType(tea.attributeType, attributeValues)
-                updateOnUpdate(tea.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
+                    partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
+                val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
+                val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues)
+                updateOnUpdate(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
 
                 // then update attribute instance
                 val attributeInstance = createContextualAttributeInstance(
-                    tea,
+                    attribute,
                     updatedAttributeInstance,
                     value,
                     modifiedAt,
@@ -730,16 +730,16 @@ class EntityAttributeService(
     ): Either<APIException, Unit> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-        val currentTea =
+        val currentAttribute =
             getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                 .fold({ null }, { it })
-        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
         val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
             ngsiLdAttribute.name,
             ngsiLdAttributeInstance.datasetId
         )!!
 
-        if (currentTea == null) {
+        if (currentAttribute == null) {
             logger.debug(
                 "Creating attribute and instance for attribute {} in entity {}",
                 ngsiLdAttribute.name,
@@ -754,11 +754,11 @@ class EntityAttributeService(
                 sub
             ).bind()
         } else {
-            logger.debug("Adding instance to attribute {} to entity {}", currentTea.attributeName, entityUri)
+            logger.debug("Adding instance to attribute {} to entity {}", currentAttribute.attributeName, entityUri)
             attributeInstanceService.addAttributeInstance(
-                currentTea.id,
+                currentAttribute.id,
                 attributeMetadata,
-                expandedAttributes[currentTea.attributeName]!!.first()
+                expandedAttributes[currentAttribute.attributeName]!!.first()
             ).bind()
         }
     }
@@ -775,16 +775,16 @@ class EntityAttributeService(
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
-            val currentTea =
+            val currentAttribute =
                 getForEntityAndAttribute(entityUri, ngsiLdAttribute.name, ngsiLdAttributeInstance.datasetId)
                     .fold({ null }, { it })
-            val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+            val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
             val attributePayload = expandedAttributes.getAttributeFromExpandedAttributes(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentTea == null) {
+            if (currentAttribute == null) {
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -802,7 +802,7 @@ class EntityAttributeService(
                 }.bind()
             } else {
                 mergeAttribute(
-                    currentTea,
+                    currentAttribute,
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
@@ -834,7 +834,7 @@ class EntityAttributeService(
         val datasetId = ngsiLdAttributeInstance.datasetId
         val currentTea =
             getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
-        val attributeMetadata = ngsiLdAttributeInstance.toTemporalAttributeMetadata().bind()
+        val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
         val updateAttributeResult =
             if (currentTea == null) {
                 UpdateAttributeResult(
@@ -865,41 +865,41 @@ class EntityAttributeService(
     }
 
     suspend fun getValueFromPartialAttributePayload(
-        tea: TemporalEntityAttribute,
+        attribute: Attribute,
         attributePayload: ExpandedAttributeInstance
     ): Triple<String?, Double?, WKTCoordinates?> =
-        when (tea.attributeType) {
-            TemporalEntityAttribute.AttributeType.Property ->
+        when (attribute.attributeType) {
+            Attribute.AttributeType.Property ->
                 Triple(
                     valueToStringOrNull(attributePayload.getPropertyValue()!!),
                     valueToDoubleOrNull(attributePayload.getPropertyValue()!!),
                     null
                 )
-            TemporalEntityAttribute.AttributeType.Relationship ->
+            Attribute.AttributeType.Relationship ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT)!! as String,
                     null,
                     null
                 )
-            TemporalEntityAttribute.AttributeType.GeoProperty ->
+            Attribute.AttributeType.GeoProperty ->
                 Triple(
                     null,
                     null,
                     WKTCoordinates(attributePayload.getPropertyValue()!! as String)
                 )
-            TemporalEntityAttribute.AttributeType.JsonProperty ->
+            Attribute.AttributeType.JsonProperty ->
                 Triple(
                     serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_VALUE)!!),
                     null,
                     null
                 )
-            TemporalEntityAttribute.AttributeType.LanguageProperty ->
+            Attribute.AttributeType.LanguageProperty ->
                 Triple(
                     serializeObject(attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_VALUE)!!),
                     null,
                     null
                 )
-            TemporalEntityAttribute.AttributeType.VocabProperty ->
+            Attribute.AttributeType.VocabProperty ->
                 Triple(
                     serializeObject(attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VALUE)!!),
                     null,
@@ -908,7 +908,7 @@ class EntityAttributeService(
         }
 
     private fun createContextualAttributeInstance(
-        tea: TemporalEntityAttribute,
+        attribute: Attribute,
         expandedAttributeInstance: ExpandedAttributeInstance,
         value: Triple<String?, Double?, WKTCoordinates?>,
         modifiedAt: ZonedDateTime,
@@ -924,7 +924,7 @@ class EntityAttributeService(
                 Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
 
         return AttributeInstance(
-            temporalEntityAttribute = tea.id,
+            attribute = attribute.id,
             timeAndProperty = timeAndProperty,
             value = value,
             payload = expandedAttributeInstance,
@@ -939,14 +939,14 @@ class EntityAttributeService(
      * "observedAt" sub-Attribute.
      */
     internal fun processObservedAtInMergeOperation(
-        tea: TemporalEntityAttribute,
+        attribute: Attribute,
         attributePayload: ExpandedAttributeInstance,
         attributeMetadata: AttributeMetadata,
         observedAt: ZonedDateTime?
     ): Pair<ExpandedAttributeInstance, AttributeMetadata> =
         if (
             observedAt != null &&
-            tea.payload.deserializeAsMap().containsKey(NGSILD_OBSERVED_AT_PROPERTY) &&
+            attribute.payload.deserializeAsMap().containsKey(NGSILD_OBSERVED_AT_PROPERTY) &&
             !attributePayload.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
         )
             Pair(

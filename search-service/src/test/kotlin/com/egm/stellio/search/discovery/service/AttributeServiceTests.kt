@@ -6,8 +6,8 @@ import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.discovery.model.AttributeDetails
 import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.AttributeTypeInfo
-import com.egm.stellio.search.entity.model.EntityPayload
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
@@ -50,39 +51,35 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
     private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
     private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
-    private val temporalEntityAttribute1 = newTemporalEntityAttribute(
+    private val attribute1 = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_PROPERTY,
-        TemporalEntityAttribute.AttributeType.Property,
-        TemporalEntityAttribute.AttributeValueType.NUMBER
+        Attribute.AttributeType.Property,
+        Attribute.AttributeValueType.NUMBER
     )
-    private val temporalEntityAttribute2 = newTemporalEntityAttribute(
+    private val attribute2 = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         MANAGED_BY_RELATIONSHIP,
-        TemporalEntityAttribute.AttributeType.Relationship,
-        TemporalEntityAttribute.AttributeValueType.STRING
+        Attribute.AttributeType.Relationship,
+        Attribute.AttributeValueType.STRING
     )
-    private val temporalEntityAttribute3 = newTemporalEntityAttribute(
+    private val attribute3 = newAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
         NGSILD_LOCATION_PROPERTY,
-        TemporalEntityAttribute.AttributeType.GeoProperty,
-        TemporalEntityAttribute.AttributeValueType.GEOMETRY
+        Attribute.AttributeType.GeoProperty,
+        Attribute.AttributeValueType.GEOMETRY
     )
-    private val temporalEntityAttribute4 = newTemporalEntityAttribute(
+    private val attribute4 = newAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
         OUTGOING_PROPERTY,
-        TemporalEntityAttribute.AttributeType.Property,
-        TemporalEntityAttribute.AttributeValueType.GEOMETRY
+        Attribute.AttributeType.Property,
+        Attribute.AttributeValueType.GEOMETRY
     )
 
     @AfterEach
-    fun clearPreviousTemporalEntityAttributesAndObservations() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
-        r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
-            .all()
-            .block()
+    fun clearPreviousAttributesAndObservations() {
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
+        r2dbcEntityTemplate.delete<Attribute>().from("temporal_entity_attribute").all().block()
     }
 
     @BeforeEach
@@ -90,10 +87,10 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         createEntityPayload(entityPayload1)
         createEntityPayload(entityPayload2)
         createEntityPayload(entityPayload3)
-        createTemporalEntityAttribute(temporalEntityAttribute1)
-        createTemporalEntityAttribute(temporalEntityAttribute2)
-        createTemporalEntityAttribute(temporalEntityAttribute3)
-        createTemporalEntityAttribute(temporalEntityAttribute4)
+        createAttribute(attribute1)
+        createAttribute(attribute2)
+        createAttribute(attribute3)
+        createAttribute(attribute4)
     }
 
     @Test
@@ -111,7 +108,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return an empty list of attributes if no attributes was found`() = runTest {
-        clearPreviousTemporalEntityAttributesAndObservations()
+        clearPreviousAttributesAndObservations()
 
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
         assert(attributeNames.attributeList.isEmpty())
@@ -151,7 +148,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return an empty list of AttributeDetails if no attribute was found`() = runTest {
-        clearPreviousTemporalEntityAttributesAndObservations()
+        clearPreviousAttributesAndObservations()
 
         val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
         assertTrue(attributeDetails.isEmpty())
@@ -183,8 +180,8 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
     }
 
-    private fun createTemporalEntityAttribute(
-        temporalEntityAttribute: TemporalEntityAttribute
+    private fun createAttribute(
+        attribute: Attribute
     ): Either<APIException, Unit> =
         runBlocking {
             databaseClient.sql(
@@ -195,22 +192,22 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at)
                 """.trimIndent()
             )
-                .bind("id", temporalEntityAttribute.id)
-                .bind("entity_id", temporalEntityAttribute.entityId)
-                .bind("attribute_name", temporalEntityAttribute.attributeName)
-                .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
-                .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
-                .bind("created_at", temporalEntityAttribute.createdAt)
+                .bind("id", attribute.id)
+                .bind("entity_id", attribute.entityId)
+                .bind("attribute_name", attribute.attributeName)
+                .bind("attribute_type", attribute.attributeType.toString())
+                .bind("attribute_value_type", attribute.attributeValueType.toString())
+                .bind("created_at", attribute.createdAt)
                 .execute()
         }
 
-    private fun newTemporalEntityAttribute(
+    private fun newAttribute(
         id: String,
         attributeName: String,
-        attributeType: TemporalEntityAttribute.AttributeType,
-        attributeValueType: TemporalEntityAttribute.AttributeValueType
-    ): TemporalEntityAttribute =
-        TemporalEntityAttribute(
+        attributeType: Attribute.AttributeType,
+        attributeValueType: Attribute.AttributeValueType
+    ): Attribute =
+        Attribute(
             entityId = toUri(id),
             attributeName = attributeName,
             attributeType = attributeType,
@@ -220,7 +217,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         )
 
     private fun createEntityPayload(
-        entityPayload: EntityPayload
+        entity: Entity
     ): Either<APIException, Unit> =
         runBlocking {
             databaseClient.sql(
@@ -229,8 +226,8 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 VALUES (:entity_id, :types)
                 """.trimIndent()
             )
-                .bind("entity_id", entityPayload.entityId)
-                .bind("types", entityPayload.types.toTypedArray())
+                .bind("entity_id", entity.entityId)
+                .bind("types", entity.types.toTypedArray())
                 .execute()
         }
 }

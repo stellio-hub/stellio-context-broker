@@ -5,7 +5,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.EntityPayload
+import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import org.springframework.stereotype.Service
@@ -37,8 +37,8 @@ class EntityQueryService(
         Pair(entitiesPayloads, count).right().bind()
     }
 
-    private fun toJsonLdEntity(entityPayload: EntityPayload): ExpandedEntity {
-        val deserializedEntity = entityPayload.payload.deserializeAsMap()
+    private fun toJsonLdEntity(entity: Entity): ExpandedEntity {
+        val deserializedEntity = entity.payload.deserializeAsMap()
         return ExpandedEntity(deserializedEntity)
     }
 }

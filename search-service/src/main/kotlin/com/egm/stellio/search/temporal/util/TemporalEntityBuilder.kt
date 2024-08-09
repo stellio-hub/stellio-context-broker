@@ -1,6 +1,6 @@
 package com.egm.stellio.search.temporal.util
 
-import com.egm.stellio.search.entity.model.TemporalEntityAttribute
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.scope.TemporalScopeBuilder
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -25,7 +25,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.wktToGeoJson
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
-typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
+typealias AttributesWithInstances = Map<Attribute, List<AttributeInstanceResult>>
 
 object TemporalEntityBuilder {
 
@@ -42,24 +42,24 @@ object TemporalEntityBuilder {
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): ExpandedEntity {
         val temporalAttributes = buildTemporalAttributes(
-            entityTemporalResult.teaInstancesResult,
+            entityTemporalResult.attributesWithInstances,
             temporalEntitiesQuery
         )
 
         val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityTemporalResult.entityPayload,
+            entityTemporalResult.entity,
             entityTemporalResult.scopeHistory,
             temporalEntitiesQuery
         )
 
-        val expandedTemporalEntity = entityTemporalResult.entityPayload.serializeProperties()
+        val expandedTemporalEntity = entityTemporalResult.entity.serializeProperties()
             .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
         return ExpandedEntity(expandedTemporalEntity)
     }
 
     private fun buildTemporalAttributes(
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
+        attributeAndResultsMap: AttributesWithInstances,
         temporalEntitiesQuery: TemporalEntitiesQuery,
     ): Map<String, Any> =
         if (temporalEntitiesQuery.withTemporalValues) {
@@ -113,8 +113,8 @@ object TemporalEntityBuilder {
      * of the temporal entity attribute.
      */
     private fun buildAttributesSimplifiedRepresentation(
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult
-    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> =
+        attributeAndResultsMap: AttributesWithInstances
+    ): Map<Attribute, SimplifiedTemporalAttribute> =
         attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
                 JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
@@ -127,7 +127,7 @@ object TemporalEntityBuilder {
                 buildExpandedTemporalValue(it.value) { attributeInstanceResult ->
                     attributeInstanceResult as SimplifiedAttributeInstanceResult
                     when (it.key.attributeType) {
-                        TemporalEntityAttribute.AttributeType.JsonProperty -> {
+                        Attribute.AttributeType.JsonProperty -> {
                             // flaky way to know if the serialized value is a JSON object or an array of JSON objects
                             val deserializedJsonValue: Any =
                                 if ((attributeInstanceResult.value as String).startsWith("["))
@@ -145,7 +145,7 @@ object TemporalEntityBuilder {
                                 mapOf(JSONLD_VALUE to attributeInstanceResult.time)
                             )
                         }
-                        TemporalEntityAttribute.AttributeType.LanguageProperty -> {
+                        Attribute.AttributeType.LanguageProperty -> {
                             listOf(
                                 mapOf(
                                     NGSILD_LANGUAGEPROPERTY_VALUE to
@@ -154,7 +154,7 @@ object TemporalEntityBuilder {
                                 mapOf(JSONLD_VALUE to attributeInstanceResult.time)
                             )
                         }
-                        TemporalEntityAttribute.AttributeType.VocabProperty -> {
+                        Attribute.AttributeType.VocabProperty -> {
                             listOf(
                                 mapOf(
                                     NGSILD_VOCABPROPERTY_VALUE to
@@ -183,9 +183,9 @@ object TemporalEntityBuilder {
      * as described in 4.5.19.0
      */
     private fun buildAttributesAggregatedRepresentation(
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
+        attributeAndResultsMap: AttributesWithInstances,
         aggrMethods: List<TemporalQuery.Aggregate>
-    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
+    ): Map<Attribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
                 JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
@@ -194,7 +194,7 @@ object TemporalEntityBuilder {
                 attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
             }
 
-            val aggregatedResultsForTEA = it.value
+            val aggregatedResultsForAttributes = it.value
                 .map { attributeInstanceResult ->
                     attributeInstanceResult as AggregatedAttributeInstanceResult
                     attributeInstanceResult.values
@@ -202,7 +202,7 @@ object TemporalEntityBuilder {
                 .flatten()
 
             aggrMethods.forEach { aggregate ->
-                val resultsForAggregate = aggregatedResultsForTEA.filter { aggregateResult ->
+                val resultsForAggregate = aggregatedResultsForAttributes.filter { aggregateResult ->
                     aggregateResult.aggregate.method == aggregate.method
                 }
                 attributeInstance[NGSILD_PREFIX + aggregate.method] =
@@ -225,11 +225,11 @@ object TemporalEntityBuilder {
      * - Value: list of the full representation of the attribute instances
      */
     private fun mergeFullTemporalAttributesOnAttributeName(
-        attributeAndResultsMap: TemporalEntityAttributeInstancesResult
+        attributeAndResultsMap: AttributesWithInstances
     ): Map<ExpandedTerm, List<FullAttributeInstanceResult>> =
         attributeAndResultsMap.toList()
-            .groupBy { (temporalEntityAttribute, _) ->
-                temporalEntityAttribute.attributeName
+            .groupBy { (attribute, _) ->
+                attribute.attributeName
             }
             .toMap()
             .mapValues {
@@ -244,11 +244,11 @@ object TemporalEntityBuilder {
      * - Value: list of the simplified temporal representation of the attribute instances
      */
     private fun mergeSimplifiedTemporalAttributesOnAttributeName(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, SimplifiedTemporalAttribute>
+        attributeAndResultsMap: Map<Attribute, SimplifiedTemporalAttribute>
     ): Map<ExpandedTerm, List<SimplifiedTemporalAttribute>> =
         attributeAndResultsMap.toList()
-            .groupBy { (temporalEntityAttribute, _) ->
-                temporalEntityAttribute.attributeName
+            .groupBy { (attribute, _) ->
+                attribute.attributeName
             }
             .toMap()
             .mapValues {

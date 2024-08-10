@@ -8,12 +8,12 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.search.temporal.util.composeAggregationSelectClause
-import com.egm.stellio.search.temporal.util.toAttributeMetadata
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
@@ -90,7 +90,7 @@ class AttributeInstanceService(
                     it.bind("geo_value", attributeInstance.geoValue.value)
                 else it
             }
-            .bind("attribute", attributeInstance.attribute)
+            .bind("attribute", attributeInstance.attributeUuid)
             .bind("instance_id", attributeInstance.instanceId)
             .bind("payload", attributeInstance.payload)
             .let {
@@ -109,7 +109,7 @@ class AttributeInstanceService(
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeInstance = AttributeInstance(
-            attribute = attributeUuid,
+            attributeUuid = attributeUuid,
             time = attributeMetadata.observedAt!!,
             attributeMetadata = attributeMetadata,
             payload = attributeValues
@@ -294,19 +294,19 @@ class AttributeInstanceService(
                 AggregateResult(it, value, startDateTime, endDateTime)
             }
             AggregatedAttributeInstanceResult(
-                attribute = toUuid(row["temporal_entity_attribute"]),
+                attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 values = values
             )
         } else if (temporalEntitiesQuery.withTemporalValues)
             SimplifiedAttributeInstanceResult(
-                attribute = toUuid(row["temporal_entity_attribute"]),
+                attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
                 value = row["value"] ?: "",
                 time = toZonedDateTime(row["start"])
             )
         else FullAttributeInstanceResult(
-            attribute = toUuid(row["temporal_entity_attribute"]),
+            attributeUuid = toUuid(row["temporal_entity_attribute"]),
             payload = toJsonString(row["payload"]),
             time = toZonedDateTime(row["start"]),
             timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
@@ -328,7 +328,7 @@ class AttributeInstanceService(
         deleteInstance(entityId, attributeName, instanceId).bind()
         create(
             AttributeInstance(
-                attribute = attributeUUID,
+                attributeUuid = attributeUUID,
                 time = attributeMetadata.observedAt!!,
                 attributeMetadata = attributeMetadata,
                 modifiedAt = ngsiLdDateTime(),

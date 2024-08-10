@@ -1,7 +1,6 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.entity.util
 
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.temporal.util.guessAttributeValueType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -13,7 +12,7 @@ import java.net.URI
 import java.time.LocalTime
 
 @ActiveProfiles("test")
-class AttributeInstanceUtilsTests {
+class AttributeUtilsTests {
 
     @Test
     fun `it should guess the value type of a string property`() = runTest {

@@ -2,9 +2,9 @@ package db.migration
 
 import arrow.core.Either
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.util.guessPropertyValueType
+import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AttributeInstance
-import com.egm.stellio.search.temporal.util.guessPropertyValueType
-import com.egm.stellio.search.temporal.util.toAttributeMetadata
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP

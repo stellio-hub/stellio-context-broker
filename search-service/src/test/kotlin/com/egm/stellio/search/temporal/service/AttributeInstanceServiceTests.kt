@@ -164,7 +164,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith {
                 assertThat(it)
                     .singleElement()
-                    .hasFieldOrPropertyWithValue("attribute", incomingAttribute.id)
+                    .hasFieldOrPropertyWithValue("attributeUuid", incomingAttribute.id)
             }
     }
 
@@ -298,7 +298,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 observedAt = observedAt
             )
             val attributeInstance = AttributeInstance(
-                attribute = attribute2.id,
+                attributeUuid = attribute2.id,
                 time = observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = buildExpandedPropertyValue(attributeMetadata.value!!)
@@ -315,7 +315,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             assertThat(results)
                 .hasSize(10)
                 .allMatch {
-                    it.attribute == attribute2.id &&
+                    it.attributeUuid == attribute2.id &&
                         (it as SimplifiedAttributeInstanceResult).value == "some value"
                 }
         }
@@ -431,7 +431,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 assertThat(results)
                     .hasSize(10)
                     .allMatch {
-                        it.attribute == incomingAttribute.id
+                        it.attributeUuid == incomingAttribute.id
                     }
             }
     }

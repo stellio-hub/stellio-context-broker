@@ -2,12 +2,10 @@ package com.egm.stellio.search.authorization.web
 
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.web.EntityHandler
-import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.ninjasquad.springmockk.MockkBean
@@ -31,12 +29,6 @@ class AnonymousUserHandlerTests {
 
     @MockkBean
     private lateinit var entityService: EntityService
-
-    @MockkBean
-    private lateinit var entityAttributeService: EntityAttributeService
-
-    @MockkBean
-    private lateinit var queryService: TemporalQueryService
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService

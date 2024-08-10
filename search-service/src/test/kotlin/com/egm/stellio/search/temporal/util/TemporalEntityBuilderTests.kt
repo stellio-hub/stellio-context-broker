@@ -1,4 +1,4 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
@@ -8,8 +8,6 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
-import com.egm.stellio.search.temporal.util.AttributesWithInstances
-import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -62,7 +60,7 @@ class TemporalEntityBuilderTests {
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.TemporalEntityParameterizedSource#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntityParameterizedSource#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: AttributesWithInstances,
@@ -95,7 +93,7 @@ class TemporalEntityBuilderTests {
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
+    @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
     fun `it should correctly build temporal entities`(
         entityTemporalResults: List<EntityTemporalResult>,
         withTemporalValues: Boolean,
@@ -132,7 +130,7 @@ class TemporalEntityBuilderTests {
         val attributeAndResultsMap = mapOf(
             attribute to listOf(
                 AggregatedAttributeInstanceResult(
-                    attribute = attribute.id,
+                    attributeUuid = attribute.id,
                     listOf(
                         AggregateResult(
                             TemporalQuery.Aggregate.SUM,
@@ -149,7 +147,7 @@ class TemporalEntityBuilderTests {
                     )
                 ),
                 AggregatedAttributeInstanceResult(
-                    attribute = attribute.id,
+                    attributeUuid = attribute.id,
                     listOf(
                         AggregateResult(
                             TemporalQuery.Aggregate.SUM,

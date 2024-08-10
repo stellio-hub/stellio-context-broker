@@ -3,7 +3,7 @@ package com.egm.stellio.search.temporal.model
 import java.time.ZonedDateTime
 import java.util.UUID
 
-sealed class AttributeInstanceResult(open val attribute: UUID) : Comparable<AttributeInstanceResult> {
+sealed class AttributeInstanceResult(open val attributeUuid: UUID) : Comparable<AttributeInstanceResult> {
     abstract fun getComparableTime(): ZonedDateTime
 
     override fun compareTo(other: AttributeInstanceResult): Int =
@@ -11,27 +11,27 @@ sealed class AttributeInstanceResult(open val attribute: UUID) : Comparable<Attr
 }
 
 data class FullAttributeInstanceResult(
-    override val attribute: UUID,
+    override val attributeUuid: UUID,
     val payload: String,
     val time: ZonedDateTime,
     val timeproperty: String,
     val sub: String?
-) : AttributeInstanceResult(attribute) {
+) : AttributeInstanceResult(attributeUuid) {
     override fun getComparableTime(): ZonedDateTime = time
 }
 
 data class SimplifiedAttributeInstanceResult(
-    override val attribute: UUID,
+    override val attributeUuid: UUID,
     val value: Any,
     val time: ZonedDateTime
-) : AttributeInstanceResult(attribute) {
+) : AttributeInstanceResult(attributeUuid) {
     override fun getComparableTime(): ZonedDateTime = time
 }
 
 data class AggregatedAttributeInstanceResult(
-    override val attribute: UUID,
+    override val attributeUuid: UUID,
     val values: List<AggregateResult>
-) : AttributeInstanceResult(attribute) {
+) : AttributeInstanceResult(attributeUuid) {
     override fun getComparableTime(): ZonedDateTime = values.first().startDateTime
 
     data class AggregateResult(

@@ -119,7 +119,7 @@ class TemporalQueryService(
         if (entitiesIds.isEmpty())
             return@either Triple<List<ExpandedEntity>, Int, Range?>(emptyList(), count, null)
 
-        val attributes = entityAttributeService.getForTemporalEntities(
+        val attributes = entityAttributeService.getForEntities(
             entitiesIds,
             temporalEntitiesQuery.entitiesQuery
         )
@@ -201,7 +201,7 @@ class TemporalQueryService(
             .groupBy { attributeInstanceResult ->
                 // group them by temporal entity attribute
                 attributes.find { attribute ->
-                    attribute.id == attributeInstanceResult.attribute
+                    attribute.id == attributeInstanceResult.attributeUuid
                 }!!
             }
             .mapValues { it.value.sorted() }

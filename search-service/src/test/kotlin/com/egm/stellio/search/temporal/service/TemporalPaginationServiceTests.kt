@@ -52,7 +52,7 @@ class TemporalPaginationServiceTests {
     )
 
     private fun getInstance(time: ZonedDateTime): AttributeInstanceResult {
-        return SimplifiedAttributeInstanceResult(value = 1, time = time, attribute = UUID.randomUUID())
+        return SimplifiedAttributeInstanceResult(value = 1, time = time, attributeUuid = UUID.randomUUID())
     }
 
     private val attributesWithInstances: AttributesWithInstances = mapOf(
@@ -91,7 +91,7 @@ class TemporalPaginationServiceTests {
 
     private val aggregationInstances = listOf(
         AggregatedAttributeInstanceResult(
-            attribute = UUID.randomUUID(),
+            attributeUuid = UUID.randomUUID(),
             values = listOf(
                 AggregatedAttributeInstanceResult.AggregateResult(
                     TemporalQuery.Aggregate.SUM,
@@ -108,7 +108,7 @@ class TemporalPaginationServiceTests {
             )
         ),
         AggregatedAttributeInstanceResult(
-            attribute = UUID.randomUUID(),
+            attributeUuid = UUID.randomUUID(),
             values = listOf(
                 AggregatedAttributeInstanceResult.AggregateResult(
                     TemporalQuery.Aggregate.SUM,

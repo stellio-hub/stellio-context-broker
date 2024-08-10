@@ -234,7 +234,7 @@ class EntityOperationService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityAttributeService.deleteTemporalAttributesOfEntity(ngsiLdEntity.id).bind()
+        entityAttributeService.deleteAttributes(ngsiLdEntity.id).bind()
         entityService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),

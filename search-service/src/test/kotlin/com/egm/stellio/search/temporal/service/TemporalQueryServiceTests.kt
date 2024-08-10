@@ -224,7 +224,7 @@ class TemporalQueryServiceTests {
 
         coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
-            entityAttributeService.getForTemporalEntities(any(), any())
+            entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
         coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
@@ -234,7 +234,7 @@ class TemporalQueryServiceTests {
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
-                    attribute = attribute.id,
+                    attributeUuid = attribute.id,
                     value = 2.0,
                     time = ngsiLdDateTime()
                 )
@@ -258,7 +258,7 @@ class TemporalQueryServiceTests {
         ) { null }
 
         coVerify {
-            entityAttributeService.getForTemporalEntities(
+            entityAttributeService.getForEntities(
                 listOf(entityUri),
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
@@ -299,7 +299,7 @@ class TemporalQueryServiceTests {
 
         coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
         coEvery {
-            entityAttributeService.getForTemporalEntities(any(), any())
+            entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {

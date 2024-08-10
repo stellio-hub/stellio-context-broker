@@ -9,8 +9,8 @@ import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.OperationType.*
+import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.scope.ScopeService
-import com.egm.stellio.search.temporal.util.prepareAttributes
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
@@ -47,7 +47,7 @@ class EntityService(
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
         createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub = sub).bind()
-        entityAttributeService.createEntityAttributes(
+        entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
             attributesMetadata,
@@ -96,7 +96,7 @@ class EntityService(
         val mergedAt = ngsiLdDateTime()
 
         val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
-        val attrsUpdateResult = entityAttributeService.mergeEntityAttributes(
+        val attrsUpdateResult = entityAttributeService.mergeAttributes(
             entityId,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -125,10 +125,10 @@ class EntityService(
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeService.deleteTemporalAttributesOfEntity(entityId)
+        entityAttributeService.deleteAttributes(entityId)
 
         replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
-        entityAttributeService.createEntityAttributes(
+        entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
             attributesMetadata,
@@ -481,7 +481,7 @@ class EntityService(
             if (disallowOverwrite) APPEND_ATTRIBUTES
             else APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
         val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, operationType).bind()
-        val attrsUpdateResult = entityAttributeService.appendEntityAttributes(
+        val attrsUpdateResult = entityAttributeService.appendAttributes(
             entityUri,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -510,7 +510,7 @@ class EntityService(
         val createdAt = ngsiLdDateTime()
 
         val coreUpdateResult = updateCoreAttributes(entityUri, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
-        val attrsUpdateResult = entityAttributeService.updateEntityAttributes(
+        val attrsUpdateResult = entityAttributeService.updateAttributes(
             entityUri,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -534,7 +534,7 @@ class EntityService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val modifiedAt = ngsiLdDateTime()
-        val updateResult = entityAttributeService.partialUpdateEntityAttribute(
+        val updateResult = entityAttributeService.partialUpdateAttribute(
             entityId,
             expandedAttribute,
             modifiedAt,
@@ -560,7 +560,7 @@ class EntityService(
                     val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
                     val ngsiLdAttribute = jsonLdAttribute.toNgsiLdAttributes().bind()[0]
 
-                    entityAttributeService.upsertEntityAttributes(
+                    entityAttributeService.upsertAttributes(
                         entityId,
                         ngsiLdAttribute,
                         jsonLdAttribute,
@@ -585,7 +585,7 @@ class EntityService(
         val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
         val replacedAt = ngsiLdDateTime()
 
-        val updateResult = entityAttributeService.replaceEntityAttribute(
+        val updateResult = entityAttributeService.replaceAttribute(
             entityId,
             ngsiLdAttribute,
             expandedAttribute,
@@ -675,7 +675,7 @@ class EntityService(
             }
             .bind()
 
-        entityAttributeService.deleteTemporalAttributesOfEntity(entityId).bind()
+        entityAttributeService.deleteAttributes(entityId).bind()
         scopeService.deleteHistory(entityId).bind()
         entity
     }
@@ -695,7 +695,7 @@ class EntityService(
                     attributeName,
                     datasetId
                 ).bind()
-                entityAttributeService.deleteTemporalAttribute(
+                entityAttributeService.deleteAttribute(
                     entityId,
                     attributeName,
                     datasetId,

@@ -1,4 +1,4 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
@@ -43,7 +43,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 20,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -67,7 +67,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 25,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -95,7 +95,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     20,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -126,7 +126,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     25,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -161,7 +161,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 20,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -175,7 +175,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:1234",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -199,7 +199,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 25,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -213,7 +213,7 @@ class TemporalEntitiesParameterizedSource {
                             payload = EMPTY_JSON_PAYLOAD
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:5678",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )

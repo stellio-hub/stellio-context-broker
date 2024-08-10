@@ -681,7 +681,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val attInstanceResults = attributes.flatMap {
             values.map {
                 SimplifiedAttributeInstanceResult(
-                    attribute = UUID.randomUUID(),
+                    attributeUuid = UUID.randomUUID(),
                     value = it.first,
                     time = ZonedDateTime.parse(it.second)
                 )

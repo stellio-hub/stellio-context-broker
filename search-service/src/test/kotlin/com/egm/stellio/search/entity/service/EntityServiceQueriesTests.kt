@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.core.update
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
@@ -35,7 +34,7 @@ import java.net.URI
 @SpringBootTest
 @ActiveProfiles("test")
 @EnableConfigurationProperties(SearchProperties::class)
-class EntityServiceQueryTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var entityService: EntityService

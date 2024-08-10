@@ -9,6 +9,8 @@ import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
+import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -141,15 +143,15 @@ fun buildTemporalQuery(
         return BadRequestDataException(it).left()
     }
 
-    if (timerel == TemporalQuery.Timerel.BETWEEN && endTimeAtParam == null)
+    if (timerel == Timerel.BETWEEN && endTimeAtParam == null)
         return BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'").left()
 
     if (withAggregatedValues && aggrMethodsParam == null)
         return BadRequestDataException("'aggrMethods' is mandatory if 'aggregatedValues' option is specified").left()
 
     val aggregate = aggrMethodsParam?.split(",")?.map {
-        if (TemporalQuery.Aggregate.isSupportedAggregate(it))
-            TemporalQuery.Aggregate.forMethod(it)!!
+        if (Aggregate.isSupportedAggregate(it))
+            Aggregate.forMethod(it)!!
         else
             return BadRequestDataException(
                 "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
@@ -177,13 +179,13 @@ fun buildTimerelAndTime(
     timerelParam: String?,
     timeAtParam: String?,
     inQueryEntities: Boolean
-): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
+): Either<String, Pair<Timerel?, ZonedDateTime?>> =
     // when querying a specific temporal entity, timeAt and timerel are optional
     if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {
-            TemporalQuery.Timerel.valueOf(timerelParam.uppercase()).right()
+            Timerel.valueOf(timerelParam.uppercase()).right()
         } catch (e: IllegalArgumentException) {
             "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
         }

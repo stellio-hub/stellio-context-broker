@@ -40,7 +40,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     @SpykBean
@@ -93,7 +93,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         val attributes =
             entityAttributeService.getForEntity(
@@ -117,7 +117,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(
+        entityAttributeService.createAttributes(
             rawEntity,
             APIC_COMPOUND_CONTEXTS,
             "0123456789-1234-5678-987654321"
@@ -169,7 +169,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(
+        entityAttributeService.createAttributes(
             rawEntity,
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
@@ -225,7 +225,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         } throws RuntimeException("Unexpected DB error!")
 
         assertThrows<RuntimeException>("it should have thrown a RuntimeException") {
-            entityAttributeService.createEntityAttributes(
+            entityAttributeService.createAttributes(
                 rawEntity,
                 APIC_COMPOUND_CONTEXTS
             ).shouldSucceed()
@@ -245,7 +245,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val attribute = entityAttributeService.getForEntityAndAttribute(
@@ -293,7 +293,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val attribute = entityAttributeService.getForEntityAndAttribute(
@@ -357,14 +357,14 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val createdAt = ngsiLdDateTime()
         val attributesToMerge = loadSampleData("fragments/beehive_mergeAttributes.json")
         val expandedAttributes = JsonLdUtils.expandAttributes(attributesToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
-        entityAttributeService.mergeEntityAttributes(
+        entityAttributeService.mergeAttributes(
             beehiveTestCId,
             ngsiLdAttributes,
             expandedAttributes,
@@ -423,7 +423,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val createdAt = ngsiLdDateTime()
@@ -431,7 +431,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute_without_observedAt.json")
         val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
-        entityAttributeService.mergeEntityAttributes(
+        entityAttributeService.mergeAttributes(
             beehiveTestCId,
             ngsiLdAttributes,
             expandedAttributes,
@@ -462,7 +462,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val replacedAt = ngsiLdDateTime()
@@ -470,7 +470,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val expandedAttribute = expandAttribute(propertyToReplace, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
 
-        entityAttributeService.replaceEntityAttribute(
+        entityAttributeService.replaceAttribute(
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
@@ -496,7 +496,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val replacedAt = ngsiLdDateTime()
@@ -504,7 +504,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val expandedAttribute = expandAttribute(propertyToReplace, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
 
-        entityAttributeService.replaceEntityAttribute(
+        entityAttributeService.replaceAttribute(
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
@@ -524,7 +524,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -538,7 +538,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -553,7 +553,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -571,9 +571,9 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        entityAttributeService.deleteTemporalAttribute(
+        entityAttributeService.deleteAttribute(
             beehiveTestDId,
             INCOMING_PROPERTY,
             null
@@ -594,9 +594,9 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { attributeInstanceService.deleteAllInstancesOfAttribute(any(), any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        entityAttributeService.deleteTemporalAttribute(
+        entityAttributeService.deleteAttribute(
             beehiveTestCId,
             INCOMING_PROPERTY,
             null,
@@ -617,7 +617,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY)
             .shouldSucceed()
@@ -629,7 +629,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         val result = entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed")
 
@@ -656,7 +656,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
 
-        entityAttributeService.createEntityAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
         val attributes =

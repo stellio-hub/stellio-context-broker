@@ -1,4 +1,4 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.scope.FullScopeInstanceResult
@@ -37,7 +37,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     550.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -49,7 +49,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     650.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -81,7 +81,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "urn:ngsi-ld:Entity:1234",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -94,7 +94,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "urn:ngsi-ld:Entity:5678",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -127,7 +127,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     550.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -139,7 +139,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     650.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -161,7 +161,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     487.0,
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -173,7 +173,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     698.0,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -205,7 +205,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -217,7 +217,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -249,7 +249,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -261,7 +261,7 @@ class TemporalEntityParameterizedSource {
                                 sub = "sub1"
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -292,7 +292,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_123",
                                     ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -304,7 +304,7 @@ class TemporalEntityParameterizedSource {
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     "Beehive_incoming_124",
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -337,12 +337,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 550.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 650.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -369,12 +369,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 550.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 650.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -389,12 +389,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 487.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = 698.0,
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -419,12 +419,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "Beehive_incoming_123",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "Beehive_incoming_124",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -448,12 +448,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "Beehive_incoming_123",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "Beehive_incoming_124",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -481,12 +481,12 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Entity:1234",
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Entity:5678",
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -554,14 +554,14 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     { "id": "123", "stringValue": "value", "nullValue": null }
                                 """,
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     { "id": "456", "stringValue": "anotherValue" }
                                 """,
@@ -589,7 +589,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@value": "One beautiful beehive",
@@ -603,7 +603,7 @@ class TemporalEntityParameterizedSource {
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@value": "My beautiful beehive",
@@ -638,7 +638,7 @@ class TemporalEntityParameterizedSource {
                     ) to
                         listOf(
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
@@ -650,7 +650,7 @@ class TemporalEntityParameterizedSource {
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
-                                attribute = UUID.randomUUID(),
+                                attributeUuid = UUID.randomUUID(),
                                 value = """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"

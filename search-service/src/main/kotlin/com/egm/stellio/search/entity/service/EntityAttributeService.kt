@@ -10,9 +10,14 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.util.guessAttributeValueType
+import com.egm.stellio.search.entity.util.mergePatch
+import com.egm.stellio.search.entity.util.partialUpdatePatch
+import com.egm.stellio.search.entity.util.prepareAttributes
+import com.egm.stellio.search.entity.util.toAttributeMetadata
+import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
-import com.egm.stellio.search.temporal.util.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AttributeType
@@ -121,7 +126,7 @@ class EntityAttributeService(
      * To be removed at some point later.
      */
     @Transactional
-    suspend fun createEntityAttributes(
+    suspend fun createAttributes(
         payload: String,
         contexts: List<String>,
         sub: String? = null
@@ -131,12 +136,12 @@ class EntityAttributeService(
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
         ngsiLdEntity.prepareAttributes()
             .map {
-                createEntityAttributes(ngsiLdEntity, expandedEntity, it, createdAt, sub).bind()
+                createAttributes(ngsiLdEntity, expandedEntity, it, createdAt, sub).bind()
             }.bind()
     }
 
     @Transactional
-    suspend fun createEntityAttributes(
+    suspend fun createAttributes(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
@@ -190,7 +195,7 @@ class EntityAttributeService(
             create(attribute).bind()
 
             val attributeInstance = AttributeInstance(
-                attribute = attribute.id,
+                attributeUuid = attribute.id,
                 timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
                 time = createdAt,
                 attributeMetadata = attributeMetadata,
@@ -201,7 +206,7 @@ class EntityAttributeService(
 
             if (attributeMetadata.observedAt != null) {
                 val attributeObservedAtInstance = AttributeInstance(
-                    attribute = attribute.id,
+                    attributeUuid = attribute.id,
                     time = attributeMetadata.observedAt,
                     attributeMetadata = attributeMetadata,
                     payload = attributePayload
@@ -233,7 +238,7 @@ class EntityAttributeService(
         ).bind()
 
         val attributeInstance = AttributeInstance(
-            attribute = attribute.id,
+            attributeUuid = attribute.id,
             timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
             time = createdAt,
             attributeMetadata = attributeMetadata,
@@ -244,7 +249,7 @@ class EntityAttributeService(
 
         if (attributeMetadata.observedAt != null) {
             val attributeObservedAtInstance = AttributeInstance(
-                attribute = attribute.id,
+                attributeUuid = attribute.id,
                 time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = attributePayload
@@ -286,7 +291,7 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun deleteTemporalAttributesOfEntity(entityId: URI): Either<APIException, Unit> {
+    suspend fun deleteAttributes(entityId: URI): Either<APIException, Unit> {
         val uuids = databaseClient.sql(
             """
             DELETE FROM temporal_entity_attribute
@@ -305,7 +310,7 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun deleteTemporalAttribute(
+    suspend fun deleteAttribute(
         entityId: URI,
         attributeName: String,
         datasetId: URI?,
@@ -315,15 +320,15 @@ class EntityAttributeService(
             logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
             if (deleteAll) {
                 attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
-                deleteTemporalAttributeAllInstancesReferences(entityId, attributeName).bind()
+                deleteAllInstances(entityId, attributeName).bind()
             } else {
                 attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
-                deleteTemporalAttributeReferences(entityId, attributeName, datasetId).bind()
+                deleteSpecificInstance(entityId, attributeName, datasetId).bind()
             }
         }
 
     @Transactional
-    suspend fun deleteTemporalAttributeReferences(
+    suspend fun deleteSpecificInstance(
         entityId: URI,
         attributeName: String,
         datasetId: URI?
@@ -345,7 +350,7 @@ class EntityAttributeService(
             .execute()
 
     @Transactional
-    suspend fun deleteTemporalAttributeAllInstancesReferences(
+    suspend fun deleteAllInstances(
         entityId: URI,
         attributeName: String
     ): Either<APIException, Unit> =
@@ -360,7 +365,7 @@ class EntityAttributeService(
             .bind("attribute_name", attributeName)
             .execute()
 
-    suspend fun getForTemporalEntities(
+    suspend fun getForEntities(
         entitiesIds: List<URI>,
         entitiesQuery: EntitiesQuery
     ): List<Attribute> {
@@ -540,7 +545,7 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun appendEntityAttributes(
+    suspend fun appendAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
@@ -605,7 +610,7 @@ class EntityAttributeService(
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     @Transactional
-    suspend fun updateEntityAttributes(
+    suspend fun updateAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
@@ -660,7 +665,7 @@ class EntityAttributeService(
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     @Transactional
-    suspend fun partialUpdateEntityAttribute(
+    suspend fun partialUpdateAttribute(
         entityId: URI,
         expandedAttribute: ExpandedAttribute,
         modifiedAt: ZonedDateTime,
@@ -721,7 +726,7 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun upsertEntityAttributes(
+    suspend fun upsertAttributes(
         entityUri: URI,
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttributes: ExpandedAttributes,
@@ -764,7 +769,7 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun mergeEntityAttributes(
+    suspend fun mergeAttributes(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
@@ -822,7 +827,7 @@ class EntityAttributeService(
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 
     @Transactional
-    suspend fun replaceEntityAttribute(
+    suspend fun replaceAttribute(
         entityId: URI,
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttribute: ExpandedAttribute,
@@ -924,7 +929,7 @@ class EntityAttributeService(
                 Pair(modifiedAt, AttributeInstance.TemporalProperty.MODIFIED_AT)
 
         return AttributeInstance(
-            attribute = attribute.id,
+            attributeUuid = attribute.id,
             timeAndProperty = timeAndProperty,
             value = value,
             payload = expandedAttributeInstance,

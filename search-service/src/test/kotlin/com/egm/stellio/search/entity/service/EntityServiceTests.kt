@@ -142,7 +142,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should only create an entity payload for a minimal entity`() = runTest {
         coEvery {
-            entityAttributeService.createEntityAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -161,7 +161,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeService.createEntityAttributes(
+            entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
@@ -193,10 +193,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity`() = runTest {
         coEvery {
-            entityAttributeService.createEntityAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            entityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
@@ -229,14 +229,14 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeService.createEntityAttributes(
+            entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
                 any(),
                 eq("0123456789-1234-5678-987654321")
             )
-            entityAttributeService.mergeEntityAttributes(
+            entityAttributeService.mergeAttributes(
                 eq(beehiveTestCId),
                 any(),
                 any(),
@@ -255,10 +255,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity with new types`() = runTest {
         coEvery {
-            entityAttributeService.createEntityAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            entityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
@@ -297,16 +297,16 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should merge an entity with new types and scopes`() = runTest {
         coEvery {
-            entityAttributeService.createEntityAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery {
-            entityAttributeService.mergeEntityAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns UpdateResult(
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
         ).right()
         coEvery {
-            entityAttributeService.partialUpdateEntityAttribute(any(), any(), any(), any())
+            entityAttributeService.partialUpdateAttribute(any(), any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
             entityAttributeService.getForEntity(any(), any(), any())
@@ -352,9 +352,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should replace an entity`() = runTest {
         val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         coEvery {
-            entityAttributeService.createEntityAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
-        coEvery { entityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Unit.right()
+        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -381,8 +381,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeService.deleteTemporalAttributesOfEntity(beehiveURI)
-            entityAttributeService.createEntityAttributes(
+            entityAttributeService.deleteAttributes(beehiveURI)
+            entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
@@ -396,7 +396,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should replace an attribute`() = runTest {
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery {
-            entityAttributeService.replaceEntityAttribute(any(), any(), any(), any(), any())
+            entityAttributeService.replaceAttribute(any(), any(), any(), any(), any())
         } returns UpdateResult(
             updated = listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)),
             notUpdated = emptyList()
@@ -657,7 +657,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should delete an entity payload`() = runTest {
-        coEvery { entityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Unit.right()
+        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
 
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
             .sampleDataToNgsiLdEntity()

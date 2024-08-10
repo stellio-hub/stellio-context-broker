@@ -8,7 +8,6 @@
   "operationPayload": "{\"type\":\"Relationship\",\"datasetId\":\"urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435\",\"object\":\"urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435\"}",
   "updatedEntity": "",
   "contexts": [
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+    "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ]
 }

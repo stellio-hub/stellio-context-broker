@@ -57,6 +57,43 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should persist a subject referential for a non-existing client`() = runTest {
+        val subjectReferential = SubjectReferential(
+            subjectId = serviceAccountUuid,
+            subjectType = SubjectType.CLIENT,
+            subjectInfo = getSubjectInfoForClient("client-id", "kc-id")
+        )
+
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                fail("it should have created a subject referential for the client")
+            }, {})
+    }
+
+    @Test
+    fun `it should upsert a subject referential for an existing client`() = runTest {
+        val subjectReferential = SubjectReferential(
+            subjectId = serviceAccountUuid,
+            subjectType = SubjectType.CLIENT,
+            subjectInfo = getSubjectInfoForClient("client-id-updated", "kc-id-updated")
+        )
+
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                fail("it should have created a subject referential for the client")
+            }, {})
+
+        subjectReferentialService.retrieve(serviceAccountUuid)
+            .shouldSucceedWith {
+                val subjectInfo = it.getSubjectInfoValue()
+                assertTrue(subjectInfo.containsKey("clientId"))
+                assertEquals("client-id-updated", subjectInfo["clientId"])
+                assertTrue(subjectInfo.containsKey("internalClientId"))
+                assertEquals("kc-id-updated", subjectInfo["internalClientId"])
+            }
+    }
+
+    @Test
     fun `it should retrieve a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = userUuid,

@@ -77,6 +77,7 @@ class IAMListener(
         tenantName: String,
         entityCreateEvent: EntityCreateEvent
     ): Either<APIException, Unit> = either {
+        val subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase())
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
         val subjectInfo = operationPayload
             .filter { !JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(it.key) }
@@ -84,13 +85,16 @@ class IAMListener(
         val roles = extractRoles(operationPayload)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
-            subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase()),
+            subjectType = subjectType,
             subjectInfo = Json.of(subjectInfo),
             globalRoles = roles
         )
 
         mono {
-            subjectReferentialService.create(subjectReferential)
+            if (subjectType == SubjectType.CLIENT)
+                subjectReferentialService.upsertClient(subjectReferential)
+            else
+                subjectReferentialService.create(subjectReferential)
         }.writeContextAndSubscribe(tenantName, entityCreateEvent)
     }
 

@@ -39,6 +39,23 @@ class SubjectReferentialService(
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .execute()
 
+    @Transactional
+    suspend fun upsertClient(subjectReferential: SubjectReferential): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                INSERT INTO subject_referential
+                    (subject_id, subject_type, subject_info)
+                    VALUES (:subject_id, :subject_type, :subject_info)
+                ON CONFLICT (subject_id)
+                    DO UPDATE SET subject_info = :subject_info
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectReferential.subjectId)
+            .bind("subject_type", subjectReferential.subjectType.toString())
+            .bind("subject_info", subjectReferential.subjectInfo)
+            .execute()
+
     suspend fun retrieve(sub: Sub): Either<APIException, SubjectReferential> =
         databaseClient
             .sql(

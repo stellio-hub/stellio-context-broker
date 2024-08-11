@@ -19,6 +19,6 @@ internal fun getSubjectInfoForGroup(name: String): Json =
 internal fun getSubjectInfoForClient(clientId: String, kcId: String): Json =
     Json.of(
         """
-        { "type": "Property", "value": { "clientId": "$clientId", "id": "$kcId" } }
+        { "type": "Property", "value": { "clientId": "$clientId", "internalClientId": "$kcId" } }
         """.trimIndent()
     )

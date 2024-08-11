@@ -285,7 +285,7 @@ class SubjectReferentialService(
                 """
                 DELETE FROM subject_referential
                 WHERE subject_id = :subject_id
-                OR jsonb_path_match(subject_info, 'exists($.value.id ? (@ == ${'$'}value))', '{ "value": "$sub" }')
+                OR jsonb_path_match(subject_info, 'exists($.value.internalClientId ? (@ == ${'$'}value))', '{ "value": "$sub" }')
                 """.trimIndent()
             )
             .bind("subject_id", sub)

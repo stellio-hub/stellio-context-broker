@@ -9,9 +9,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -19,8 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class SubjectReferentialService(
-    private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate
+    private val databaseClient: DatabaseClient
 ) {
 
     @Transactional
@@ -265,20 +261,6 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
-    suspend fun addServiceAccountIdToClient(subjectId: Sub, serviceAccountId: Sub): Either<APIException, Unit> =
-        databaseClient
-            .sql(
-                """
-                UPDATE subject_referential
-                SET subject_id = :service_account_id
-                WHERE subject_id = :subject_id
-                """.trimIndent()
-            )
-            .bind("subject_id", subjectId)
-            .bind("service_account_id", serviceAccountId)
-            .execute()
-
-    @Transactional
     suspend fun updateSubjectInfo(subjectId: Sub, newSubjectInfo: Pair<String, String>): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -298,8 +280,15 @@ class SubjectReferentialService(
 
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(SubjectReferential::class.java)
-            .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
+        databaseClient
+            .sql(
+                """
+                DELETE FROM subject_referential
+                WHERE subject_id = :subject_id
+                OR jsonb_path_match(subject_info, 'exists($.value.id ? (@ == ${'$'}value))', '{ "value": "$sub" }')
+                """.trimIndent()
+            )
+            .bind("subject_id", sub)
             .execute()
 
     private fun rowToSubjectReferential(row: Map<String, Any>) =

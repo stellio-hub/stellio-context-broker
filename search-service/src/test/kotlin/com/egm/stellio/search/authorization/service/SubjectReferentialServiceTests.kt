@@ -1,6 +1,7 @@
 package com.egm.stellio.search.authorization.service
 
 import arrow.core.Some
+import com.egm.stellio.search.authorization.getSubjectInfoForClient
 import com.egm.stellio.search.authorization.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.model.SubjectReferential

@@ -1,7 +1,6 @@
 package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
-import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
@@ -34,9 +33,6 @@ class TemporalEntityOperationsHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var temporalQueryService: TemporalQueryService
 
-    @MockkBean
-    private lateinit var authorizationService: AuthorizationService
-
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -57,8 +53,9 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { temporalQueryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any(), any())
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {
@@ -106,8 +103,9 @@ class TemporalEntityOperationsHandlerTests {
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { temporalQueryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any(), any())
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {

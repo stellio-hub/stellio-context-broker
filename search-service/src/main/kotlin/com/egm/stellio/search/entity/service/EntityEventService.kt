@@ -21,7 +21,7 @@ import java.net.URI
 @Component
 class EntityEventService(
     private val kafkaTemplate: KafkaTemplate<String, String>,
-    private val entityService: EntityService
+    private val entityQueryService: EntityQueryService
 ) {
 
     private val catchAllTopic = "cim.entity._CatchAll"
@@ -232,7 +232,7 @@ class EntityEventService(
     internal suspend fun getSerializedEntity(
         entityId: URI
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
-        entityService.retrieve(entityId)
+        entityQueryService.retrieve(entityId)
             .map {
                 Pair(it.types, it.payload.asString())
             }

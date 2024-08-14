@@ -35,7 +35,7 @@ class EntityEventServiceTests {
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     @MockkBean(relaxed = true)
-    private lateinit var entityService: EntityService
+    private lateinit var entityQueryService: EntityQueryService
 
     private val breedingServiceUri = "urn:ngsi-ld:BreedingService:0214".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
@@ -128,7 +128,7 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish a single ATTRIBUTE_APPEND event if an attribute was appended`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
@@ -163,7 +163,7 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish a single ATTRIBUTE_REPLACE event if an attribute was replaced`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         val expandedAttribute =
@@ -215,7 +215,7 @@ class EntityEventServiceTests {
                 emptyList()
             )
 
-            coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+            coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
             every { entity.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeChangeEvents(
@@ -280,7 +280,7 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -339,7 +339,7 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -387,7 +387,7 @@ class EntityEventServiceTests {
             UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.UPDATED)
         )
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeChangeEvents(
@@ -418,7 +418,7 @@ class EntityEventServiceTests {
         runTest {
             val entity = mockk<Entity>(relaxed = true)
 
-            coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+            coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
             every { entity.types } returns listOf(breedingServiceType)
 
             entityEventService.publishAttributeDeleteEvent(
@@ -448,7 +448,7 @@ class EntityEventServiceTests {
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
 
-        coEvery { entityService.retrieve(breedingServiceUri) } returns entity.right()
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
         entityEventService.publishAttributeDeleteEvent(

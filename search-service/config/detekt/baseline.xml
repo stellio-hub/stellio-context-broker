@@ -5,7 +5,7 @@
     <ID>ClassNaming:V0_29_JsonLd_migrationTests.kt$V0_29_JsonLd_migrationTests</ID>
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty()</ID>
-    <ID>ComplexCondition:EntityService.kt$EntityService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
+    <ID>ComplexCondition:EntityQueryService.kt$EntityQueryService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
@@ -25,12 +25,7 @@
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, disallowOverwrite: Boolean, createdAt: ZonedDateTime, sub: Sub? )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( updatedDetails: UpdatedDetails, sub: String?, tenantName: String, entityId: URI, entityTypesAndPayload: Pair&lt;List&lt;ExpandedTerm&gt;, String&gt;, serializedAttribute: Pair&lt;ExpandedTerm, String&gt;, overwrite: Boolean )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
-    <ID>MaxLineLength:TemporalEntityHandlerTests.kt$TemporalEntityHandlerTests$coEvery { temporalQueryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))</ID>
-    <ID>MaxLineLength:TemporalEntityOperationsHandlerTests.kt$TemporalEntityOperationsHandlerTests$coEvery { temporalQueryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))</ID>
-    <ID>MaximumLineLength:TemporalEntityHandlerTests.kt$TemporalEntityHandlerTests$ </ID>
-    <ID>MaximumLineLength:TemporalEntityOperationsHandlerTests.kt$TemporalEntityOperationsHandlerTests$ </ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>TooManyFunctions:EntityService.kt$EntityService</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -1,10 +1,13 @@
 package com.egm.stellio.search.temporal.service
 
+import arrow.core.None
+import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.support.*
@@ -34,10 +37,10 @@ import java.time.ZonedDateTime
 class TemporalQueryServiceTests {
 
     @Autowired
-    private lateinit var queryService: TemporalQueryService
+    private lateinit var temporalQueryService: TemporalQueryService
 
     @MockkBean
-    private lateinit var entityService: EntityService
+    private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
     private lateinit var scopeService: ScopeService
@@ -48,37 +51,31 @@ class TemporalQueryServiceTests {
     @MockkBean
     private lateinit var entityAttributeService: EntityAttributeService
 
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
+
     private val now = ngsiLdDateTime()
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery {
+            entityQueryService.checkEntityExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
-        queryService.queryTemporalEntity(
+        temporalQueryService.queryTemporalEntity(
             entityUri,
             TemporalEntitiesQuery(
-                temporalQuery = buildDefaultTestTemporalQuery(
-                    timerel = TemporalQuery.Timerel.AFTER,
-                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
-                ),
-                entitiesQuery = EntitiesQuery(
-                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                    contexts = APIC_COMPOUND_CONTEXTS
-                ),
-                withTemporalValues = false,
+                entitiesQuery = buildDefaultQueryParams(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
+                withTemporalValues = true,
                 withAudit = false,
                 withAggregatedValues = false
             )
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
-            assertEquals(
-                "Entity $entityUri does not exist or it has none of the requested attributes : " +
-                    "[$INCOMING_PROPERTY, $OUTGOING_PROPERTY]",
-                it.message
-            )
+            assertEquals("Entity $entityUri was not found", it.message)
         }, {
             fail("it should have returned an API exception if the entity does not exist")
         })
@@ -97,8 +94,10 @@ class TemporalQueryServiceTests {
                 )
             }
 
+        coEvery { entityQueryService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns attributes
-        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
@@ -108,7 +107,7 @@ class TemporalQueryServiceTests {
                 FullAttributeInstanceResult(attributes[1].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
             ).right()
 
-        queryService.queryTemporalEntity(
+        temporalQueryService.queryTemporalEntity(
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = buildDefaultTestTemporalQuery(
@@ -126,6 +125,8 @@ class TemporalQueryServiceTests {
         )
 
         coVerify {
+            entityQueryService.checkEntityExistence(entityUri)
+            authorizationService.userCanReadEntity(entityUri, None)
             entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
@@ -142,7 +143,7 @@ class TemporalQueryServiceTests {
 
     @Test
     fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
-        val origin = queryService.calculateOldestTimestamp(
+        val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = buildDefaultTestTemporalQuery(),
@@ -162,7 +163,7 @@ class TemporalQueryServiceTests {
 
     @Test
     fun `it should return timeAt as the oldest timestamp if it is provided in the temporal query`() = runTest {
-        val origin = queryService.calculateOldestTimestamp(
+        val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = buildDefaultTestTemporalQuery(
@@ -193,7 +194,7 @@ class TemporalQueryServiceTests {
             scopeService.selectOldestDate(any(), any())
         } returns ZonedDateTime.parse("2023-09-03T14:22:55Z")
 
-        val origin = queryService.calculateOldestTimestamp(
+        val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQuery(
                 temporalQuery = buildDefaultTestTemporalQuery(),
@@ -222,13 +223,14 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
-        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
-        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns
@@ -240,7 +242,7 @@ class TemporalQueryServiceTests {
                 )
             ).right()
 
-        queryService.queryTemporalEntities(
+        temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
@@ -255,7 +257,7 @@ class TemporalQueryServiceTests {
                 withAudit = false,
                 withAggregatedValues = false
             )
-        ) { null }
+        )
 
         coVerify {
             entityAttributeService.getForEntities(
@@ -275,7 +277,7 @@ class TemporalQueryServiceTests {
                 },
                 any<List<Attribute>>()
             )
-            entityService.queryEntitiesCount(
+            entityQueryService.queryEntitiesCount(
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
@@ -297,7 +299,8 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { entityService.queryEntities(any(), any()) } returns listOf(entityUri)
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
@@ -305,10 +308,10 @@ class TemporalQueryServiceTests {
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
-        coEvery { entityService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
-        coEvery { entityService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
 
-        queryService.queryTemporalEntities(
+        temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQuery(
                 EntitiesQuery(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
@@ -324,7 +327,7 @@ class TemporalQueryServiceTests {
                 withAudit = false,
                 withAggregatedValues = true
             )
-        ) { null }
+        )
             .fold({
                 fail("it should have returned an empty list")
             }, {

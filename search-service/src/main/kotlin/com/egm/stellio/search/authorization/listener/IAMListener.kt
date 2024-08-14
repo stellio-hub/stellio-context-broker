@@ -120,7 +120,7 @@ class IAMListener(
                     val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
                     entitiesIds?.let { entityAccessRightsService.deleteAllAccessRightsOnEntities(it) }
                     entitiesIds?.forEach { entityId ->
-                        entityService.deleteEntity(entityId).getOrNull()?.also {
+                        entityService.deleteEntityPayload(entityId).getOrNull()?.also {
                             entityEventService.publishEntityDeleteEvent(null, it)
                         }
                     }

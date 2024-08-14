@@ -1,9 +1,7 @@
 package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
-import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.mockk.coEvery
@@ -33,7 +31,6 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
             "/temporal/beehive_create_temporal_entity.jsonld"
         )
         val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             temporalQueryService.queryTemporalEntities(any(), any())
         } returns Either.Right(
@@ -46,14 +43,9 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     private suspend fun mockQueryEntityService(range: Range? = null) {
-        val firstTemporalEntity = loadAndExpandSampleData(
-            "/temporal/beehive_create_temporal_entity.jsonld"
-        )
-        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
-        coEvery { entityService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { entityService.getTypes(any()) } returns listOf(BEEHIVE_TYPE).right()
+        val firstTemporalEntity = loadAndExpandSampleData("/temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
-            temporalQueryService.queryTemporalEntity(any(), any())
+            temporalQueryService.queryTemporalEntity(any(), any(), any())
         } returns Either.Right(
             firstTemporalEntity to range
         )

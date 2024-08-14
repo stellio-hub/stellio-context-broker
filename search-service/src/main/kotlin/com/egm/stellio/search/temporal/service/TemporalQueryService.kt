@@ -1,15 +1,15 @@
 package com.egm.stellio.search.temporal.service
 
-import arrow.core.Either
-import arrow.core.getOrElse
-import arrow.core.left
+import arrow.core.*
 import arrow.core.raise.either
-import arrow.core.right
+import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.scope.ScopeService
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.EntityTemporalResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
@@ -18,24 +18,31 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.ZonedDateTime
+import kotlin.collections.flatten
 
 @Service
 class TemporalQueryService(
-    private val entityService: EntityService,
+    private val entityQueryService: EntityQueryService,
     private val scopeService: ScopeService,
     private val attributeInstanceService: AttributeInstanceService,
-    private val entityAttributeService: EntityAttributeService
+    private val entityAttributeService: EntityAttributeService,
+    private val authorizationService: AuthorizationService
 ) {
 
     suspend fun queryTemporalEntity(
         entityId: URI,
-        temporalEntitiesQuery: TemporalEntitiesQuery
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        sub: Sub? = null
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
+        entityQueryService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
+
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
         val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
@@ -46,7 +53,7 @@ class TemporalQueryService(
             else it.right()
         }.bind()
 
-        val entityPayload = entityService.retrieve(entityId).bind()
+        val entityPayload = entityQueryService.retrieve(entityId).bind()
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
@@ -108,11 +115,12 @@ class TemporalQueryService(
 
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        accessRightFilter: () -> String?
+        sub: Sub? = null
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
+        val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val entitiesIds = entityService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-        val count = entityService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val entitiesIds = entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val count = entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
             .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
@@ -146,7 +154,7 @@ class TemporalQueryService(
                     // then, group them by entity
                     it.first.entityId
                 }.mapKeys {
-                    entityService.retrieve(it.key).bind()
+                    entityQueryService.retrieve(it.key).bind()
                 }
                 .mapValues {
                     it.value.toMap()

@@ -21,6 +21,7 @@ import java.net.URI
 @Component
 class EntityOperationService(
     private val entityService: EntityService,
+    private val entityQueryService: EntityQueryService,
     private val entityAttributeService: EntityAttributeService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
@@ -49,7 +50,7 @@ class EntityOperationService(
         extractIdFunc: (T) -> URI
     ): Pair<List<T>, List<T>> {
         val existingEntitiesIds =
-            entityService.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
+            entityQueryService.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
         return entities.partition { existingEntitiesIds.contains(extractIdFunc.invoke(it)) }
     }
 
@@ -116,7 +117,7 @@ class EntityOperationService(
         val deletionResults = entities.map { entity ->
             val entityId = entity.entityId
             either {
-                entityService.deleteEntity(entityId)
+                entityService.deleteEntityPayload(entityId)
                     .onRight {
                         authorizationService.removeRightsOnEntity(entityId)
                     }

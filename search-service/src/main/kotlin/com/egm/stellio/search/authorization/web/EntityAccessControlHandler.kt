@@ -8,7 +8,6 @@ import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateAttributeResult
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
@@ -40,7 +39,6 @@ import kotlin.collections.flatten
 class EntityAccessControlHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityService: EntityService,
     private val authorizationService: AuthorizationService
 ) : BaseHandler() {
 
@@ -302,7 +300,7 @@ class EntityAccessControlHandler(
 
         val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().bind()
 
-        entityService.updateSpecificAccessPolicy(entityId, ngsiLdAttribute).bind()
+        entityAccessRightsService.updateSpecificAccessPolicy(entityId, ngsiLdAttribute).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -318,7 +316,7 @@ class EntityAccessControlHandler(
 
         authorizationService.userCanAdminEntity(entityId, sub).bind()
 
-        entityService.removeSpecificAccessPolicy(entityId).bind()
+        entityAccessRightsService.removeSpecificAccessPolicy(entityId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

@@ -6,7 +6,6 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -33,8 +32,7 @@ import java.util.Optional
 class EntityOperationHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
-    private val entityService: EntityService,
-    private val queryService: EntityQueryService,
+    private val entityQueryService: EntityQueryService,
     private val authorizationService: AuthorizationService
 ) {
 
@@ -239,7 +237,7 @@ class EntityOperationHandler(
 
         val entitiesBeforeDelete =
             if (entitiesUserCanDelete.isNotEmpty())
-                entityService.retrieve(entitiesUserCanDelete.toList())
+                entityQueryService.retrieve(entitiesUserCanDelete.toList())
             else emptyList()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -286,8 +284,7 @@ class EntityOperationHandler(
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
+        val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 

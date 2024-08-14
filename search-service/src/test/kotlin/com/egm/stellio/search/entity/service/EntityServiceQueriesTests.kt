@@ -1,7 +1,6 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
-import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -22,19 +21,22 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnableConfigurationProperties(SearchProperties::class)
+@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
+
+    @Autowired
+    private lateinit var entityQueryService: EntityQueryService
 
     @Autowired
     private lateinit var entityService: EntityService
@@ -64,7 +66,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         runBlocking {
             listOf(firstRawEntity, secondRawEntity, thirdRawEntity, fourthRawEntity, fifthRawEntity).forEach {
                 val (expandedEntity, ngsiLdEntity) = it.sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-                entityService.createEntity(ngsiLdEntity, expandedEntity)
+                entityService.createEntity(ngsiLdEntity, expandedEntity, MOCK_USER_SUB).shouldSucceed()
             }
         }
     }
@@ -98,7 +100,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         expectedListOfEntities: String?
     ) = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = types,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -126,7 +128,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         expectedListOfEntities: String?
     ) = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     scopeQ = scopeQ,
@@ -143,7 +145,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities according to ids and a type`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri),
                     typeSelection = BEEHIVE_TYPE,
@@ -159,7 +161,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities according to ids and a selection of types`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri, entity05Uri),
                     typeSelection = "$APIARY_TYPE|$BEEHIVE_TYPE",
@@ -175,7 +177,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities according to attrs and types`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
@@ -191,7 +193,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities by a list of ids`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri),
                     typeSelection = BEEHIVE_TYPE,
@@ -207,7 +209,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities with respect to limit and offset`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
@@ -221,7 +223,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities with respect to idPattern`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
@@ -280,7 +282,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         expectedListOfEntities: String?
     ) = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     q = q,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
@@ -313,7 +315,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         expectedCount: Int
     ) = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     geoQuery = GeoQuery(
@@ -335,7 +337,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should retrieve entities according to access rights`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -360,7 +362,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
 
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -387,7 +389,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
 
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -411,7 +413,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should retrieve the count of entities`() = runTest {
-        entityService.queryEntitiesCount(
+        entityQueryService.queryEntitiesCount(
             EntitiesQuery(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -422,7 +424,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should retrieve the count of entities according to access rights`() = runTest {
-        entityService.queryEntitiesCount(
+        entityQueryService.queryEntitiesCount(
             EntitiesQuery(
                 ids = setOf(entity02Uri, entity01Uri),
                 typeSelection = BEEHIVE_TYPE,
@@ -436,7 +438,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     @Test
     fun `it should return an empty list if no entity matches the requested type`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     ids = setOf(entity02Uri, entity01Uri),
                     typeSelection = "https://ontology.eglobalmark.com/apic#UnknownType",
@@ -449,9 +451,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should return an empty list if no entitiy matched the requested attributes`() = runTest {
+    fun `it should return an empty list if no entity matches the requested attributes`() = runTest {
         val entitiesIds =
-            entityService.queryEntities(
+            entityQueryService.queryEntities(
                 EntitiesQuery(
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),

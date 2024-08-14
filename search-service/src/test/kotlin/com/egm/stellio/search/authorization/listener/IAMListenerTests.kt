@@ -355,7 +355,7 @@ class IAMListenerTests {
         coEvery {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
         } returns listOf(entityId).right()
-        coEvery { entityService.deleteEntity(entityId) } returns mockkClass(Entity::class).right()
+        coEvery { entityService.deleteEntityPayload(entityId) } returns mockkClass(Entity::class).right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
@@ -368,7 +368,7 @@ class IAMListenerTests {
             )
         }
         coVerify {
-            entityService.deleteEntity(
+            entityService.deleteEntityPayload(
                 match {
                     it == entityId
                 }

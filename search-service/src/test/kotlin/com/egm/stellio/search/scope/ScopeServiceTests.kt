@@ -3,6 +3,7 @@ package com.egm.stellio.search.scope
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
+import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -40,6 +41,9 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var entityService: EntityService
+
+    @Autowired
+    private lateinit var entityQueryService: EntityQueryService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -112,7 +116,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             operationType
         ).shouldSucceed()
 
-        entityService.retrieve(beehiveTestCId)
+        entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()

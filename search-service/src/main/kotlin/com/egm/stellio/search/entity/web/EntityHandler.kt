@@ -4,8 +4,6 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQuery
@@ -36,9 +34,7 @@ import java.util.Optional
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
-    private val queryService: EntityQueryService,
-    private val authorizationService: AuthorizationService,
-    private val entityEventService: EntityEventService
+    private val entityQueryService: EntityQueryService
 ) : BaseHandler() {
 
     /**
@@ -55,21 +51,7 @@ class EntityHandler(
         val expandedEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-        authorizationService.userCanCreateEntities(sub).bind()
-        entityService.checkEntityExistence(ngsiLdEntity.id, true).bind()
-
-        entityService.createEntity(
-            ngsiLdEntity,
-            expandedEntity,
-            sub.getOrNull()
-        ).bind()
-        authorizationService.createOwnerRight(ngsiLdEntity.id, sub).bind()
-
-        entityEventService.publishEntityCreateEvent(
-            sub.getOrNull(),
-            ngsiLdEntity.id,
-            ngsiLdEntity.types
-        )
+        entityService.createEntity(ngsiLdEntity, expandedEntity, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/entities/${ngsiLdEntity.id}"))
@@ -90,17 +72,11 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-
         val observedAt = options.getFirst(QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
-
         val expandedAttributes = expandAttributes(body, contexts)
 
         val updateResult = entityService.mergeEntity(
@@ -109,16 +85,6 @@ class EntityHandler(
             observedAt,
             sub.getOrNull()
         ).bind()
-
-        if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAttributeChangeEvents(
-                sub.getOrNull(),
-                entityId,
-                expandedAttributes,
-                updateResult,
-                true
-            )
-        }
 
         if (updateResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -145,12 +111,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-
         val expandedEntity = expandJsonLdEntity(body, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
-
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         if (ngsiLdEntity.id != entityId)
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
@@ -162,12 +124,6 @@ class EntityHandler(
             expandedEntity,
             sub.getOrNull()
         ).bind()
-
-        entityEventService.publishEntityReplaceEvent(
-            sub.getOrNull(),
-            ngsiLdEntity.id,
-            ngsiLdEntity.types
-        )
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -198,8 +154,7 @@ class EntityHandler(
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-        val (entities, count) = queryService.queryEntities(entitiesQuery, accessRightFilter).bind()
+        val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
@@ -239,11 +194,7 @@ class EntityHandler(
             contexts
         ).bind()
 
-        entityService.checkEntityExistence(entityId).bind()
-
-        authorizationService.userCanReadEntity(entityId, sub).bind()
-
-        val expandedEntity = queryService.queryEntity(entityId).bind()
+        val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
 
         expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
@@ -269,14 +220,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
-
-        val entity = entityService.retrieve(entityId).bind()
-        entityService.deleteEntity(entityId).bind()
-        authorizationService.removeRightsOnEntity(entityId).bind()
-
-        entityEventService.publishEntityDeleteEvent(sub.getOrNull(), entity)
+        entityService.deleteEntity(entityId, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -298,13 +242,9 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        entityService.checkEntityExistence(entityId).bind()
-
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttributes = expandAttributes(body, contexts)
-
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val updateResult = entityService.appendAttributes(
             entityId,
@@ -312,16 +252,6 @@ class EntityHandler(
             disallowOverwrite,
             sub.getOrNull()
         ).bind()
-
-        if (updateResult.hasSuccessfulUpdate()) {
-            entityEventService.publishAttributeChangeEvents(
-                sub.getOrNull(),
-                entityId,
-                expandedAttributes,
-                updateResult,
-                true
-            )
-        }
 
         if (updateResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -354,24 +284,11 @@ class EntityHandler(
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttributes = expandAttributes(body, contexts)
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         val updateResult = entityService.updateAttributes(
             entityId,
             expandedAttributes,
             sub.getOrNull()
         ).bind()
-
-        if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAttributeChangeEvents(
-                sub.getOrNull(),
-                entityId,
-                expandedAttributes,
-                updateResult,
-                true
-            )
-        }
 
         if (updateResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -402,9 +319,6 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
@@ -420,17 +334,8 @@ class EntityHandler(
             .let {
                 if (it.updated.isEmpty())
                     ResourceNotFoundException("Unknown attribute in entity $entityId").left()
-                else {
-                    entityEventService.publishAttributeChangeEvents(
-                        sub.getOrNull(),
-                        entityId,
-                        expandedAttribute.toExpandedAttributes(),
-                        it,
-                        false
-                    )
-
+                else
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
-                }
             }.bind()
     }.fold(
         { it.toErrorResponse() },
@@ -458,22 +363,14 @@ class EntityHandler(
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         entityService.deleteAttribute(
             entityId,
             expandedAttrId,
             datasetId,
-            deleteAll
+            deleteAll,
+            sub.getOrNull()
         ).bind()
 
-        entityEventService.publishAttributeDeleteEvent(
-            sub.getOrNull(),
-            entityId,
-            expandedAttrId,
-            datasetId,
-            deleteAll
-        )
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
         { it.toErrorResponse() },
@@ -498,26 +395,14 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
         entityService.replaceAttribute(entityId, expandedAttribute, sub.getOrNull()).bind()
             .let {
                 if (it.updated.isEmpty())
                     ResourceNotFoundException(it.notUpdated[0].reason).left()
-                else {
-                    entityEventService.publishAttributeChangeEvents(
-                        sub.getOrNull(),
-                        entityId,
-                        expandedAttribute.toExpandedAttributes(),
-                        it,
-                        false
-                    )
-
+                else
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
-                }
             }.bind()
     }.fold(
         { it.toErrorResponse() },

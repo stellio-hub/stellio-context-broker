@@ -5,7 +5,6 @@ import arrow.core.raise.either
 import com.egm.stellio.search.authorization.model.EntityAccessRights
 import com.egm.stellio.search.authorization.model.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.common.util.*
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -31,8 +30,7 @@ import java.net.URI
 class EntityAccessRightsService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient,
-    private val subjectReferentialService: SubjectReferentialService,
-    private val entityService: EntityService
+    private val subjectReferentialService: SubjectReferentialService
 ) {
     @Transactional
     suspend fun setReadRoleOnEntity(sub: Sub, entityId: URI): Either<APIException, Unit> =
@@ -144,13 +142,33 @@ class EntityAccessRightsService(
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
                 if (!it)
-                    entityService.hasSpecificAccessPolicies(entityId, specificAccessPolicies)
+                    hasSpecificAccessPolicies(entityId, specificAccessPolicies)
                 else true.right()
             }.flatMap {
                 if (!it)
                     hasDirectAccessRightOnEntity(subjectUuids, entityId, accessRights)
                 else true.right()
             }.bind()
+    }
+
+    suspend fun hasSpecificAccessPolicies(
+        entityId: URI,
+        specificAccessPolicies: List<SpecificAccessPolicy>
+    ): Either<APIException, Boolean> {
+        if (specificAccessPolicies.isEmpty())
+            return either { false }
+
+        return databaseClient.sql(
+            """
+            SELECT count(entity_id) as count
+            FROM entity_payload
+            WHERE entity_id = :entity_id
+            AND specific_access_policy IN (:specific_access_policies)
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
+            .oneToResult { it["count"] as Long > 0 }
     }
 
     private suspend fun hasDirectAccessRightOnEntity(
@@ -337,6 +355,35 @@ class EntityAccessRightsService(
             .bind("sub", subjectId)
             .allToMappedList { toUri(it["entity_id"]) }
     }
+
+    suspend fun updateSpecificAccessPolicy(
+        entityId: URI,
+        ngsiLdAttribute: NgsiLdAttribute
+    ): Either<APIException, Unit> = either {
+        val specificAccessPolicy = ngsiLdAttribute.getSpecificAccessPolicy().bind()
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET specific_access_policy = :specific_access_policy
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policy", specificAccessPolicy.toString())
+            .execute()
+            .bind()
+    }
+
+    suspend fun removeSpecificAccessPolicy(entityId: URI): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET specific_access_policy = null
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .execute()
 
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =

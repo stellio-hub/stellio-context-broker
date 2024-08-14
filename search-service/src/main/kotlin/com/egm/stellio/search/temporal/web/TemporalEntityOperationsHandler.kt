@@ -1,7 +1,6 @@
 package com.egm.stellio.search.temporal.web
 
 import arrow.core.raise.either
-import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPostRequest
@@ -21,7 +20,6 @@ import reactor.core.publisher.Mono
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
 class TemporalEntityOperationsHandler(
     private val temporalQueryService: TemporalQueryService,
-    private val authorizationService: AuthorizationService,
     private val applicationProperties: ApplicationProperties
 ) {
 
@@ -47,11 +45,9 @@ class TemporalEntityOperationsHandler(
                 contexts
             ).bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery,
-            accessRightFilter
+            sub.getOrNull()
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)

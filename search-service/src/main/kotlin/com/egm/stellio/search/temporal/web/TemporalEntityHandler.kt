@@ -4,11 +4,9 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
+import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQuery
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -36,11 +34,9 @@ import java.net.URI
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
-    private val entityService: EntityService,
-    private val attributeInstanceService: AttributeInstanceService,
-    private val entityAttributeService: EntityAttributeService,
+    private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
-    private val authorizationService: AuthorizationService,
+    private val entityService: EntityService,
     private val applicationProperties: ApplicationProperties
 ) : BaseHandler() {
 
@@ -58,44 +54,22 @@ class TemporalEntityHandler(
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
         val entityUri = jsonLdTemporalEntity.id.toUri()
-        val entityDoesNotExist = entityService.checkEntityExistence(entityUri, true).isRight()
 
         val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
         jsonLdInstances.checkTemporalAttributeInstance().bind()
-        val sortedJsonLdInstances = jsonLdInstances.sorted()
 
-        if (entityDoesNotExist) {
-            authorizationService.userCanCreateEntities(sub).bind()
+        val result = temporalService.createOrUpdateTemporalEntity(
+            entityUri,
+            jsonLdTemporalEntity,
+            sub.getOrNull()
+        ).bind()
 
-            // create a view of the entity containing only the most recent instance of each attribute
-            val expandedEntity = ExpandedEntity(
-                sortedJsonLdInstances
-                    .keepFirstInstances()
-                    .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types)
-            )
-            val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
-
-            entityService.createEntity(ngsiLdEntity, expandedEntity, sub.getOrNull()).bind()
-            entityService.upsertAttributes(
-                entityUri,
-                sortedJsonLdInstances.removeFirstInstances(),
-                sub.getOrNull()
-            ).bind()
-            authorizationService.createOwnerRight(entityUri, sub).bind()
-
+        if (result == TemporalService.CreateOrUpdateResult.CREATED)
             ResponseEntity.status(HttpStatus.CREATED)
                 .location(URI("/ngsi-ld/v1/temporal/entities/$entityUri"))
                 .build<String>()
-        } else {
-            authorizationService.userCanUpdateEntity(entityUri, sub).bind()
-            entityService.upsertAttributes(
-                entityUri,
-                sortedJsonLdInstances,
-                sub.getOrNull()
-            ).bind()
-
+        else
             ResponseEntity.status(HttpStatus.NO_CONTENT).build()
-        }
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -112,20 +86,12 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val jsonLdInstances = expandAttributes(body, contexts)
         jsonLdInstances.checkTemporalAttributeInstance().bind()
-        val sortedJsonLdInstances = jsonLdInstances.sorted()
 
-        entityService.upsertAttributes(
-            entityId,
-            sortedJsonLdInstances,
-            sub.getOrNull()
-        ).bind()
+        temporalService.upsertAttributes(entityId, jsonLdInstances, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -152,11 +118,9 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(applicationProperties.pagination, params, contexts, true).bind()
 
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub)
-
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery,
-            accessRightFilter
+            sub.getOrNull()
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
@@ -186,18 +150,17 @@ class TemporalEntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-
-        entityService.checkEntityExistence(entityId).bind()
-
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-
-        authorizationService.userCanReadEntity(entityId, sub).bind()
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQuery(applicationProperties.pagination, params, contexts).bind()
 
-        val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
+        val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
+            entityId,
+            temporalEntitiesQuery,
+            sub.getOrNull()
+        ).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 
@@ -221,26 +184,22 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @PathVariable instanceId: String,
+        @PathVariable instanceId: URI,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val instanceUri = instanceId.toUri()
         attrId.checkNameIsNgsiLdSupported().bind()
-
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
         expandedAttribute.toExpandedAttributes().checkTemporalAttributeInstance().bind()
 
-        attributeInstanceService.modifyAttributeInstance(
+        temporalService.modifyAttributeInstance(
             entityId,
-            expandedAttribute.first,
-            instanceUri,
-            expandedAttribute.second
+            instanceId,
+            expandedAttribute,
+            sub.getOrNull()
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -267,10 +226,7 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
-        entityService.deleteEntity(entityId).bind()
-        authorizationService.removeRightsOnEntity(entityId).bind()
+        entityService.deleteEntity(entityId, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -296,19 +252,12 @@ class TemporalEntityHandler(
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        entityAttributeService.checkEntityAndAttributeExistence(
-            entityId,
-            expandedAttrId,
-            datasetId
-        ).bind()
-
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
         entityService.deleteAttribute(
             entityId,
             expandedAttrId,
             datasetId,
-            deleteAll
+            deleteAll,
+            sub.getOrNull()
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -336,11 +285,7 @@ class TemporalEntityHandler(
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        entityService.checkEntityExistence(entityId).bind()
-
-        authorizationService.userCanUpdateEntity(entityId, sub).bind()
-
-        attributeInstanceService.deleteInstance(entityId, expandedAttrId, instanceId).bind()
+        temporalService.deleteAttributeInstance(entityId, expandedAttrId, instanceId, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -362,20 +307,5 @@ class TemporalEntityHandler(
         }.let {
             if (it) Unit.right()
             else BadRequestDataException(invalidTemporalInstanceMessage()).left()
-        }
-
-    private fun ExpandedAttributes.sorted(): ExpandedAttributes =
-        this.mapValues {
-            it.value.sortedByDescending { expandedAttributePayloadEntry ->
-                expandedAttributePayloadEntry.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
-            }
-        }
-
-    private fun ExpandedAttributes.keepFirstInstances(): ExpandedAttributes =
-        this.mapValues { listOf(it.value.first()) }
-
-    private fun ExpandedAttributes.removeFirstInstances(): ExpandedAttributes =
-        this.mapValues {
-            it.value.drop(1)
         }
 }

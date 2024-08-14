@@ -43,6 +43,9 @@ class EntityOperationServiceTests {
     @MockkBean
     private lateinit var entityEventService: EntityEventService
 
+    @MockkBean
+    private lateinit var entityQueryService: EntityQueryService
+
     @Autowired
     private lateinit var entityOperationService: EntityOperationService
 
@@ -74,7 +77,7 @@ class EntityOperationServiceTests {
     @Test
     fun `splitEntitiesByExistence should split entities per existence`() = runTest {
         coEvery {
-            entityService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
+            entityQueryService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
         } returns listOf(firstEntityURI)
 
         val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(
@@ -91,7 +94,7 @@ class EntityOperationServiceTests {
     @Test
     fun `splitEntitiesByExistence should split entities per existence with ids`() = runTest {
         coEvery {
-            entityService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
+            entityQueryService.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
         } returns listOf(firstEntityURI)
 
         val (exist, doNotExist) =
@@ -344,7 +347,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch delete should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityService.deleteEntity(any()) } returns mockkClass(Entity::class).right()
+        coEvery { entityService.deleteEntityPayload(any()) } returns mockkClass(Entity::class).right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
@@ -363,8 +366,8 @@ class EntityOperationServiceTests {
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
         coVerify {
-            entityService.deleteEntity(firstEntityURI)
-            entityService.deleteEntity(secondEntityURI)
+            entityService.deleteEntityPayload(firstEntityURI)
+            entityService.deleteEntityPayload(secondEntityURI)
             authorizationService.removeRightsOnEntity(firstEntityURI)
             authorizationService.removeRightsOnEntity(secondEntityURI)
         }
@@ -377,10 +380,10 @@ class EntityOperationServiceTests {
     fun `batch delete should return deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
             coEvery {
-                entityService.deleteEntity(firstEntityURI)
+                entityService.deleteEntityPayload(firstEntityURI)
             } returns mockkClass(Entity::class).right()
             coEvery {
-                entityService.deleteEntity(secondEntityURI)
+                entityService.deleteEntityPayload(secondEntityURI)
             } returns InternalErrorException("Something went wrong during deletion").left()
             coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
             coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
@@ -417,7 +420,7 @@ class EntityOperationServiceTests {
         val deleteEntityErrorMessage = "Something went wrong with deletion request"
 
         coEvery {
-            entityService.deleteEntity(any())
+            entityService.deleteEntityPayload(any())
         } returns InternalErrorException(deleteEntityErrorMessage).left()
 
         val batchOperationResult = entityOperationService.delete(
@@ -443,8 +446,8 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
 
-        coVerify { entityService.deleteEntity(firstEntityURI) }
-        coVerify { entityService.deleteEntity(secondEntityURI) }
+        coVerify { entityService.deleteEntityPayload(firstEntityURI) }
+        coVerify { entityService.deleteEntityPayload(secondEntityURI) }
         coVerify { entityEventService.publishEntityDeleteEvent(any(), any()) wasNot Called }
     }
 

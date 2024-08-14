@@ -51,7 +51,7 @@ class EntityOperationHandlerTests {
     private lateinit var entityService: EntityService
 
     @MockkBean
-    private lateinit var queryService: EntityQueryService
+    private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
     private lateinit var authorizationService: AuthorizationService
@@ -792,7 +792,7 @@ class EntityOperationHandlerTests {
                 mutableListOf()
             )
 
-        coEvery { entityService.retrieve(any<List<URI>>()) } returns
+        coEvery { entityQueryService.retrieve(any<List<URI>>()) } returns
             listOf(
                 mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri
@@ -855,7 +855,7 @@ class EntityOperationHandlerTests {
         coEvery { entityOperationService.splitEntitiesIdsByExistence(any()) } answers {
             Pair(allEntitiesUris, emptyList())
         }
-        coEvery { entityService.retrieve(any<List<URI>>()) } returns
+        coEvery { entityQueryService.retrieve(any<List<URI>>()) } returns
             listOf(
                 mockkClass(Entity::class, relaxed = true) {
                     every { entityId } returns dissolvedOxygenSensorUri
@@ -906,7 +906,9 @@ class EntityOperationHandlerTests {
     @Test
     fun `query entities should return a 200 if the query is correct`() = runTest {
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryEntities(any(), any()) } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+        coEvery {
+            entityQueryService.queryEntities(any(), any<Sub>())
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         val query = """
             {
@@ -925,14 +927,14 @@ class EntityOperationHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            queryService.queryEntities(
+            entityQueryService.queryEntities(
                 match {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
                         it.typeSelection == BEEHIVE_TYPE &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
-                any()
+                any<Sub>()
             )
         }
     }

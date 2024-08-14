@@ -172,7 +172,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "2.15.1"
+    version = "2.16.0"
 
     repositories {
         mavenCentral()

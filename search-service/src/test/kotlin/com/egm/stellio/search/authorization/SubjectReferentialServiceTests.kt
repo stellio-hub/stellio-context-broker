@@ -57,6 +57,43 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should persist a subject referential for a non-existing client`() = runTest {
+        val subjectReferential = SubjectReferential(
+            subjectId = serviceAccountUuid,
+            subjectType = SubjectType.CLIENT,
+            subjectInfo = getSubjectInfoForClient("client-id", "kc-id")
+        )
+
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                fail("it should have created a subject referential for the client")
+            }, {})
+    }
+
+    @Test
+    fun `it should upsert a subject referential for an existing client`() = runTest {
+        val subjectReferential = SubjectReferential(
+            subjectId = serviceAccountUuid,
+            subjectType = SubjectType.CLIENT,
+            subjectInfo = getSubjectInfoForClient("client-id-updated", "kc-id-updated")
+        )
+
+        subjectReferentialService.create(subjectReferential)
+            .fold({
+                fail("it should have created a subject referential for the client")
+            }, {})
+
+        subjectReferentialService.retrieve(serviceAccountUuid)
+            .shouldSucceedWith {
+                val subjectInfo = it.getSubjectInfoValue()
+                assertTrue(subjectInfo.containsKey("clientId"))
+                assertEquals("client-id-updated", subjectInfo["clientId"])
+                assertTrue(subjectInfo.containsKey("internalClientId"))
+                assertEquals("kc-id-updated", subjectInfo["internalClientId"])
+            }
+    }
+
+    @Test
     fun `it should retrieve a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = userUuid,
@@ -420,27 +457,6 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should add a service account id to a client`() = runTest {
-        val userAccessRights = SubjectReferential(
-            subjectId = userUuid,
-            subjectType = SubjectType.USER,
-            subjectInfo = EMPTY_JSON_PAYLOAD
-        )
-
-        subjectReferentialService.create(userAccessRights)
-
-        val serviceAccountId = UUID.randomUUID().toString()
-
-        subjectReferentialService.addServiceAccountIdToClient(userUuid, serviceAccountId)
-            .shouldSucceed()
-
-        subjectReferentialService.retrieve(serviceAccountId)
-            .shouldSucceedWith {
-                assertEquals(serviceAccountId, it.subjectId)
-            }
-    }
-
-    @Test
     fun `it should update an existing subject info for an user`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = userUuid,
@@ -499,6 +515,29 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             .shouldSucceed()
 
         subjectReferentialService.retrieve(userUuid)
+            .fold({
+                assertInstanceOf(AccessDeniedException::class.java, it)
+            }, {
+                fail("it should have returned a AccessDeniedException exception")
+            })
+    }
+
+    @Test
+    fun `it should delete a subject referential when it is a client`() = runTest {
+        val subjectReferential = SubjectReferential(
+            subjectId = serviceAccountUuid,
+            subjectType = SubjectType.CLIENT,
+            subjectInfo = getSubjectInfoForClient("client-id", "kc-id"),
+            globalRoles = listOf(STELLIO_ADMIN)
+        )
+
+        subjectReferentialService.create(subjectReferential)
+
+        // when deleting a client, event will only contain internal KC id
+        subjectReferentialService.delete("kc-id")
+            .shouldSucceed()
+
+        subjectReferentialService.retrieve(serviceAccountUuid)
             .fold({
                 assertInstanceOf(AccessDeniedException::class.java, it)
             }, {

@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.buildDefaultQueryParams
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -59,7 +60,7 @@ class TemporalScopeBuilderTests {
                 )
             )
         )
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
             timeAt = Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             aggrPeriodDuration = "P1D",
@@ -99,7 +100,7 @@ class TemporalScopeBuilderTests {
                 time = ZonedDateTime.parse("2020-03-25T08:30:17.965206Z")
             )
         )
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
         )
@@ -139,7 +140,7 @@ class TemporalScopeBuilderTests {
                 timeproperty = TemporalProperty.OBSERVED_AT.propertyName
             )
         )
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
         )

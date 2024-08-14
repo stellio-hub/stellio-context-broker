@@ -7,7 +7,6 @@
   "operationPayload": "{\"type\":\"Property\",\"value\":\"EGM Team\"}",
   "updatedEntity": "",
   "contexts": [
-    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+    "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ]
 }

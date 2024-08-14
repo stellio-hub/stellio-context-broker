@@ -3,6 +3,8 @@ package com.egm.stellio.search.util
 import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.TemporalQuery.Aggregate
+import com.egm.stellio.search.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -133,7 +135,8 @@ fun composeTemporalEntitiesQuery(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
         OptionsParamValue.AGGREGATED_VALUES
     )
-    val temporalQuery = buildTemporalQuery(requestParams, inQueryEntities, withAggregatedValues).bind()
+    val temporalQuery =
+        buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQuery(
         entitiesQuery = entitiesQuery,
@@ -172,15 +175,20 @@ fun composeTemporalEntitiesQueryFromPostRequest(
     )
 
     val temporalParams = mapOf(
-        "timerel" to listOf(query.temporalQ?.timerel),
-        "timeAt" to listOf(query.temporalQ?.timeAt),
-        "endTimeAt" to listOf(query.temporalQ?.endTimeAt),
-        "aggrPeriodDuration" to listOf(query.temporalQ?.aggrPeriodDuration),
-        "aggrMethods" to query.temporalQ?.aggrMethods,
-        "lastN" to listOf(query.temporalQ?.lastN.toString()),
-        "timeproperty" to listOf(query.temporalQ?.timeproperty)
+        TIMEREL_PARAM to listOf(query.temporalQ?.timerel),
+        TIMEAT_PARAM to listOf(query.temporalQ?.timeAt),
+        ENDTIMEAT_PARAM to listOf(query.temporalQ?.endTimeAt),
+        AGGRPERIODDURATION_PARAM to listOf(query.temporalQ?.aggrPeriodDuration),
+        AGGRMETHODS_PARAM to query.temporalQ?.aggrMethods,
+        LASTN_PARAM to listOf(query.temporalQ?.lastN.toString()),
+        TIMEPROPERTY_PARAM to listOf(query.temporalQ?.timeproperty)
     )
-    val temporalQuery = buildTemporalQuery(MultiValueMapAdapter(temporalParams), true, withAggregatedValues).bind()
+    val temporalQuery = buildTemporalQuery(
+        MultiValueMapAdapter(temporalParams),
+        defaultPagination,
+        true,
+        withAggregatedValues
+    ).bind()
 
     TemporalEntitiesQuery(
         entitiesQuery = entitiesQuery,
@@ -191,26 +199,25 @@ fun composeTemporalEntitiesQueryFromPostRequest(
     )
 }
 
+@SuppressWarnings("ReturnCount")
 fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
+    pagination: ApplicationProperties.Pagination,
     inQueryEntities: Boolean = false,
-    withAggregatedValues: Boolean = false
+    withAggregatedValues: Boolean = false,
 ): Either<APIException, TemporalQuery> {
-    val timerelParam = params.getFirst("timerel")
-    val timeAtParam = params.getFirst("timeAt")
-    val endTimeAtParam = params.getFirst("endTimeAt")
+    val timerelParam = params.getFirst(TIMEREL_PARAM)
+    val timeAtParam = params.getFirst(TIMEAT_PARAM)
+    val endTimeAtParam = params.getFirst(ENDTIMEAT_PARAM)
     val aggrPeriodDurationParam =
         if (withAggregatedValues)
-            params.getFirst("aggrPeriodDuration") ?: "PT0S"
+            params.getFirst(AGGRPERIODDURATION_PARAM) ?: WHOLE_TIME_RANGE_DURATION
         else null
-    val aggrMethodsParam = params.getFirst("aggrMethods")
-    val lastNParam = params.getFirst("lastN")
-    val timeproperty = params.getFirst("timeproperty")?.let {
+    val aggrMethodsParam = params.getFirst(AGGRMETHODS_PARAM)
+    val lastNParam = params.getFirst(LASTN_PARAM)
+    val timeproperty = params.getFirst(TIMEPROPERTY_PARAM)?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
-
-    if (timerelParam == "between" && endTimeAtParam == null)
-        return BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'").left()
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
         ?.getOrElse {
@@ -220,12 +227,16 @@ fun buildTemporalQuery(
     val (timerel, timeAt) = buildTimerelAndTime(timerelParam, timeAtParam, inQueryEntities).getOrElse {
         return BadRequestDataException(it).left()
     }
+
+    if (timerel == Timerel.BETWEEN && endTimeAtParam == null)
+        return BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'").left()
+
     if (withAggregatedValues && aggrMethodsParam == null)
         return BadRequestDataException("'aggrMethods' is mandatory if 'aggregatedValues' option is specified").left()
 
     val aggregate = aggrMethodsParam?.split(",")?.map {
-        if (TemporalQuery.Aggregate.isSupportedAggregate(it))
-            TemporalQuery.Aggregate.forMethod(it)!!
+        if (Aggregate.isSupportedAggregate(it))
+            Aggregate.forMethod(it)!!
         else
             return BadRequestDataException(
                 "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
@@ -235,6 +246,7 @@ fun buildTemporalQuery(
     val lastN = lastNParam?.toIntOrNull()?.let {
         if (it >= 1) it else null
     }
+    val limit = if (lastN != null && lastN < pagination.temporalLimit) lastN else pagination.temporalLimit
 
     return TemporalQuery(
         timerel = timerel,
@@ -242,6 +254,7 @@ fun buildTemporalQuery(
         endTimeAt = endTimeAt,
         aggrPeriodDuration = aggrPeriodDurationParam,
         aggrMethods = aggregate,
+        instanceLimit = limit,
         lastN = lastN,
         timeproperty = timeproperty
     ).right()
@@ -251,13 +264,13 @@ fun buildTimerelAndTime(
     timerelParam: String?,
     timeAtParam: String?,
     inQueryEntities: Boolean
-): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
+): Either<String, Pair<Timerel?, ZonedDateTime?>> =
     // when querying a specific temporal entity, timeAt and timerel are optional
     if (timerelParam == null && timeAtParam == null && !inQueryEntities) {
         Pair(null, null).right()
     } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {
-            TemporalQuery.Timerel.valueOf(timerelParam.uppercase()).right()
+            Timerel.valueOf(timerelParam.uppercase()).right()
         } catch (e: IllegalArgumentException) {
             "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
         }

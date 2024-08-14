@@ -4,10 +4,14 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
 fun ZonedDateTime.toNgsiLdFormat(): String =
+    formatter.format(this)
+
+fun ZonedDateTime.toHttpHeaderFormat(): String =
     formatter.format(this)
 
 fun ngsiLdDateTime(): ZonedDateTime =

@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.TemporalQuery.Timerel
 import com.egm.stellio.search.support.*
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -39,7 +40,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -58,7 +59,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
-
     private lateinit var incomingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var outgoingTemporalEntityAttribute: TemporalEntityAttribute
     private lateinit var jsonTemporalEntityAttribute: TemporalEntityAttribute
@@ -152,8 +152,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.create(observation)
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -175,8 +175,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.create(observation)
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
             )
@@ -199,8 +199,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.create(observation)
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
             )
@@ -223,8 +223,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.create(observation)
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
             )
@@ -243,8 +243,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -261,7 +261,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id))
         }
 
-        attributeInstanceService.search(gimmeTemporalEntitiesQuery(TemporalQuery()), incomingTemporalEntityAttribute)
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery()),
+            incomingTemporalEntityAttribute
+        )
             .shouldSucceedWith {
                 assertThat(it)
                     .hasSize(10)
@@ -303,7 +306,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         attributeInstanceService.search(
-            gimmeTemporalEntitiesQuery(TemporalQuery(), withTemporalValues = true),
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), withTemporalValues = true),
             temporalEntityAttribute2
         ).shouldSucceedWith { results ->
             assertThat(results)
@@ -327,7 +330,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService.create(attributeInstance)
         }
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
+            buildDefaultTestTemporalQuery(
                 aggrPeriodDuration = "P30D",
                 aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
             ),
@@ -344,17 +347,17 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only return the last n instances asked in the temporal query`() = runTest {
+    fun `it should only return the limited instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
                 .copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance)
         }
-
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
+                instanceLimit = 5,
                 lastN = 5
             )
         )
@@ -366,7 +369,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only return the last n instances asked in an aggregated temporal query`() = runTest {
+    fun `it should only return the limited instances asked in an aggregated temporal query`() = runTest {
         val now = ngsiLdDateTime()
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =
@@ -379,12 +382,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.BEFORE,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.BEFORE,
                 timeAt = now,
                 aggrPeriodDuration = "PT1S",
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
-                lastN = 5
+                instanceLimit = 5,
             ),
             withAggregatedValues = true
         )
@@ -415,8 +418,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -437,8 +440,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -458,8 +461,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.plusHours(1)
             )
         )
@@ -481,8 +484,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.search(
             gimmeTemporalEntitiesQuery(
-                TemporalQuery(
-                    timerel = TemporalQuery.Timerel.AFTER,
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
                     timeAt = now.minusHours(1)
                 ),
                 withTemporalValues = true
@@ -629,8 +632,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
             )
         )
@@ -667,8 +670,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
             )
         )
@@ -706,8 +709,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
             )
         )
@@ -750,8 +753,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         ) as ExpandedAttributes
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
             )
         )
@@ -791,7 +794,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstance.instanceId
         ).shouldSucceed()
 
-        attributeInstanceService.search(gimmeTemporalEntitiesQuery(TemporalQuery()), incomingTemporalEntityAttribute)
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery()),
+            incomingTemporalEntityAttribute
+        )
             .shouldSucceedWith {
                 assertThat(it)
                     .isEmpty()
@@ -860,8 +866,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.deleteInstancesOfEntity(listOf(incomingTemporalEntityAttribute.id)).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -869,8 +875,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith { assertThat(it).isEmpty() }
 
         val temporalEntitiesAuditQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
             )
@@ -896,8 +902,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.deleteAllInstancesOfAttribute(entityId, INCOMING_PROPERTY).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )
@@ -923,8 +929,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         attributeInstanceService.deleteInstancesOfAttribute(entityId, INCOMING_PROPERTY, null).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
-            TemporalQuery(
-                timerel = TemporalQuery.Timerel.AFTER,
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
             )
         )

@@ -9,9 +9,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -19,8 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class SubjectReferentialService(
-    private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate
+    private val databaseClient: DatabaseClient
 ) {
 
     @Transactional
@@ -41,6 +37,23 @@ class SubjectReferentialService(
             .bind("subject_info", subjectReferential.subjectInfo)
             .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
+            .execute()
+
+    @Transactional
+    suspend fun upsertClient(subjectReferential: SubjectReferential): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                INSERT INTO subject_referential
+                    (subject_id, subject_type, subject_info)
+                    VALUES (:subject_id, :subject_type, :subject_info)
+                ON CONFLICT (subject_id)
+                    DO UPDATE SET subject_info = :subject_info
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectReferential.subjectId)
+            .bind("subject_type", subjectReferential.subjectType.toString())
+            .bind("subject_info", subjectReferential.subjectInfo)
             .execute()
 
     suspend fun retrieve(sub: Sub): Either<APIException, SubjectReferential> =
@@ -265,20 +278,6 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
-    suspend fun addServiceAccountIdToClient(subjectId: Sub, serviceAccountId: Sub): Either<APIException, Unit> =
-        databaseClient
-            .sql(
-                """
-                UPDATE subject_referential
-                SET subject_id = :service_account_id
-                WHERE subject_id = :subject_id
-                """.trimIndent()
-            )
-            .bind("subject_id", subjectId)
-            .bind("service_account_id", serviceAccountId)
-            .execute()
-
-    @Transactional
     suspend fun updateSubjectInfo(subjectId: Sub, newSubjectInfo: Pair<String, String>): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -298,8 +297,15 @@ class SubjectReferentialService(
 
     @Transactional
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(SubjectReferential::class.java)
-            .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
+        databaseClient
+            .sql(
+                """
+                DELETE FROM subject_referential
+                WHERE subject_id = :subject_id
+                OR jsonb_path_match(subject_info, 'exists($.value.internalClientId ? (@ == ${'$'}value))', '{ "value": "$sub" }')
+                """.trimIndent()
+            )
+            .bind("subject_id", sub)
             .execute()
 
     private fun rowToSubjectReferential(row: Map<String, Any>) =

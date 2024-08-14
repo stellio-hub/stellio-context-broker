@@ -10,11 +10,11 @@ import com.egm.stellio.search.authorization.SubjectReferential
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.authorization.toSubjectInfo
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
@@ -39,7 +39,8 @@ class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
     private val searchProperties: SearchProperties,
     private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityPayloadService: EntityPayloadService
+    private val entityPayloadService: EntityPayloadService,
+    private val entityEventService: EntityEventService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -76,6 +77,7 @@ class IAMListener(
         tenantName: String,
         entityCreateEvent: EntityCreateEvent
     ): Either<APIException, Unit> = either {
+        val subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase())
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
         val subjectInfo = operationPayload
             .filter { !JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(it.key) }
@@ -83,13 +85,16 @@ class IAMListener(
         val roles = extractRoles(operationPayload)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
-            subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase()),
+            subjectType = subjectType,
             subjectInfo = Json.of(subjectInfo),
             globalRoles = roles
         )
 
         mono {
-            subjectReferentialService.create(subjectReferential)
+            if (subjectType == SubjectType.CLIENT)
+                subjectReferentialService.upsertClient(subjectReferential)
+            else
+                subjectReferentialService.create(subjectReferential)
         }.writeContextAndSubscribe(tenantName, entityCreateEvent)
     }
 
@@ -114,8 +119,10 @@ class IAMListener(
                 if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
                     val entitiesIds = entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()
                     entitiesIds?.let { entityAccessRightsService.deleteAllAccessRightsOnEntities(it) }
-                    entitiesIds?.map { entityId ->
-                        entityPayloadService.deleteEntity(entityId)
+                    entitiesIds?.forEach { entityId ->
+                        entityPayloadService.deleteEntity(entityId).getOrNull()?.also {
+                            entityEventService.publishEntityDeleteEvent(null, it)
+                        }
                     }
                     Unit.right()
                 } else Unit.right()
@@ -139,13 +146,6 @@ class IAMListener(
                         subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
                     else
                         subjectReferentialService.resetGlobalRoles(subjectUuid)
-                }
-                AUTH_TERM_SID -> {
-                    val serviceAccountId = operationPayload[JSONLD_VALUE_TERM] as String
-                    subjectReferentialService.addServiceAccountIdToClient(
-                        subjectUuid,
-                        serviceAccountId.extractSub()
-                    )
                 }
                 AUTH_TERM_IS_MEMBER_OF -> {
                     val groupId = operationPayload[JSONLD_OBJECT] as String

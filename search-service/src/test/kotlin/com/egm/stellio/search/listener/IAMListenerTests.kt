@@ -4,12 +4,19 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.EntityAccessRightsService
 import com.egm.stellio.search.authorization.SubjectReferentialService
 import com.egm.stellio.search.config.SearchProperties
+import com.egm.stellio.search.model.EntityPayload
+import com.egm.stellio.search.service.EntityEventService
 import com.egm.stellio.search.service.EntityPayloadService
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.mockkClass
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -34,6 +41,9 @@ class IAMListenerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
+
+    @MockkBean(relaxed = true)
+    private lateinit var entityEventService: EntityEventService
 
     private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -61,8 +71,8 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEvent.json")
+    fun `it should handle a create event with unknwon properties for an user`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventUnknownProperties.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
@@ -71,11 +81,11 @@ class IAMListenerTests {
         coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                        it.subjectType == SubjectType.USER &&
                         it.subjectInfo.asString() ==
                         """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
+                        {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -84,8 +94,8 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event with unknwon properties for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEventUnknownProperties.json")
+    fun `it should handle a create event with the default tenant for an user`() = runTest {
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventWithDefaultTenant.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
 
@@ -94,34 +104,11 @@ class IAMListenerTests {
         coVerify(timeout = 1000L) {
             subjectReferentialService.create(
                 match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                        it.subjectType == SubjectType.USER &&
                         it.subjectInfo.asString() ==
                         """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
-                        """.trimIndent() &&
-                        it.globalRoles == null
-                }
-            )
-        }
-    }
-
-    @Test
-    fun `it should handle a create event with the default tenant for a client`() = runTest {
-        val subjectCreateEvent = loadSampleData("events/authorization/ClientCreateEventWithDefaultTenant.json")
-
-        coEvery { subjectReferentialService.create(any()) } returns Unit.right()
-
-        iamListener.dispatchIamMessage(subjectCreateEvent)
-
-        coVerify(timeout = 1000L) {
-            subjectReferentialService.create(
-                match {
-                    it.subjectId == "191a6f0d-df07-4697-afde-da9d8a91d954" &&
-                        it.subjectType == SubjectType.CLIENT &&
-                        it.subjectInfo.asString() ==
-                        """
-                        {"type":"Property","value":{"clientId":"stellio-client"}}
+                        {"type":"Property","value":{"username":"stellio","givenName":"John","familyName":"Doe"}}
                         """.trimIndent() &&
                         it.globalRoles == null
                 }
@@ -300,26 +287,6 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding a service account id to a client`() = runTest {
-        val roleAppendEvent = loadSampleData("events/authorization/ServiceAccountIdAppendEvent.json")
-
-        coEvery { subjectReferentialService.addServiceAccountIdToClient(any(), any()) } returns Unit.right()
-
-        iamListener.dispatchIamMessage(roleAppendEvent)
-
-        coVerify(timeout = 1000L) {
-            subjectReferentialService.addServiceAccountIdToClient(
-                match {
-                    it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5"
-                },
-                match {
-                    it == "7cdad168-96ee-4649-b768-a060ac2ef435"
-                }
-            )
-        }
-    }
-
-    @Test
     fun `it should handle a replace event changing the name of a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/GroupUpdateEvent.json")
 
@@ -356,9 +323,26 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should handle a replace event changing the clientId of a client`() = runTest {
+        val clientIdReplaceEvent = loadSampleData("events/authorization/ClientIdAppendToClient.json")
+
+        coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
+
+        iamListener.dispatchIamMessage(clientIdReplaceEvent)
+
+        coVerify(timeout = 1000L) {
+            subjectReferentialService.updateSubjectInfo(
+                eq("191a6f0d-df07-4697-afde-da9d8a91d954"),
+                match {
+                    it.first == "clientId" && it.second == "friendly-client-id"
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should delete all entities owned by a user if user is deleted`() = runTest {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
-        loadSampleData("beehive.jsonld").sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         coEvery {
             entityAccessRightsService.setOwnerRoleOnEntity(
                 "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
@@ -367,14 +351,12 @@ class IAMListenerTests {
         } returns Unit.right()
 
         coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
-        every {
-            searchProperties.onOwnerDeleteCascadeEntities
-        } returns true
+        every { searchProperties.onOwnerDeleteCascadeEntities } returns true
         coEvery {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
-        } returns listOf(
-            entityId
-        ).right()
+        } returns listOf(entityId).right()
+        coEvery { entityPayloadService.deleteEntity(entityId) } returns mockkClass(EntityPayload::class).right()
+        coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
 
@@ -391,6 +373,9 @@ class IAMListenerTests {
                     it == entityId
                 }
             )
+        }
+        coVerify(timeout = 1000) {
+            entityEventService.publishEntityDeleteEvent(null, any())
         }
     }
 }

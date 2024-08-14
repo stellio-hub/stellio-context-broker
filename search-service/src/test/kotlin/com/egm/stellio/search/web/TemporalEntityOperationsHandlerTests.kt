@@ -5,6 +5,7 @@ import com.egm.stellio.search.authorization.AuthorizationService
 import com.egm.stellio.search.config.SearchProperties
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -50,14 +51,14 @@ class TemporalEntityOperationsHandlerTests {
 
     @Test
     fun `it should return a 200 and retrieve requested temporal attributes`() {
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {
@@ -99,14 +100,14 @@ class TemporalEntityOperationsHandlerTests {
 
     @Test
     fun `it should return a 200 and the number of results if count is asked for`() {
-        val temporalQuery = TemporalQuery(
+        val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Pair(emptyList(), 2))
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
             {

@@ -347,6 +347,61 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `it should include instance with temporal property equals to timeAt  `() = runTest {
+        (1..5).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.AFTER,
+                timeAt = ZonedDateTime.parse("2022-07-01T00:00:00Z"),
+                instanceLimit = 5
+            )
+        )
+
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).single { result ->
+                    result.time == ZonedDateTime.parse("2022-07-01T00:00:00Z")
+                }
+            }
+    }
+
+    @Test
+    fun `it should exclude instance with temporal property equals to endTimeAt`() = runTest {
+        (1..5).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                    .copy(
+                        measuredValue = index.toDouble(),
+                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                    )
+            attributeInstanceService.create(attributeInstance)
+        }
+        val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
+            buildDefaultTestTemporalQuery(
+                timerel = Timerel.BETWEEN,
+                timeAt = ZonedDateTime.parse("2022-07-01T00:00:00Z"),
+                endTimeAt = ZonedDateTime.parse("2022-07-04T00:00:00Z"),
+                instanceLimit = 5
+            )
+        )
+
+        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+            .shouldSucceedWith {
+                (it as List<FullAttributeInstanceResult>).all { result ->
+                    result.time != ZonedDateTime.parse("2022-07-04T00:00:00Z")
+                }
+            }
+    }
+
+    @Test
     fun `it should only return the limited instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)

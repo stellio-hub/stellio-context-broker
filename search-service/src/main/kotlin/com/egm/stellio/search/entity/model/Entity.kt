@@ -1,6 +1,5 @@
 package com.egm.stellio.search.entity.model
 
-import com.egm.stellio.search.common.util.*
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
@@ -25,19 +24,6 @@ data class Entity(
     val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
-    companion object {
-        fun fromRow(row: Map<String, Any>): Entity =
-            Entity(
-                entityId = toUri(row["entity_id"]),
-                types = toList(row["types"]),
-                scopes = toOptionalList(row["scopes"]),
-                createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-                payload = toJson(row["payload"]),
-                specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
-            )
-    }
-
     fun serializeProperties(): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = entityId.toString()

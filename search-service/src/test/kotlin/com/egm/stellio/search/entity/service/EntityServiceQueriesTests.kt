@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
+import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -27,12 +28,10 @@ import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
@@ -40,6 +39,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var entityService: EntityService
+
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
 
     @MockkBean(relaxed = true)
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -61,7 +63,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         val fourthRawEntity = loadSampleData("beekeeper.jsonld")
         val fifthRawEntity = loadSampleData("apiary.jsonld")
 
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         runBlocking {
             listOf(firstRawEntity, secondRawEntity, thirdRawEntity, fourthRawEntity, fifthRawEntity).forEach {
@@ -73,6 +77,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterAll
     fun deleteEntities() {
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
         runBlocking {
             entityService.deleteEntity(entity01Uri)
             entityService.deleteEntity(entity02Uri)

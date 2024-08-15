@@ -6,6 +6,7 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -164,7 +165,7 @@ class EntityQueryService(
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .oneToResult { Entity.fromRow(it) }
+            .oneToResult { it.rowToEntity() }
 
     suspend fun retrieve(entitiesIds: List<URI>): List<Entity> =
         databaseClient.sql(
@@ -174,7 +175,7 @@ class EntityQueryService(
             """.trimIndent()
         )
             .bind("entities_ids", entitiesIds)
-            .allToMappedList { Entity.fromRow(it) }
+            .allToMappedList { it.rowToEntity() }
 
     suspend fun checkEntityExistence(
         entityId: URI,

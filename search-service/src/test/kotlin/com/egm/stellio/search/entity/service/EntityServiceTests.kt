@@ -1,6 +1,8 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
+import arrow.core.toOption
+import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
@@ -28,11 +30,9 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
@@ -47,11 +47,15 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
 
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
+
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    private val sub = "0123456789-1234-5678-987654321"
     private val now = ngsiLdDateTime()
 
     @AfterEach
@@ -81,10 +85,12 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should only create an entity payload for a minimal entity`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -92,28 +98,30 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals("urn:ngsi-ld:BeeHive:TESTC".toUri(), it.entityId)
+                assertEquals(beehiveTestCId, it.entityId)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
             }
 
         coVerify {
+            authorizationService.userCanCreateEntities(eq(sub.toOption()))
             entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
                 any(),
-                eq("0123456789-1234-5678-987654321")
+                eq(sub)
             )
             entityEventService.publishEntityCreateEvent(
-                eq("0123456789-1234-5678-987654321"),
+                eq(sub),
                 eq(beehiveTestCId),
                 any()
             )
+            authorizationService.createOwnerRight(beehiveTestCId, sub.toOption())
         }
     }
 
@@ -138,6 +146,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should merge an entity`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
@@ -147,9 +157,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
         ).right()
-        coEvery {
-            entityAttributeService.getForEntity(any(), any(), any())
-        } returns emptyList()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -157,7 +166,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         val (jsonLdEntity, _) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
@@ -166,7 +175,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             beehiveTestCId,
             jsonLdEntity.getModifiableMembers(),
             now,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -175,12 +184,14 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
+            authorizationService.userCanCreateEntities(sub.toOption())
+            authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
             entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
                 any(),
-                eq("0123456789-1234-5678-987654321")
+                eq(sub)
             )
             entityAttributeService.mergeAttributes(
                 eq(beehiveTestCId),
@@ -188,18 +199,21 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 any(),
                 any(),
                 any(),
-                eq("0123456789-1234-5678-987654321")
+                eq(sub)
             )
             entityAttributeService.getForEntity(
                 eq(beehiveTestCId),
                 emptySet(),
                 emptySet()
             )
+            authorizationService.createOwnerRight(beehiveTestCId, sub.toOption())
         }
     }
 
     @Test
     fun `it should merge an entity with new types`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
@@ -209,9 +223,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             listOf(UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.APPENDED)),
             emptyList()
         ).right()
-        coEvery {
-            entityAttributeService.getForEntity(any(), any(), any())
-        } returns emptyList()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -219,7 +232,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -231,7 +244,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             beehiveTestCId,
             expandedAttributes,
             now,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -242,6 +255,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should merge an entity with new types and scopes`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
@@ -254,9 +269,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery {
             entityAttributeService.partialUpdateAttribute(any(), any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
-        coEvery {
-            entityAttributeService.getForEntity(any(), any(), any())
-        } returns emptyList()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -264,7 +278,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -276,7 +290,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             beehiveTestCId,
             expandedAttributes,
             now,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -296,11 +310,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should replace an entity`() = runTest {
-        val beehiveURI = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -308,16 +324,16 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         val (newExpandedEntity, newNgsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
 
         entityService.replaceEntity(
-            beehiveURI,
+            beehiveTestCId,
             newNgsiLdEntity,
             newExpandedEntity,
-            "0123456789-1234-5678-987654321"
+            sub
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -327,19 +343,23 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
 
         coVerify {
-            entityAttributeService.deleteAttributes(beehiveURI)
+            authorizationService.userCanCreateEntities(sub.toOption())
+            authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
+            entityAttributeService.deleteAttributes(beehiveTestCId)
             entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
                 any(),
-                eq("0123456789-1234-5678-987654321")
+                eq(sub)
             )
+            authorizationService.createOwnerRight(beehiveTestCId, sub.toOption())
         }
     }
 
     @Test
     fun `it should replace an attribute`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery {
             entityAttributeService.replaceAttribute(any(), any(), any(), any(), any())
@@ -356,7 +376,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             APIC_COMPOUND_CONTEXTS
         )
 
-        entityService.replaceAttribute(beehiveTestCId, expandedAttribute, "0123456789-1234-5678-987654321")
+        entityService.replaceAttribute(beehiveTestCId, expandedAttribute, sub)
             .shouldSucceedWith {
                 it.updated.size == 1 &&
                     it.notUpdated.isEmpty() &&
@@ -469,6 +489,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should remove the scopes from an entity`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.addAttribute(any(), any(), any(), any(), any(), any())
         } returns Unit.right()

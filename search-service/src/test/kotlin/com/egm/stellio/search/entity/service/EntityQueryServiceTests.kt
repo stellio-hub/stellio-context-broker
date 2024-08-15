@@ -1,5 +1,7 @@
 package com.egm.stellio.search.entity.service
 
+import arrow.core.right
+import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -9,6 +11,8 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -20,12 +24,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
@@ -33,6 +35,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var entityService: EntityService
+
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -50,6 +55,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
+
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
                 entityService.createEntityPayload(
@@ -77,6 +84,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
                 entityService.createEntityPayload(
@@ -97,6 +106,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return an empty list if no entity matched the query`() = runTest {
+        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+
         entityQueryService.queryEntities(buildDefaultQueryParams().copy(ids = setOf(entity01Uri)))
             .shouldSucceedWith {
                 assertEquals(0, it.second)

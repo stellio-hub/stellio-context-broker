@@ -8,6 +8,7 @@ import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.OperationType.*
 import com.egm.stellio.search.entity.util.prepareAttributes
+import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -557,7 +558,7 @@ class EntityService(
         )
             .bind("entity_id", entityId)
             .oneToResult {
-                Entity.fromRow(it)
+                it.rowToEntity()
             }
             .bind()
         entity

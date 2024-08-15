@@ -40,7 +40,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -347,7 +347,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should include instance with temporal property equals to timeAt  `() = runTest {
+    fun `it should include lower bound of interval with after timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
@@ -367,14 +367,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
             .shouldSucceedWith {
-                (it as List<FullAttributeInstanceResult>).single { result ->
-                    result.time == ZonedDateTime.parse("2022-07-01T00:00:00Z")
-                }
+                assertEquals(5, it.size)
             }
     }
 
     @Test
-    fun `it should exclude instance with temporal property equals to endTimeAt`() = runTest {
+    fun `it should exclude upper bound of interval with between timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
@@ -388,15 +386,16 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.BETWEEN,
                 timeAt = ZonedDateTime.parse("2022-07-01T00:00:00Z"),
-                endTimeAt = ZonedDateTime.parse("2022-07-04T00:00:00Z"),
+                endTimeAt = ZonedDateTime.parse("2022-07-05T00:00:00Z"),
                 instanceLimit = 5
             )
         )
 
         attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
             .shouldSucceedWith {
-                (it as List<FullAttributeInstanceResult>).all { result ->
-                    result.time != ZonedDateTime.parse("2022-07-04T00:00:00Z")
+                assertEquals(4, it.size)
+                (it as List<FullAttributeInstanceResult>).forEach { result ->
+                    assertNotEquals(ZonedDateTime.parse("2022-07-05T00:00:00Z"), result.time)
                 }
             }
     }

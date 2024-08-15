@@ -322,7 +322,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should include instances of history of scopes with temporal property equals to timeAt`() = runTest {
+    fun `it should include lower bound of interval with after timerel`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
             .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
@@ -358,14 +358,12 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedWith {
-            (it as List<FullScopeInstanceResult>).single { result ->
-                result.time == ZonedDateTime.parse("2024-08-13T00:00:00Z")
-            }
+            assertEquals(2, it.size)
         }
     }
 
     @Test
-    fun `it should exclude instances of history of scopes with temporal property equals to endTimeAt`() = runTest {
+    fun `it should exclude upper bound of interval with between timerel`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
             .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
@@ -408,8 +406,9 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedWith {
-            (it as List<FullScopeInstanceResult>).all { result ->
-                result.time != ZonedDateTime.parse("2024-08-15T00:00:00Z")
+            assertEquals(2, it.size)
+            (it as List<FullScopeInstanceResult>).forEach { result ->
+                assertNotEquals(ZonedDateTime.parse("2024-08-15T00:00:00Z"), result.time)
             }
         }
     }

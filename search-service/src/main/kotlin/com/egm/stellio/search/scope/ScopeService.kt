@@ -101,7 +101,7 @@ class ScopeService(
         )
 
         when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time <= '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
             TemporalQuery.Timerel.AFTER -> sqlQueryBuilder.append(" AND time >= '${temporalQuery.timeAt}'")
             TemporalQuery.Timerel.BETWEEN -> sqlQueryBuilder.append(
                 " AND time >= '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"

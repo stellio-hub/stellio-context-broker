@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
+import java.time.ZonedDateTime
 import java.util.stream.Stream
 
 @SpringBootTest
@@ -317,6 +318,98 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             it as AggregatedScopeInstanceResult
             it.values.size == 1 &&
                 it.values[0].aggregate == TemporalQuery.Aggregate.SUM
+        }
+    }
+
+    @Test
+    fun `it should include lower bound of interval with after timerel`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-13T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-14T00:00:00Z")
+        ).shouldSucceed()
+
+        scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
+                    instanceLimit = 5
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedWith {
+            assertEquals(2, it.size)
+        }
+    }
+
+    @Test
+    fun `it should exclude upper bound of interval with between timerel`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-13T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-14T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/C/D"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-15T00:00:00Z")
+        ).shouldSucceed()
+
+        scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BETWEEN,
+                    timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
+                    endTimeAt = ZonedDateTime.parse("2024-08-15T00:00:00Z"),
+                    instanceLimit = 5
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedWith {
+            assertEquals(2, it.size)
+            (it as List<FullScopeInstanceResult>).forEach { result ->
+                assertNotEquals(ZonedDateTime.parse("2024-08-15T00:00:00Z"), result.time)
+            }
         }
     }
 

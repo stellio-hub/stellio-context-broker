@@ -150,9 +150,9 @@ class AttributeInstanceService(
 
         when (temporalQuery.timerel) {
             Timerel.BEFORE -> sqlQueryBuilder.append(" AND time < '${temporalQuery.timeAt}'")
-            Timerel.AFTER -> sqlQueryBuilder.append(" AND time > '${temporalQuery.timeAt}'")
+            Timerel.AFTER -> sqlQueryBuilder.append(" AND time >= '${temporalQuery.timeAt}'")
             Timerel.BETWEEN -> sqlQueryBuilder.append(
-                " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
+                " AND time >= '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
             null -> Unit
         }

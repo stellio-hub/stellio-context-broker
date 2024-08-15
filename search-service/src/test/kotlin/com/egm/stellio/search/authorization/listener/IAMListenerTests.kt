@@ -4,8 +4,6 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.service.EntityAccessRightsService
 import com.egm.stellio.search.authorization.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.Entity
-import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
@@ -15,8 +13,6 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.mockkClass
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,9 +37,6 @@ class IAMListenerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
-
-    @MockkBean(relaxed = true)
-    private lateinit var entityEventService: EntityEventService
 
     private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -355,8 +348,7 @@ class IAMListenerTests {
         coEvery {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
         } returns listOf(entityId).right()
-        coEvery { entityService.deleteEntityPayload(entityId) } returns mockkClass(Entity::class).right()
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
+        coEvery { entityService.deleteEntity(entityId, "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") } returns Unit.right()
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
 
@@ -368,14 +360,10 @@ class IAMListenerTests {
             )
         }
         coVerify {
-            entityService.deleteEntityPayload(
-                match {
-                    it == entityId
-                }
+            entityService.deleteEntity(
+                eq(entityId),
+                eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
             )
-        }
-        coVerify(timeout = 1000) {
-            entityEventService.publishEntityDeleteEvent(null, any())
         }
     }
 }

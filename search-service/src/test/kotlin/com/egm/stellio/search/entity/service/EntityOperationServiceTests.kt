@@ -2,7 +2,6 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
@@ -36,9 +35,6 @@ class EntityOperationServiceTests {
 
     @MockkBean(relaxed = true)
     private lateinit var entityAttributeService: EntityAttributeService
-
-    @MockkBean
-    private lateinit var authorizationService: AuthorizationService
 
     @MockkBean
     private lateinit var entityEventService: EntityEventService
@@ -347,9 +343,7 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch delete should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityService.deleteEntityPayload(any()) } returns mockkClass(Entity::class).right()
-        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
+        coEvery { entityService.deleteEntity(any(), any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.delete(
             setOf(
@@ -366,27 +360,18 @@ class EntityOperationServiceTests {
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
         coVerify {
-            entityService.deleteEntityPayload(firstEntityURI)
-            entityService.deleteEntityPayload(secondEntityURI)
-            authorizationService.removeRightsOnEntity(firstEntityURI)
-            authorizationService.removeRightsOnEntity(secondEntityURI)
-        }
-        coVerify(exactly = 2) {
-            entityEventService.publishEntityDeleteEvent(sub, any())
+            entityService.deleteEntity(firstEntityURI, sub)
+            entityService.deleteEntity(secondEntityURI, sub)
         }
     }
 
     @Test
     fun `batch delete should return deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
+            coEvery { entityService.deleteEntity(firstEntityURI, sub) } returns Unit.right()
             coEvery {
-                entityService.deleteEntityPayload(firstEntityURI)
-            } returns mockkClass(Entity::class).right()
-            coEvery {
-                entityService.deleteEntityPayload(secondEntityURI)
+                entityService.deleteEntity(secondEntityURI, sub)
             } returns InternalErrorException("Something went wrong during deletion").left()
-            coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-            coEvery { entityEventService.publishEntityDeleteEvent(any(), any()) } returns Job()
 
             val batchOperationResult = entityOperationService.delete(
                 setOf(
@@ -409,10 +394,6 @@ class EntityOperationServiceTests {
                 ),
                 batchOperationResult.errors
             )
-            coVerify(exactly = 1) {
-                authorizationService.removeRightsOnEntity(any())
-                entityEventService.publishEntityDeleteEvent(any(), any())
-            }
         }
 
     @Test
@@ -420,7 +401,7 @@ class EntityOperationServiceTests {
         val deleteEntityErrorMessage = "Something went wrong with deletion request"
 
         coEvery {
-            entityService.deleteEntityPayload(any())
+            entityService.deleteEntity(any(), any())
         } returns InternalErrorException(deleteEntityErrorMessage).left()
 
         val batchOperationResult = entityOperationService.delete(
@@ -446,9 +427,8 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
 
-        coVerify { entityService.deleteEntityPayload(firstEntityURI) }
-        coVerify { entityService.deleteEntityPayload(secondEntityURI) }
-        coVerify { entityEventService.publishEntityDeleteEvent(any(), any()) wasNot Called }
+        coVerify { entityService.deleteEntity(firstEntityURI, sub) }
+        coVerify { entityService.deleteEntity(secondEntityURI, sub) }
     }
 
     @Test

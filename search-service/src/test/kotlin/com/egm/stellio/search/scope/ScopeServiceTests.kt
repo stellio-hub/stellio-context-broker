@@ -332,7 +332,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should include lower bound of interval with after timerel`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),
@@ -373,7 +373,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     fun `it should exclude upper bound of interval with between timerel`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),

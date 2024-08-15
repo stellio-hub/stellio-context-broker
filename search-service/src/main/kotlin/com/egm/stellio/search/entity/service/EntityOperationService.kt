@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.*
@@ -23,7 +22,6 @@ class EntityOperationService(
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
     private val entityAttributeService: EntityAttributeService,
-    private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
 ) {
 
@@ -117,13 +115,7 @@ class EntityOperationService(
         val deletionResults = entities.map { entity ->
             val entityId = entity.entityId
             either {
-                entityService.deleteEntityPayload(entityId)
-                    .onRight {
-                        authorizationService.removeRightsOnEntity(entityId)
-                    }
-                    .onRight {
-                        entityEventService.publishEntityDeleteEvent(sub, entity)
-                    }
+                entityService.deleteEntity(entityId, sub)
                     .map {
                         BatchEntitySuccess(entityId)
                     }

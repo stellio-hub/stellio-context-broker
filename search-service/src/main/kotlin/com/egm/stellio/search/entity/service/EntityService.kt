@@ -538,6 +538,9 @@ class EntityService(
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val entity = deleteEntityPayload(entityId).bind()
+
+        entityAttributeService.deleteAttributes(entityId).bind()
+        scopeService.deleteHistory(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
         entityEventService.publishEntityDeleteEvent(sub, entity)
@@ -557,9 +560,6 @@ class EntityService(
                 Entity.fromRow(it)
             }
             .bind()
-
-        entityAttributeService.deleteAttributes(entityId).bind()
-        scopeService.deleteHistory(entityId).bind()
         entity
     }
 

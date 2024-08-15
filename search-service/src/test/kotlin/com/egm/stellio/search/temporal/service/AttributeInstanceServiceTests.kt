@@ -4,7 +4,10 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.support.*
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -353,7 +356,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should include lower bound of interval with after timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
@@ -368,7 +371,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
                 assertEquals(5, it.size)
             }
@@ -378,7 +381,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should exclude upper bound of interval with between timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingTemporalEntityAttribute.id)
+                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
                     .copy(
                         measuredValue = index.toDouble(),
                         time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
@@ -394,7 +397,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.search(temporalEntitiesQuery, incomingTemporalEntityAttribute)
+        attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
                 assertEquals(4, it.size)
                 (it as List<FullAttributeInstanceResult>).forEach { result ->

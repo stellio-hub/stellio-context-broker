@@ -112,15 +112,15 @@ class IAMListener(
         val subjectType = SubjectType.valueOf(entityDeleteEvent.entityTypes.first().uppercase())
         val sub = entityDeleteEvent.entityId.extractSub()
         mono {
+            // delete the entities owned by the user while the user still exists
+            // (if it no longer exists, it fails because of access rights checks)
+            if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
+                entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
+                    entityService.deleteEntity(entityId, sub)
+                }
+                Unit.right()
+            } else Unit.right()
             subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
-            val result: Either<APIException, Unit> =
-                if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
-                    entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
-                        entityService.deleteEntity(entityId, sub)
-                    }
-                    Unit.right()
-                } else Unit.right()
-            result
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
     }
 

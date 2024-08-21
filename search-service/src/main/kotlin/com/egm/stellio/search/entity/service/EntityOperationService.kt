@@ -139,6 +139,42 @@ class EntityOperationService(
         processEntities(entities, false, sub, ::replaceEntity)
 
     /**
+     * Upsert a batch of [entities]
+     *
+     * @return a [BatchOperationResult] with list of replaced ids and list of errors.
+     */
+    @Transactional
+    suspend fun upsert(
+        entities: List<JsonLdNgsiLdEntity>,
+        options: String?,
+        sub: Sub?
+    ): Pair<BatchOperationResult, List<URI>> {
+        val (existingEntities, newEntities) = splitEntitiesByExistence(entities)
+
+        val (newUniqueEntities, duplicatedEntities) = splitEntitiesByUniqueness(newEntities)
+        val existingOrDuplicatedEntities = existingEntities.plus(duplicatedEntities)
+        val batchOperationResult = BatchOperationResult()
+
+        val createdIds = if (newUniqueEntities.isNotEmpty()) {
+            val createOperationResult = create(newUniqueEntities, sub)
+            batchOperationResult.errors.addAll(createOperationResult.errors)
+            batchOperationResult.success.addAll(createOperationResult.success)
+            createOperationResult.success.map { it.entityId }
+        } else emptyList()
+
+        if (existingOrDuplicatedEntities.isNotEmpty()) {
+            val updateOperationResult = when (options) {
+                "update" -> update(existingOrDuplicatedEntities, false, sub)
+                else -> replace(existingOrDuplicatedEntities, sub)
+            }
+
+            batchOperationResult.errors.addAll(updateOperationResult.errors)
+            batchOperationResult.success.addAll(updateOperationResult.success)
+        }
+        return batchOperationResult to createdIds
+    }
+
+    /**
      * Updates a batch of [entities]
      *
      * @param disallowOverwrite whether overwriting existing attributes is allowed

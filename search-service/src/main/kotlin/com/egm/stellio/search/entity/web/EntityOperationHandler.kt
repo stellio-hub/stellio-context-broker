@@ -50,8 +50,11 @@ class EntityOperationHandler(
             addEntitiesToErrors(unparsableEntities)
         }
 
-        doBatchCreation(parsedEntities, batchOperationResult, sub)
-
+        if (parsedEntities.isNotEmpty()) {
+            val createOperationResult = entityOperationService.create(parsedEntities, sub.getOrNull())
+            batchOperationResult.errors.addAll(createOperationResult.errors)
+            batchOperationResult.success.addAll(createOperationResult.success)
+        }
         if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
         else
@@ -74,30 +77,24 @@ class EntityOperationHandler(
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(parsedEntities)
-
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)
         }
 
-        val (newUniqueEntities, duplicatedEntities) =
-            entityOperationService.splitEntitiesByUniqueness(newEntities)
-        val existingOrDuplicatedEntities = existingEntities.plus(duplicatedEntities)
-
-        doBatchCreation(newUniqueEntities, batchOperationResult, sub)
-
-        if (existingOrDuplicatedEntities.isNotEmpty()) {
-            val updateOperationResult = when (options) {
-                "update" -> entityOperationService.update(existingOrDuplicatedEntities, false, sub.getOrNull())
-                else -> entityOperationService.replace(existingOrDuplicatedEntities, sub.getOrNull())
-            }
+        val newUniqueEntities = if (parsedEntities.isNotEmpty()) {
+            val (updateOperationResult, newUniqueEntities) = entityOperationService.upsert(
+                parsedEntities,
+                options,
+                sub.getOrNull()
+            )
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
-        }
+            newUniqueEntities
+        } else emptyList()
 
         if (batchOperationResult.errors.isEmpty() && newUniqueEntities.isNotEmpty())
-            ResponseEntity.status(HttpStatus.CREATED).body(newUniqueEntities.map { it.entityId() })
+            ResponseEntity.status(HttpStatus.CREATED).body(newUniqueEntities.map { it })
         else if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
@@ -299,17 +296,5 @@ class EntityOperationHandler(
         checkContentType(httpHeaders, body).bind()
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
         expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
-    }
-
-    private suspend fun doBatchCreation(
-        entitiesToCreate: List<JsonLdNgsiLdEntity>,
-        batchOperationResult: BatchOperationResult,
-        sub: Option<Sub>
-    ) {
-        if (entitiesToCreate.isNotEmpty()) {
-            val createOperationResult = entityOperationService.create(entitiesToCreate, sub.getOrNull())
-            batchOperationResult.errors.addAll(createOperationResult.errors)
-            batchOperationResult.success.addAll(createOperationResult.success)
-        }
     }
 }

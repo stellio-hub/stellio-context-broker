@@ -98,7 +98,6 @@ class EntityOperationHandlerTests {
     private val allEntitiesUris = listOf(temperatureSensorUri, dissolvedOxygenSensorUri, deviceUri)
 
     private val batchCreateEndpoint = "/ngsi-ld/v1/entityOperations/create"
-    private val batchUpsertEndpoint = "/ngsi-ld/v1/entityOperations/upsert"
     private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
     private val batchUpdateEndpoint = "/ngsi-ld/v1/entityOperations/update"
     private val batchUpdateEndpointWithNoOverwriteOption = "/ngsi-ld/v1/entityOperations/update?options=noOverwrite"
@@ -305,30 +304,16 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = validJsonFile
-        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val createdEntitiesIds = arrayListOf(temperatureSensorUri)
         val updatedEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
-        val createdBatchResult = BatchOperationResult(
-            createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
-            arrayListOf()
-        )
+
         val updatedBatchResult = BatchOperationResult(
             updatedEntitiesIds.map { BatchEntitySuccess(it, mockkClass(UpdateResult::class)) }.toMutableList()
         )
 
-        coEvery {
-            entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities))
-        } answers { Pair(capturedExpandedEntities.captured, emptyList()) }
-        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(
-                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity),
-                Pair(mockedDeviceExpandedEntity, mockedDeviceEntity)
-            ),
-            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity))
-        )
-        coEvery { entityOperationService.create(any(), any()) } returns createdBatchResult
-
-        coEvery { entityOperationService.update(any(), any(), any()) } returns updatedBatchResult
+        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
+            updatedBatchResult to createdEntitiesIds
+            )
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -342,20 +327,9 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 204 if it has only updated existing entities`() = runTest {
         val jsonLdFile = validJsonFile
-        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
-
         coEvery {
-            entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities))
-        } answers {
-            Pair(capturedExpandedEntities.captured, emptyList())
-        }
-        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity)),
-            emptyList()
-        )
-        coEvery {
-            entityOperationService.update(any(), any(), any())
-        } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
+            entityOperationService.upsert(any(), any(), any())
+        } returns (BatchOperationResult(success = mutableListOf(), errors = mutableListOf()) to emptyList())
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -363,39 +337,22 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
-
-        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
-        coVerify { entityOperationService.update(any(), false, sub.getOrNull()) }
     }
 
     @Test
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
         val jsonLdFile = validJsonFile
-        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
         val errors = arrayListOf(
             BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
             BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
         )
 
-        coEvery { entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities)) } answers {
-            Pair(capturedExpandedEntities.captured, emptyList())
-        }
-        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(
-                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity)
-            ),
-            listOf(Pair(mockedDeviceExpandedEntity, mockedDeviceEntity))
-        )
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
-            arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
-            arrayListOf()
-        )
-
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
-            arrayListOf(),
-            errors
-        )
+        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
+            BatchOperationResult(
+                arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
+                errors
+            ) to emptyList()
+            )
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -419,38 +376,6 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
-    }
-
-    @Test
-    fun `upsert batch entity without option should replace existing entities`() = runTest {
-        val jsonLdFile = validJsonFile
-        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
-        val entitiesIds = arrayListOf(temperatureSensorUri, dissolvedOxygenSensorUri)
-
-        coEvery { entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities)) } answers {
-            Pair(capturedExpandedEntities.captured, emptyList())
-        }
-        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(
-                Pair(mockedTemperatureSensorExpandedEntity, mockedTemperatureSensorEntity),
-                Pair(mockedDissolvedOxygenSensorExpandedEntity, mockedDissolvedOxygenSensorEntity)
-            ),
-            emptyList()
-        )
-        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
-            entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
-            arrayListOf()
-        )
-
-        webClient.post()
-            .uri(batchUpsertEndpoint)
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
-        coVerify { entityOperationService.create(any(), any()) wasNot Called }
-        coVerify { entityOperationService.replace(any(), sub.getOrNull()) }
-        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
     }
 
     @Test

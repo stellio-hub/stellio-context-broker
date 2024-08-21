@@ -7,20 +7,24 @@ import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.BatchEntityError
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
+import com.egm.stellio.search.entity.web.BatchOperationResult
+import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.util.ENTITIY_CREATION_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import com.ninjasquad.springmockk.SpykBean
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
@@ -37,7 +41,7 @@ class EntityOperationServiceTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
-    @Autowired
+    @SpykBean
     private lateinit var entityOperationService: EntityOperationService
 
     val firstEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
@@ -416,5 +420,157 @@ class EntityOperationServiceTests {
             entityService.mergeEntity(eq(firstEntityURI), any(), null, sub)
             entityService.mergeEntity(eq(secondEntityURI), any(), null, sub)
         }
+    }
+
+    fun upsertUpdateSetup() {
+        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
+
+        coEvery { entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities)) } answers {
+            capturedExpandedEntities.captured to emptyList()
+        }
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            emptyList()
+        )
+    }
+
+    @Test
+    fun `upsert batch entity without option should replace existing entities`() = runTest {
+        upsertUpdateSetup()
+
+        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            arrayListOf()
+        )
+
+        val (batchOperationResult, createdIds) = entityOperationService.upsert(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            null,
+            sub
+        )
+
+        assertEquals(0, createdIds.size)
+        assertEquals(2, batchOperationResult.success.size)
+        assertEquals(0, batchOperationResult.errors.size)
+
+        coVerify { entityOperationService.create(any(), any()) wasNot Called }
+        coVerify { entityOperationService.replace(any(), com.egm.stellio.shared.util.sub.getOrNull()) }
+        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
+    }
+
+    @Test
+    fun `upsert batch entity with update should update existing entities`() = runTest {
+        upsertUpdateSetup()
+
+        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            arrayListOf()
+        )
+
+        val (batchOperationResult, createdIds) = entityOperationService.upsert(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            "update",
+            sub
+        )
+
+        assertEquals(0, createdIds.size)
+        assertEquals(2, batchOperationResult.success.size)
+        assertEquals(0, batchOperationResult.errors.size)
+
+        coVerify { entityOperationService.create(any(), any()) wasNot Called }
+        coVerify { entityOperationService.update(any(), false, com.egm.stellio.shared.util.sub.getOrNull()) }
+        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
+    }
+
+    @Test
+    fun `upsert batch entity with non existing entities should create them`() = runTest {
+        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
+
+        coEvery { entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities)) } answers {
+            capturedExpandedEntities.captured to emptyList()
+        }
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            )
+        )
+
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            arrayListOf()
+        )
+
+        val (batchOperationResult, createdIds) = entityOperationService.upsert(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            "update",
+            sub
+        )
+
+        assertEquals(2, createdIds.size)
+        assertEquals(2, batchOperationResult.success.size)
+        assertEquals(0, batchOperationResult.errors.size)
+
+        coVerify { entityOperationService.create(any(), any()) }
+        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
+        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
+    }
+
+    @Test
+    fun `upsert batch entity should return errors`() = runTest {
+        val capturedExpandedEntities = slot<List<JsonLdNgsiLdEntity>>()
+
+        coEvery { entityOperationService.splitEntitiesByUniqueness(capture(capturedExpandedEntities)) } answers {
+            capturedExpandedEntities.captured to emptyList()
+        }
+
+        coEvery { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            listOf(
+                firstExpandedEntity to firstEntity,
+            ),
+            listOf(
+                secondExpandedEntity to secondEntity
+            )
+        )
+
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+            emptyList<BatchEntitySuccess>().toMutableList(),
+            arrayListOf(BatchEntityError(firstEntity.id, mutableListOf(ENTITIY_CREATION_FORBIDDEN_MESSAGE)))
+        )
+        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+            emptyList<BatchEntitySuccess>().toMutableList(),
+            arrayListOf(BatchEntityError(secondEntity.id, mutableListOf(ENTITY_ADMIN_FORBIDDEN_MESSAGE)))
+        )
+
+        val (batchOperationResult, createdIds) = entityOperationService.upsert(
+            listOf(
+                firstExpandedEntity to firstEntity,
+                secondExpandedEntity to secondEntity
+            ),
+            null,
+            sub
+        )
+
+        assertEquals(0, createdIds.size)
+        assertEquals(0, batchOperationResult.success.size)
+        assertEquals(2, batchOperationResult.errors.size)
+
+        coVerify { entityOperationService.create(any(), any()) }
+        coVerify { entityOperationService.replace(any(), any()) }
     }
 }

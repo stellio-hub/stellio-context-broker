@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.*
 import com.egm.stellio.shared.model.APIException
@@ -22,7 +21,6 @@ class EntityOperationService(
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
     private val entityAttributeService: EntityAttributeService,
-    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -85,18 +83,11 @@ class EntityOperationService(
     ): BatchOperationResult {
         val creationResults = entities.map { jsonLdNgsiLdEntity ->
             either {
-                entityService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub)
-                    .onRight {
-                        entityEventService.publishEntityCreateEvent(
-                            sub,
-                            jsonLdNgsiLdEntity.second.id,
-                            jsonLdNgsiLdEntity.second.types
-                        )
-                    }.map {
-                        BatchEntitySuccess(jsonLdNgsiLdEntity.entityId())
-                    }.mapLeft { apiException ->
-                        BatchEntityError(jsonLdNgsiLdEntity.entityId(), arrayListOf(apiException.message))
-                    }.bind()
+                entityService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub).map {
+                    BatchEntitySuccess(jsonLdNgsiLdEntity.entityId())
+                }.mapLeft { apiException ->
+                    BatchEntityError(jsonLdNgsiLdEntity.entityId(), arrayListOf(apiException.message))
+                }.bind()
             }
         }.fold(
             initial = Pair(listOf<BatchEntityError>(), listOf<BatchEntitySuccess>()),
@@ -111,16 +102,15 @@ class EntityOperationService(
         return BatchOperationResult(creationResults.second.toMutableList(), creationResults.first.toMutableList())
     }
 
-    suspend fun delete(entities: Set<Entity>, sub: Sub?): BatchOperationResult {
-        val deletionResults = entities.map { entity ->
-            val entityId = entity.entityId
+    suspend fun delete(entitiesId: List<URI>, sub: Sub?): BatchOperationResult {
+        val deletionResults = entitiesId.map { id ->
             either {
-                entityService.deleteEntity(entityId, sub)
+                entityService.deleteEntity(id, sub)
                     .map {
-                        BatchEntitySuccess(entityId)
+                        BatchEntitySuccess(id)
                     }
                     .mapLeft { apiException ->
-                        BatchEntityError(entityId, arrayListOf(apiException.message))
+                        BatchEntityError(id, arrayListOf(apiException.message))
                     }.bind()
             }
         }.fold(
@@ -233,13 +223,7 @@ class EntityOperationService(
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
-        ).bind().also {
-            entityEventService.publishEntityReplaceEvent(
-                sub,
-                ngsiLdEntity.id,
-                ngsiLdEntity.types
-            )
-        }
+        ).bind()
     }
 
     suspend fun updateEntity(
@@ -253,15 +237,7 @@ class EntityOperationService(
             jsonLdEntity.getModifiableMembers(),
             disallowOverwrite,
             sub
-        ).bind().also {
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                ngsiLdEntity.id,
-                jsonLdEntity.members,
-                it,
-                true
-            )
-        }
+        ).bind()
     }
 
     @SuppressWarnings("UnusedParameter")
@@ -276,14 +252,6 @@ class EntityOperationService(
             jsonLdEntity.getModifiableMembers(),
             null,
             sub
-        ).bind().also {
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                ngsiLdEntity.id,
-                jsonLdEntity.members,
-                it,
-                true
-            )
-        }
+        ).bind()
     }
 }

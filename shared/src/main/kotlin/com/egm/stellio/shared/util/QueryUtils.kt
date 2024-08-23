@@ -182,12 +182,18 @@ private fun transformQQueryToSqlJsonPath(
     operator == "like_regex" ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex $value)')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.replace(
+            "'",
+            "''"
+        )})')
         """.trimIndent()
     operator == "not_like_regex" ->
         """
         NOT (jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex $value)'))
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.replace(
+            "'",
+            "''"
+        )})'))
         """.trimIndent()
     value.isURI() ->
         """

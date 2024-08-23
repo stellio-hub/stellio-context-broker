@@ -253,6 +253,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
         "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
         "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
+        "simpleQuoteString~=\"(?i).*It's a name.*\", 1, urn:ngsi-ld:BeeHive:01",
+        "simpleQuoteString~=\"(?i)^it's.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime>2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:02",

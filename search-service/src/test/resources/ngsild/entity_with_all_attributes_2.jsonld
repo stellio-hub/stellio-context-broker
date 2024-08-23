@@ -6,6 +6,10 @@
     "type": "Property",
     "value": "anotherName"
   },
+  "simpleQuoteString": {
+    "type": "Property",
+    "value": "It's not a name"
+  },
   "integer": {
     "type": "Property",
     "value": 143

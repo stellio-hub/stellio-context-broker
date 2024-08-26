@@ -155,7 +155,10 @@ private fun transformQQueryToSqlJsonPath(
         """
         jsonb_path_exists(#{TARGET}#,
             '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": $value }')
+            '{ "value": ${value.replace(
+            "'",
+            "''"
+        )}}')
         """.trimIndent()
     }
     mainAttributePath.size > 1 && value.isURI() -> {
@@ -176,7 +179,10 @@ private fun transformQQueryToSqlJsonPath(
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE" ? 
                 (@ $operator ${'$'}value)',
-            '{ "value": $value }')
+            '{ "value": ${value.replace(
+            "'",
+            "''"
+        )} }')
         """.trimIndent()
     }
     operator == "like_regex" ->
@@ -217,14 +223,20 @@ private fun transformQQueryToSqlJsonPath(
             .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? ($valuesFilter)')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (${valuesFilter.replace(
+            "'",
+            "''"
+        )})')
         """.trimIndent()
     }
     else ->
         """
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": $value }')
+            '{ "value": ${value.replace(
+            "'",
+            "''"
+        )} }')
         """.trimIndent()
 }
 

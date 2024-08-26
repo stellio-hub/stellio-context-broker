@@ -26,7 +26,8 @@
     "type": "Property",
     "value": [
       "iot",
-      "stellio"
+      "stellio",
+      "data's processing"
     ]
   },
   "listOfInt": {
@@ -63,7 +64,8 @@
       "aList": [
         "precipitation",
         "wind"
-      ]
+      ],
+      "aSimpleQuote": "precipitation's measures"
     }
   },
   "observedProperty": {

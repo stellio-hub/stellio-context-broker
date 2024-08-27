@@ -47,6 +47,9 @@ fun String.prepareDateValue() =
 fun String.quote(): String =
     "\"".plus(this).plus("\"")
 
+fun String.escapeSimpleQuotes(): String =
+    this.replace("'", "''")
+
 fun String.isRange(): Boolean =
     this.contains("..")
 
@@ -155,10 +158,7 @@ private fun transformQQueryToSqlJsonPath(
         """
         jsonb_path_exists(#{TARGET}#,
             '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.replace(
-            "'",
-            "''"
-        )}}')
+            '{ "value": ${value.escapeSimpleQuotes()}}')
         """.trimIndent()
     }
     mainAttributePath.size > 1 && value.isURI() -> {
@@ -179,27 +179,18 @@ private fun transformQQueryToSqlJsonPath(
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE" ? 
                 (@ $operator ${'$'}value)',
-            '{ "value": ${value.replace(
-            "'",
-            "''"
-        )} }')
+            '{ "value": ${value.escapeSimpleQuotes()} }')
         """.trimIndent()
     }
     operator == "like_regex" ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.replace(
-            "'",
-            "''"
-        )})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSimpleQuotes()})')
         """.trimIndent()
     operator == "not_like_regex" ->
         """
         NOT (jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.replace(
-            "'",
-            "''"
-        )})'))
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSimpleQuotes()})'))
         """.trimIndent()
     value.isURI() ->
         """
@@ -223,20 +214,14 @@ private fun transformQQueryToSqlJsonPath(
             .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (${valuesFilter.replace(
-            "'",
-            "''"
-        )})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (${valuesFilter.escapeSimpleQuotes()})')
         """.trimIndent()
     }
     else ->
         """
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.replace(
-            "'",
-            "''"
-        )} }')
+            '{ "value": ${value.escapeSimpleQuotes()} }')
         """.trimIndent()
 }
 

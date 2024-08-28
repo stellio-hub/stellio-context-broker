@@ -325,7 +325,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.sysAttrs &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
-                    it.lang == "fr,en"
+                    it.lang == "fr,en" &&
+                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
             }
     }
 

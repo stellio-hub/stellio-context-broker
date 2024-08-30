@@ -5,28 +5,27 @@
     <ID>ClassNaming:V0_29_JsonLd_migrationTests.kt$V0_29_JsonLd_migrationTests</ID>
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty()</ID>
-    <ID>ComplexCondition:EntityPayloadService.kt$EntityPayloadService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
+    <ID>ComplexCondition:EntityQueryService.kt$EntityQueryService$it &amp;&amp; !inverse || !it &amp;&amp; inverse</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
-    <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
-    <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should return an empty list for an attribute if it has no temporal values`()</ID>
+    <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
+    <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should return an empty list for an attribute if it has no temporal values`()</ID>
     <ID>LongMethod:TemporalScopeBuilderTests.kt$TemporalScopeBuilderTests$@Test fun `it should build an aggregated temporal representation of scopes`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI = generateRandomInstanceId(), timeAndProperty: Pair&lt;ZonedDateTime, TemporalProperty&gt;, value: Triple&lt;String?, Double?, WKTCoordinates?&gt;, payload: ExpandedAttributeInstance, sub: String? )</ID>
-    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI = generateRandomInstanceId(), timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT, modifiedAt: ZonedDateTime? = null, attributeMetadata: AttributeMetadata, payload: ExpandedAttributeInstance, time: ZonedDateTime, sub: String? = null )</ID>
+    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( attributeUuid: UUID, instanceId: URI = generateRandomInstanceId(), timeAndProperty: Pair&lt;ZonedDateTime, TemporalProperty&gt;, value: Triple&lt;String?, Double?, WKTCoordinates?&gt;, payload: ExpandedAttributeInstance, sub: String? )</ID>
+    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( attributeUuid: UUID, instanceId: URI = generateRandomInstanceId(), timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT, modifiedAt: ZonedDateTime? = null, attributeMetadata: AttributeMetadata, payload: ExpandedAttributeInstance, time: ZonedDateTime, sub: String? = null )</ID>
+    <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( attribute: Attribute, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, mergedAt: ZonedDateTime, observedAt: ZonedDateTime?, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
+    <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( attribute: Attribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
+    <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityId: URI, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
+    <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, createdAt: ZonedDateTime, observedAt: ZonedDateTime?, sub: Sub? )</ID>
+    <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, disallowOverwrite: Boolean, createdAt: ZonedDateTime, sub: Sub? )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( updatedDetails: UpdatedDetails, sub: String?, tenantName: String, entityId: URI, entityTypesAndPayload: Pair&lt;List&lt;ExpandedTerm&gt;, String&gt;, serializedAttribute: Pair&lt;ExpandedTerm, String&gt;, overwrite: Boolean )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityId: URI, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, createdAt: ZonedDateTime, observedAt: ZonedDateTime?, sub: Sub? )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, disallowOverwrite: Boolean, createdAt: ZonedDateTime, sub: Sub? )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( tea: TemporalEntityAttribute, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, mergedAt: ZonedDateTime, observedAt: ZonedDateTime?, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( temporalEntityAttribute: TemporalEntityAttribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>SwallowedException:EntitiesQueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>TooManyFunctions:EntityPayloadService.kt$EntityPayloadService</ID>
+    <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
   </CurrentIssues>
 </SmellBaseline>

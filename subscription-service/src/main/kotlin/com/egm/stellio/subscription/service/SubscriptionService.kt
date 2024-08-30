@@ -369,7 +369,9 @@ class SubscriptionService(
         if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
             subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM
         )
-            BadRequestDataException("type attribute must be present and equal to 'Subscription'").left().bind<Unit>()
+            BadRequestDataException(
+                "type attribute must be present and equal to '${NGSILD_SUBSCRIPTION_TERM}'"
+            ).left().bind<Unit>()
 
         subscriptionInputWithModifiedAt.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS

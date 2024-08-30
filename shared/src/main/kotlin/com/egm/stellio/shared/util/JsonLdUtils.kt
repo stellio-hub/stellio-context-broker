@@ -124,6 +124,7 @@ object JsonLdUtils {
 
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
     const val NGSILD_NOTIFICATION_TERM = "Notification"
+    const val NGSILD_CSR_TERM = "ContextSourceRegistration"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"

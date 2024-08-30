@@ -153,7 +153,7 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should throw an InvalidRequest exception if the JSON-LD fragment is not a valid JSON document`() {
+    fun `it should throw an BadRequestDataException exception if the JSON-LD fragment is not a valid JSON document`() {
         val rawEntity =
             """
             {
@@ -162,7 +162,7 @@ class JsonUtilsTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<InvalidRequestException> {
+        val exception = assertThrows<BadRequestDataException> {
             rawEntity.deserializeAsMap()
         }
         assertThat(exception.message)

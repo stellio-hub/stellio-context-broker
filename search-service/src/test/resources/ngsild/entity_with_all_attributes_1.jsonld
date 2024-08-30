@@ -10,6 +10,10 @@
     "type": "Property",
     "value": "aName"
   },
+  "simpleQuoteString": {
+    "type": "Property",
+    "value": "It's a name"
+  },
   "integer": {
     "type": "Property",
     "value": 213
@@ -22,7 +26,8 @@
     "type": "Property",
     "value": [
       "iot",
-      "stellio"
+      "stellio",
+      "data's processing"
     ]
   },
   "listOfInt": {
@@ -59,7 +64,8 @@
       "aList": [
         "precipitation",
         "wind"
-      ]
+      ],
+      "aSimpleQuote": "precipitation's measures"
     }
   },
   "observedProperty": {

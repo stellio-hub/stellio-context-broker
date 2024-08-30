@@ -1107,6 +1107,21 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should return a subscription if entity matched a q query with a regular expression`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "foodQuality!~=\"(?i).*It's good.*\""
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_PROPERTY), ATTRIBUTE_UPDATED)
+            .shouldSucceedWith { assertEquals(1, it.size) }
+    }
+
+    @Test
     fun `it should not return a subscription if throttling has not elapsed yet`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 

@@ -1,6 +1,12 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.model.*
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
@@ -15,15 +21,15 @@ fun gimmeEntityPayload(
     entityId: String,
     types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
     payload: String = EMPTY_PAYLOAD
-): EntityPayload =
+): Entity =
     gimmeEntityPayload(entityId.toUri(), types, payload)
 
 fun gimmeEntityPayload(
     entityId: URI,
     types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
     payload: String = EMPTY_PAYLOAD
-): EntityPayload =
-    EntityPayload(
+): Entity =
+    Entity(
         entityId = entityId,
         types = types,
         createdAt = ngsiLdDateTime(),
@@ -31,16 +37,16 @@ fun gimmeEntityPayload(
     )
 
 fun gimmeNumericPropertyAttributeInstance(
-    teaUuid: UUID,
+    attributeUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = Random.nextDouble(),
         value = null,
         geoValue = null,
-        valueType = TemporalEntityAttribute.AttributeValueType.NUMBER,
+        valueType = Attribute.AttributeValueType.NUMBER,
         datasetId = null,
-        type = TemporalEntityAttribute.AttributeType.Property,
+        type = Attribute.AttributeType.Property,
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.measuredValue!!)
@@ -48,7 +54,7 @@ fun gimmeNumericPropertyAttributeInstance(
         .getSingleEntry()
 
     return AttributeInstance(
-        temporalEntityAttribute = teaUuid,
+        attributeUuid = attributeUuid,
         time = attributeMetadata.observedAt!!,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
@@ -57,16 +63,16 @@ fun gimmeNumericPropertyAttributeInstance(
 }
 
 fun gimmeJsonPropertyAttributeInstance(
-    teaUuid: UUID,
+    attributeUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
         value = SAMPLE_JSON_PROPERTY_PAYLOAD.asString(),
         geoValue = null,
-        valueType = TemporalEntityAttribute.AttributeValueType.JSON,
+        valueType = Attribute.AttributeValueType.JSON,
         datasetId = null,
-        type = TemporalEntityAttribute.AttributeType.JsonProperty,
+        type = Attribute.AttributeType.JsonProperty,
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
@@ -74,7 +80,7 @@ fun gimmeJsonPropertyAttributeInstance(
         .getSingleEntry()
 
     return AttributeInstance(
-        temporalEntityAttribute = teaUuid,
+        attributeUuid = attributeUuid,
         time = attributeMetadata.observedAt!!,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
@@ -83,16 +89,16 @@ fun gimmeJsonPropertyAttributeInstance(
 }
 
 fun gimmeLanguagePropertyAttributeInstance(
-    teaUuid: UUID,
+    attributeUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
         value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString(),
         geoValue = null,
-        valueType = TemporalEntityAttribute.AttributeValueType.OBJECT,
+        valueType = Attribute.AttributeValueType.OBJECT,
         datasetId = null,
-        type = TemporalEntityAttribute.AttributeType.LanguageProperty,
+        type = Attribute.AttributeType.LanguageProperty,
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
@@ -100,7 +106,7 @@ fun gimmeLanguagePropertyAttributeInstance(
         .getSingleEntry()
 
     return AttributeInstance(
-        temporalEntityAttribute = teaUuid,
+        attributeUuid = attributeUuid,
         time = attributeMetadata.observedAt!!,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
@@ -109,16 +115,16 @@ fun gimmeLanguagePropertyAttributeInstance(
 }
 
 fun gimmeVocabPropertyAttributeInstance(
-    teaUuid: UUID,
+    attributeUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
         value = SAMPLE_VOCAB_PROPERTY_PAYLOAD.asString(),
         geoValue = null,
-        valueType = TemporalEntityAttribute.AttributeValueType.ARRAY,
+        valueType = Attribute.AttributeValueType.ARRAY,
         datasetId = null,
-        type = TemporalEntityAttribute.AttributeType.VocabProperty,
+        type = Attribute.AttributeType.VocabProperty,
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
@@ -126,7 +132,7 @@ fun gimmeVocabPropertyAttributeInstance(
         .getSingleEntry()
 
     return AttributeInstance(
-        temporalEntityAttribute = teaUuid,
+        attributeUuid = attributeUuid,
         time = attributeMetadata.observedAt!!,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,

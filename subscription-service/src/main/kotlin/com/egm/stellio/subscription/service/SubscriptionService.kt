@@ -2,14 +2,17 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.Either
 import arrow.core.Option
+import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.apicatalog.jsonld.JsonLdError
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
@@ -56,6 +59,7 @@ class SubscriptionService(
         checkExpiresAtInTheFuture(subscription).bind()
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
+        checkJsonLdContextIsValid(subscription).bind()
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -134,6 +138,18 @@ class SubscriptionService(
             else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
         }
 
+    private suspend fun checkJsonLdContextIsValid(subscription: Subscription): Either<APIException, Unit> {
+        return try {
+            val jsonldContext = subscription.jsonldContext
+            if (jsonldContext != null) {
+                checkJsonldContext(jsonldContext)
+            }
+            Unit.right()
+        } catch (e: APIException) {
+            e.left()
+        }
+    }
+
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         validateNewSubscription(subscription).bind()
@@ -143,6 +159,8 @@ class SubscriptionService(
                 parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
             else null
         val endpoint = subscription.notification.endpoint
+        val jsonldContext =
+            subscription.jsonldContext ?: subscription.contexts.first()
 
         val insertStatement =
             """
@@ -182,7 +200,7 @@ class SubscriptionService(
             .bind("sys_attrs", subscription.notification.sysAttrs)
             .bind("lang", subscription.lang)
             .bind("datasetId", subscription.datasetId?.toTypedArray())
-            .bind("jsonld_context", subscription.jsonldContext)
+            .bind("jsonld_context", jsonldContext)
             .execute().bind()
 
         geoQuery?.let {

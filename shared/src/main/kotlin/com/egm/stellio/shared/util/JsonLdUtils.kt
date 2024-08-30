@@ -8,6 +8,9 @@ import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdOptions
 import com.apicatalog.jsonld.context.cache.LruCache
 import com.apicatalog.jsonld.document.JsonDocument
+import com.apicatalog.jsonld.http.DefaultHttpClient
+import com.apicatalog.jsonld.loader.DocumentLoaderOptions
+import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -121,6 +124,7 @@ object JsonLdUtils {
         contextCache = LruCache(CONTEXT_CACHE_CAPACITY)
         documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
     }
+    private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
@@ -240,6 +244,17 @@ object JsonLdUtils {
             return deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
+            throw e.toAPIException(e.cause?.cause?.message)
+        }
+    }
+
+    fun checkJsonldContext(context: URI) {
+        try {
+            val options = DocumentLoaderOptions()
+            loader.loadDocument(context, options)
+        } catch (e: JsonLdError) {
+            throw e.toAPIException(e.cause?.cause?.message)
+        } catch (e: Exception) {
             throw e.toAPIException(e.cause?.cause?.message)
         }
     }

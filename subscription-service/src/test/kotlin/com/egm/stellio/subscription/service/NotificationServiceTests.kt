@@ -558,7 +558,8 @@ class NotificationServiceTests {
                 )
             ),
             lang = "fr",
-            contexts = APIC_COMPOUND_CONTEXTS
+            contexts = APIC_COMPOUND_CONTEXTS,
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
         )
 
         val expandedEntity = expandJsonLdEntity(

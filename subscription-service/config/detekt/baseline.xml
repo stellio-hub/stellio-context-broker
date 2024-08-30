@@ -2,12 +2,17 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>ArgumentListWrapping:SubscriptionServiceTests.kt$SubscriptionServiceTests$(rawSubscription.deserializeAsMap(), emptyList())</ID>
     <ID>CyclomaticComplexMethod:SubscriptionServiceTests.kt$SubscriptionServiceTests$@Test fun `it should load a subscription with all possible members`()</ID>
+    <ID>Indentation:SubscriptionServiceTests.kt$SubscriptionServiceTests$ </ID>
     <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$internal suspend fun dispatchEntityEvent(content: String)</ID>
     <ID>LongMethod:SubscriptionService.kt$SubscriptionService$@Transactional suspend fun update( subscriptionId: URI, input: Map&lt;String, Any&gt;, contexts: List&lt;String&gt; ): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongParameterList:FixtureUtils.kt$( withQueryAndGeoQuery: Pair&lt;Boolean, Boolean&gt; = Pair(true, true), withEndpointReceiverInfo: Boolean = true, withNotifParams: Pair&lt;FormatType, List&lt;String&gt;&gt; = Pair(FormatType.NORMALIZED, emptyList()), withModifiedAt: Boolean = false, georel: String = "within", geometry: String = "Polygon", coordinates: String = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]", timeInterval: Int? = null, contexts: List&lt;String&gt; = listOf(NGSILD_TEST_CORE_CONTEXT) )</ID>
     <ID>MaxLineLength:NotificationServiceTests.kt$NotificationServiceTests$fun</ID>
+    <ID>MaxLineLength:SubscriptionServiceTests.kt$SubscriptionServiceTests$val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList()).shouldSucceedAndResult()</ID>
     <ID>MaximumLineLength:NotificationServiceTests.kt$NotificationServiceTests$ </ID>
+    <ID>MaximumLineLength:SubscriptionServiceTests.kt$SubscriptionServiceTests$ </ID>
+    <ID>NoUnusedImports:SubscriptionService.kt$com.egm.stellio.subscription.service.SubscriptionService.kt</ID>
     <ID>TooGenericExceptionCaught:SubscriptionService.kt$SubscriptionService$e: Exception</ID>
     <ID>TooManyFunctions:SubscriptionService.kt$SubscriptionService</ID>
   </CurrentIssues>

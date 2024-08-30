@@ -3,12 +3,14 @@ package com.egm.stellio.subscription.service
 import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
@@ -241,6 +243,62 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should throw a BadRequestData exception when jsonldContext is not a URI`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "unknownContext"
+                }
+                """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException
+            }
+    }
+
+    @Test
+    fun `it should throw a LdContextNotAvailable exception when jsonldContext is not available`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+                }
+                """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList()).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is LdContextNotAvailableException
+            }
+    }
+
+    @Test
     fun `it should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
@@ -326,6 +384,29 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&
+                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
+            }
+    }
+
+    @Test
+    fun `it should initialize jsonldContext with subscription @context if jsonldContext is not provided`() = runTest {
+        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(persistedSubscription)
+            .matches {
+                it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
+                    it.notification.format == FormatType.NORMALIZED &&
+                    it.notification.endpoint.uri == URI("http://localhost:8084") &&
+                    it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
+                    (
+                        it.entities != null &&
+                            it.entities!!.size == 1 &&
+                            it.entities!!.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE }
+                        ) &&
+                    it.watchedAttributes == null &&
+                    it.isActive
                     it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
             }
     }

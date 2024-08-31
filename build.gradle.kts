@@ -69,7 +69,7 @@ subprojects {
 
         implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")
 
-        implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
+        implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

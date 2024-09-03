@@ -259,11 +259,16 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                          "uri": "http://localhost:8084"
                        }
                     },
-                    "jsonldContext": "unknownContext"
+                    "jsonldContext": [
+                       "unknownContext"
+                    ]
                 }
-                """.trimIndent()
+            """.trimIndent()
 
-        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList()).shouldSucceedAndResult()
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
         subscriptionService.validateNewSubscription(subscription)
             .shouldFailWith {
                 it is BadRequestDataException
@@ -287,11 +292,16 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                          "uri": "http://localhost:8084"
                        }
                     },
-                    "jsonldContext": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+                    "jsonldContext": [
+                       "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+                    ]
                 }
-                """.trimIndent()
+            """.trimIndent()
 
-        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList()).shouldSucceedAndResult()
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
         subscriptionService.validateNewSubscription(subscription)
             .shouldFailWith {
                 it is LdContextNotAvailableException
@@ -384,30 +394,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&
-                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
-            }
-    }
-
-    @Test
-    fun `it should initialize jsonldContext with subscription @context if jsonldContext is not provided`() = runTest {
-        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
-
-        val persistedSubscription = subscriptionService.getById(subscription.id)
-        assertThat(persistedSubscription)
-            .matches {
-                it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
-                    it.notification.format == FormatType.NORMALIZED &&
-                    it.notification.endpoint.uri == URI("http://localhost:8084") &&
-                    it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
-                    (
-                        it.entities != null &&
-                            it.entities!!.size == 1 &&
-                            it.entities!!.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE }
-                        ) &&
-                    it.watchedAttributes == null &&
-                    it.isActive
-                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
+                    it.jsonldContext == APIC_COMPOUND_CONTEXTS
             }
     }
 

@@ -2,11 +2,9 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.apicatalog.jsonld.JsonLdError
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -142,7 +140,7 @@ class SubscriptionService(
         return try {
             val jsonldContext = subscription.jsonldContext
             if (jsonldContext != null) {
-                checkJsonldContext(jsonldContext)
+                checkJsonldContext(jsonldContext.first().toUri())
             }
             Unit.right()
         } catch (e: APIException) {
@@ -159,8 +157,6 @@ class SubscriptionService(
                 parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
             else null
         val endpoint = subscription.notification.endpoint
-        val jsonldContext =
-            subscription.jsonldContext ?: subscription.contexts.first()
 
         val insertStatement =
             """
@@ -200,7 +196,7 @@ class SubscriptionService(
             .bind("sys_attrs", subscription.notification.sysAttrs)
             .bind("lang", subscription.lang)
             .bind("datasetId", subscription.datasetId?.toTypedArray())
-            .bind("jsonld_context", jsonldContext)
+            .bind("jsonld_context", subscription.jsonldContext?.toTypedArray())
             .execute().bind()
 
         geoQuery?.let {
@@ -720,7 +716,7 @@ class SubscriptionService(
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
             datasetId = toNullableList(row["datasetId"]),
-            jsonldContext = toNullableUri(row["jsonld_context"])
+            jsonldContext = toNullableList(row["jsonld_context"])
         )
     }
 
@@ -754,7 +750,7 @@ class SubscriptionService(
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
             datasetId = toNullableList(row["datasetId"]),
-            jsonldContext = toNullableUri(row["jsonld_context"])
+            jsonldContext = toNullableList(row["jsonld_context"])
         )
     }
 

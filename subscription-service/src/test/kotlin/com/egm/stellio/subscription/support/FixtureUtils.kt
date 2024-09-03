@@ -63,7 +63,7 @@ fun gimmeRawSubscription(
             null
 
     val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
-    val jsonldContext = contexts.first().toUri()
+    val jsonldContext = contexts
     return Subscription(
         type = NGSILD_SUBSCRIPTION_TERM,
         subscriptionName = "My Subscription",

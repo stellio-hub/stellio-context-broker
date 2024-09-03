@@ -254,8 +254,6 @@ object JsonLdUtils {
             loader.loadDocument(context, options)
         } catch (e: JsonLdError) {
             throw e.toAPIException(e.cause?.cause?.message)
-        } catch (e: Exception) {
-            throw e.toAPIException(e.cause?.cause?.message)
         }
     }
 

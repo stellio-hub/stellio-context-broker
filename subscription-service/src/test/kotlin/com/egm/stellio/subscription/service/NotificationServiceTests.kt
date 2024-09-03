@@ -176,7 +176,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and use subscription contexts to compact when no jsonldContext is provided`() = runTest {
+    fun `it should notify the subscriber and use subscription contexts to compact`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -226,7 +226,7 @@ class NotificationServiceTests {
                 )
             ),
             contexts = listOf(NGSILD_TEST_CORE_CONTEXT),
-            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
+            jsonldContext = APIC_COMPOUND_CONTEXTS
         )
         val expandedEntity = expandJsonLdEntity(rawEntity)
 
@@ -559,7 +559,7 @@ class NotificationServiceTests {
             ),
             lang = "fr",
             contexts = APIC_COMPOUND_CONTEXTS,
-            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
+            jsonldContext = APIC_COMPOUND_CONTEXTS
         )
 
         val expandedEntity = expandJsonLdEntity(

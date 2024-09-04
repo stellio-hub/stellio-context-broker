@@ -55,7 +55,7 @@ data class Subscription(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     val datasetId: List<String>? = null,
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
-    val jsonldContext: List<ExpandedTerm>? = null
+    val jsonldContext: URI? = null
 ) {
 
     @Transient

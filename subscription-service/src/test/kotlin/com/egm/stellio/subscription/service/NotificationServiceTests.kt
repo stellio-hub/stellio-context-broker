@@ -226,7 +226,7 @@ class NotificationServiceTests {
                 )
             ),
             contexts = listOf(NGSILD_TEST_CORE_CONTEXT),
-            jsonldContext = APIC_COMPOUND_CONTEXTS
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
         )
         val expandedEntity = expandJsonLdEntity(rawEntity)
 
@@ -559,7 +559,7 @@ class NotificationServiceTests {
             ),
             lang = "fr",
             contexts = APIC_COMPOUND_CONTEXTS,
-            jsonldContext = APIC_COMPOUND_CONTEXTS
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
         )
 
         val expandedEntity = expandJsonLdEntity(

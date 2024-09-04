@@ -39,7 +39,5 @@
   "expiresAt": "2100-01-01T00:00:00Z",
   "throttling": 60,
   "lang": "fr,en",
-  "jsonldContext": [
-    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
-  ]
+  "jsonldContext": "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
 }

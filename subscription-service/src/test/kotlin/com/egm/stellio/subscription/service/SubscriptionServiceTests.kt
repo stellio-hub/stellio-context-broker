@@ -29,6 +29,7 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -259,9 +260,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                          "uri": "http://localhost:8084"
                        }
                     },
-                    "jsonldContext": [
-                       "unknownContext"
-                    ]
+                    "jsonldContext": "unknownContext"
                 }
             """.trimIndent()
 
@@ -270,8 +269,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             emptyList()
         ).shouldSucceedAndResult()
         subscriptionService.validateNewSubscription(subscription)
-            .shouldFailWith {
-                it is BadRequestDataException
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
             }
     }
 
@@ -292,9 +291,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                          "uri": "http://localhost:8084"
                        }
                     },
-                    "jsonldContext": [
-                       "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
-                    ]
+                    "jsonldContext": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
                 }
             """.trimIndent()
 
@@ -303,8 +300,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             emptyList()
         ).shouldSucceedAndResult()
         subscriptionService.validateNewSubscription(subscription)
-            .shouldFailWith {
-                it is LdContextNotAvailableException
+            .shouldFail {
+                assertInstanceOf(LdContextNotAvailableException::class.java, it)
             }
     }
 
@@ -394,7 +391,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&
-                    it.jsonldContext == APIC_COMPOUND_CONTEXTS
+                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
             }
     }
 

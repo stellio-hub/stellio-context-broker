@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.apicatalog.jsonld.JsonLd
 import com.apicatalog.jsonld.JsonLdError
@@ -248,12 +249,16 @@ object JsonLdUtils {
         }
     }
 
-    fun checkJsonldContext(context: URI) {
-        try {
+    fun checkJsonldContext(context: URI): Either<APIException, Unit> = either {
+        return try {
+            context.toString().toUri()
             val options = DocumentLoaderOptions()
             loader.loadDocument(context, options)
+            Unit.right()
         } catch (e: JsonLdError) {
-            throw e.toAPIException(e.cause?.cause?.message)
+            e.toAPIException(e.cause?.cause?.message).left()
+        } catch (e: BadRequestDataException) {
+            e.left()
         }
     }
 

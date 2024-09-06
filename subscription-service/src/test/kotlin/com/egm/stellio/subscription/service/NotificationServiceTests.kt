@@ -410,6 +410,37 @@ class NotificationServiceTests {
     }
 
     @Test
+    fun `it should add a Link header containing the jsonldContext of the subscription when provided`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON
+                )
+            ),
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
+        )
+
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+
+        val link = buildContextLinkHeader(subscription.jsonldContext.toString())
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(HttpHeaders.LINK, equalTo(link))
+        )
+    }
+
+    @Test
     fun `it should add an NGSILD-Tenant header if the subscription is not from the default context`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(

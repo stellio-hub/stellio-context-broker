@@ -281,7 +281,7 @@ class SubscriptionService(
     suspend fun getContextsForSubscription(id: URI): Either<APIException, List<String>> {
         val selectStatement =
             """
-            SELECT contexts
+            SELECT contexts, jsonld_context
             FROM subscription 
             WHERE id = :id
             """.trimIndent()
@@ -289,17 +289,22 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult {
-                toList(it["contexts"]!!)
+                it["jsonld_context"]?.let { listOf(it as String) } ?: toList(it["contexts"]!!)
             }
     }
 
-    fun getContextsLink(subscription: Subscription): String =
-        if (subscription.contexts.size > 1) {
-            val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
-                "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
-            buildContextLinkHeader(linkToRetrieveContexts)
-        } else
-            buildContextLinkHeader(subscription.contexts[0])
+    fun getContextsLink(subscription: Subscription): String {
+        val contextLink = when {
+            subscription.contexts.size > 1 && subscription.jsonldContext == null -> {
+                val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
+                    "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
+                linkToRetrieveContexts
+            }
+            subscription.jsonldContext != null -> subscription.jsonldContext.toString()
+            else -> subscription.contexts[0]
+        }
+        return buildContextLinkHeader(contextLink)
+    }
 
     suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
         val selectStatement =

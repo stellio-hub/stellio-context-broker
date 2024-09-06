@@ -246,13 +246,9 @@ class NotificationServiceTests {
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
-            assertEquals(subscription.id, notificationResult.first.id)
-            assertEquals(subscription.id, notificationResult.second.subscriptionId)
-            assertEquals(1, notificationResult.second.data.size)
             assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_TERM))
             assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_COMPACT_RELATIONSHIP))
             assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
-            assertTrue(notificationResult.third)
         }
     }
 

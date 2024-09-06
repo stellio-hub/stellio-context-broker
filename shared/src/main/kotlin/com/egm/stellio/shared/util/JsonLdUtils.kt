@@ -251,14 +251,12 @@ object JsonLdUtils {
 
     fun checkJsonldContext(context: URI): Either<APIException, Unit> = either {
         return try {
-            context.toString().toUri()
-            val options = DocumentLoaderOptions()
-            loader.loadDocument(context, options)
+            loader.loadDocument(context, DocumentLoaderOptions())
             Unit.right()
         } catch (e: JsonLdError) {
             e.toAPIException(e.cause?.cause?.message).left()
-        } catch (e: BadRequestDataException) {
-            e.left()
+        } catch (e: IllegalArgumentException) {
+            BadRequestDataException(e.cause?.message ?: "Provided context is invalid: $context").left()
         }
     }
 

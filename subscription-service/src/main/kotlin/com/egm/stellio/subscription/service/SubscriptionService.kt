@@ -295,12 +295,12 @@ class SubscriptionService(
 
     fun getContextsLink(subscription: Subscription): String {
         val contextLink = when {
-            subscription.contexts.size > 1 && subscription.jsonldContext == null -> {
+            subscription.jsonldContext != null -> subscription.jsonldContext.toString()
+            subscription.contexts.size > 1 -> {
                 val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
                     "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
                 linkToRetrieveContexts
             }
-            subscription.jsonldContext != null -> subscription.jsonldContext.toString()
             else -> subscription.contexts[0]
         }
         return buildContextLinkHeader(contextLink)

@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.*
@@ -56,6 +57,7 @@ class SubscriptionService(
         checkExpiresAtInTheFuture(subscription).bind()
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
+        checkJsonLdContextIsValid(subscription).bind()
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -134,6 +136,14 @@ class SubscriptionService(
             else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
         }
 
+    suspend fun checkJsonLdContextIsValid(subscription: Subscription): Either<APIException, Unit> = either {
+        val jsonldContext = subscription.jsonldContext
+
+        if (jsonldContext != null) {
+            checkJsonldContext(jsonldContext).bind()
+        }
+    }
+
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         validateNewSubscription(subscription).bind()
@@ -149,11 +159,11 @@ class SubscriptionService(
             INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                 notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
                 endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
-                expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId)
+                expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId, jsonld_context)
             VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                 :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
                 :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
-                :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId)
+                :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId, :jsonld_context)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -182,6 +192,7 @@ class SubscriptionService(
             .bind("sys_attrs", subscription.notification.sysAttrs)
             .bind("lang", subscription.lang)
             .bind("datasetId", subscription.datasetId?.toTypedArray())
+            .bind("jsonld_context", subscription.jsonldContext)
             .execute().bind()
 
         geoQuery?.let {
@@ -252,7 +263,8 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, datasetId
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
+                datasetId, jsonld_context
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -269,7 +281,7 @@ class SubscriptionService(
     suspend fun getContextsForSubscription(id: URI): Either<APIException, List<String>> {
         val selectStatement =
             """
-            SELECT contexts
+            SELECT contexts, jsonld_context
             FROM subscription 
             WHERE id = :id
             """.trimIndent()
@@ -277,17 +289,22 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult {
-                toList(it["contexts"]!!)
+                it["jsonld_context"]?.let { listOf(it as String) } ?: toList(it["contexts"]!!)
             }
     }
 
-    fun getContextsLink(subscription: Subscription): String =
-        if (subscription.contexts.size > 1) {
-            val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
-                "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
-            buildContextLinkHeader(linkToRetrieveContexts)
-        } else
-            buildContextLinkHeader(subscription.contexts[0])
+    fun getContextsLink(subscription: Subscription): String {
+        val contextLink = when {
+            subscription.jsonldContext != null -> subscription.jsonldContext.toString()
+            subscription.contexts.size > 1 -> {
+                val linkToRetrieveContexts = subscriptionProperties.stellioUrl +
+                    "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
+                linkToRetrieveContexts
+            }
+            else -> subscription.contexts[0]
+        }
+        return buildContextLinkHeader(contextLink)
+    }
 
     suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
         val selectStatement =
@@ -359,7 +376,8 @@ class SubscriptionService(
                     "modifiedAt",
                     "throttling",
                     "lang",
-                    "datasetId"
+                    "datasetId",
+                    "jsonldContext"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
@@ -502,7 +520,8 @@ class SubscriptionService(
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, datasetId
+                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
+                datasetId, jsonld_context
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -544,7 +563,8 @@ class SubscriptionService(
                    entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
-                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, datasetId
+                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
+                   datasetId, jsonld_context
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -699,7 +719,8 @@ class SubscriptionService(
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
-            datasetId = toNullableList(row["datasetId"])
+            datasetId = toNullableList(row["datasetId"]),
+            jsonldContext = toNullableUri(row["jsonld_context"])
         )
     }
 
@@ -732,7 +753,8 @@ class SubscriptionService(
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
-            datasetId = toNullableList(row["datasetId"])
+            datasetId = toNullableList(row["datasetId"]),
+            jsonldContext = toNullableUri(row["jsonld_context"])
         )
     }
 
@@ -768,7 +790,8 @@ class SubscriptionService(
                 scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info,
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
-                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, datasetId
+                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, 
+                datasetId, jsonld_context
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

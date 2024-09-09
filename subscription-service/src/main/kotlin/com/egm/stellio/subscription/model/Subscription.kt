@@ -53,7 +53,9 @@ data class Subscription(
     val throttling: Int? = null,
     val lang: String? = null,
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
-    val datasetId: List<String>? = null
+    val datasetId: List<String>? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val jsonldContext: URI? = null
 ) {
 
     @Transient

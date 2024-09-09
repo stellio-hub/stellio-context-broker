@@ -49,9 +49,11 @@ class NotificationService(
                         AttributeRepresentation.SIMPLIFIED
                     else AttributeRepresentation.NORMALIZED
 
+                val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
+
                 val compactedEntity = compactEntity(
                     ExpandedEntity(filteredEntity),
-                    it.contexts
+                    contexts
                 ).toFinalRepresentation(
                     NgsiLdDataRepresentation(
                         entityRepresentation,

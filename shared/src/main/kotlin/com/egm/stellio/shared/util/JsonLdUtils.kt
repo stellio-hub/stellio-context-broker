@@ -2,12 +2,16 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.apicatalog.jsonld.JsonLd
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdOptions
 import com.apicatalog.jsonld.context.cache.LruCache
 import com.apicatalog.jsonld.document.JsonDocument
+import com.apicatalog.jsonld.http.DefaultHttpClient
+import com.apicatalog.jsonld.loader.DocumentLoaderOptions
+import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -121,6 +125,7 @@ object JsonLdUtils {
         contextCache = LruCache(CONTEXT_CACHE_CAPACITY)
         documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
     }
+    private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
@@ -241,6 +246,17 @@ object JsonLdUtils {
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException(e.cause?.cause?.message)
+        }
+    }
+
+    fun checkJsonldContext(context: URI): Either<APIException, Unit> = either {
+        return try {
+            loader.loadDocument(context, DocumentLoaderOptions())
+            Unit.right()
+        } catch (e: JsonLdError) {
+            e.toAPIException(e.cause?.cause?.message).left()
+        } catch (e: IllegalArgumentException) {
+            BadRequestDataException(e.cause?.message ?: "Provided context is invalid: $context").left()
         }
     }
 

@@ -3,12 +3,14 @@ package com.egm.stellio.subscription.service
 import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
@@ -27,6 +29,7 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -241,6 +244,68 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should throw a BadRequestData exception when jsonldContext is not a URI`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "unknownContext"
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+            }
+    }
+
+    @Test
+    fun `it should throw a LdContextNotAvailable exception when jsonldContext is not available`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFail {
+                assertInstanceOf(LdContextNotAvailableException::class.java, it)
+            }
+    }
+
+    @Test
     fun `it should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
@@ -325,7 +390,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.sysAttrs &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
-                    it.lang == "fr,en"
+                    it.lang == "fr,en" &&
+                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
             }
     }
 
@@ -1104,6 +1170,21 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_PROPERTY), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(0, it.size) }
+    }
+
+    @Test
+    fun `it should return a subscription if entity matched a q query with a regular expression`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "foodQuality!~=\"(?i).*It's good.*\""
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_PROPERTY), ATTRIBUTE_UPDATED)
+            .shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test

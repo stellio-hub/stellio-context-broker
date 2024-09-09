@@ -1,12 +1,17 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.service.EntityPayloadService
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.OperationType
+import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
-import com.egm.stellio.search.util.toExpandedAttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.*
@@ -22,7 +27,9 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
+import java.time.ZonedDateTime
 import java.util.stream.Stream
 
 @SpringBootTest
@@ -33,7 +40,10 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private lateinit var scopeService: ScopeService
 
     @Autowired
-    private lateinit var entityPayloadService: EntityPayloadService
+    private lateinit var entityService: EntityService
+
+    @Autowired
+    private lateinit var entityQueryService: EntityQueryService
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -42,9 +52,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterEach
     fun clearEntityPayloadTable() {
-        r2dbcEntityTemplate.delete(EntityPayload::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
 
         runBlocking {
             scopeService.delete(beehiveTestCId)
@@ -90,7 +98,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     ) = runTest {
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         val expandedAttributes = JsonLdUtils.expandAttributes(
             """
@@ -108,7 +116,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             operationType
         ).shouldSucceed()
 
-        entityPayloadService.retrieve(beehiveTestCId)
+        entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()
@@ -119,7 +127,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     private suspend fun createScopeHistory() {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
         scopeService.addHistoryEntry(
             beehiveTestCId,
             listOf("/A", "/B/C"),
@@ -321,10 +329,102 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should include lower bound of interval with after timerel`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-13T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-14T00:00:00Z")
+        ).shouldSucceed()
+
+        scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
+                    instanceLimit = 5
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedWith {
+            assertEquals(2, it.size)
+        }
+    }
+
+    @Test
+    fun `it should exclude upper bound of interval with between timerel`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-13T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/B/C"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-14T00:00:00Z")
+        ).shouldSucceed()
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/C/D"),
+            TemporalProperty.MODIFIED_AT,
+            ZonedDateTime.parse("2024-08-15T00:00:00Z")
+        ).shouldSucceed()
+
+        scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQuery(
+                EntitiesQuery(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    timerel = TemporalQuery.Timerel.BETWEEN,
+                    timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
+                    endTimeAt = ZonedDateTime.parse("2024-08-15T00:00:00Z"),
+                    instanceLimit = 5
+                ),
+                withTemporalValues = false,
+                withAudit = false,
+                withAggregatedValues = false
+            ),
+            ngsiLdDateTime().minusHours(1)
+        ).shouldSucceedWith {
+            assertEquals(2, it.size)
+            (it as List<FullScopeInstanceResult>).forEach { result ->
+                assertNotEquals(ZonedDateTime.parse("2024-08-15T00:00:00Z"), result.time)
+            }
+        }
+    }
+
+    @Test
     fun `it should delete scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityPayloadService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 

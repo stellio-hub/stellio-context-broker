@@ -176,7 +176,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and use the contexts of the subscription to compact`() = runTest {
+    fun `it should notify the subscriber and use subscription contexts to compact`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -212,6 +212,43 @@ class NotificationServiceTests {
             assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
             assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
             assertTrue(notificationResult.third)
+        }
+    }
+
+    @Test
+    fun `it should notify the subscriber and use jsonldContext to compact when it is provided`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD
+                )
+            ),
+            contexts = listOf(NGSILD_TEST_CORE_CONTEXT),
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
+        )
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            expandedEntity,
+            setOf(NGSILD_NAME_TERM),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { notificationResults ->
+            val notificationResult = notificationResults[0]
+            assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_TERM))
+            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_COMPACT_RELATIONSHIP))
+            assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
         }
     }
 
@@ -373,6 +410,37 @@ class NotificationServiceTests {
     }
 
     @Test
+    fun `it should add a Link header containing the jsonldContext of the subscription when provided`() = runTest {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON
+                )
+            ),
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
+        )
+
+        coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+
+        val link = buildContextLinkHeader(subscription.jsonldContext.toString())
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(HttpHeaders.LINK, equalTo(link))
+        )
+    }
+
+    @Test
     fun `it should add an NGSILD-Tenant header if the subscription is not from the default context`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
@@ -517,7 +585,8 @@ class NotificationServiceTests {
                 )
             ),
             lang = "fr",
-            contexts = APIC_COMPOUND_CONTEXTS
+            contexts = APIC_COMPOUND_CONTEXTS,
+            jsonldContext = APIC_COMPOUND_CONTEXT.toUri()
         )
 
         val expandedEntity = expandJsonLdEntity(

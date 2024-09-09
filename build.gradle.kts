@@ -18,7 +18,7 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.3.2" apply false
+    id("org.springframework.boot") version "3.3.3" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
     id("org.graalvm.buildtools.native") version "0.10.2"
     kotlin("jvm") version "1.9.24" apply false
@@ -69,11 +69,11 @@ subprojects {
 
         implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")
 
-        implementation("org.locationtech.jts.io:jts-io-common:1.19.0")
+        implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:6.0.1")
+        runtimeOnly("de.siegmar:logback-gelf:6.1.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {

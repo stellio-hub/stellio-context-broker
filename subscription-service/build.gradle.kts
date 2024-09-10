@@ -16,8 +16,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
-    implementation("org.springframework:spring-websocket")
-    implementation("org.springframework:spring-messaging")
 
     implementation("org.flywaydb:flyway-core")
     implementation("org.postgresql:r2dbc-postgresql")

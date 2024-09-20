@@ -6,7 +6,11 @@ import org.springframework.boot.runApplication
 import org.springframework.scheduling.annotation.EnableScheduling
 
 @SpringBootApplication(scanBasePackages = ["com.egm.stellio.subscription", "com.egm.stellio.shared"])
-@ConfigurationPropertiesScan("com.egm.stellio.subscription.config", "com.egm.stellio.shared.config")
+@ConfigurationPropertiesScan(
+    "com.egm.stellio.subscription.config",
+    "com.egm.stellio.shared.config",
+    "com.egm.stellio.subscription.websocket"
+)
 @EnableScheduling
 class SubscriptionServiceApplication
 

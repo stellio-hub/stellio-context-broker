@@ -15,6 +15,7 @@ import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.mqtt.Mqtt
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
+import com.egm.stellio.subscription.websocket.WSSubscriptionHandler
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -26,7 +27,8 @@ import org.springframework.web.reactive.function.client.awaitExchange
 @Service
 class NotificationService(
     private val subscriptionService: SubscriptionService,
-    private val mqttNotificationService: MqttNotificationService
+    private val mqttNotificationService: MqttNotificationService,
+    private val wsSubscriptionHandler: WSSubscriptionHandler
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -70,8 +72,6 @@ class NotificationService(
         subscription: Subscription,
         entity: Map<String, Any?>
     ): Triple<Subscription, Notification, Boolean> {
-        val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
-        val tenantName = getTenantFromContext()
         val notification = Notification(
             subscriptionId = subscription.id,
             data = listOf(entity)
@@ -79,17 +79,7 @@ class NotificationService(
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
 
-        val headerMap: MutableMap<String, String> = emptyMap<String, String>().toMutableMap()
-        if (mediaType == MediaType.APPLICATION_JSON) {
-            headerMap[HttpHeaders.LINK] = subscriptionService.getContextsLink(subscription)
-        }
-        if (tenantName != DEFAULT_TENANT_NAME)
-            headerMap[NGSILD_TENANT_HEADER] = tenantName
-        subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
-            headerMap[endpointInfo.key] = endpointInfo.value
-        }
-        headerMap[HttpHeaders.CONTENT_TYPE] = mediaType.toString()
-
+        val headerMap = generateHeaderMap(subscription)
         val result =
             kotlin.runCatching {
                 if (uri.startsWith(Mqtt.SCHEME.MQTT)) {
@@ -97,6 +87,16 @@ class NotificationService(
                         subscription,
                         notification,
                         mqttNotificationService.notify(
+                            notification = notification,
+                            subscription = subscription,
+                            headers = headerMap
+                        )
+                    )
+                } else if (uri.startsWith("ws")) {
+                    Triple(
+                        subscription,
+                        notification,
+                        wsSubscriptionHandler.notify(
                             notification = notification,
                             subscription = subscription,
                             headers = headerMap
@@ -124,5 +124,23 @@ class NotificationService(
 
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
         return result
+    }
+
+    private suspend fun generateHeaderMap(
+        subscription: Subscription,
+    ): MutableMap<String, String> {
+        val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
+        val tenantName = getTenantFromContext()
+        val headerMap: MutableMap<String, String> = emptyMap<String, String>().toMutableMap()
+        if (mediaType == MediaType.APPLICATION_JSON) {
+            headerMap[HttpHeaders.LINK] = subscriptionService.getContextsLink(subscription)
+        }
+        if (tenantName != DEFAULT_TENANT_NAME)
+            headerMap[NGSILD_TENANT_HEADER] = tenantName
+        subscription.notification.endpoint.receiverInfo?.forEach { endpointInfo ->
+            headerMap[endpointInfo.key] = endpointInfo.value
+        }
+        headerMap[HttpHeaders.CONTENT_TYPE] = mediaType.toString()
+        return headerMap
     }
 }

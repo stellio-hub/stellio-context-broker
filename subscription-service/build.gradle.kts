@@ -29,6 +29,7 @@ dependencies {
 
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("io.r2dbc:r2dbc-pool")
 
     testImplementation("org.wiremock:wiremock-standalone:3.3.1")
     testImplementation("org.testcontainers:postgresql")

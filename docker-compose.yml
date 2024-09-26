@@ -49,7 +49,7 @@ services:
     image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
     environment:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
       - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
       - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
       - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
@@ -73,7 +73,7 @@ services:
     image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
     environment:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
       - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
       - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
       - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}

@@ -29,6 +29,7 @@ dependencies {
 
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("io.r2dbc:r2dbc-pool")
 
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:kafka")

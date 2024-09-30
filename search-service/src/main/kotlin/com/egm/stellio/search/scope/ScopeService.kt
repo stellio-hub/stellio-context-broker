@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
@@ -29,7 +30,8 @@ import java.time.ZonedDateTime
 
 @Service
 class ScopeService(
-    private val databaseClient: DatabaseClient
+    private val databaseClient: DatabaseClient,
+    private val searchProperties: SearchProperties
 ) {
 
     @Transactional
@@ -150,7 +152,7 @@ class ScopeService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT entity_id,
-                   public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as start,
+                   public.time_bucket('$aggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
                    $allAggregates
                 """
             } else

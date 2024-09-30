@@ -1,5 +1,6 @@
 package com.egm.stellio.search.temporal.service
 
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -60,6 +61,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
+
+    @Autowired
+    private lateinit var searchProperties: SearchProperties
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
@@ -562,7 +566,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should create an attribute instance if it has a non null value`() = runTest {
-        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeInstanceService = spyk(
+            AttributeInstanceService(databaseClient, searchProperties),
+            recordPrivateCalls = true
+        )
         val attributeMetadata = AttributeMetadata(
             measuredValue = 550.0,
             value = null,
@@ -621,7 +628,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should create an attribute instance with boolean value`() = runTest {
-        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeInstanceService = spyk(
+            AttributeInstanceService(databaseClient, searchProperties),
+            recordPrivateCalls = true
+        )
         val attributeMetadata = AttributeMetadata(
             measuredValue = null,
             value = false.toString(),

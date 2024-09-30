@@ -5,5 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties("search")
 data class SearchProperties(
     val payloadMaxBodySize: Int,
-    var onOwnerDeleteCascadeEntities: Boolean
+    val onOwnerDeleteCascadeEntities: Boolean,
+    val timezoneForTimeBuckets: String = "GMT"
 )

@@ -1,11 +1,14 @@
 package com.egm.stellio.search.temporal.service
 
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.support.*
 import com.egm.stellio.search.temporal.model.*
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.*
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.AbstractObjectAssert
 import org.assertj.core.api.Assertions
@@ -13,6 +16,7 @@ import org.assertj.core.api.InstanceOfAssertFactories
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -39,9 +43,17 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
+    @MockkBean(relaxed = true)
+    private lateinit var searchProperties: SearchProperties
+
     private val now = ngsiLdDateTime()
     private val attributeUuid = UUID.randomUUID()
     private val entityId = "urn:ngsi-ld:BeeHive:${UUID.randomUUID()}".toUri()
+
+    @BeforeEach
+    fun mockSearchProperties() {
+        every { searchProperties.timezoneForTimeBuckets } returns "GMT"
+    }
 
     @AfterEach
     fun clearAttributesInstances() {
@@ -425,6 +437,36 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
             .shouldFail {
                 assertInstanceOf(OperationNotSupportedException::class.java, it)
                 assertEquals("cannot get array length of a scalar", it.message)
+            }
+    }
+
+    @Test
+    fun `it should aggregate using the specified timezone`() = runTest {
+        // set the timezone to Europe/Paris to have all the results aggregated on January 2024
+        every { searchProperties.timezoneForTimeBuckets } returns "Europe/Paris"
+
+        val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
+        val startTimestamp = ZonedDateTime.parse("2023-12-31T23:00:00Z")
+        (0..9).forEach { i ->
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
+                .copy(
+                    time = startTimestamp.plusHours(i.toLong()),
+                    measuredValue = 1.0
+                )
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = createTemporalEntitiesQuery("sum", "P1M")
+        attributeInstanceService.search(
+            temporalEntitiesQuery.copy(
+                temporalQuery = temporalEntitiesQuery.temporalQuery.copy(timeAt = startTimestamp)
+            ),
+            attribute,
+            startTimestamp
+        )
+            .shouldSucceedWith { results ->
+                assertEquals(1, results.size)
+                assertEquals(10.0, (results[0] as AggregatedAttributeInstanceResult).values[0].value)
             }
     }
 

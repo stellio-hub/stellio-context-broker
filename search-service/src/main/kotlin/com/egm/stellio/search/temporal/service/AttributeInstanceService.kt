@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.*
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
@@ -28,7 +29,8 @@ import java.util.UUID
 
 @Service
 class AttributeInstanceService(
-    private val databaseClient: DatabaseClient
+    private val databaseClient: DatabaseClient,
+    private val searchProperties: SearchProperties
 ) {
 
     private val attributesInstancesTables = listOf("attribute_instance", "attribute_instance_audit")
@@ -223,7 +225,7 @@ class AttributeInstanceService(
                 val computedOrigin = origin ?: temporalQuery.timeAt
                 """
                 SELECT temporal_entity_attribute,
-                    public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as start,
+                    public.time_bucket('$aggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
                     $allAggregates
                 """.trimIndent()
             } else

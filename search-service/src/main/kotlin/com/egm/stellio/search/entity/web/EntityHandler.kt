@@ -212,7 +212,7 @@ class EntityHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam params: MultiValueMap<String, String>,
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
@@ -234,6 +234,9 @@ class EntityHandler(
         val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+
+        // todo first CSR working
+
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(

@@ -162,6 +162,7 @@ class EntityQueryService(
             else null
         val formattedType = entitiesQuery.typeSelection?.let { "(" + buildTypeQuery(it) + ")" }
         val formattedAttrs =
+
             if (entitiesQuery.attrs.isNotEmpty())
                 entitiesQuery.attrs.joinToString(
                     separator = ",",

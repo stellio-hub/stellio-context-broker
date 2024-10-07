@@ -14,6 +14,7 @@ import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
@@ -171,8 +172,11 @@ class ContextSourceRegistrationService(
     suspend fun getContextSourceRegistrations(
         limit: Int,
         offset: Int,
-        sub: Option<Sub>
+        sub: Option<Sub>,
+        filters: CSRFilters = CSRFilters()
     ): List<ContextSourceRegistration> {
+        val filterQuery = filters.buildWHEREStatement()
+
         val selectStatement =
             """
             SELECT id,
@@ -186,12 +190,18 @@ class ContextSourceRegistrationService(
                 management_interval_end,
                 created_at,
                 modified_at
-            FROM context_source_registration 
-            WHERE sub = :sub 
+            FROM context_source_registration as csr
+            LEFT JOIN jsonb_to_recordset(information) 
+                as information(entities jsonb,propertyNames text[],relationshipNames text[] ) on true
+            LEFT JOIN jsonb_to_recordset(entities) 
+                as entity_info(id text,"idPattern" text,"type" text) on true
+            WHERE sub = :sub AND $filterQuery
             ORDER BY id
             LIMIT :limit
-            OFFSET :offset)
+            OFFSET :offset
+            GROUP BY csr.id
             """.trimIndent()
+        println(selectStatement)
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)

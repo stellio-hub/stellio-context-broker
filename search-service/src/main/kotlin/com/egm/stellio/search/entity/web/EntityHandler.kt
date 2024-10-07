@@ -4,6 +4,8 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
@@ -64,7 +66,8 @@ import java.util.Optional
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
-    private val entityQueryService: EntityQueryService
+    private val entityQueryService: EntityQueryService,
+    private val contextSourceRegistrationService: ContextSourceRegistrationService
 ) : BaseHandler() {
 
     /**
@@ -224,6 +227,16 @@ class EntityHandler(
             contexts
         ).bind()
 
+        // todo first CSR working
+        val csrFilters = CSRFilters(setOf(entityId))
+
+        contextSourceRegistrationService.getContextSourceRegistrations(
+            limit = Int.MAX_VALUE,
+            offset = 0,
+            sub,
+            csrFilters
+        )
+
         val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
 
         expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
@@ -234,8 +247,6 @@ class EntityHandler(
         val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-
-        // todo first CSR working
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))

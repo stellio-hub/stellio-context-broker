@@ -5,7 +5,10 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.Mode
+import com.egm.stellio.search.csr.service.CompactedEntityWithIsAuxiliary
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
+import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
@@ -42,6 +45,7 @@ import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.ResponseEntity
@@ -227,29 +231,45 @@ class EntityHandler(
             contexts
         ).bind()
 
-        // todo first CSR working
         val csrFilters = CSRFilters(setOf(entityId))
 
-        contextSourceRegistrationService.getContextSourceRegistrations(
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             limit = Int.MAX_VALUE,
             offset = 0,
             sub,
             csrFilters
         )
 
-        val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+        // todo local parameter (6.3.18)
+        // todo parrallelize calls
+        val localEntity: CompactedEntity? = either {
+            val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+            expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
-        expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
+            val filteredExpandedEntity = ExpandedEntity(
+                expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
+            )
+            compactEntity(filteredExpandedEntity, contexts)
+        }.fold({ null }, { it })
 
-        val filteredExpandedEntity = ExpandedEntity(
-            expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
-        )
-        val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
+        val compactedEntitiesWithIsAuxiliary: List<CompactedEntityWithIsAuxiliary> = matchingCSR.mapNotNull { csr ->
+            ContextSourceUtils.call(
+                httpHeaders,
+                csr,
+                HttpMethod.GET,
+                "/ngsi-ld/v1/entities/$entityId",
+                null
+            )?.let { entity -> entity to (csr.mode == Mode.AUXILIARY) }
+        }
+
+        val mergeEntity = ContextSourceUtils.mergeEntity(localEntity, compactedEntitiesWithIsAuxiliary)
+            ?: throw ResourceNotFoundException("No entity with id: $entityId found")
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+            .body(
+                serializeObject(mergeEntity.toFinalRepresentation(ngsiLdDataRepresentation))
+            )
     }.fold(
         { it.toErrorResponse() },
         { it }

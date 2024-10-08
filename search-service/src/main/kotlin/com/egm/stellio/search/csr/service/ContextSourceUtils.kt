@@ -8,80 +8,71 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.isDate
-import org.json.XMLTokener.entity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
-import sun.jvm.hotspot.oops.CellTypeState.value
-import java.net.URI
 import java.time.LocalDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias SingleAttribute = Map<String, Any> // todo maybe use the actual attribute type
 typealias CompactedAttribute = List<SingleAttribute>
+typealias CompactedEntityWithIsAuxiliary = Pair<CompactedEntity, Boolean>
 
 object ContextSourceUtils {
 
     suspend fun call(
         httpHeaders: HttpHeaders,
         csr: ContextSourceRegistration,
-        path: URI,
-        body: String,
-        method: HttpMethod
-    ): Any {
-        val uri = csr.endpoint
-        val request =
-            WebClient.create("$uri/$path")
-                .method(method)
-                .headers { newHeader -> httpHeaders.entries.forEach { (key, value) -> newHeader[key] = value } }
-        val response: Any = request
-            .bodyValue(body)
-            .awaitExchange { response ->
-                logger.info(
-                    "The csr request has return a ${response.statusCode()}}"
-                )
+        method: HttpMethod,
+        path: String,
+        body: String? = null
+    ): CompactedEntity? {
+        val uri = "${csr.endpoint}$path"
+        val request = WebClient.create(uri)
+            .method(method)
+            .headers { newHeader -> "Link" to httpHeaders["Link"] }
+        body?.let { request.bodyValue(it) }
+        val (statusCode, response) = request
+            .awaitExchange { response -> response.statusCode() to response.awaitBody<CompactedEntity>() }
+        return if (statusCode.is2xxSuccessful) {
+            logger.info("Successfully received Informations from CSR at : $uri")
+
+            response
+        } else {
+            logger.info("Error contacting CSR at : $uri")
+            logger.info("Error contacting CSR at : $response")
+            null
+        }
+    }
+
+    fun mergeEntity(
+        localEntity: CompactedEntity?,
+        pairsOfEntitiyWithISAuxiliary: List<CompactedEntityWithIsAuxiliary>
+    ): CompactedEntity? {
+        if (localEntity == null && pairsOfEntitiyWithISAuxiliary.isEmpty()) return null
+
+        val mergedEntity = localEntity?.toMutableMap() ?: mutableMapOf()
+
+        pairsOfEntitiyWithISAuxiliary.forEach {
+                entity ->
+            entity.first.entries.forEach {
+                    (key, value) ->
+                when {
+                    !mergedEntity.containsKey(key) -> mergedEntity[key] = value
+                    JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(key) -> {}
+                    else -> mergedEntity[key] = mergeAttribute(mergedEntity[key]!!, value, entity.second)
+                }
             }
-        return response
+        }
+        return mergedEntity
     }
 
     /**
      * Implements 4.5.5 - Multi-Attribute Support
      */
-    fun mergeEntity(
-        entities: List<CompactedEntity>,
-        auxiliaryEntities: List<CompactedEntity> = listOf()
-    ): CompactedEntity? {
-        val initialEntity = entities.getOrNull(0) ?: auxiliaryEntities.getOrNull(0)
-        if ((entities.size + auxiliaryEntities.size) <= 1) {
-            return initialEntity
-        }
-        val mergedEntity = initialEntity!!.toMutableMap()
-        entities.forEach {
-                entity ->
-            entity.entries.forEach {
-                    (key, value) ->
-                when {
-                    JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(key) -> {}
-                    !mergedEntity.containsKey(key) -> mergedEntity[key] = value
-                    else -> mergedEntity[key] = mergeAttribute(mergedEntity[key]!!, value)
-                }
-            }
-        }
-        auxiliaryEntities.forEach { entity ->
-            entity.entries.forEach { (key, value) ->
-                when {
-                    JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(key) -> {}
-                    !mergedEntity.containsKey(key) -> mergedEntity[key] = value
-                    else -> mergedEntity[key] = mergeAttribute(mergedEntity[key]!!, value, true)
-                }
-            }
-        }
-
-        return mergedEntity
-    }
-
-    fun mergeAttribute(
+    private fun mergeAttribute(
         attribute1: Any,
         attribute2: Any,
         auxiliary: Boolean = false
@@ -106,12 +97,12 @@ object ContextSourceUtils {
     private fun attributeToDatasetIdMap(attribute: Any): Map<String?, Map<String, Any>> = when (attribute) {
         is Map<*, *> -> {
             attribute as SingleAttribute
-            mapOf(attribute[NGSILD_DATASET_ID_TERM] as String to attribute)
+            mapOf(attribute[NGSILD_DATASET_ID_TERM] as? String to attribute)
         }
         is List<*> -> {
             attribute as CompactedAttribute
             attribute.associate {
-                it[NGSILD_DATASET_ID_TERM] as String to it
+                it[NGSILD_DATASET_ID_TERM] as? String to it
             }
         }
 

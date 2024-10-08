@@ -179,7 +179,7 @@ class ContextSourceRegistrationService(
 
         val selectStatement =
             """
-            SELECT id,
+            SELECT csr.id,
                 endpoint,
                 mode,
                 information,
@@ -196,10 +196,10 @@ class ContextSourceRegistrationService(
             LEFT JOIN jsonb_to_recordset(entities) 
                 as entity_info(id text,"idPattern" text,"type" text) on true
             WHERE sub = :sub AND $filterQuery
-            ORDER BY id
+            GROUP BY csr.id
+            ORDER BY csr.id
             LIMIT :limit
             OFFSET :offset
-            GROUP BY csr.id
             """.trimIndent()
         println(selectStatement)
         return databaseClient.sql(selectStatement)

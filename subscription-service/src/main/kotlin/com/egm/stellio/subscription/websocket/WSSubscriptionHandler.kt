@@ -9,6 +9,7 @@ import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.config.EnableWebFlux
@@ -27,6 +28,8 @@ class WSSubscriptionHandler(
     val subscriptionService: SubscriptionService,
 ) : WebSocketHandler {
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     var sessionSinks: MutableMap<String, Many<Any>?> = mutableMapOf()
 
     @Bean
@@ -43,7 +46,7 @@ class WSSubscriptionHandler(
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val uniqueId = session.id
-        println("Websocket connected for id $uniqueId")
+        logger.debug("Websocket connected for id $uniqueId")
 
         val sink: Many<Any> = Sinks.many().unicast().onBackpressureError()
         sink.asFlux().subscribe(WebSocketPublisher(session))
@@ -55,9 +58,9 @@ class WSSubscriptionHandler(
         }
             .map { obj: WebSocketMessage -> obj.payloadAsText }
             .doOnNext { message: String ->
-                println("Recieved message from $uniqueId")
+                logger.debug("Received message from $uniqueId")
                 val body = message.deserializeAsMap()
-                val contexts = body["link"] as String
+                val contexts = (body["metadata"] as Map<String, String>)["Link"] as String
                 val subscription = parseSubscription(
                     body["body"] as Map<String, Any>,
                     listOf(contexts)
@@ -78,7 +81,7 @@ class WSSubscriptionHandler(
                 }
 
                 val emitResult = sink.tryEmitNext("received subscription: $message")
-                println("Emit result status " + emitResult.name + " " + emitResult.isSuccess)
+                logger.debug("Emit result status " + emitResult.name + " " + emitResult.isSuccess)
             }
 
         return Flux.merge(input).then()

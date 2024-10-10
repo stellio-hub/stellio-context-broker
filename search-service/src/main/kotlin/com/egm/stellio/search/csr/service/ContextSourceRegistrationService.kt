@@ -155,10 +155,10 @@ class ContextSourceRegistrationService(
     }
 
     suspend fun getContextSourceRegistrations(
-        limit: Int,
-        offset: Int,
         sub: Option<Sub>,
-        filters: CSRFilters = CSRFilters()
+        filters: CSRFilters = CSRFilters(),
+        limit: Int = Int.MAX_VALUE,
+        offset: Int = 0,
     ): List<ContextSourceRegistration> {
         val filterQuery = filters.buildWHEREStatement()
 
@@ -186,7 +186,6 @@ class ContextSourceRegistrationService(
             LIMIT :limit
             OFFSET :offset
             """.trimIndent()
-        println(selectStatement)
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)

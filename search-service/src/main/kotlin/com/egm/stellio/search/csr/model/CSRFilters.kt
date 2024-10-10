@@ -7,13 +7,14 @@ data class CSRFilters( // todo use a combination of EntitiesQuery TemporalQuery 
 
 ) {
     fun buildWHEREStatement(): String {
-        val idsMatcher = if (ids.isNotEmpty()) "(" +
-            "entity_info.id is null" +
-            " OR entity_info.id in ('${ids.joinToString("', '")}')" +
-            ") AND (" +
-            "entity_info.\"idPattern\" is null OR " +
-            ids.map { "'$it' ~ entity_info.\"idPattern\"" }.joinToString(" OR ") +
-            ")"
+        val idsMatcher = if (ids.isNotEmpty()) """"(
+            entity_info.id is null
+            OR entity_info.id in ('${ids.joinToString("', '")}')
+            ) AND (
+            entity_info.\"idPattern\" is null OR 
+            ${ids.joinToString(" OR ") { "'$it' ~ entity_info.\"idPattern\"" }}
+            )
+        """.trimIndent()
         else "true"
         return idsMatcher
     }

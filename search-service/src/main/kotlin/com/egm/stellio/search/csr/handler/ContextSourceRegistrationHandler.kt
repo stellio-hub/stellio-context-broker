@@ -96,9 +96,9 @@ class ContextSourceRegistrationHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val contextSourceRegistrations = contextSourceRegistrationService.getContextSourceRegistrations(
-            paginationQuery.limit,
-            paginationQuery.offset,
-            sub
+            limit = paginationQuery.limit,
+            offset = paginationQuery.offset,
+            sub = sub,
         ).serialize(contexts, mediaType, includeSysAttrs)
         val contextSourceRegistrationsCount = contextSourceRegistrationService.getContextSourceRegistrationsCount(
             sub

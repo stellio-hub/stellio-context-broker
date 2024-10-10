@@ -5,8 +5,6 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.Mode
-import com.egm.stellio.search.csr.service.CompactedEntityWithIsAuxiliary
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -234,15 +232,13 @@ class EntityHandler(
         val csrFilters = CSRFilters(setOf(entityId))
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
-            limit = Int.MAX_VALUE,
-            offset = 0,
             sub,
             csrFilters
         )
 
         // todo local parameter (6.3.18)
         // todo parrallelize calls
-        val localEntity: CompactedEntity? = either {
+        val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
             expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
 
@@ -250,19 +246,22 @@ class EntityHandler(
                 expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
             )
             compactEntity(filteredExpandedEntity, contexts)
-        }.fold({ null }, { it })
+        }
 
-        val compactedEntitiesWithIsAuxiliary: List<CompactedEntityWithIsAuxiliary> = matchingCSR.mapNotNull { csr ->
+        val entitiesWithMode = matchingCSR.map { csr ->
             ContextSourceUtils.call(
                 httpHeaders,
                 csr,
                 HttpMethod.GET,
-                "/ngsi-ld/v1/entities/$entityId",
-                null
-            )?.let { entity -> entity to (csr.mode == Mode.AUXILIARY) }
-        }
+                "/ngsi-ld/v1/entities/$entityId"
+            ) to csr.mode
+        }.filter { it.first.isRight() } // ignore all errors
+            .map { (response, mode) ->
+                response.getOrNull()!! to mode
+            }
 
-        val mergeEntity = ContextSourceUtils.mergeEntity(localEntity, compactedEntitiesWithIsAuxiliary)
+        if (localEntity.isLeft() && entitiesWithMode.isEmpty()) localEntity.bind()
+        val mergeEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)
             ?: throw ResourceNotFoundException("No entity with id: $entityId found")
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)

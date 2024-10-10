@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
+import org.springframework.http.HttpStatus
 
 sealed class APIException(
     override val message: String
@@ -20,6 +21,7 @@ data class NotImplementedException(override val message: String) : APIException(
 data class LdContextNotAvailableException(override val message: String) : APIException(message)
 data class NonexistentTenantException(override val message: String) : APIException(message)
 data class NotAcceptableException(override val message: String) : APIException(message)
+data class ContextSourceRequestException(override val message: String, val status: HttpStatus) : APIException(message)
 
 fun Throwable.toAPIException(specificMessage: String? = null): APIException =
     when (this) {

@@ -88,6 +88,7 @@ private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiRes
  * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
  * but main code there should move here when we no longer raise business exceptions
  */
+// todo put in ApiException File?
 fun APIException.toErrorResponse(): ResponseEntity<*> =
     when (this) {
         is AlreadyExistsException ->
@@ -108,6 +109,8 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
             generateErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, LdContextNotAvailableResponse(this.message))
         is TooManyResultsException ->
             generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
+        is ContextSourceRequestException ->
+            generateErrorResponse(this.status, ContextSourceRequestResponse(this.message))
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 

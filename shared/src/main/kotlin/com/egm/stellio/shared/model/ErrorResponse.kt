@@ -101,6 +101,13 @@ data class NonexistentTenantResponse(override val detail: String) :
         detail
     )
 
+data class ContextSourceRequestResponse(override val detail: String) :
+    ErrorResponse(
+        ErrorType.NONEXISTENT_TENANT.type,
+        "The context source call failed",
+        detail
+    )
+
 enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
     BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),

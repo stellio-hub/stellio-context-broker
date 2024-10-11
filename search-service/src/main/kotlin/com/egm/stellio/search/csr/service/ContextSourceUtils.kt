@@ -7,19 +7,23 @@ import arrow.core.right
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.egm.stellio.shared.util.isDate
+import com.egm.stellio.shared.util.isDateTime
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
+import java.util.stream.Collectors.toSet
 import kotlin.random.Random.Default.nextBoolean
 
 typealias SingleAttribute = Map<String, Any> // todo maybe use the actual attribute type
@@ -57,44 +61,57 @@ object ContextSourceUtils {
 
     fun mergeEntity(
         localEntity: CompactedEntity?,
-        pairsOfEntitiyWithMode: List<CompactedEntityWithMode>
+        entitiesWithMode: List<CompactedEntityWithMode>
     ): CompactedEntity? {
-        if (localEntity == null && pairsOfEntitiyWithMode.isEmpty()) return null
+        if (localEntity == null && entitiesWithMode.isEmpty()) return null
 
         val mergedEntity = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        pairsOfEntitiyWithMode.forEach {
-                entity ->
-            entity.first.entries.forEach {
-                    (key, value) ->
-                when {
-                    !mergedEntity.containsKey(key) -> mergedEntity[key] = value
-                    JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(key) -> {}
-                    else -> mergedEntity[key] = mergeAttribute(
-                        mergedEntity[key]!!,
-                        value,
-                        entity.second == Mode.AUXILIARY
-                    )
+        entitiesWithMode.sortedBy { (_, mode) -> mode == Mode.AUXILIARY }
+            .forEach { (entity, mode) ->
+                entity.entries.forEach {
+                        (key, value) ->
+                    when {
+                        !mergedEntity.containsKey(key) -> mergedEntity[key] = value
+                        key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> {}
+                        key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
+                            mergedEntity[key] = mergeTypeOrScope(mergedEntity[key]!!, value)
+                        else -> mergedEntity[key] = mergeAttribute(
+                            mergedEntity[key]!!,
+                            value,
+                            mode == Mode.AUXILIARY
+                        )
+                    }
                 }
             }
-        }
         return mergedEntity
     }
+
+    fun mergeTypeOrScope(
+        type1: Any, // String || List<String> || Set<String>
+        type2: Any
+    ) = when {
+        type1 is List<*> && type2 is List<*> -> type1.toSet() + type2.toSet()
+        type1 is List<*> -> type1.toSet() + type2
+        type2 is List<*> -> type2.toSet() + type1
+        type1 == type2 -> setOf(type1)
+        else -> setOf(type1, type2)
+    }.toList()
 
     /**
      * Implements 4.5.5 - Multi-Attribute Support
      */
-    private fun mergeAttribute(
+    fun mergeAttribute(
         attribute1: Any,
         attribute2: Any,
-        auxiliary: Boolean = false
+        isAuxiliary: Boolean = false
     ): CompactedAttribute {
         val mergeMap = attributeToDatasetIdMap(attribute1).toMutableMap()
         val attribute2Map = attributeToDatasetIdMap(attribute2)
         attribute2Map.entries.forEach { (datasetId, value) ->
             when {
                 mergeMap[datasetId] == null -> mergeMap[datasetId] = value
-                auxiliary -> {}
+                isAuxiliary -> {}
                 mergeMap[datasetId]!!.isBefore(value, NGSILD_OBSERVED_AT_TERM) -> mergeMap[datasetId] = value
                 value.isBefore(mergeMap[datasetId]!!, NGSILD_OBSERVED_AT_TERM) -> {}
                 mergeMap[datasetId]!!.isBefore(value, NGSILD_MODIFIED_AT_TERM) -> mergeMap[datasetId] = value
@@ -117,17 +134,17 @@ object ContextSourceUtils {
                 it[NGSILD_DATASET_ID_TERM] as? String to it
             }
         }
-
         else -> throw InternalErrorException(
             "the attribute is nor a list nor a map, check that you have excluded the CORE Members"
         )
     }
+
     private fun SingleAttribute.isBefore(
         attr: SingleAttribute,
         property: String
     ): Boolean = (
-        (this[property] as? String)?.isDate() == true &&
-            (attr[property] as? String)?.isDate() == true &&
-            LocalDateTime.parse(this[property] as String) < LocalDateTime.parse(attr[property] as String)
+        (this[property] as? String)?.isDateTime() == true &&
+            (attr[property] as? String)?.isDateTime() == true &&
+            ZonedDateTime.parse(this[property] as String) < ZonedDateTime.parse(attr[property] as String)
         )
 }

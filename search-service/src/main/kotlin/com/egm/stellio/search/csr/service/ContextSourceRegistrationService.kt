@@ -9,8 +9,12 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationIn
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.toStringValue
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -176,11 +180,12 @@ class ContextSourceRegistrationService(
                 created_at,
                 modified_at
             FROM context_source_registration as csr
-            LEFT JOIN jsonb_to_recordset(information) 
-                as information(entities jsonb,propertyNames text[],relationshipNames text[] ) on true
-            LEFT JOIN jsonb_to_recordset(entities) 
-                as entity_info(id text,"idPattern" text,"type" text) on true
-            WHERE sub = :sub AND $filterQuery
+            LEFT JOIN jsonb_to_recordset(information)
+                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+            LEFT JOIN jsonb_to_recordset(entities)
+                as entity_info(id text, idPattern text, type text) on true
+            WHERE sub = :sub
+            AND $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
             LIMIT :limit

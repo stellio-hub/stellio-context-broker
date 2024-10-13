@@ -1,6 +1,7 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Some
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -17,6 +18,7 @@ import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -50,12 +52,18 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contexts: List<String> = APIC_COMPOUND_CONTEXTS
     ): ContextSourceRegistration {
         val csrPayload = loadSampleData(filename)
-        return ContextSourceRegistration.deserialize(csrPayload.deserializeAsMap(), contexts)
-            .shouldSucceedAndResult()
+        return deserializeContextSourceRegistration(csrPayload, contexts)
     }
 
+    fun deserializeContextSourceRegistration(
+        csrPayload: String,
+        contexts: List<String> = APIC_COMPOUND_CONTEXTS
+    ): ContextSourceRegistration =
+        ContextSourceRegistration.deserialize(csrPayload.deserializeAsMap(), contexts)
+            .shouldSucceedAndResult()
+
     @Test
-    fun `creating a second CSR with the same id should fail with AlreadyExistError`() = runTest {
+    fun `create a second CSR with the same id should return an AlreadyExist error`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -65,7 +73,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `getting a simple CSR should return the created contextSourceRegistration`() = runTest {
+    fun `get a minimal CSR should return the created CSR`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -73,12 +81,12 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.getById(
             contextSourceRegistration.id
         ).shouldSucceedWith {
-            assertEquals(it, contextSourceRegistration)
+            assertEquals(contextSourceRegistration, it)
         }
     }
 
     @Test
-    fun `getting a full CSR should return the created CSR`() = runTest {
+    fun `get a full CSR should return the created CSR`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_full.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -86,12 +94,180 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.getById(
             contextSourceRegistration.id
         ).shouldSucceedWith {
-            assertEquals(it, contextSourceRegistration)
+            assertEquals(contextSourceRegistration, it)
         }
     }
 
     @Test
-    fun `deleting an existing CSR should succeed`() = runTest {
+    fun `query CSR on id should return a CSR matching this id uniquely`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+        )
+
+        assertEquals(1, matchingCsrs.size)
+    }
+
+    @Test
+    fun `query CSR on id should return a CSR matching this id in one of the entities`() = runTest {
+        val contextSourceRegistration =
+            deserializeContextSourceRegistration(
+                """
+                {
+                  "id": "urn:ngsi-ld:ContextSourceRegistration:1",
+                  "type": "ContextSourceRegistration",
+                  "information": [
+                    {
+                      "entities": [
+                        {
+                          "id": "urn:ngsi-ld:Vehicle:A456",
+                          "type": "Vehicle"
+                        },
+                        {
+                          "id": "urn:ngsi-ld:Vehicle:A457",
+                          "type": "Vehicle"
+                        }
+                      ]
+                    }
+                  ],
+                  "endpoint": "http://my.csr.endpoint/"
+                }                    
+                """.trimIndent()
+            )
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+        )
+
+        assertEquals(1, matchingCsrs.size)
+    }
+
+    @Test
+    fun `query CSR on id should return a CSR matching this id on idPattern`() = runTest {
+        val contextSourceRegistration =
+            deserializeContextSourceRegistration(
+                """
+                {
+                  "id": "urn:ngsi-ld:ContextSourceRegistration:1",
+                  "type": "ContextSourceRegistration",
+                  "information": [
+                    {
+                      "entities": [
+                        {
+                          "idPattern": "urn:ngsi-ld:Vehicle:A4*",
+                          "type": "Vehicle"
+                        }
+                      ]
+                    }
+                  ],
+                  "endpoint": "http://my.csr.endpoint/"
+                }                    
+                """.trimIndent()
+            )
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+        )
+
+        assertEquals(1, matchingCsrs.size)
+    }
+
+    @Test
+    fun `query CSR on id should return a CSR matching this id on idPattern but not on id`() = runTest {
+        val contextSourceRegistration =
+            deserializeContextSourceRegistration(
+                """
+                {
+                  "id": "urn:ngsi-ld:ContextSourceRegistration:1",
+                  "type": "ContextSourceRegistration",
+                  "information": [
+                    {
+                      "entities": [
+                        {
+                          "idPattern": "urn:ngsi-ld:Vehicle:A4*",
+                          "type": "Vehicle"
+                        },
+                        {
+                          "id": "urn:ngsi-ld:Vehicle:B123",
+                          "type": "Vehicle"
+                        }
+                      ]
+                    }
+                  ],
+                  "endpoint": "http://my.csr.endpoint/"
+                }                    
+                """.trimIndent()
+            )
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+        )
+
+        assertEquals(1, matchingCsrs.size)
+    }
+
+    @Test
+    fun `query CSR on id should return a single CSR when entities matches twice`() = runTest {
+        val contextSourceRegistration =
+            deserializeContextSourceRegistration(
+                """
+                {
+                  "id": "urn:ngsi-ld:ContextSourceRegistration:1",
+                  "type": "ContextSourceRegistration",
+                  "information": [
+                    {
+                      "entities": [
+                        {
+                          "idPattern": "urn:ngsi-ld:Vehicle:A4*",
+                          "type": "Vehicle"
+                        },
+                        {
+                          "id": "urn:ngsi-ld:Vehicle:A456",
+                          "type": "Vehicle"
+                        }
+                      ]
+                    }
+                  ],
+                  "endpoint": "http://my.csr.endpoint/"
+                }                    
+                """.trimIndent()
+            )
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+        )
+
+        assertEquals(1, matchingCsrs.size)
+    }
+
+    @Test
+    fun `query CSR on id should return an empty list if no CSR matches`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            mockUserSub,
+            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A457".toUri()))
+        )
+
+        assertTrue(matchingCsrs.isEmpty())
+    }
+
+    @Test
+    fun `delete an existing CSR should succeed`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -105,7 +281,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `deletin an non existing CSR should return a RessourceNotFound Error`() = runTest {
+    fun `delete a non existing CSR should return a RessourceNotFound error`() = runTest {
         val id = "urn:ngsi-ld:ContextSourceRegistration:UnknownContextSourceRegistration".toUri()
         contextSourceRegistrationService.delete(
             id

@@ -47,11 +47,10 @@ object ContextSourceUtils {
         val (statusCode, response) = request
             .awaitExchange { response -> response.statusCode() to response.awaitBody<CompactedEntity>() }
         return if (statusCode.is2xxSuccessful) {
-            logger.info("Successfully received Informations from CSR at : $uri")
+            logger.debug("Successfully received response from CSR at $uri")
             response.right()
         } else {
-            logger.info("Error contacting CSR at : $uri")
-            logger.info("Error contacting CSR at : $response")
+            logger.warn("Error contacting CSR at $uri: $response")
             ContextSourceRequestException(
                 response.toString(),
                 HttpStatus.valueOf(statusCode.value())

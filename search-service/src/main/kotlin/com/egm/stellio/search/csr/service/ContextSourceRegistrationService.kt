@@ -191,11 +191,12 @@ class ContextSourceRegistrationService(
                 created_at,
                 modified_at
             FROM context_source_registration as csr
-            LEFT JOIN jsonb_to_recordset(information) 
-                as information(entities jsonb,propertyNames text[],relationshipNames text[] ) on true
-            LEFT JOIN jsonb_to_recordset(entities) 
-                as entity_info(id text,"idPattern" text,"type" text) on true
-            WHERE sub = :sub AND $filterQuery
+            LEFT JOIN jsonb_to_recordset(information)
+                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+            LEFT JOIN jsonb_to_recordset(entities)
+                as entity_info(id text, idPattern text, type text) on true
+            WHERE sub = :sub
+            AND $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
             LIMIT :limit

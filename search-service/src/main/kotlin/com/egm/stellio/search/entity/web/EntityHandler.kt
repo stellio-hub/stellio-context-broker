@@ -4,7 +4,9 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -234,10 +236,8 @@ class EntityHandler(
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             sub,
             csrFilters
-        )
+        ).filter { csr -> csr.operations.any { it == Operation.FEDERATION_OPS || it == Operation.RETRIEVE_ENTITY } }
 
-        // todo local parameter (6.3.18)
-        // todo parrallelize calls
         val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
             expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
@@ -248,12 +248,14 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        val entitiesWithMode = matchingCSR.map { csr ->
+        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
+        val entitiesWithMode = matchingCSR.parMap { csr ->
             ContextSourceUtils.call(
                 httpHeaders,
                 csr,
                 HttpMethod.GET,
-                "/ngsi-ld/v1/entities/$entityId"
+                "/ngsi-ld/v1/entities/$entityId",
+                params
             ) to csr.mode
         }.filter { it.first.isRight() } // ignore all errors
             .map { (response, mode) ->
@@ -261,13 +263,13 @@ class EntityHandler(
             }
 
         if (localEntity.isLeft() && entitiesWithMode.isEmpty()) localEntity.bind()
-        val mergeEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)
+        val mergedEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)
             ?: throw ResourceNotFoundException("No entity with id: $entityId found")
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(
-                serializeObject(mergeEntity.toFinalRepresentation(ngsiLdDataRepresentation))
+                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
             )
     }.fold(
         { it.toErrorResponse() },

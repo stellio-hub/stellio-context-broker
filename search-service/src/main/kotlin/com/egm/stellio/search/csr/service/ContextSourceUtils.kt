@@ -19,15 +19,14 @@ import com.egm.stellio.shared.util.isDateTime
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
+import java.net.URI
 import java.time.ZonedDateTime
-import java.util.stream.Collectors.toSet
 import kotlin.random.Random.Default.nextBoolean
 
-typealias SingleAttribute = Map<String, Any> // todo maybe use the actual attribute type
-typealias CompactedAttribute = List<SingleAttribute>
 typealias CompactedEntityWithMode = Pair<CompactedEntity, Mode>
 
 object ContextSourceUtils {
@@ -37,13 +36,19 @@ object ContextSourceUtils {
         csr: ContextSourceRegistration,
         method: HttpMethod,
         path: String,
-        body: String? = null
+        params: MultiValueMap<String, String>
     ): Either<APIException, CompactedEntity> = either {
-        val uri = "${csr.endpoint}$path"
-        val request = WebClient.create(uri)
+        val uri = URI("${csr.endpoint}$path")
+        val request = WebClient.create()
             .method(method)
-            .headers { newHeader -> "Link" to httpHeaders["Link"] }
-        body?.let { request.bodyValue(it) }
+            .uri { uriBuilder ->
+                uriBuilder.scheme(uri.scheme)
+                    .host(uri.host)
+                    .path(uri.path)
+                    .queryParams(params)
+                    .build()
+            }
+            .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
         val (statusCode, response) = request
             .awaitExchange { response -> response.statusCode() to response.awaitBody<CompactedEntity>() }
         return if (statusCode.is2xxSuccessful) {
@@ -70,13 +75,14 @@ object ContextSourceUtils {
             .forEach { (entity, mode) ->
                 entity.entries.forEach {
                         (key, value) ->
+                    val mergedValue = mergedEntity[key]
                     when {
-                        !mergedEntity.containsKey(key) -> mergedEntity[key] = value
+                        mergedValue == null -> mergedEntity[key] = value
                         key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> {}
                         key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
-                            mergedEntity[key] = mergeTypeOrScope(mergedEntity[key]!!, value)
+                            mergedEntity[key] = mergeTypeOrScope(mergedValue, value)
                         else -> mergedEntity[key] = mergeAttribute(
-                            mergedEntity[key]!!,
+                            mergedValue,
                             value,
                             mode == Mode.AUXILIARY
                         )
@@ -90,12 +96,12 @@ object ContextSourceUtils {
         type1: Any, // String || List<String> || Set<String>
         type2: Any
     ) = when {
-        type1 is List<*> && type2 is List<*> -> type1.toSet() + type2.toSet()
-        type1 is List<*> -> type1.toSet() + type2
-        type2 is List<*> -> type2.toSet() + type1
-        type1 == type2 -> setOf(type1)
-        else -> setOf(type1, type2)
-    }.toList()
+        type1 is List<*> && type2 is List<*> -> (type1.toSet() + type2.toSet()).toList()
+        type1 is List<*> -> (type1.toSet() + type2).toList()
+        type2 is List<*> -> (type2.toSet() + type1).toList()
+        type1 == type2 -> type1
+        else -> listOf(type1, type2)
+    }
 
     /**
      * Implements 4.5.5 - Multi-Attribute Support
@@ -104,42 +110,42 @@ object ContextSourceUtils {
         attribute1: Any,
         attribute2: Any,
         isAuxiliary: Boolean = false
-    ): CompactedAttribute {
+    ): Any {
         val mergeMap = attributeToDatasetIdMap(attribute1).toMutableMap()
         val attribute2Map = attributeToDatasetIdMap(attribute2)
-        attribute2Map.entries.forEach { (datasetId, value) ->
+        attribute2Map.entries.forEach { (datasetId, value2) ->
+            val value1 = mergeMap[datasetId]
             when {
-                mergeMap[datasetId] == null -> mergeMap[datasetId] = value
+                value1 == null -> mergeMap[datasetId] = value2
                 isAuxiliary -> {}
-                mergeMap[datasetId]!!.isBefore(value, NGSILD_OBSERVED_AT_TERM) -> mergeMap[datasetId] = value
-                value.isBefore(mergeMap[datasetId]!!, NGSILD_OBSERVED_AT_TERM) -> {}
-                mergeMap[datasetId]!!.isBefore(value, NGSILD_MODIFIED_AT_TERM) -> mergeMap[datasetId] = value
-                value.isBefore(mergeMap[datasetId]!!, NGSILD_MODIFIED_AT_TERM) -> {}
-                nextBoolean() -> mergeMap[datasetId] = value
+                value1.isBefore(value2, NGSILD_OBSERVED_AT_TERM) -> mergeMap[datasetId] = value2
+                value2.isBefore(value1, NGSILD_OBSERVED_AT_TERM) -> {}
+                value1.isBefore(value2, NGSILD_MODIFIED_AT_TERM) -> mergeMap[datasetId] = value2
+                value2.isBefore(value1, NGSILD_MODIFIED_AT_TERM) -> {}
+                nextBoolean() -> mergeMap[datasetId] = value2
                 else -> {}
             }
         }
-        return mergeMap.values.toList()
+        val values = mergeMap.values.toList()
+        return if (values.size == 1) values[0] else values
     }
 
-    private fun attributeToDatasetIdMap(attribute: Any): Map<String?, Map<String, Any>> = when (attribute) {
+    private fun attributeToDatasetIdMap(attribute: Any): Map<String?, CompactedAttributeInstance> = when (attribute) {
         is Map<*, *> -> {
-            attribute as SingleAttribute
+            attribute as CompactedAttributeInstance
             mapOf(attribute[NGSILD_DATASET_ID_TERM] as? String to attribute)
         }
         is List<*> -> {
-            attribute as CompactedAttribute
-            attribute.associate {
-                it[NGSILD_DATASET_ID_TERM] as? String to it
-            }
+            attribute as CompactedAttributeInstances
+            attribute.associateBy { it[NGSILD_DATASET_ID_TERM] as? String }
         }
         else -> throw InternalErrorException(
             "the attribute is nor a list nor a map, check that you have excluded the CORE Members"
         )
     }
 
-    private fun SingleAttribute.isBefore(
-        attr: SingleAttribute,
+    private fun CompactedAttributeInstance.isBefore(
+        attr: CompactedAttributeInstance,
         property: String
     ): Boolean = (
         (this[property] as? String)?.isDateTime() == true &&

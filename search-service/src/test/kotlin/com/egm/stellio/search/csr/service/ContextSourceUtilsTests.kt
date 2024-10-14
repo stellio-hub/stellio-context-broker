@@ -1,8 +1,7 @@
 package com.egm.stellio.search.csr.service
 
-import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.csr.model.Mode
-import com.egm.stellio.search.temporal.service.TemporalPaginationService
+import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -17,34 +16,30 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalPaginationService::class])
-@EnableConfigurationProperties(SearchProperties::class)
 class ContextSourceUtilsTests {
     private val name = "name"
     private val minimalEntity: CompactedEntity = mapper.readValue(loadSampleData("beehive_minimal.jsonld"))
     private val baseEntity: CompactedEntity = mapper.readValue(loadSampleData("beehive.jsonld"))
     private val multipleTypeEntity: CompactedEntity = mapper.readValue(loadSampleData("entity_with_multi_types.jsonld"))
 
-    private val nameAttribute: SingleAttribute = mapOf(
+    private val nameAttribute: CompactedAttributeInstance = mapOf(
         JSONLD_TYPE_TERM to "Property",
         JSONLD_VALUE_TERM to "name",
         NGSILD_DATASET_ID_TERM to "1",
         NGSILD_OBSERVED_AT_TERM to "2010-01-01T01:01:01.01Z"
     )
 
-    val moreRecentAttribute: SingleAttribute = mapOf(
+    val moreRecentAttribute: CompactedAttributeInstance = mapOf(
         JSONLD_TYPE_TERM to "Property",
         JSONLD_VALUE_TERM to "moreRecentName",
         NGSILD_DATASET_ID_TERM to "1",
         NGSILD_OBSERVED_AT_TERM to "2020-01-01T01:01:01.01Z"
     )
 
-    val evenMoreRecentAttribute: SingleAttribute = mapOf(
+    val evenMoreRecentAttribute: CompactedAttributeInstance = mapOf(
         JSONLD_TYPE_TERM to "Property",
         JSONLD_VALUE_TERM to "evenMoreRecentName",
         NGSILD_DATASET_ID_TERM to "1",
@@ -108,7 +103,7 @@ class ContextSourceUtilsTests {
 
     @Test
     fun `merge entity should keep both attribute if they have different datasetId `() = runTest {
-        val nameAttribute2: SingleAttribute = mapOf(
+        val nameAttribute2: CompactedAttributeInstance = mapOf(
             JSONLD_TYPE_TERM to "Property",
             JSONLD_VALUE_TERM to "name2",
             NGSILD_DATASET_ID_TERM to "2"
@@ -129,9 +124,9 @@ class ContextSourceUtilsTests {
         )!!
         assertEquals(
             "2030-01-01T01:01:01.01Z",
-            (mergedEntity[name] as List<SingleAttribute>)[0][NGSILD_OBSERVED_AT_TERM]
+            (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
-        assertEquals("evenMoreRecentName", (mergedEntity[name] as List<SingleAttribute>)[0][JSONLD_VALUE_TERM])
+        assertEquals("evenMoreRecentName", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
     }
 
     @Test
@@ -142,8 +137,8 @@ class ContextSourceUtilsTests {
         )!!
         assertEquals(
             "2010-01-01T01:01:01.01Z",
-            (mergedEntity[name] as List<SingleAttribute>)[0][NGSILD_OBSERVED_AT_TERM]
+            (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
-        assertEquals("name", (mergedEntity[name] as List<SingleAttribute>)[0][JSONLD_VALUE_TERM])
+        assertEquals("name", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
     }
 }

@@ -103,7 +103,7 @@ data class NonexistentTenantResponse(override val detail: String) :
 
 data class ContextSourceRequestResponse(override val detail: String) :
     ErrorResponse(
-        ErrorType.NONEXISTENT_TENANT.type,
+        ErrorType.CONTEXT_SOURCE_REQUEST.type,
         "The context source call failed",
         detail
     )
@@ -122,5 +122,6 @@ enum class ErrorType(val type: URI) {
     NOT_IMPLEMENTED(URI("https://uri.etsi.org/ngsi-ld/errors/NotImplemented")),
     UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType")),
     NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable")),
-    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant"))
+    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")),
+    CONTEXT_SOURCE_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/ContextSourceRequest"))
 }

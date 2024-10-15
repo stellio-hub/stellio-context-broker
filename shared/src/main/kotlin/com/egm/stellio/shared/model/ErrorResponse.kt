@@ -5,7 +5,7 @@ import java.net.URI
 sealed class ErrorResponse(
     val type: URI,
     open val title: String,
-    open val detail: String
+    open val detail: String,
 )
 
 data class InvalidRequestResponse(override val detail: String) : ErrorResponse(
@@ -98,14 +98,7 @@ data class NonexistentTenantResponse(override val detail: String) :
     ErrorResponse(
         ErrorType.NONEXISTENT_TENANT.type,
         "The addressed tenant does not exist",
-        detail
-    )
-
-data class ContextSourceRequestResponse(override val detail: String) :
-    ErrorResponse(
-        ErrorType.CONTEXT_SOURCE_REQUEST.type,
-        "The context source call failed",
-        detail
+        detail,
     )
 
 enum class ErrorType(val type: URI) {

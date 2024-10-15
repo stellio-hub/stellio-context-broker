@@ -45,7 +45,6 @@ import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.ResponseEntity
@@ -249,25 +248,29 @@ class EntityHandler(
         }
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
-        val entitiesWithMode = matchingCSR.parMap { csr ->
-            ContextSourceUtils.call(
+        val (entitiesWithMode, warnings) = matchingCSR.parMap { csr ->
+            ContextSourceUtils.getDistributedInformation(
                 httpHeaders,
                 csr,
-                HttpMethod.GET,
                 "/ngsi-ld/v1/entities/$entityId",
                 params
             ) to csr.mode
-        }.filter { it.first.isRight() } // ignore all errors
-            .map { (response, mode) ->
-                response.getOrNull()!! to mode
+        }.partition { it.first.isRight() }
+            .let { (responses, warnings) ->
+                responses.map { (response, mode) -> response.getOrNull()!! to mode } to
+                    warnings.mapNotNull { (warning, _) -> warning.swap().getOrNull() }
             }
 
-        if (localEntity.isLeft() && entitiesWithMode.isEmpty()) localEntity.bind()
-        val mergedEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)
-            ?: throw ResourceNotFoundException("No entity with id: $entityId found")
+        val localError = localEntity.swap().getOrNull()
+        if (localError != null && entitiesWithMode.isEmpty()) {
+            localError.warnings = warnings
+            localError.left().bind()
+        }
+
+        val mergedEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)!!
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
+        prepareGetSuccessResponseHeaders(mediaType, contexts, warnings)
             .body(
                 serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
             )

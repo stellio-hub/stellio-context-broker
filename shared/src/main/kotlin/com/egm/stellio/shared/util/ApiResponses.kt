@@ -91,33 +91,44 @@ private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiRes
 fun APIException.toErrorResponse(): ResponseEntity<*> =
     when (this) {
         is AlreadyExistsException ->
-            generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message))
+            generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message), this.warnings)
         is ResourceNotFoundException ->
-            generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(this.message))
+            generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(this.message), this.warnings)
         is InvalidRequestException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message))
+            generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message), this.warnings)
         is BadRequestDataException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message))
+            generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message), this.warnings)
         is OperationNotSupportedException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message))
+            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message), this.warnings)
         is AccessDeniedException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message))
+            generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message), this.warnings)
         is NotImplementedException ->
-            generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message))
+            generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message), this.warnings)
         is LdContextNotAvailableException ->
-            generateErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, LdContextNotAvailableResponse(this.message))
+            generateErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                LdContextNotAvailableResponse(this.message),
+                this.warnings
+            )
         is TooManyResultsException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
-        is ContextSourceRequestException ->
-            generateErrorResponse(this.status, ContextSourceRequestResponse(this.message))
-        else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
+            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message), this.warnings)
+        else -> generateErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            InternalErrorResponse("$cause"),
+            this.warnings
+        )
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
+private fun generateErrorResponse(
+    status: HttpStatus,
+    exception: ErrorResponse,
+    warnings: List<NGSILDWarning>?
+): ResponseEntity<*> {
     logger.info("Returning error ${exception.type} (${exception.detail})")
-    return ResponseEntity.status(status)
+    val response = ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
-        .body(serializeObject(exception))
+    warnings?.addToResponse(response)
+    return response.body(serializeObject(exception))
 }
 
 fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
@@ -179,7 +190,12 @@ fun buildQueryResponse(
     else responseHeaders.body(body)
 }
 
-fun prepareGetSuccessResponseHeaders(mediaType: MediaType, contexts: List<String>): ResponseEntity.BodyBuilder =
+fun prepareGetSuccessResponseHeaders(
+    mediaType: MediaType,
+    contexts:
+    List<String>,
+    warnings: List<NGSILDWarning>? = null
+): ResponseEntity.BodyBuilder =
     ResponseEntity.status(HttpStatus.OK)
         .apply {
             if (mediaType == JSON_LD_MEDIA_TYPE) {
@@ -188,4 +204,6 @@ fun prepareGetSuccessResponseHeaders(mediaType: MediaType, contexts: List<String
                 this.header(HttpHeaders.LINK, buildContextLinkHeader(contexts.first()))
                 this.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             }
+
+            warnings?.let { warnings.addToResponse(this) }
         }

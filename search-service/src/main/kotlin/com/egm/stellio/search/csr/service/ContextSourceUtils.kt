@@ -4,9 +4,12 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.Mode
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.search.csr.model.*
+import com.egm.stellio.shared.model.CompactedAttributeInstance
+import com.egm.stellio.shared.model.CompactedAttributeInstances
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -15,12 +18,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.egm.stellio.shared.util.isDateTime
+import com.fasterxml.jackson.core.JacksonException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientException
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
@@ -31,16 +35,15 @@ typealias CompactedEntityWithMode = Pair<CompactedEntity, Mode>
 
 object ContextSourceUtils {
 
-    suspend fun call(
+    suspend fun getDistributedInformation(
         httpHeaders: HttpHeaders,
         csr: ContextSourceRegistration,
-        method: HttpMethod,
         path: String,
         params: MultiValueMap<String, String>
-    ): Either<APIException, CompactedEntity> = either {
+    ): Either<NGSILDWarning?, CompactedEntity> = either {
         val uri = URI("${csr.endpoint}$path")
         val request = WebClient.create()
-            .method(method)
+            .method(HttpMethod.GET)
             .uri { uriBuilder ->
                 uriBuilder.scheme(uri.scheme)
                     .host(uri.host)
@@ -49,16 +52,35 @@ object ContextSourceUtils {
                     .build()
             }
             .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
-        val (statusCode, response) = request
-            .awaitExchange { response -> response.statusCode() to response.awaitBody<CompactedEntity>() }
-        return if (statusCode.is2xxSuccessful) {
-            logger.debug("Successfully received response from CSR at $uri")
-            response.right()
-        } else {
-            logger.warn("Error contacting CSR at $uri: $response")
-            ContextSourceRequestException(
-                response.toString(),
-                HttpStatus.valueOf(statusCode.value())
+        return try {
+            val (statusCode, response) = request
+                .awaitExchange { response ->
+                    response.statusCode() to response.awaitBody<CompactedEntity>()
+                }
+            when {
+                statusCode.is2xxSuccessful -> {
+                    logger.info("Successfully received response from CSR at $uri")
+                    response.right()
+                }
+                statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
+                    logger.info("CSR returned 404 at $uri: $response")
+                    null.left()
+                }
+                else -> {
+                    logger.warn("Error contacting CSR at $uri: $response")
+
+                    MiscellaneousPersistentWarning(
+                        "the CSR ${csr.id} returned an error $statusCode at : $uri response: \"$response\""
+                    ).left()
+                }
+            }
+        } catch (e: WebClientException) {
+            MiscellaneousWarning(
+                "Error connecting to csr ${csr.id} at : $uri message : \"${e.message}\""
+            ).left()
+        } catch (e: JacksonException) { // todo get the good exception for invalid payload
+            RevalidationFailedWarning(
+                "the CSR ${csr.id} as : $uri returned badly formed data message: \"${e.message}\""
             ).left()
         }
     }

@@ -2,10 +2,11 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import org.springframework.http.HttpStatus
+import com.egm.stellio.shared.util.NGSILDWarning
 
 sealed class APIException(
-    override val message: String
+    override val message: String,
+    var warnings: List<NGSILDWarning>? = null
 ) : Exception(message)
 
 data class InvalidRequestException(override val message: String) : APIException(message)
@@ -21,7 +22,6 @@ data class NotImplementedException(override val message: String) : APIException(
 data class LdContextNotAvailableException(override val message: String) : APIException(message)
 data class NonexistentTenantException(override val message: String) : APIException(message)
 data class NotAcceptableException(override val message: String) : APIException(message)
-data class ContextSourceRequestException(override val message: String, val status: HttpStatus) : APIException(message)
 
 fun Throwable.toAPIException(specificMessage: String? = null): APIException =
     when (this) {

@@ -27,14 +27,18 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toStringValue
 import io.r2dbc.postgresql.codec.Json
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
+import org.springframework.data.relational.core.query.Update
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Component
 class ContextSourceRegistrationService(
@@ -244,5 +248,25 @@ class ContextSourceRegistrationService(
                 )
             },
         )
+    }
+
+    suspend fun updateContextSourceStatus(
+        csr: ContextSourceRegistration,
+        success: Boolean
+    ): Long {
+        val updateStatement = if (success)
+            Update.update("status", ContextSourceRegistration.StatusType.OK.name)
+                .set("times_sent", csr.timesSent + 1)
+                .set("last_success", Instant.now().atZone(ZoneOffset.UTC))
+        else Update.update("status", ContextSourceRegistration.StatusType.FAILED.name)
+            .set("times_sent", csr.timesSent + 1)
+            .set("times_failed", csr.timesFailed + 1)
+            .set("last_failure", Instant.now().atZone(ZoneOffset.UTC))
+
+        return r2dbcEntityTemplate.update(
+            query(where("id").`is`(csr.id)),
+            updateStatement,
+            ContextSourceRegistration::class.java
+        ).awaitFirst()
     }
 }

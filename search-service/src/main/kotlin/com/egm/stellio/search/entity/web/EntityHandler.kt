@@ -249,12 +249,14 @@ class EntityHandler(
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
         val (entitiesWithMode, warnings) = matchingCSR.parMap { csr ->
-            ContextSourceUtils.getDistributedInformation(
+            val response = ContextSourceUtils.getDistributedInformation(
                 httpHeaders,
                 csr,
                 "/ngsi-ld/v1/entities/$entityId",
                 params
-            ) to csr.mode
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response to csr.mode
         }.partition { it.first.isRight() }
             .let { (responses, warnings) ->
                 responses.map { (response, mode) -> response.getOrNull()!! to mode } to

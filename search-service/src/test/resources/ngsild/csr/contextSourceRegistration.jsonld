@@ -11,8 +11,8 @@
       ]
     }
   ],
-     "@context":[
-        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
-     ],
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ],
   "endpoint": "http://my.csr.endpoint/"
 }

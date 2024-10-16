@@ -4,6 +4,11 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
+import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQuery
@@ -34,7 +39,8 @@ import java.util.Optional
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
-    private val entityQueryService: EntityQueryService
+    private val entityQueryService: EntityQueryService,
+    private val contextSourceRegistrationService: ContextSourceRegistrationService
 ) : BaseHandler() {
 
     /**
@@ -182,7 +188,7 @@ class EntityHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam params: MultiValueMap<String, String>,
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
@@ -194,18 +200,52 @@ class EntityHandler(
             contexts
         ).bind()
 
-        val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+        val csrFilters = CSRFilters(setOf(entityId))
 
-        expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
+            sub,
+            csrFilters
+        ).filter { csr -> csr.operations.any { it == Operation.FEDERATION_OPS || it == Operation.RETRIEVE_ENTITY } }
 
-        val filteredExpandedEntity = ExpandedEntity(
-            expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
-        )
-        val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
+        val localEntity = either {
+            val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+            expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
+
+            val filteredExpandedEntity = ExpandedEntity(
+                expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
+            )
+            compactEntity(filteredExpandedEntity, contexts)
+        }
+
+        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
+        val (entitiesWithMode, warnings) = matchingCSR.parMap { csr ->
+            val response = ContextSourceUtils.getDistributedInformation(
+                httpHeaders,
+                csr,
+                "/ngsi-ld/v1/entities/$entityId",
+                params
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response to csr.mode
+        }.partition { it.first.isRight() }
+            .let { (responses, warnings) ->
+                responses.map { (response, mode) -> response.getOrNull()!! to mode } to
+                    warnings.mapNotNull { (warning, _) -> warning.swap().getOrNull() }
+            }
+
+        val localError = localEntity.swap().getOrNull()
+        if (localError != null && entitiesWithMode.isEmpty()) {
+            localError.warnings = warnings
+            localError.left().bind()
+        }
+
+        val mergedEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)!!
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+        prepareGetSuccessResponseHeaders(mediaType, contexts, warnings)
+            .body(
+                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
+            )
     }.fold(
         { it.toErrorResponse() },
         { it }

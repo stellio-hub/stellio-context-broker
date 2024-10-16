@@ -3,22 +3,31 @@ package com.egm.stellio.search.csr.service
 import arrow.core.*
 import arrow.core.raise.either
 import com.egm.stellio.search.common.util.*
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.toStringValue
 import io.r2dbc.postgresql.codec.Json
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
+import org.springframework.data.relational.core.query.Update
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Component
 class ContextSourceRegistrationService(
@@ -154,13 +163,16 @@ class ContextSourceRegistrationService(
     }
 
     suspend fun getContextSourceRegistrations(
-        limit: Int,
-        offset: Int,
-        sub: Option<Sub>
+        sub: Option<Sub>,
+        filters: CSRFilters = CSRFilters(),
+        limit: Int = Int.MAX_VALUE,
+        offset: Int = 0,
     ): List<ContextSourceRegistration> {
+        val filterQuery = filters.buildWHEREStatement()
+
         val selectStatement =
             """
-            SELECT id,
+            SELECT csr.id,
                 endpoint,
                 mode,
                 information,
@@ -171,11 +183,17 @@ class ContextSourceRegistrationService(
                 management_interval_end,
                 created_at,
                 modified_at
-            FROM context_source_registration 
-            WHERE sub = :sub 
-            ORDER BY id
+            FROM context_source_registration as csr
+            LEFT JOIN jsonb_to_recordset(information)
+                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+            LEFT JOIN jsonb_to_recordset(entities)
+                as entity_info(id text, idPattern text, type text) on true
+            WHERE sub = :sub
+            AND $filterQuery
+            GROUP BY csr.id
+            ORDER BY csr.id
             LIMIT :limit
-            OFFSET :offset)
+            OFFSET :offset
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
@@ -219,5 +237,25 @@ class ContextSourceRegistrationService(
                 )
             },
         )
+    }
+
+    suspend fun updateContextSourceStatus(
+        csr: ContextSourceRegistration,
+        success: Boolean
+    ): Long {
+        val updateStatement = if (success)
+            Update.update("status", ContextSourceRegistration.StatusType.OK.name)
+                .set("times_sent", csr.timesSent + 1)
+                .set("last_success", Instant.now().atZone(ZoneOffset.UTC))
+        else Update.update("status", ContextSourceRegistration.StatusType.FAILED.name)
+            .set("times_sent", csr.timesSent + 1)
+            .set("times_failed", csr.timesFailed + 1)
+            .set("last_failure", Instant.now().atZone(ZoneOffset.UTC))
+
+        return r2dbcEntityTemplate.update(
+            query(where("id").`is`(csr.id)),
+            updateStatement,
+            ContextSourceRegistration::class.java
+        ).awaitFirst()
     }
 }

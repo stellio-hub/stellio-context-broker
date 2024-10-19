@@ -2,7 +2,8 @@ import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 buildscript {
     dependencies {
@@ -21,8 +22,8 @@ plugins {
     id("org.springframework.boot") version "3.3.4" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
     id("org.graalvm.buildtools.native") version "0.10.3"
-    kotlin("jvm") version "1.9.24" apply false
-    kotlin("plugin.spring") version "1.9.24" apply false
+    kotlin("jvm") version "2.0.21" apply false
+    kotlin("plugin.spring") version "2.0.21" apply false
     id("com.google.cloud.tools.jib") version "3.4.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
     id("org.sonarqube") version "5.1.0.4882"
@@ -86,11 +87,13 @@ subprojects {
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
-    tasks.withType<KotlinCompile> {
-        kotlinOptions {
-            freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = "${JavaVersion.VERSION_21}"
+    kotlin {
+        compilerOptions {
+            freeCompilerArgs.add("-Xjsr305=strict")
+            apiVersion.set(KotlinVersion.KOTLIN_2_0)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
+        jvmToolchain(21)
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")

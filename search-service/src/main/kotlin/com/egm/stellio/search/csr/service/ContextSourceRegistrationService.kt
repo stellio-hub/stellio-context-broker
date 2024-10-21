@@ -25,6 +25,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
@@ -37,8 +38,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 
 @Component
 class ContextSourceRegistrationService(
@@ -174,7 +173,6 @@ class ContextSourceRegistrationService(
     }
 
     suspend fun getContextSourceRegistrations(
-        sub: Option<Sub>,
         filters: CSRFilters = CSRFilters(),
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
@@ -199,8 +197,7 @@ class ContextSourceRegistrationService(
                 as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
             LEFT JOIN jsonb_to_recordset(entities)
                 as entity_info(id text, idPattern text, type text) on true
-            WHERE sub = :sub
-            AND $filterQuery
+            WHERE $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
             LIMIT :limit
@@ -209,7 +206,6 @@ class ContextSourceRegistrationService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.toStringValue())
             .allToMappedList { rowToContextSourceRegistration(it) }
     }
 
@@ -257,11 +253,11 @@ class ContextSourceRegistrationService(
         val updateStatement = if (success)
             Update.update("status", ContextSourceRegistration.StatusType.OK.name)
                 .set("times_sent", csr.timesSent + 1)
-                .set("last_success", Instant.now().atZone(ZoneOffset.UTC))
+                .set("last_success", ngsiLdDateTime())
         else Update.update("status", ContextSourceRegistration.StatusType.FAILED.name)
             .set("times_sent", csr.timesSent + 1)
             .set("times_failed", csr.timesFailed + 1)
-            .set("last_failure", Instant.now().atZone(ZoneOffset.UTC))
+            .set("last_failure", ngsiLdDateTime())
 
         return r2dbcEntityTemplate.update(
             query(where("id").`is`(csr.id)),

@@ -233,7 +233,6 @@ class EntityHandler(
         val csrFilters = CSRFilters(setOf(entityId))
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
-            sub,
             csrFilters
         ).filter { csr -> csr.operations.any { it == Operation.FEDERATION_OPS || it == Operation.RETRIEVE_ENTITY } }
 
@@ -248,7 +247,7 @@ class EntityHandler(
         }
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
-        val (entitiesWithMode, warnings) = matchingCSR.parMap { csr ->
+        val (remoteEntitiesWithMode, warnings) = matchingCSR.parMap { csr ->
             val response = ContextSourceUtils.getDistributedInformation(
                 httpHeaders,
                 csr,
@@ -257,24 +256,31 @@ class EntityHandler(
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response to csr.mode
-        }.partition { it.first.isRight() }
+        }.partition { it.first.getOrNull() != null }
             .let { (responses, warnings) ->
                 responses.map { (response, mode) -> response.getOrNull()!! to mode } to
-                    warnings.mapNotNull { (warning, _) -> warning.swap().getOrNull() }
+                    warnings.mapNotNull { (warning, _) -> warning.leftOrNull() }.toMutableList()
             }
 
-        val localError = localEntity.swap().getOrNull()
-        if (localError != null && entitiesWithMode.isEmpty()) {
-            localError.warnings = warnings
-            localError.left().bind()
+        val localError = localEntity.leftOrNull()
+        if (localError != null && remoteEntitiesWithMode.isEmpty()) {
+            val error = localError.toErrorResponse()
+            if (warnings.isNotEmpty()) {
+                error.headers.addAll(NGSILDWarning.HEADER_NAME, warnings.getHeaderMessages())
+            }
+
+            return error
         }
 
-        val mergedEntity = ContextSourceUtils.mergeEntity(localEntity.getOrNull(), entitiesWithMode)!!
+        val mergedEntity = ContextSourceUtils.mergeEntity(
+            localEntity.getOrNull(),
+            remoteEntitiesWithMode
+        ).onLeft { warnings.add(it) }.getOrNull() // todo treat warning case
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponseHeaders(mediaType, contexts, warnings)
             .body(
-                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
+                serializeObject(mergedEntity!!.toFinalRepresentation(ngsiLdDataRepresentation))
             )
     }.fold(
         { it.toErrorResponse() },

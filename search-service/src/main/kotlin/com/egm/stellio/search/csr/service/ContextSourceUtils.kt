@@ -8,7 +8,6 @@ import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
@@ -32,7 +31,8 @@ import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithMode = Pair<CompactedEntity, Mode>
-
+typealias DataSetId = String?
+typealias AttributeByDataSetId = Map<DataSetId, CompactedAttributeInstance>
 object ContextSourceUtils {
 
     suspend fun getDistributedInformation(
@@ -40,13 +40,15 @@ object ContextSourceUtils {
         csr: ContextSourceRegistration,
         path: String,
         params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning?, CompactedEntity> = either {
+    ): Either<NGSILDWarning, CompactedEntity?> = either {
         val uri = URI("${csr.endpoint}$path")
+
         val request = WebClient.create()
             .method(HttpMethod.GET)
             .uri { uriBuilder ->
                 uriBuilder.scheme(uri.scheme)
                     .host(uri.host)
+                    .port(uri.port)
                     .path(uri.path)
                     .queryParams(params)
                     .build()
@@ -64,7 +66,7 @@ object ContextSourceUtils {
                 }
                 statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
                     logger.info("CSR returned 404 at $uri: $response")
-                    null.left()
+                    null.right()
                 }
                 else -> {
                     logger.warn("Error contacting CSR at $uri: $response")
@@ -87,18 +89,18 @@ object ContextSourceUtils {
 
     fun mergeEntity(
         localEntity: CompactedEntity?,
-        entitiesWithMode: List<CompactedEntityWithMode>
-    ): CompactedEntity? {
-        if (localEntity == null && entitiesWithMode.isEmpty()) return null
+        remoteEntitiesWithMode: List<CompactedEntityWithMode>
+    ): Either<NGSILDWarning, CompactedEntity?> = either {
+        if (localEntity == null && remoteEntitiesWithMode.isEmpty()) return@either null
 
         val mergedEntity = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        entitiesWithMode.sortedBy { (_, mode) -> mode == Mode.AUXILIARY }
+        remoteEntitiesWithMode.sortedBy { (_, mode) -> mode == Mode.AUXILIARY }
             .forEach { (entity, mode) ->
                 entity.entries.forEach {
                         (key, value) ->
                     val mergedValue = mergedEntity[key]
-                    when {
+                    when { // todo sysAttrs
                         mergedValue == null -> mergedEntity[key] = value
                         key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> {}
                         key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
@@ -107,64 +109,71 @@ object ContextSourceUtils {
                             mergedValue,
                             value,
                             mode == Mode.AUXILIARY
-                        )
+                        ).bind()
                     }
                 }
             }
-        return mergedEntity
+        mergedEntity
     }
 
     fun mergeTypeOrScope(
-        type1: Any, // String || List<String> || Set<String>
-        type2: Any
+        currentValue: Any, // String || List<String> || Set<String>
+        remoteValue: Any
     ) = when {
-        type1 is List<*> && type2 is List<*> -> (type1.toSet() + type2.toSet()).toList()
-        type1 is List<*> -> (type1.toSet() + type2).toList()
-        type2 is List<*> -> (type2.toSet() + type1).toList()
-        type1 == type2 -> type1
-        else -> listOf(type1, type2)
+        currentValue == remoteValue -> currentValue
+        currentValue is List<*> && remoteValue is List<*> -> (currentValue.toSet() + remoteValue.toSet()).toList()
+        currentValue is List<*> -> (currentValue.toSet() + remoteValue).toList()
+        remoteValue is List<*> -> (remoteValue.toSet() + currentValue).toList()
+        else -> listOf(currentValue, remoteValue)
     }
 
     /**
      * Implements 4.5.5 - Multi-Attribute Support
      */
     fun mergeAttribute(
-        attribute1: Any,
-        attribute2: Any,
+        currentAttribute: Any,
+        remoteAttribute: Any,
         isAuxiliary: Boolean = false
-    ): Any {
-        val mergeMap = attributeToDatasetIdMap(attribute1).toMutableMap()
-        val attribute2Map = attributeToDatasetIdMap(attribute2)
-        attribute2Map.entries.forEach { (datasetId, value2) ->
-            val value1 = mergeMap[datasetId]
+    ): Either<NGSILDWarning, Any> = either {
+        val currentInstances = groupInstancesByDataSetId(currentAttribute).bind().toMutableMap()
+        val remoteInstances = groupInstancesByDataSetId(remoteAttribute).bind()
+        remoteInstances.entries.forEach { (datasetId, remoteInstance) ->
+            val currentInstance = currentInstances[datasetId]
             when {
-                value1 == null -> mergeMap[datasetId] = value2
+                currentInstance == null -> currentInstances[datasetId] = remoteInstance
                 isAuxiliary -> {}
-                value1.isBefore(value2, NGSILD_OBSERVED_AT_TERM) -> mergeMap[datasetId] = value2
-                value2.isBefore(value1, NGSILD_OBSERVED_AT_TERM) -> {}
-                value1.isBefore(value2, NGSILD_MODIFIED_AT_TERM) -> mergeMap[datasetId] = value2
-                value2.isBefore(value1, NGSILD_MODIFIED_AT_TERM) -> {}
-                nextBoolean() -> mergeMap[datasetId] = value2
+                currentInstance.isBefore(remoteInstance, NGSILD_OBSERVED_AT_TERM) ->
+                    currentInstances[datasetId] = remoteInstance
+                remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> {}
+                currentInstance.isBefore(remoteInstance, NGSILD_MODIFIED_AT_TERM) ->
+                    currentInstances[datasetId] = remoteInstance
+                remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> {}
+                // if there is no discriminating factor choose one at random
+                nextBoolean() -> currentInstances[datasetId] = remoteInstance
                 else -> {}
             }
         }
-        val values = mergeMap.values.toList()
-        return if (values.size == 1) values[0] else values
+        val values = currentInstances.values.toList()
+        if (values.size == 1) values[0] else values
     }
 
-    private fun attributeToDatasetIdMap(attribute: Any): Map<String?, CompactedAttributeInstance> = when (attribute) {
-        is Map<*, *> -> {
-            attribute as CompactedAttributeInstance
-            mapOf(attribute[NGSILD_DATASET_ID_TERM] as? String to attribute)
+    // do not work with CORE MEMBER since they are nor list nor map
+    private fun groupInstancesByDataSetId(attribute: Any): Either<NGSILDWarning, AttributeByDataSetId> =
+        when (attribute) {
+            is Map<*, *> -> {
+                attribute as CompactedAttributeInstance
+                mapOf(attribute[NGSILD_DATASET_ID_TERM] as? String to attribute).right()
+            }
+            is List<*> -> {
+                attribute as CompactedAttributeInstances
+                attribute.associateBy { it[NGSILD_DATASET_ID_TERM] as? String }.right()
+            }
+            else -> {
+                RevalidationFailedWarning(
+                    "The received payload is invalid. Attribute is nor List nor a Map : $attribute"
+                ).left()
+            }
         }
-        is List<*> -> {
-            attribute as CompactedAttributeInstances
-            attribute.associateBy { it[NGSILD_DATASET_ID_TERM] as? String }
-        }
-        else -> throw InternalErrorException(
-            "the attribute is nor a list nor a map, check that you have excluded the CORE Members"
-        )
-    }
 
     private fun CompactedAttributeInstance.isBefore(
         attr: CompactedAttributeInstance,

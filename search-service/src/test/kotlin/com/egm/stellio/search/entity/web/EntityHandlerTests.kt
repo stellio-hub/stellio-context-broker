@@ -121,7 +121,7 @@ class EntityHandlerTests {
     fun mockCSR() {
         coEvery {
             contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any(), any())
+                .getContextSourceRegistrations(any(), any(), any())
         } returns listOf()
     }
 

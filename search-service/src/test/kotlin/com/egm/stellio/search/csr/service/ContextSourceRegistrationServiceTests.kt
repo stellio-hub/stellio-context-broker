@@ -105,7 +105,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
         )
 
@@ -141,7 +140,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
         )
 
@@ -173,7 +171,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
         )
 
@@ -209,7 +206,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
         )
 
@@ -245,7 +241,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
         )
 
@@ -259,7 +254,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            mockUserSub,
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A457".toUri()))
         )
 

@@ -91,44 +91,39 @@ private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiRes
 fun APIException.toErrorResponse(): ResponseEntity<*> =
     when (this) {
         is AlreadyExistsException ->
-            generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message))
         is ResourceNotFoundException ->
-            generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(this.message))
         is InvalidRequestException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message))
         is BadRequestDataException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message))
         is OperationNotSupportedException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message))
         is AccessDeniedException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message))
         is NotImplementedException ->
-            generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message))
         is LdContextNotAvailableException ->
             generateErrorResponse(
                 HttpStatus.SERVICE_UNAVAILABLE,
-                LdContextNotAvailableResponse(this.message),
-                this.warnings
+                LdContextNotAvailableResponse(this.message)
             )
         is TooManyResultsException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message), this.warnings)
+            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
         else -> generateErrorResponse(
             HttpStatus.INTERNAL_SERVER_ERROR,
-            InternalErrorResponse("$cause"),
-            this.warnings
+            InternalErrorResponse("$cause")
         )
     }
 
-private fun generateErrorResponse(
+fun generateErrorResponse(
     status: HttpStatus,
     exception: ErrorResponse,
-    warnings: List<NGSILDWarning>?
 ): ResponseEntity<*> {
     logger.info("Returning error ${exception.type} (${exception.detail})")
-    val response = ResponseEntity.status(status)
-        .contentType(MediaType.APPLICATION_JSON)
-    warnings?.addToResponse(response)
-    return response.body(serializeObject(exception))
+    return ResponseEntity.status(status)
+        .contentType(MediaType.APPLICATION_JSON).body(serializeObject(exception))
 }
 
 fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {

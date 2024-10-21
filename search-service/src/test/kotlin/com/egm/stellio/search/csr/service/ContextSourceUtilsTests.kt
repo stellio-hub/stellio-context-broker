@@ -1,5 +1,6 @@
 package com.egm.stellio.search.csr.service
 
+import arrow.core.right
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
@@ -56,13 +57,13 @@ class ContextSourceUtilsTests {
     @Test
     fun `merge entity should return localEntity when no other entities is provided`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntity(baseEntity, emptyList())
-        assertEquals(baseEntity, mergedEntity)
+        assertEquals(baseEntity, mergedEntity.getOrNull())
     }
 
     @Test
     fun `merge entity should merge the localEntity with the list of entities `() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntity(minimalEntity, listOf(baseEntity to Mode.AUXILIARY))
-        assertEquals(baseEntity, mergedEntity)
+        assertEquals(baseEntity, mergedEntity.getOrNull())
     }
 
     @Test
@@ -71,7 +72,7 @@ class ContextSourceUtilsTests {
             entityWithName,
             listOf(entityWithLastName to Mode.AUXILIARY, entityWithSurName to Mode.INCLUSIVE)
         )
-        assertEquals(entityWithName + entityWithLastName + entityWithSurName, mergedEntity)
+        assertEquals(entityWithName + entityWithLastName + entityWithSurName, mergedEntity.getOrNull())
     }
 
     @Test
@@ -79,7 +80,7 @@ class ContextSourceUtilsTests {
         mockkObject(ContextSourceUtils) {
             every { ContextSourceUtils.mergeAttribute(any(), any(), any()) } returns listOf(
                 nameAttribute
-            )
+            ).right()
             every { ContextSourceUtils.mergeTypeOrScope(any(), any()) } returns listOf("Beehive")
             ContextSourceUtils.mergeEntity(
                 entityWithName,
@@ -95,8 +96,8 @@ class ContextSourceUtilsTests {
         val mergedEntity = ContextSourceUtils.mergeEntity(
             minimalEntity,
             listOf(multipleTypeEntity to Mode.AUXILIARY, baseEntity to Mode.INCLUSIVE)
-        )!!
-        assertThat(mergedEntity[JSONLD_TYPE_TERM] as List<*>)
+        ).getOrNull()
+        assertThat(mergedEntity?.get(JSONLD_TYPE_TERM) as List<*>)
             .hasSize(3)
             .contains("Sensor", "BeeHive", "Beekeeper")
     }
@@ -112,8 +113,10 @@ class ContextSourceUtilsTests {
         val mergedEntity = ContextSourceUtils.mergeEntity(
             entityWithName,
             listOf(entityWithDifferentName to Mode.AUXILIARY, baseEntity to Mode.INCLUSIVE)
-        )!!
-        assertThat(mergedEntity[name] as List<*>).hasSize(3).contains(nameAttribute, nameAttribute2, baseEntity[name])
+        ).getOrNull()
+        assertThat(
+            mergedEntity?.get(name) as List<*>
+        ).hasSize(3).contains(nameAttribute, nameAttribute2, baseEntity[name])
     }
 
     @Test
@@ -121,10 +124,10 @@ class ContextSourceUtilsTests {
         val mergedEntity = ContextSourceUtils.mergeEntity(
             entityWithName,
             listOf(evenMoreRecentEntity to Mode.EXCLUSIVE, moreRecentEntity to Mode.INCLUSIVE)
-        )!!
+        ).getOrNull()
         assertEquals(
             "2030-01-01T01:01:01.01Z",
-            (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
+            (mergedEntity?.get(name) as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
         assertEquals("evenMoreRecentName", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
     }
@@ -134,10 +137,10 @@ class ContextSourceUtilsTests {
         val mergedEntity = ContextSourceUtils.mergeEntity(
             entityWithName,
             listOf(evenMoreRecentEntity to Mode.AUXILIARY, moreRecentEntity to Mode.AUXILIARY)
-        )!!
+        ).getOrNull()
         assertEquals(
             "2010-01-01T01:01:01.01Z",
-            (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
+            (mergedEntity?.get(name) as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
         assertEquals("name", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
     }

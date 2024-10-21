@@ -1,11 +1,14 @@
 package com.egm.stellio.shared.util
 
 import org.springframework.http.ResponseEntity.BodyBuilder
+import java.util.*
 
-// todo i took the name from the spec could also be name APIWarning like ApiException
 open class NGSILDWarning(
-    override val message: String
-) : Exception(message) {
+    open val message: String
+) {
+    // new line are forbidden in headers
+    fun getHeaderMessage(): String = Base64.getEncoder().encodeToString(message.toByteArray())
+
     companion object {
         const val HEADER_NAME = "NGSILD-Warning"
     }
@@ -16,6 +19,11 @@ data class RevalidationFailedWarning(override val message: String) : NGSILDWarni
 data class MiscellaneousWarning(override val message: String) : NGSILDWarning(message)
 data class MiscellaneousPersistentWarning(override val message: String) : NGSILDWarning(message)
 
+fun List<NGSILDWarning>.getHeaderMessages() = this.map { it.getHeaderMessage() }
+
 fun List<NGSILDWarning>.addToResponse(response: BodyBuilder) {
-    if (this.isNotEmpty()) response.header(NGSILDWarning.HEADER_NAME, *this.map { it.message }.toTypedArray())
+    if (this.isNotEmpty()) response.header(
+        NGSILDWarning.HEADER_NAME,
+        *this.getHeaderMessages().toTypedArray()
+    )
 }

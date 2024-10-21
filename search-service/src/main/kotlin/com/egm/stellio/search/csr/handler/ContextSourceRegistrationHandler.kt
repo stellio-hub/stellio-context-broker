@@ -74,7 +74,6 @@ class ContextSourceRegistrationHandler(
         val contextSourceRegistrations = contextSourceRegistrationService.getContextSourceRegistrations(
             limit = paginationQuery.limit,
             offset = paginationQuery.offset,
-            sub = sub,
         ).serialize(contexts, mediaType, includeSysAttrs)
         val contextSourceRegistrationsCount = contextSourceRegistrationService.getContextSourceRegistrationsCount(
             sub

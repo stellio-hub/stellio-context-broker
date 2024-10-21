@@ -5,7 +5,7 @@ import java.net.URI
 sealed class ErrorResponse(
     val type: URI,
     open val title: String,
-    open val detail: String,
+    open val detail: String
 )
 
 data class InvalidRequestResponse(override val detail: String) : ErrorResponse(
@@ -98,7 +98,7 @@ data class NonexistentTenantResponse(override val detail: String) :
     ErrorResponse(
         ErrorType.NONEXISTENT_TENANT.type,
         "The addressed tenant does not exist",
-        detail,
+        detail
     )
 
 enum class ErrorType(val type: URI) {
@@ -116,5 +116,4 @@ enum class ErrorType(val type: URI) {
     UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType")),
     NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable")),
     NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")),
-    CONTEXT_SOURCE_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/ContextSourceRequest"))
 }

@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.model.*
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
@@ -27,6 +28,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -60,6 +62,9 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -70,6 +75,14 @@ class EntityHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
+    }
+
+    @BeforeEach
+    fun mockCSR() {
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf()
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()

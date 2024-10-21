@@ -43,6 +43,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
     ports:
+# todo define configurable port for easy CSR test
       - "8080:8080"
   search-service:
     container_name: stellio-search-service

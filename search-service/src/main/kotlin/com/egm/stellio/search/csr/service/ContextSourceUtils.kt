@@ -1,9 +1,8 @@
 package com.egm.stellio.search.csr.service
 
-import arrow.core.Either
-import arrow.core.left
+import arrow.core.*
 import arrow.core.raise.either
-import arrow.core.right
+import arrow.core.raise.iorNel
 import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedAttributeInstances
@@ -87,33 +86,44 @@ object ContextSourceUtils {
         }
     }
 
-    fun mergeEntity(
+    fun mergeEntities(
         localEntity: CompactedEntity?,
         remoteEntitiesWithMode: List<CompactedEntityWithMode>
-    ): Either<NGSILDWarning, CompactedEntity?> = either {
-        if (localEntity == null && remoteEntitiesWithMode.isEmpty()) return@either null
+    ): IorNel<NGSILDWarning, CompactedEntity?> = iorNel {
+        if (localEntity == null && remoteEntitiesWithMode.isEmpty()) return@iorNel null
 
-        val mergedEntity = localEntity?.toMutableMap() ?: mutableMapOf()
+        val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
 
         remoteEntitiesWithMode.sortedBy { (_, mode) -> mode == Mode.AUXILIARY }
             .forEach { (entity, mode) ->
-                entity.entries.forEach {
-                        (key, value) ->
-                    val mergedValue = mergedEntity[key]
-                    when { // todo sysAttrs
-                        mergedValue == null -> mergedEntity[key] = value
-                        key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> {}
-                        key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
-                            mergedEntity[key] = mergeTypeOrScope(mergedValue, value)
-                        else -> mergedEntity[key] = mergeAttribute(
-                            mergedValue,
-                            value,
-                            mode == Mode.AUXILIARY
-                        ).bind()
-                    }
-                }
+                mergedEntity.putAll(
+                    getMergeNewValues(mergedEntity, entity, mode).toIor().toIorNel().bind()
+                )
             }
-        mergedEntity
+
+        return@iorNel mergedEntity.toMap()
+    }
+
+    private fun getMergeNewValues(
+        localEntity: CompactedEntity,
+        remoteEntity: CompactedEntity,
+        mode: Mode
+    ): Either<NGSILDWarning, CompactedEntity> = either {
+        remoteEntity.mapValues { (key, value) ->
+            val localValue = localEntity[key]
+            when { // todo sysAttrs
+                localValue == null -> value
+                key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> localValue
+                key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
+                    mergeTypeOrScope(localValue, value)
+
+                else -> mergeAttribute(
+                    localValue,
+                    value,
+                    mode == Mode.AUXILIARY
+                ).bind()
+            }
+        }
     }
 
     fun mergeTypeOrScope(

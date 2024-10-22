@@ -262,25 +262,25 @@ class EntityHandler(
                     warnings.mapNotNull { (warning, _) -> warning.leftOrNull() }.toMutableList()
             }
 
-        val localError = localEntity.leftOrNull()
-        if (localError != null && remoteEntitiesWithMode.isEmpty()) {
-            val error = localError.toErrorResponse()
+        val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
+            localEntity.getOrNull(),
+            remoteEntitiesWithMode
+        ).toPair()
+
+        if (mergedEntity.isNullOrEmpty()) {
+            val localError = localEntity.leftOrNull()
+            val error = localError!!.toErrorResponse()
+            mergeWarnings?.let { warnings.addAll(it) }
             if (warnings.isNotEmpty()) {
                 error.headers.addAll(NGSILDWarning.HEADER_NAME, warnings.getHeaderMessages())
             }
-
             return error
         }
-
-        val mergedEntity = ContextSourceUtils.mergeEntity(
-            localEntity.getOrNull(),
-            remoteEntitiesWithMode
-        ).onLeft { warnings.add(it) }.getOrNull() // todo treat warning case
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponseHeaders(mediaType, contexts, warnings)
             .body(
-                serializeObject(mergedEntity!!.toFinalRepresentation(ngsiLdDataRepresentation))
+                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
             )
     }.fold(
         { it.toErrorResponse() },

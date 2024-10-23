@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
@@ -20,7 +21,7 @@ class ContextSourceCallerTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
-    fun gimmeRawCSR() = ContextSourceRegistration(
+    private fun gimmeRawCSR() = ContextSourceRegistration(
         id = "urn:ngsi-ld:ContextSourceRegistration:test".toUri(),
         endpoint = "http://localhost:8089".toUri(),
         information = emptyList(),
@@ -28,7 +29,7 @@ class ContextSourceCallerTests {
         createdAt = ngsiLdDateTime(),
 
     )
-    val emptyParams = LinkedMultiValueMap<String, String>()
+    private val emptyParams = LinkedMultiValueMap<String, String>()
     private val entityWithSysAttrs =
         """
         {
@@ -46,6 +47,19 @@ class ContextSourceCallerTests {
         }
         """.trimIndent()
 
+    private val entityWithBadPayload =
+        """
+        {
+           "id":"$apiaryId",
+           "type":"Apiary",
+           "name": {
+              "type":"Property",
+              "value":"ApiarySophia",
+           ,
+           "@context":[ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
     @Test
     fun `getDistributedInformation should return the entity when the request succeed`() = runTest {
         val csr = gimmeRawCSR()
@@ -58,23 +72,66 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceUtils.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
         assertJsonPayloadsAreEqual(entityWithSysAttrs, serializeObject(response.getOrNull()!!))
     }
 
     @Test
-    fun `getDistributedInformation should fail with a `() = runTest {
+    fun `getDistributedInformation should return a MiscellaneousWarning if it receive no answer`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `getDistributedInformation should return a RevalidationFailedWarning when receiving a bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
             get(urlMatching(path))
                 .willReturn(
                     ok()
-                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE).withBody(entityWithSysAttrs)
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE).withBody(entityWithBadPayload)
                 )
         )
 
-        val response = ContextSourceUtils.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
-        assertJsonPayloadsAreEqual(entityWithSysAttrs, serializeObject(response.getOrNull()!!))
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(RevalidationFailedWarning::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `getDistributedInformation should return MiscellaneousPersistentWarning when receiving error 500`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(unauthorized())
+        )
+
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `getDistributedInformation should return null when receiving an error 404`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(notFound())
+        )
+
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+
+        assertTrue(response.isRight())
+        assertNull(response.leftOrNull())
     }
 }

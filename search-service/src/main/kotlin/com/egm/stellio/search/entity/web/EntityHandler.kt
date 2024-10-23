@@ -7,6 +7,7 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.service.ContextSourceCaller
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -248,7 +249,7 @@ class EntityHandler(
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
         val (remoteEntitiesWithMode, warnings) = matchingCSR.parMap { csr ->
-            val response = ContextSourceUtils.getDistributedInformation(
+            val response = ContextSourceCaller.getDistributedInformation(
                 httpHeaders,
                 csr,
                 "/ngsi-ld/v1/entities/$entityId",
@@ -262,6 +263,7 @@ class EntityHandler(
                     warnings.mapNotNull { (warning, _) -> warning.leftOrNull() }.toMutableList()
             }
 
+        // we could simplify the code if we check the JsonPayload beforehand
         val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
             localEntity.getOrNull(),
             remoteEntitiesWithMode

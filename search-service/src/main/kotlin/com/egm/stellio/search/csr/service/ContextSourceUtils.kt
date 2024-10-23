@@ -11,21 +11,11 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.fasterxml.jackson.core.JacksonException
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.WebClientException
-import org.springframework.web.reactive.function.client.awaitBody
-import org.springframework.web.reactive.function.client.awaitExchange
-import java.net.URI
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
@@ -33,58 +23,6 @@ typealias CompactedEntityWithMode = Pair<CompactedEntity, Mode>
 typealias DataSetId = String?
 typealias AttributeByDataSetId = Map<DataSetId, CompactedAttributeInstance>
 object ContextSourceUtils {
-
-    suspend fun getDistributedInformation(
-        httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
-        path: String,
-        params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning, CompactedEntity?> = either {
-        val uri = URI("${csr.endpoint}$path")
-
-        val request = WebClient.create()
-            .method(HttpMethod.GET)
-            .uri { uriBuilder ->
-                uriBuilder.scheme(uri.scheme)
-                    .host(uri.host)
-                    .port(uri.port)
-                    .path(uri.path)
-                    .queryParams(params)
-                    .build()
-            }
-            .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
-        return try {
-            val (statusCode, response) = request
-                .awaitExchange { response ->
-                    response.statusCode() to response.awaitBody<CompactedEntity>()
-                }
-            when {
-                statusCode.is2xxSuccessful -> {
-                    logger.info("Successfully received response from CSR at $uri")
-                    response.right()
-                }
-                statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
-                    logger.info("CSR returned 404 at $uri: $response")
-                    null.right()
-                }
-                else -> {
-                    logger.warn("Error contacting CSR at $uri: $response")
-
-                    MiscellaneousPersistentWarning(
-                        "the CSR ${csr.id} returned an error $statusCode at : $uri response: \"$response\""
-                    ).left()
-                }
-            }
-        } catch (e: WebClientException) {
-            MiscellaneousWarning(
-                "Error connecting to csr ${csr.id} at : $uri message : \"${e.message}\""
-            ).left()
-        } catch (e: JacksonException) { // todo get the good exception for invalid payload
-            RevalidationFailedWarning(
-                "the CSR ${csr.id} as : $uri returned badly formed data message: \"${e.message}\""
-            ).left()
-        }
-    }
 
     fun mergeEntities(
         localEntity: CompactedEntity?,
@@ -111,12 +49,17 @@ object ContextSourceUtils {
     ): Either<NGSILDWarning, CompactedEntity> = either {
         remoteEntity.mapValues { (key, value) ->
             val localValue = localEntity[key]
-            when { // todo sysAttrs
+            when {
                 localValue == null -> value
                 key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> localValue
                 key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
                     mergeTypeOrScope(localValue, value)
-
+                key == NGSILD_CREATED_AT_TERM ->
+                    if ((value as String?).isBefore(localValue as String?)) value
+                    else localValue
+                key == NGSILD_MODIFIED_AT_TERM ->
+                    if ((localValue as String?).isBefore(value as String?)) value
+                    else localValue
                 else -> mergeAttribute(
                     localValue,
                     value,
@@ -188,9 +131,10 @@ object ContextSourceUtils {
     private fun CompactedAttributeInstance.isBefore(
         attr: CompactedAttributeInstance,
         property: String
-    ): Boolean = (
-        (this[property] as? String)?.isDateTime() == true &&
-            (attr[property] as? String)?.isDateTime() == true &&
-            ZonedDateTime.parse(this[property] as String) < ZonedDateTime.parse(attr[property] as String)
-        )
+    ): Boolean = (this[property] as String?)?.isBefore(attr[property] as String?) == true
+
+    private fun String?.isBefore(date: String?) =
+        this?.isDateTime() == true &&
+            date?.isDateTime() == true &&
+            ZonedDateTime.parse(this) < ZonedDateTime.parse(date)
 }

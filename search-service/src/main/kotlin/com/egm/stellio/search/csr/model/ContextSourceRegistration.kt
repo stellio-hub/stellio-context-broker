@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
 import java.net.URI
@@ -23,6 +24,7 @@ import java.util.regex.Pattern
 data class ContextSourceRegistration(
     val id: URI = "urn:ngsi-ld:ContextSourceRegistration:${UUID.randomUUID()}".toUri(),
     val endpoint: URI,
+    val registrationName: String? = null,
     val type: String = NGSILD_CSR_TERM,
     val mode: Mode = Mode.INCLUSIVE,
     val information: List<RegistrationInfo> = emptyList(),
@@ -30,8 +32,16 @@ data class ContextSourceRegistration(
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime? = null,
     val observationInterval: TimeInterval? = null,
-    val managementInterval: TimeInterval? = null
+    val managementInterval: TimeInterval? = null,
+
+    var status: StatusType? = null,
+    val timesSent: Int = 0,
+    val timesFailed: Int = 0,
+    val lastFailure: ZonedDateTime? = null,
+    val lastSuccess: ZonedDateTime? = null,
 ) {
+
+    fun isAuxiliary(): Boolean = mode == Mode.AUXILIARY
 
     data class TimeInterval(
         val start: ZonedDateTime,
@@ -155,6 +165,14 @@ data class ContextSourceRegistration(
         fun notFoundMessage(id: URI) = "Could not find a CSourceRegistration with id $id"
         fun alreadyExistsMessage(id: URI) = "A CSourceRegistration with id $id already exists"
         fun unauthorizedMessage(id: URI) = "User is not authorized to access CSourceRegistration $id"
+    }
+
+    enum class StatusType(val status: String) {
+        @JsonProperty("ok")
+        OK("ok"),
+
+        @JsonProperty("failed")
+        FAILED("failed")
     }
 }
 

@@ -84,17 +84,25 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
         is NotImplementedException ->
             generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message))
         is LdContextNotAvailableException ->
-            generateErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, LdContextNotAvailableResponse(this.message))
+            generateErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                LdContextNotAvailableResponse(this.message)
+            )
         is TooManyResultsException ->
             generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
-        else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
+        else -> generateErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            InternalErrorResponse("$cause")
+        )
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
+fun generateErrorResponse(
+    status: HttpStatus,
+    exception: ErrorResponse,
+): ResponseEntity<*> {
     logger.info("Returning error ${exception.type} (${exception.detail})")
     return ResponseEntity.status(status)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(serializeObject(exception))
+        .contentType(MediaType.APPLICATION_JSON).body(serializeObject(exception))
 }
 
 fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
@@ -156,7 +164,11 @@ fun buildQueryResponse(
     else responseHeaders.body(body)
 }
 
-fun prepareGetSuccessResponseHeaders(mediaType: MediaType, contexts: List<String>): ResponseEntity.BodyBuilder =
+fun prepareGetSuccessResponseHeaders(
+    mediaType: MediaType,
+    contexts:
+    List<String>,
+): ResponseEntity.BodyBuilder =
     ResponseEntity.status(HttpStatus.OK)
         .apply {
             if (mediaType == JSON_LD_MEDIA_TYPE) {

@@ -24,6 +24,7 @@ import java.util.regex.Pattern
 data class ContextSourceRegistration(
     val id: URI = "urn:ngsi-ld:ContextSourceRegistration:${UUID.randomUUID()}".toUri(),
     val endpoint: URI,
+    val registrationName: String? = null,
     val type: String = NGSILD_CSR_TERM,
     val mode: Mode = Mode.INCLUSIVE,
     val information: List<RegistrationInfo> = emptyList(),
@@ -39,6 +40,8 @@ data class ContextSourceRegistration(
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,
 ) {
+
+    fun isAuxiliary(): Boolean = mode == Mode.AUXILIARY
 
     data class TimeInterval(
         val start: ZonedDateTime,

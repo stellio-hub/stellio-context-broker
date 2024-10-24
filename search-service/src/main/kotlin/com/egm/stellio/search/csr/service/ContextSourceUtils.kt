@@ -19,23 +19,23 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
-typealias CompactedEntityWithMode = Pair<CompactedEntity, Mode>
+typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
 typealias DataSetId = String?
 typealias AttributeByDataSetId = Map<DataSetId, CompactedAttributeInstance>
 object ContextSourceUtils {
 
     fun mergeEntities(
         localEntity: CompactedEntity?,
-        remoteEntitiesWithMode: List<CompactedEntityWithMode>
+        remoteEntitiesWithMode: List<CompactedEntityWithCSR>
     ): IorNel<NGSILDWarning, CompactedEntity?> = iorNel {
         if (localEntity == null && remoteEntitiesWithMode.isEmpty()) return@iorNel null
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        remoteEntitiesWithMode.sortedBy { (_, mode) -> mode == Mode.AUXILIARY }
-            .forEach { (entity, mode) ->
+        remoteEntitiesWithMode.sortedBy { (_, csr) -> csr.isAuxiliary() }
+            .forEach { (entity, csr) ->
                 mergedEntity.putAll(
-                    getMergeNewValues(mergedEntity, entity, mode).toIor().toIorNel().bind()
+                    getMergeNewValues(mergedEntity, entity, csr).toIor().toIorNel().bind()
                 )
             }
 
@@ -45,7 +45,7 @@ object ContextSourceUtils {
     private fun getMergeNewValues(
         localEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
-        mode: Mode
+        csr: ContextSourceRegistration
     ): Either<NGSILDWarning, CompactedEntity> = either {
         remoteEntity.mapValues { (key, value) ->
             val localValue = localEntity[key]
@@ -63,7 +63,7 @@ object ContextSourceUtils {
                 else -> mergeAttribute(
                     localValue,
                     value,
-                    mode == Mode.AUXILIARY
+                    csr
                 ).bind()
             }
         }
@@ -86,15 +86,15 @@ object ContextSourceUtils {
     fun mergeAttribute(
         currentAttribute: Any,
         remoteAttribute: Any,
-        isAuxiliary: Boolean = false
+        csr: ContextSourceRegistration
     ): Either<NGSILDWarning, Any> = either {
-        val currentInstances = groupInstancesByDataSetId(currentAttribute).bind().toMutableMap()
-        val remoteInstances = groupInstancesByDataSetId(remoteAttribute).bind()
+        val currentInstances = groupInstancesByDataSetId(currentAttribute, csr).bind().toMutableMap()
+        val remoteInstances = groupInstancesByDataSetId(remoteAttribute, csr).bind()
         remoteInstances.entries.forEach { (datasetId, remoteInstance) ->
             val currentInstance = currentInstances[datasetId]
             when {
                 currentInstance == null -> currentInstances[datasetId] = remoteInstance
-                isAuxiliary -> {}
+                csr.isAuxiliary() -> {}
                 currentInstance.isBefore(remoteInstance, NGSILD_OBSERVED_AT_TERM) ->
                     currentInstances[datasetId] = remoteInstance
                 remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> {}
@@ -111,7 +111,10 @@ object ContextSourceUtils {
     }
 
     // do not work with CORE MEMBER since they are nor list nor map
-    private fun groupInstancesByDataSetId(attribute: Any): Either<NGSILDWarning, AttributeByDataSetId> =
+    private fun groupInstancesByDataSetId(
+        attribute: Any,
+        csr: ContextSourceRegistration
+    ): Either<NGSILDWarning, AttributeByDataSetId> =
         when (attribute) {
             is Map<*, *> -> {
                 attribute as CompactedAttributeInstance
@@ -123,7 +126,8 @@ object ContextSourceUtils {
             }
             else -> {
                 RevalidationFailedWarning(
-                    "The received payload is invalid. Attribute is nor List nor a Map : $attribute"
+                    "The received payload is invalid. Attribute is nor List nor a Map : $attribute",
+                    csr
                 ).left()
             }
         }

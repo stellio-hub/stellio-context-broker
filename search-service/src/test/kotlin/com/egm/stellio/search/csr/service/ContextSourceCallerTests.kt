@@ -1,7 +1,6 @@
 package com.egm.stellio.search.csr.service
 
-import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.github.tomakehurst.wiremock.client.WireMock.*
@@ -27,7 +26,6 @@ class ContextSourceCallerTests {
         information = emptyList(),
         operations = listOf(Operation.FEDERATION_OPS),
         createdAt = ngsiLdDateTime(),
-
     )
     private val emptyParams = LinkedMultiValueMap<String, String>()
     private val entityWithSysAttrs =

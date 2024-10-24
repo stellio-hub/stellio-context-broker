@@ -2,9 +2,11 @@ package com.egm.stellio.search.csr.service
 
 import arrow.core.*
 import arrow.core.raise.either
-import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.util.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -16,6 +18,7 @@ import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
 object ContextSourceCaller {
+    val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun getDistributedInformation(
         httpHeaders: HttpHeaders,
@@ -43,31 +46,36 @@ object ContextSourceCaller {
                 }
             when {
                 statusCode.is2xxSuccessful -> {
-                    JsonLdUtils.logger.info("Successfully received response from CSR at $uri")
+                    logger.info("Successfully received data from CSR ${csr.id} at $uri")
                     response.right()
                 }
 
                 statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
-                    JsonLdUtils.logger.info("CSR returned 404 at $uri: $response")
+                    logger.info("CSR returned 404 at $uri: $response")
                     null.right()
                 }
 
                 else -> {
-                    JsonLdUtils.logger.warn("Error contacting CSR at $uri: $response")
+                    logger.warn("Error contacting CSR at $uri: $response")
 
                     MiscellaneousPersistentWarning(
-                        "the CSR ${csr.id} returned an error $statusCode at : $uri response: \"$response\""
+                        "$uri returned an error $statusCode with response: \"$response\"",
+                        csr
                     ).left()
                 }
             }
         } catch (e: Exception) {
+            logger.warn("Error contacting CSR at $uri: ${e.message}")
+            logger.warn(e.stackTraceToString())
             when (e) {
                 is DecodingException -> RevalidationFailedWarning(
-                    "the CSR ${csr.id} as : $uri returned badly formed data message: \"${e.cause}:${e.message}\""
+                    "$uri returned badly formed data message: \"${e.cause}:${e.message}\"",
+                    csr
                 )
 
                 else -> MiscellaneousWarning(
-                    "Error connecting to csr ${csr.id} at : $uri message : \"${e.cause}:${e.message}\""
+                    "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
+                    csr
                 )
             }.left()
         }

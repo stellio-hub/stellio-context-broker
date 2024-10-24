@@ -189,7 +189,6 @@ fun prepareGetSuccessResponseHeaders(
     mediaType: MediaType,
     contexts:
     List<String>,
-    warnings: List<NGSILDWarning>? = null
 ): ResponseEntity.BodyBuilder =
     ResponseEntity.status(HttpStatus.OK)
         .apply {
@@ -199,6 +198,4 @@ fun prepareGetSuccessResponseHeaders(
                 this.header(HttpHeaders.LINK, buildContextLinkHeader(contexts.first()))
                 this.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             }
-
-            warnings?.let { warnings.addToResponse(this) }
         }

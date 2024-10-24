@@ -1,6 +1,7 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.right
+import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
@@ -59,6 +60,9 @@ class ContextSourceUtilsTests {
     private val entityWithLastName = minimalEntity.toMutableMap().plus("lastName" to nameAttribute)
     private val entityWithSurName = minimalEntity.toMutableMap().plus("surName" to nameAttribute)
 
+    private val auxiliaryCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri(), mode = Mode.AUXILIARY)
+    private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
+
     @Test
     fun `merge entity should return localEntity when no other entities is provided`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(baseEntity, emptyList())
@@ -67,7 +71,7 @@ class ContextSourceUtilsTests {
 
     @Test
     fun `merge entity should merge the localEntity with the list of entities `() = runTest {
-        val mergedEntity = ContextSourceUtils.mergeEntities(minimalEntity, listOf(baseEntity to Mode.AUXILIARY))
+        val mergedEntity = ContextSourceUtils.mergeEntities(minimalEntity, listOf(baseEntity to auxiliaryCSR))
         assertEquals(baseEntity, mergedEntity.getOrNull())
     }
 
@@ -75,7 +79,7 @@ class ContextSourceUtilsTests {
     fun `merge entity should merge all the entities`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
-            listOf(entityWithLastName to Mode.AUXILIARY, entityWithSurName to Mode.INCLUSIVE)
+            listOf(entityWithLastName to auxiliaryCSR, entityWithSurName to inclusiveCSR)
         )
         assertEquals(entityWithName + entityWithLastName + entityWithSurName, mergedEntity.getOrNull())
     }
@@ -89,7 +93,7 @@ class ContextSourceUtilsTests {
             every { ContextSourceUtils.mergeTypeOrScope(any(), any()) } returns listOf("Beehive")
             ContextSourceUtils.mergeEntities(
                 entityWithName,
-                listOf(entityWithName to Mode.AUXILIARY, entityWithName to Mode.INCLUSIVE)
+                listOf(entityWithName to auxiliaryCSR, entityWithName to inclusiveCSR)
             )
             verify(exactly = 2) { ContextSourceUtils.mergeAttribute(any(), any(), any()) }
             verify(exactly = 2) { ContextSourceUtils.mergeTypeOrScope(any(), any()) }
@@ -100,7 +104,7 @@ class ContextSourceUtilsTests {
     fun `merge entity should merge the types correctly `() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             minimalEntity,
-            listOf(multipleTypeEntity to Mode.AUXILIARY, baseEntity to Mode.INCLUSIVE)
+            listOf(multipleTypeEntity to auxiliaryCSR, baseEntity to inclusiveCSR)
         ).getOrNull()
         assertThat(mergedEntity?.get(JSONLD_TYPE_TERM) as List<*>)
             .hasSize(3)
@@ -117,7 +121,7 @@ class ContextSourceUtilsTests {
         val entityWithDifferentName = minimalEntity.toMutableMap() + (name to nameAttribute2)
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
-            listOf(entityWithDifferentName to Mode.AUXILIARY, baseEntity to Mode.INCLUSIVE)
+            listOf(entityWithDifferentName to auxiliaryCSR, baseEntity to inclusiveCSR)
         ).getOrNull()
         assertThat(
             mergedEntity?.get(name) as List<*>
@@ -128,7 +132,7 @@ class ContextSourceUtilsTests {
     fun `merge entity should merge attribute same datasetId keeping the most recentOne `() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
-            listOf(evenMoreRecentEntity to Mode.EXCLUSIVE, moreRecentEntity to Mode.INCLUSIVE)
+            listOf(evenMoreRecentEntity to inclusiveCSR, moreRecentEntity to inclusiveCSR)
         ).getOrNull()
         assertEquals(
             evenMoreRecentTime,
@@ -141,7 +145,7 @@ class ContextSourceUtilsTests {
     fun `merge entity should not merge Auxiliary entity `() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
-            listOf(evenMoreRecentEntity to Mode.AUXILIARY, moreRecentEntity to Mode.AUXILIARY)
+            listOf(evenMoreRecentEntity to auxiliaryCSR, moreRecentEntity to auxiliaryCSR)
         ).getOrNull()
         assertEquals(
             time,
@@ -159,7 +163,7 @@ class ContextSourceUtilsTests {
 
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entity,
-            listOf(evenMoreRecentlyModifiedEntity to Mode.AUXILIARY, recentlyModifiedEntity to Mode.AUXILIARY)
+            listOf(evenMoreRecentlyModifiedEntity to auxiliaryCSR, recentlyModifiedEntity to auxiliaryCSR)
         )
         assertTrue(mergedEntity.isRight())
         assertEquals(
@@ -177,7 +181,7 @@ class ContextSourceUtilsTests {
 
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entity,
-            listOf(evenMoreRecentlyModifiedEntity to Mode.AUXILIARY, recentlyModifiedEntity to Mode.AUXILIARY)
+            listOf(evenMoreRecentlyModifiedEntity to auxiliaryCSR, recentlyModifiedEntity to auxiliaryCSR)
         )
         assertTrue(mergedEntity.isRight())
 

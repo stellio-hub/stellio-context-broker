@@ -5,8 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.search.csr.service.ContextSourceCaller
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
@@ -248,7 +247,7 @@ class EntityHandler(
         }
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
-        val (remoteEntitiesWithMode, warnings) = matchingCSR.parMap { csr ->
+        val (remoteEntitiesWithCSR, warnings) = matchingCSR.parMap { csr ->
             val response = ContextSourceCaller.getDistributedInformation(
                 httpHeaders,
                 csr,
@@ -256,34 +255,31 @@ class EntityHandler(
                 params
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response to csr.mode
+            response to csr
         }.partition { it.first.getOrNull() != null }
             .let { (responses, warnings) ->
-                responses.map { (response, mode) -> response.getOrNull()!! to mode } to
+                responses.map { (response, csr) -> response.getOrNull()!! to csr } to
                     warnings.mapNotNull { (warning, _) -> warning.leftOrNull() }.toMutableList()
             }
 
         // we could simplify the code if we check the JsonPayload beforehand
         val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
             localEntity.getOrNull(),
-            remoteEntitiesWithMode
+            remoteEntitiesWithCSR
         ).toPair()
 
-        if (mergedEntity.isNullOrEmpty()) {
+        mergeWarnings?.let { warnings.addAll(it) }
+
+        if (mergedEntity == null) {
             val localError = localEntity.leftOrNull()
-            val error = localError!!.toErrorResponse()
-            mergeWarnings?.let { warnings.addAll(it) }
-            if (warnings.isNotEmpty()) {
-                error.headers.addAll(NGSILDWarning.HEADER_NAME, warnings.getHeaderMessages())
-            }
-            return error
+            return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
-        prepareGetSuccessResponseHeaders(mediaType, contexts, warnings)
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(
                 serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
-            )
+            ).addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }

@@ -1,3 +1,5 @@
+# you can launch a second instance of Stellio with (for instance to use it as a context source)
+# docker compose --env-file .env --env-file .context-source.env -p stellio-context-source up -d
 services:
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -28,7 +30,7 @@ services:
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto
       - ACCEPT_TIMESCALE_TUNING=TRUE
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - stellio-postgres-storage:/var/lib/postgresql
     healthcheck:
@@ -96,4 +98,3 @@ services:
 volumes:
   stellio-postgres-storage:
     name: "${CONTAINER_NAME_PREFIX}stellio-postgres-storage"
-

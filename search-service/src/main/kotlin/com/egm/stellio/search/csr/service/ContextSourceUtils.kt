@@ -3,11 +3,12 @@ package com.egm.stellio.search.csr.service
 import arrow.core.*
 import arrow.core.raise.either
 import arrow.core.raise.iorNel
-import com.egm.stellio.search.csr.model.*
+import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -16,23 +17,25 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.util.isDateTime
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
 typealias DataSetId = String?
 typealias AttributeByDataSetId = Map<DataSetId, CompactedAttributeInstance>
+
 object ContextSourceUtils {
 
     fun mergeEntities(
         localEntity: CompactedEntity?,
-        remoteEntitiesWithMode: List<CompactedEntityWithCSR>
+        remoteEntitiesWithCSR: List<CompactedEntityWithCSR>
     ): IorNel<NGSILDWarning, CompactedEntity?> = iorNel {
-        if (localEntity == null && remoteEntitiesWithMode.isEmpty()) return@iorNel null
+        if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return@iorNel null
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        remoteEntitiesWithMode.sortedBy { (_, csr) -> csr.isAuxiliary() }
+        remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .forEach { (entity, csr) ->
                 mergedEntity.putAll(
                     getMergeNewValues(mergedEntity, entity, csr).toIor().toIorNel().bind()
@@ -60,11 +63,8 @@ object ContextSourceUtils {
                 key == NGSILD_MODIFIED_AT_TERM ->
                     if ((localValue as String?).isBefore(value as String?)) value
                     else localValue
-                else -> mergeAttribute(
-                    localValue,
-                    value,
-                    csr
-                ).bind()
+                else ->
+                    mergeAttribute(localValue, value, csr).bind()
             }
         }
     }

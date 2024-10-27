@@ -6,7 +6,7 @@ data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
     val ids: Set<URI> = emptySet(),
     val csf: String? = null
 ) {
-    fun buildWHEREStatement(): String {
+    fun buildWhereStatement(): String {
         val idFilter = if (ids.isNotEmpty())
             """
             (

@@ -1,8 +1,11 @@
 package com.egm.stellio.search.csr.service
 
 import com.egm.stellio.search.csr.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.test.runTest
@@ -75,7 +78,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `getDistributedInformation should return a MiscellaneousWarning if it receive no answer`() = runTest {
+    fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
 

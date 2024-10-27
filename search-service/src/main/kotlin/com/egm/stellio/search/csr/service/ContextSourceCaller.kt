@@ -1,10 +1,11 @@
 package com.egm.stellio.search.csr.service
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException
@@ -57,9 +58,8 @@ object ContextSourceCaller {
 
                 else -> {
                     logger.warn("Error contacting CSR at $uri: $response")
-
                     MiscellaneousPersistentWarning(
-                        "$uri returned an error $statusCode with response: \"$response\"",
+                        "$uri returned an error $statusCode with response: $response",
                         csr
                     ).left()
                 }

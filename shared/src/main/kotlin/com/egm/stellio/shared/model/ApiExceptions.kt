@@ -4,7 +4,7 @@ import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
 
 sealed class APIException(
-    override val message: String,
+    override val message: String
 ) : Exception(message)
 
 data class InvalidRequestException(override val message: String) : APIException(message)

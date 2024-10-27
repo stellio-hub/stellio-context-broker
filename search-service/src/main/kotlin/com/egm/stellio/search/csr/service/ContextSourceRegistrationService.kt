@@ -177,7 +177,7 @@ class ContextSourceRegistrationService(
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
     ): List<ContextSourceRegistration> {
-        val filterQuery = filters.buildWHEREStatement()
+        val filterQuery = filters.buildWhereStatement()
 
         val selectStatement =
             """

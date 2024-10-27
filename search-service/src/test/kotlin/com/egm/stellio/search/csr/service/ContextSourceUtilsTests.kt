@@ -5,13 +5,15 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.mockk.every
 import io.mockk.mockkObject
@@ -64,13 +66,13 @@ class ContextSourceUtilsTests {
     private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
 
     @Test
-    fun `merge entity should return localEntity when no other entities is provided`() = runTest {
+    fun `merge entity should return localEntity when no other entities are provided`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(baseEntity, emptyList())
         assertEquals(baseEntity, mergedEntity.getOrNull())
     }
 
     @Test
-    fun `merge entity should merge the localEntity with the list of entities `() = runTest {
+    fun `merge entity should merge the localEntity with the list of entities`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(minimalEntity, listOf(baseEntity to auxiliaryCSR))
         assertEquals(baseEntity, mergedEntity.getOrNull())
     }
@@ -85,7 +87,7 @@ class ContextSourceUtilsTests {
     }
 
     @Test
-    fun `merge entity should call mergeAttribute or mergeTypeOrScope when keys are equals`() = runTest {
+    fun `merge entity should call mergeAttribute or mergeTypeOrScope when keys are equal`() = runTest {
         mockkObject(ContextSourceUtils) {
             every { ContextSourceUtils.mergeAttribute(any(), any(), any()) } returns listOf(
                 nameAttribute
@@ -112,7 +114,7 @@ class ContextSourceUtilsTests {
     }
 
     @Test
-    fun `merge entity should keep both attribute if they have different datasetId `() = runTest {
+    fun `merge entity should keep both attribute instances if they have different datasetId `() = runTest {
         val nameAttribute2: CompactedAttributeInstance = mapOf(
             JSONLD_TYPE_TERM to "Property",
             JSONLD_VALUE_TERM to "name2",
@@ -123,13 +125,13 @@ class ContextSourceUtilsTests {
             entityWithName,
             listOf(entityWithDifferentName to auxiliaryCSR, baseEntity to inclusiveCSR)
         ).getOrNull()
-        assertThat(
-            mergedEntity?.get(name) as List<*>
-        ).hasSize(3).contains(nameAttribute, nameAttribute2, baseEntity[name])
+        assertThat(mergedEntity?.get(name) as List<*>)
+            .hasSize(3)
+            .contains(nameAttribute, nameAttribute2, baseEntity[name])
     }
 
     @Test
-    fun `merge entity should merge attribute same datasetId keeping the most recentOne `() = runTest {
+    fun `merge entity should merge attribute with same datasetId keeping the most recent one`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
             listOf(evenMoreRecentEntity to inclusiveCSR, moreRecentEntity to inclusiveCSR)
@@ -142,7 +144,7 @@ class ContextSourceUtilsTests {
     }
 
     @Test
-    fun `merge entity should not merge Auxiliary entity `() = runTest {
+    fun `merge entity should not merge info from auxiliary entity if already present`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,
             listOf(evenMoreRecentEntity to auxiliaryCSR, moreRecentEntity to auxiliaryCSR)
@@ -155,7 +157,7 @@ class ContextSourceUtilsTests {
     }
 
     @Test
-    fun `merge entity should keep more recent modifiedAt`() = runTest {
+    fun `merge entity should keep most recent modifiedAt`() = runTest {
         val entity = minimalEntity.toMutableMap() + (NGSILD_MODIFIED_AT_TERM to time)
         val recentlyModifiedEntity = minimalEntity.toMutableMap() + (NGSILD_MODIFIED_AT_TERM to moreRecentTime)
         val evenMoreRecentlyModifiedEntity =

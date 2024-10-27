@@ -1,11 +1,13 @@
 package com.egm.stellio.search.csr.model
 
 import org.springframework.http.ResponseEntity
-import java.util.*
+import java.util.Base64
 
-/*                  implement 6.3.17                        */
+/**
+ * Implements NGSILD-Warning as defined in 6.3.17
+ */
 open class NGSILDWarning(
-    val code: Int,
+    private val code: Int,
     open val message: String,
     open val csr: ContextSourceRegistration
 ) {
@@ -14,7 +16,7 @@ open class NGSILDWarning(
 
     // new line are forbidden in headers
     private fun getWarnText(): String = Base64.getEncoder().encodeToString(message.toByteArray())
-    private fun getWarnAgent(): String = csr?.registrationName ?: csr?.id?.toString() ?: "-"
+    private fun getWarnAgent(): String = csr.registrationName ?: csr.id.toString()
 
     companion object {
         const val HEADER_NAME = "NGSILD-Warning"
@@ -46,9 +48,10 @@ data class MiscellaneousPersistentWarning(
 ) : NGSILDWarning(MISCELLANEOUS_PERSISTENT_WARNING_CODE, message, csr)
 
 fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> {
-    if (!warnings.isNullOrEmpty()) this.headers.addAll(
-        NGSILDWarning.HEADER_NAME,
-        warnings.map { it.getHeaderMessage() }
-    )
+    if (!warnings.isNullOrEmpty())
+        this.headers.addAll(
+            NGSILDWarning.HEADER_NAME,
+            warnings.map { it.getHeaderMessage() }
+        )
     return this
 }

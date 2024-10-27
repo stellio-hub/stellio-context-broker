@@ -24,7 +24,7 @@ import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import java.util.regex.Pattern
 
 data class ContextSourceRegistration(
@@ -40,7 +40,7 @@ data class ContextSourceRegistration(
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
 
-    var status: StatusType? = null,
+    val status: StatusType? = null,
     val timesSent: Int = 0,
     val timesFailed: Int = 0,
     val lastFailure: ZonedDateTime? = null,

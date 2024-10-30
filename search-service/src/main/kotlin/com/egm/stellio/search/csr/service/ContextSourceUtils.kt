@@ -22,9 +22,7 @@ import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
-typealias DataSetId = String?
-typealias AttributeByDataSetId = Map<DataSetId, CompactedAttributeInstance>
-
+typealias AttributeByDataSetId = Map<String?, CompactedAttributeInstance>
 object ContextSourceUtils {
 
     fun mergeEntities(
@@ -42,29 +40,32 @@ object ContextSourceUtils {
                 )
             }
 
-        return@iorNel mergedEntity.toMap()
+        mergedEntity.toMap()
     }
 
     private fun getMergeNewValues(
-        localEntity: CompactedEntity,
+        currentEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, CompactedEntity> = either {
         remoteEntity.mapValues { (key, value) ->
-            val localValue = localEntity[key]
+            val currentValue = currentEntity[key]
             when {
-                localValue == null -> value
-                key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> localValue
+                currentValue == null -> value
+                key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> currentValue
                 key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
-                    mergeTypeOrScope(localValue, value)
+                    mergeTypeOrScope(currentValue, value)
                 key == NGSILD_CREATED_AT_TERM ->
-                    if ((value as String?).isBefore(localValue as String?)) value
-                    else localValue
+                    if ((value as String?).isBefore(currentValue as String?)) value
+                    else currentValue
                 key == NGSILD_MODIFIED_AT_TERM ->
-                    if ((localValue as String?).isBefore(value as String?)) value
-                    else localValue
-                else ->
-                    mergeAttribute(localValue, value, csr).bind()
+                    if ((currentValue as String?).isBefore(value as String?)) value
+                    else currentValue
+                else -> mergeAttribute(
+                    currentValue,
+                    value,
+                    csr
+                ).bind()
             }
         }
     }
@@ -110,7 +111,7 @@ object ContextSourceUtils {
         if (values.size == 1) values[0] else values
     }
 
-    // do not work with CORE MEMBER since they are nor list nor map
+    // do not work with CORE MEMBER since they can be a String
     private fun groupInstancesByDataSetId(
         attribute: Any,
         csr: ContextSourceRegistration

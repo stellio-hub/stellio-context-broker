@@ -6,6 +6,9 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.util.QUERY_PARAM_GEOMETRY_PROPERTY
+import com.egm.stellio.shared.util.QUERY_PARAM_LANG
+import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException
@@ -28,7 +31,9 @@ object ContextSourceCaller {
         params: MultiValueMap<String, String>
     ): Either<NGSILDWarning, CompactedEntity?> = either {
         val uri = URI("${csr.endpoint}$path")
-
+        params.remove(QUERY_PARAM_GEOMETRY_PROPERTY)
+        params.remove(QUERY_PARAM_OPTIONS) // only request normalized
+        params.remove(QUERY_PARAM_LANG) // todo not sure its needed
         val request = WebClient.create()
             .method(HttpMethod.GET)
             .uri { uriBuilder ->
@@ -40,7 +45,7 @@ object ContextSourceCaller {
                     .build()
             }
             .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
-        return try {
+        return runCatching {
             val (statusCode, response) = request
                 .awaitExchange { response ->
                     response.statusCode() to response.awaitBodyOrNull<CompactedEntity>()
@@ -64,20 +69,23 @@ object ContextSourceCaller {
                     ).left()
                 }
             }
-        } catch (e: Exception) {
-            logger.warn("Error contacting CSR at $uri: ${e.message}")
-            logger.warn(e.stackTraceToString())
-            when (e) {
-                is DecodingException -> RevalidationFailedWarning(
-                    "$uri returned badly formed data message: \"${e.cause}:${e.message}\"",
-                    csr
-                )
+        }.fold(
+            onSuccess = { it },
+            onFailure = { e ->
+                logger.warn("Error contacting CSR at $uri: ${e.message}")
+                logger.warn(e.stackTraceToString())
+                when (e) {
+                    is DecodingException -> RevalidationFailedWarning(
+                        "$uri returned badly formed data message: \"${e.cause}:${e.message}\"",
+                        csr
+                    )
 
-                else -> MiscellaneousWarning(
-                    "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
-                    csr
-                )
-            }.left()
-        }
+                    else -> MiscellaneousWarning(
+                        "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
+                        csr
+                    )
+                }.left()
+            }
+        )
     }
 }

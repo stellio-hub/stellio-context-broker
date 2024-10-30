@@ -1,11 +1,8 @@
 package com.egm.stellio.search.csr.service
 
 import com.egm.stellio.search.csr.model.*
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.test.runTest
@@ -15,6 +12,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
+import wiremock.com.google.common.net.HttpHeaders.ACCEPT
 import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 
 @WireMockTest(httpPort = 8089)
@@ -107,7 +105,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `getDistributedInformation should return MiscellaneousPersistentWarning when receiving error 500`() = runTest {
+    fun `getDistributedInformation should return MiscellaneousPersistentWarning when receiving error 401`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -133,6 +131,49 @@ class ContextSourceCallerTests {
         val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isRight())
-        assertNull(response.leftOrNull())
+        assertNull(response.getOrNull())
+    }
+
+    @Test
+    fun `getDistributedInformation should not ask context source for a GEO_JSON`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(ok())
+        )
+        val header = HttpHeaders()
+        header.accept = listOf(GEO_JSON_MEDIA_TYPE)
+        ContextSourceCaller.getDistributedInformation(
+            header,
+            csr,
+            path,
+            emptyParams
+        )
+        verify(
+            getRequestedFor(urlPathEqualTo(path))
+                .withHeader(ACCEPT, notContaining("GEO_JSON_MEDIA_TYPE"))
+        )
+    }
+
+    @Test
+    fun `getDistributedInformation should always ask for the normalized representation`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(notFound())
+        )
+        val params = LinkedMultiValueMap(mapOf(QUERY_PARAM_OPTIONS to listOf("simplified")))
+        ContextSourceCaller.getDistributedInformation(
+            HttpHeaders.EMPTY,
+            csr,
+            path,
+            params
+        )
+        verify(
+            getRequestedFor(urlPathEqualTo(path))
+                .withQueryParam(QUERY_PARAM_OPTIONS, notContaining("simplified"))
+        )
     }
 }

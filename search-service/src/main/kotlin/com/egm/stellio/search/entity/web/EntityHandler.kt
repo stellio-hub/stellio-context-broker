@@ -4,6 +4,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.Operation
@@ -249,7 +250,7 @@ class EntityHandler(
         }
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
-        val (remoteEntitiesWithCSR, warnings) = matchingCSR.parMap { csr ->
+        val (warnings, remoteEntitiesWithCSR) = matchingCSR.parMap { csr ->
             val response = ContextSourceCaller.getDistributedInformation(
                 httpHeaders,
                 csr,
@@ -257,11 +258,10 @@ class EntityHandler(
                 params
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response to csr
-        }.partition { it.first.getOrNull() != null }
-            .let { (responses, warnings) ->
-                responses.map { (response, csr) -> response.getOrNull()!! to csr } to
-                    warnings.mapNotNull { (warning, _) -> warning.leftOrNull() }.toMutableList()
+            response.map { it?.let { it to csr } }
+        }.separateEither()
+            .let { (warnings, maybeResponses) ->
+                warnings.toMutableList() to maybeResponses.filterNotNull()
             }
 
         // we could simplify the code if we check the JsonPayload beforehand

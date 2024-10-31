@@ -2,7 +2,6 @@ package com.egm.stellio.search.csr.service
 
 import arrow.core.*
 import arrow.core.raise.either
-import arrow.core.raise.iorNel
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
@@ -28,22 +27,21 @@ object ContextSourceUtils {
     fun mergeEntities(
         localEntity: CompactedEntity?,
         remoteEntitiesWithCSR: List<CompactedEntityWithCSR>
-    ): IorNel<NGSILDWarning, CompactedEntity?> = iorNel {
-        if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return@iorNel null
+    ): IorNel<NGSILDWarning, CompactedEntity?> {
+        if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
-            .forEach { (entity, csr) ->
-                mergedEntity.putAll(
-                    getMergeNewValues(mergedEntity, entity, csr).toIor().toIorNel().bind()
-                )
-            }
+        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
+            .mapNotNull { (entity, csr) ->
+                getMergeNewValues(mergedEntity, entity, csr)
+                    .onRight { mergedEntity.putAll(it) }.leftOrNull()
+            }.toNonEmptyListOrNull()
 
-        mergedEntity.toMap()
+        return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
     }
 
-    private fun getMergeNewValues(
+    fun getMergeNewValues(
         currentEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
         csr: ContextSourceRegistration

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.csr.service
 
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -21,13 +22,6 @@ class ContextSourceCallerTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
-    private fun gimmeRawCSR() = ContextSourceRegistration(
-        id = "urn:ngsi-ld:ContextSourceRegistration:test".toUri(),
-        endpoint = "http://localhost:8089".toUri(),
-        information = emptyList(),
-        operations = listOf(Operation.FEDERATION_OPS),
-        createdAt = ngsiLdDateTime(),
-    )
     private val emptyParams = LinkedMultiValueMap<String, String>()
     private val entityWithSysAttrs =
         """

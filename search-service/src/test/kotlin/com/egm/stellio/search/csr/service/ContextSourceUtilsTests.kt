@@ -1,7 +1,9 @@
 package com.egm.stellio.search.csr.service
 
+import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
@@ -84,22 +86,6 @@ class ContextSourceUtilsTests {
             listOf(entityWithLastName to auxiliaryCSR, entityWithSurName to inclusiveCSR)
         )
         assertEquals(entityWithName + entityWithLastName + entityWithSurName, mergedEntity.getOrNull())
-    }
-
-    @Test
-    fun `merge entity should call mergeAttribute or mergeTypeOrScope when keys are equal`() = runTest {
-        mockkObject(ContextSourceUtils) {
-            every { ContextSourceUtils.mergeAttribute(any(), any(), any()) } returns listOf(
-                nameAttribute
-            ).right()
-            every { ContextSourceUtils.mergeTypeOrScope(any(), any()) } returns listOf("Beehive")
-            ContextSourceUtils.mergeEntities(
-                entityWithName,
-                listOf(entityWithName to auxiliaryCSR, entityWithName to inclusiveCSR)
-            )
-            verify(exactly = 2) { ContextSourceUtils.mergeAttribute(any(), any(), any()) }
-            verify(exactly = 2) { ContextSourceUtils.mergeTypeOrScope(any(), any()) }
-        }
     }
 
     @Test
@@ -191,5 +177,39 @@ class ContextSourceUtilsTests {
             time,
             (mergedEntity.getOrNull()?.get(NGSILD_CREATED_AT_TERM))
         )
+    }
+
+    @Test
+    fun `merge entity should merge each entity using getMergeNewValues and return the received warnings`() = runTest {
+        val warning1 = MiscellaneousWarning("1", inclusiveCSR)
+        val warning2 = MiscellaneousWarning("2", inclusiveCSR)
+        mockkObject(ContextSourceUtils) {
+            every { ContextSourceUtils.getMergeNewValues(any(), any(), any()) } returns
+                warning1.left() andThen warning2.left()
+
+            val (warnings, entity) = ContextSourceUtils.mergeEntities(
+                entityWithName,
+                listOf(entityWithName to inclusiveCSR, entityWithName to inclusiveCSR)
+            ).toPair()
+            verify(exactly = 2) { ContextSourceUtils.getMergeNewValues(any(), any(), any()) }
+            assertThat(warnings).hasSize(2).contains(warning1, warning2)
+            assertEquals(entityWithName, entity)
+        }
+    }
+
+    @Test
+    fun `merge entity should call mergeAttribute or mergeTypeOrScope when keys are equal`() = runTest {
+        mockkObject(ContextSourceUtils) {
+            every { ContextSourceUtils.mergeAttribute(any(), any(), any()) } returns listOf(
+                nameAttribute
+            ).right()
+            every { ContextSourceUtils.mergeTypeOrScope(any(), any()) } returns listOf("Beehive")
+            ContextSourceUtils.mergeEntities(
+                entityWithName,
+                listOf(entityWithName to auxiliaryCSR, entityWithName to inclusiveCSR)
+            )
+            verify(exactly = 2) { ContextSourceUtils.mergeAttribute(any(), any(), any()) }
+            verify(exactly = 2) { ContextSourceUtils.mergeTypeOrScope(any(), any()) }
+        }
     }
 }

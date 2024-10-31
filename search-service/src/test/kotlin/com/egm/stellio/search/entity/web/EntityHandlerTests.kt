@@ -3,6 +3,10 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.service.ContextSourceCaller
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
@@ -850,6 +854,43 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `get entity by id should return the warnings send by the csr and update the csr status`() {
+        val csr = gimmeRawCSR()
+        coEvery {
+            entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
+        } returns ResourceNotFoundException("no entity").left()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        mockkObject(ContextSourceCaller) {
+            coEvery {
+                ContextSourceCaller.getDistributedInformation(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message\nwith\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            webClient.get()
+                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
+                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+                .exchange()
+                .expectStatus().isNotFound
+                .expectHeader().valueEquals(
+                    NGSILDWarning.HEADER_NAME,
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+                )
+
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
     }
 
     @Test

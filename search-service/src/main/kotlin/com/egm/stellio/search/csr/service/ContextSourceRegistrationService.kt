@@ -61,6 +61,7 @@ class ContextSourceRegistrationService(
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
@@ -74,6 +75,7 @@ class ContextSourceRegistrationService(
                 :mode,
                 :information,
                 :operations,
+                :registration_name,
                 :observation_interval_start,
                 :observation_interval_end,
                 :management_interval_start,
@@ -91,6 +93,7 @@ class ContextSourceRegistrationService(
                 Json.of(mapper.writeValueAsString(contextSourceRegistration.information))
             )
             .bind("operations", contextSourceRegistration.operations.map { it.key }.toTypedArray())
+            .bind("registration_name", contextSourceRegistration.registrationName)
             .bind("observation_interval_start", contextSourceRegistration.observationInterval?.start)
             .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
             .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
@@ -135,6 +138,7 @@ class ContextSourceRegistrationService(
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
@@ -186,6 +190,7 @@ class ContextSourceRegistrationService(
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
@@ -229,6 +234,7 @@ class ContextSourceRegistrationService(
             information = mapper.readerForListOf(RegistrationInfo::class.java)
                 .readValue((row["information"] as Json).asString()),
             operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
+            registrationName = row["registration_name"] as? String,
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             observationInterval = row["observation_interval_start"]?.let {
@@ -249,7 +255,7 @@ class ContextSourceRegistrationService(
     suspend fun updateContextSourceStatus(
         csr: ContextSourceRegistration,
         success: Boolean
-    ): Long {
+    ) {
         val updateStatement = if (success)
             Update.update("status", ContextSourceRegistration.StatusType.OK.name)
                 .set("times_sent", csr.timesSent + 1)
@@ -259,7 +265,7 @@ class ContextSourceRegistrationService(
             .set("times_failed", csr.timesFailed + 1)
             .set("last_failure", ngsiLdDateTime())
 
-        return r2dbcEntityTemplate.update(
+        r2dbcEntityTemplate.update(
             query(where("id").`is`(csr.id)),
             updateStatement,
             ContextSourceRegistration::class.java

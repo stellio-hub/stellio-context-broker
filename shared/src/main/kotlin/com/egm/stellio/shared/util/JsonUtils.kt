@@ -116,10 +116,8 @@ object JsonUtils {
                 entry.value is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
                 entry.value is List<*> ->
                     (entry.value as List<Any>).map {
-                        when (it) {
-                            is Map<*, *> -> (it as Map<String, Any>).getAllValues()
-                            else -> setOf(it)
-                        }
+                        if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
+                        else setOf(it)
                     }.flatten().toSet()
                 else -> setOf(entry.value)
             }

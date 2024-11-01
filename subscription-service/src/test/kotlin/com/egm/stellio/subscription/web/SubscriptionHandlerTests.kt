@@ -6,8 +6,14 @@ import arrow.core.right
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
@@ -108,9 +114,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\": \"${subscriptionNotFoundMessage(subscriptionId)}\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail": "${subscriptionNotFoundMessage(subscriptionId)}"
+                      }
+                """
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
@@ -198,9 +208,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(409)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
-                    "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
+                        "title":"The referred element already exists",
+                        "detail":"${subscriptionAlreadyExistsMessage(subscriptionId)}"
+                      }
+                """
             )
     }
 
@@ -352,7 +366,7 @@ class SubscriptionHandlerTests {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
+                """</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel="prev";type="application/ld+json""""
             )
     }
 
@@ -370,7 +384,7 @@ class SubscriptionHandlerTests {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
+                """</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel="next";type="application/ld+json""""
             )
     }
 
@@ -387,8 +401,8 @@ class SubscriptionHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
-                "</ngsi-ld/v1/subscriptions?limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/subscriptions?limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+                """</ngsi-ld/v1/subscriptions?limit=1&offset=0>;rel="prev";type="application/ld+json"""",
+                """</ngsi-ld/v1/subscriptions?limit=1&offset=2>;rel="next";type="application/ld+json""""
             )
     }
 
@@ -549,9 +563,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${subscriptionNotFoundMessage(subscriptionId)}\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"${subscriptionNotFoundMessage(subscriptionId)}"
+                      }
+                """
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }

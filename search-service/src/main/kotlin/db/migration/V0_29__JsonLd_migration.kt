@@ -5,7 +5,21 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.util.guessPropertyValueType
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AttributeInstance
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdAttributeInstance
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdJsonPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
+import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
+import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
+import com.egm.stellio.shared.model.getMemberValueAsDateTime
+import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
@@ -313,8 +327,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             "and dataset_id = $$$this$$"
 
     private fun Any?.toSQLValue(): String? =
-        if (this == null) null
-        else "$$$this$$"
+        this?.let { "$$$this$$" }
 
     private fun List<String>.toSqlArray(): String =
         "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"

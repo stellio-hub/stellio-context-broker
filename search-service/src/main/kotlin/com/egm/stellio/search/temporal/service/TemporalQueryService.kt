@@ -1,7 +1,11 @@
 package com.egm.stellio.search.temporal.service
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.getOrElse
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
+import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -24,7 +28,6 @@ import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.ZonedDateTime
-import kotlin.collections.flatten
 
 @Service
 class TemporalQueryService(

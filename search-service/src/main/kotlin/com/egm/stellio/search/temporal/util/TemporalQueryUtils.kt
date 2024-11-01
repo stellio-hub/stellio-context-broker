@@ -1,7 +1,11 @@
 package com.egm.stellio.search.temporal.util
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.getOrElse
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.util.composeEntitiesQuery
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest

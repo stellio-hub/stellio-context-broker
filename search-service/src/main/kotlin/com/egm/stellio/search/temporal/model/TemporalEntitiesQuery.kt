@@ -14,7 +14,8 @@ data class TemporalEntitiesQuery(
 ) {
     fun isAggregatedWithDefinedDuration(): Boolean =
         withAggregatedValues &&
-            (temporalQuery.aggrPeriodDuration != null && temporalQuery.aggrPeriodDuration != "PT0S")
+            temporalQuery.aggrPeriodDuration != null &&
+            temporalQuery.aggrPeriodDuration != "PT0S"
 
     fun computeAggrPeriodDuration(): TemporalAmount {
         val splitted = temporalQuery.aggrPeriodDuration!!.split("T")

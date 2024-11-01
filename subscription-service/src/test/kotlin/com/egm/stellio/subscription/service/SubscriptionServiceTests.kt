@@ -5,18 +5,47 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NotImplementedException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEKEEPER_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEKEEPER_TYPE
+import com.egm.stellio.shared.util.DEVICE_COMPACT_TYPE
+import com.egm.stellio.shared.util.DEVICE_TYPE
+import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.SENSOR_COMPACT_TYPE
+import com.egm.stellio.shared.util.SENSOR_TYPE
+import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldFailWith
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
-import com.egm.stellio.subscription.model.NotificationTrigger.*
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_CREATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_DELETED
+import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_UPDATED
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithKafkaContainer
 import com.egm.stellio.subscription.support.WithTimescaleContainer
@@ -317,11 +346,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint.uri == URI("http://localhost:8084") &&
                     it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
-                    (
-                        it.entities != null &&
-                            it.entities!!.size == 1 &&
-                            it.entities!!.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE }
-                        ) &&
+                    it.entities != null &&
+                    it.entities!!.size == 1 &&
+                    it.entities!!.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE } &&
                     it.watchedAttributes == null &&
                     it.isActive
             }
@@ -355,14 +382,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .matches {
                 it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
                     it.subscriptionName == "A subscription with all possible members" &&
-                    it.description == "A possible description" &&
-                    (
-                        it.entities != null &&
-                            it.entities!!.size == 3 &&
-                            it.entities!!.all { it.typeSelection == BEEHIVE_TYPE } &&
-                            it.entities!!.any { it.id == "urn:ngsi-ld:Beehive:1234567890".toUri() } &&
-                            it.entities!!.any { it.idPattern == "urn:ngsi-ld:Beehive:1234*" }
-                        ) &&
+                    it.description == "A possible description" && it.entities != null &&
+                    it.entities!!.size == 3 &&
+                    it.entities!!.all { it.typeSelection == BEEHIVE_TYPE } &&
+                    it.entities!!.any { it.id == "urn:ngsi-ld:Beehive:1234567890".toUri() } &&
+                    it.entities!!.any { it.idPattern == "urn:ngsi-ld:Beehive:1234*" } &&
                     it.watchedAttributes == listOf(INCOMING_PROPERTY) &&
                     it.notificationTrigger == listOf(
                         ENTITY_CREATED.notificationTrigger,
@@ -370,15 +394,12 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         ENTITY_DELETED.notificationTrigger
                     ) &&
                     it.timeInterval == null &&
-                    it.q == "foodQuantity<150;foodName=='dietary fibres'" &&
-                    (
-                        it.geoQ != null &&
-                            it.geoQ!!.georel == "within" &&
-                            it.geoQ!!.geometry == "Polygon" &&
-                            it.geoQ!!.coordinates ==
-                            "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]" &&
-                            it.geoQ!!.geoproperty == NGSILD_LOCATION_PROPERTY
-                        ) &&
+                    it.q == "foodQuantity<150;foodName=='dietary fibres'" && it.geoQ != null &&
+                    it.geoQ!!.georel == "within" &&
+                    it.geoQ!!.geometry == "Polygon" &&
+                    it.geoQ!!.coordinates ==
+                    "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]" &&
+                    it.geoQ!!.geoproperty == NGSILD_LOCATION_PROPERTY &&
                     it.scopeQ == "/Nantes/+" &&
                     it.notification.attributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&

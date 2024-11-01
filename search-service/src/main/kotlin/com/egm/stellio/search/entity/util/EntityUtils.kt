@@ -1,6 +1,12 @@
 package com.egm.stellio.search.entity.util
 
-import com.egm.stellio.search.common.util.*
+import com.egm.stellio.search.common.util.toJson
+import com.egm.stellio.search.common.util.toList
+import com.egm.stellio.search.common.util.toOptionalEnum
+import com.egm.stellio.search.common.util.toOptionalList
+import com.egm.stellio.search.common.util.toOptionalZonedDateTime
+import com.egm.stellio.search.common.util.toUri
+import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 

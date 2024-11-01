@@ -6,7 +6,11 @@ import arrow.core.right
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toUri
-import com.egm.stellio.search.discovery.model.*
+import com.egm.stellio.search.discovery.model.AttributeInfo
+import com.egm.stellio.search.discovery.model.AttributeType
+import com.egm.stellio.search.discovery.model.EntityType
+import com.egm.stellio.search.discovery.model.EntityTypeInfo
+import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException

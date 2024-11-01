@@ -7,7 +7,9 @@ import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.EndpointInfo
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.boot.test.context.SpringBootTest
@@ -21,7 +23,7 @@ class ParsingUtilsTests {
 
     @Test
     fun `it should correctly parse an endpoint info`() {
-        val input = "[{\"key\": \"Authorization-token\", \"value\": \"Authorization-token-value\"}]"
+        val input = """[{"key": "Authorization-token", "value": "Authorization-token-value"}]"""
         val info = ParsingUtils.parseEndpointInfo(input)
 
         assertEquals(info, listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value")))

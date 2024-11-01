@@ -5,7 +5,15 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.model.toExpandedAttributes
+import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.unhandledOperationType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerms

@@ -9,7 +9,23 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEKEEPER_TYPE
+import com.egm.stellio.shared.util.DEVICE_TYPE
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.SENSOR_TYPE
+import com.egm.stellio.shared.util.geoJsonToWkt
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toListOfString
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import kotlinx.coroutines.runBlocking
@@ -281,8 +297,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
         "listOfString==\"iot\", 1, urn:ngsi-ld:BeeHive:01",
         "listOfString==\"data's processing\", 1, urn:ngsi-ld:BeeHive:01",
         "listOfString==\"stellio\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "'listOfString==\"iot\",\"dataviz\"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "'listOfString==\"fiware\",\"egm\"', 0, ",
+        """'listOfString=="iot","dataviz"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'""",
+        """'listOfString=="fiware","egm"', 0, """,
         "'listOfInt==12,14', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01",
         "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"

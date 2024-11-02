@@ -7,7 +7,7 @@ import com.egm.stellio.search.authorization.model.EntityAccessRights
 import com.egm.stellio.search.authorization.model.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.authorization.model.Group
 import com.egm.stellio.search.authorization.model.User
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -363,7 +363,7 @@ class EnabledAuthorizationServiceTests {
         } returns emptyMap<URI, Map<AccessRight, List<SubjectRightInfo>>>().right()
 
         enabledAuthorizationService.getAuthorizedEntities(
-            EntitiesQuery(
+            EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
@@ -419,7 +419,7 @@ class EnabledAuthorizationServiceTests {
         ).right()
 
         enabledAuthorizationService.getAuthorizedEntities(
-            EntitiesQuery(
+            EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
@@ -471,7 +471,7 @@ class EnabledAuthorizationServiceTests {
         ).right()
 
         enabledAuthorizationService.getAuthorizedEntities(
-            EntitiesQuery(
+            EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_TYPE,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS

@@ -13,6 +13,8 @@ import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.wrapToAndClause
 import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
@@ -119,22 +121,31 @@ class EntityQueryService(
         buildEntitiesQueryFilter(
             entitiesQuery,
             accessRightFilter
-        ).let {
-            if (entitiesQuery.q != null)
-                it.wrapToAndClause(buildQQuery(entitiesQuery.q, entitiesQuery.contexts))
-            else it
-        }.let {
-            if (entitiesQuery.scopeQ != null)
-                it.wrapToAndClause(buildScopeQQuery(entitiesQuery.scopeQ))
-            else it
-        }.let {
-            if (entitiesQuery.geoQuery != null)
-                it.wrapToAndClause(buildGeoQuery(entitiesQuery.geoQuery))
-            else it
+        ).let { sqlFilter ->
+            entitiesQuery.q?.let { q ->
+                sqlFilter.wrapToAndClause(buildQQuery(q, entitiesQuery.contexts))
+            } ?: sqlFilter
+        }.let { sqlFilter ->
+            entitiesQuery.scopeQ?.let { scopeQ ->
+                sqlFilter.wrapToAndClause(buildScopeQQuery(scopeQ))
+            } ?: sqlFilter
+        }.let { sqlFilter ->
+            entitiesQuery.geoQuery?.let { geoQuery ->
+                sqlFilter.wrapToAndClause(buildGeoQuery(geoQuery))
+            } ?: sqlFilter
         }
 
     fun buildEntitiesQueryFilter(
         entitiesQuery: EntitiesQuery,
+        accessRightFilter: () -> String?
+    ): String =
+        when (entitiesQuery) {
+            is EntitiesQueryFromGet -> buildEntitiesQueryFilterFromGet(entitiesQuery, accessRightFilter)
+            is EntitiesQueryFromPost -> buildEntitiesQueryFilterFromPost(entitiesQuery, accessRightFilter)
+        }
+
+    fun buildEntitiesQueryFilterFromGet(
+        entitiesQuery: EntitiesQueryFromGet,
         accessRightFilter: () -> String?
     ): String {
         val formattedIds =
@@ -169,6 +180,37 @@ class EntityQueryService(
             )
 
         return queryFilter.joinToString(separator = " AND ")
+    }
+
+    fun buildEntitiesQueryFilterFromPost(
+        entitiesQuery: EntitiesQueryFromPost,
+        accessRightFilter: () -> String?
+    ): String {
+        val entitySelectorFilter = entitiesQuery.entitySelectors?.map { entitySelector ->
+            val formattedId =
+                entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
+            val formattedIdPattern =
+                entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
+            val formattedType = entitySelector.typeSelection.let { "(" + buildTypeQuery(it) + ")" }
+            val formattedAttrs =
+                if (entitiesQuery.attrs.isNotEmpty())
+                    entitiesQuery.attrs.joinToString(
+                        separator = ",",
+                        prefix = "attribute_name in (",
+                        postfix = ")"
+                    ) { "'$it'" }
+                else null
+
+            listOfNotNull(
+                formattedId,
+                formattedIdPattern,
+                formattedType,
+                formattedAttrs,
+                accessRightFilter()
+            ).joinToString(separator = " AND ", prefix = "(", postfix = ")")
+        }
+
+        return entitySelectorFilter?.joinToString(separator = " OR ") ?: " 1 = 1 "
     }
 
     suspend fun retrieve(entityId: URI): Either<APIException, Entity> =

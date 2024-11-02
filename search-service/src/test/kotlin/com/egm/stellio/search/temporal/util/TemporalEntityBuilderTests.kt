@@ -10,7 +10,7 @@ import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
@@ -53,8 +53,8 @@ class TemporalEntityBuilderTests {
         )
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
-            TemporalEntitiesQuery(
-                entitiesQuery = buildDefaultQueryParams(),
+            TemporalEntitiesQueryFromGet(
+                entitiesQueryFromGet = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues = false,
                 withAudit = false,
@@ -86,8 +86,8 @@ class TemporalEntityBuilderTests {
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, scopeHistory, attributeAndResultsMap),
-            TemporalEntitiesQuery(
-                entitiesQuery = buildDefaultQueryParams(),
+            TemporalEntitiesQueryFromGet(
+                entitiesQueryFromGet = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -111,8 +111,8 @@ class TemporalEntityBuilderTests {
     ) {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntities(
             entityTemporalResults,
-            TemporalEntitiesQuery(
-                entitiesQuery = buildDefaultQueryParams(),
+            TemporalEntitiesQueryFromGet(
+                entitiesQueryFromGet = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -190,8 +190,8 @@ class TemporalEntityBuilderTests {
 
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
-            TemporalEntitiesQuery(
-                entitiesQuery = buildDefaultQueryParams(),
+            TemporalEntitiesQueryFromGet(
+                entitiesQueryFromGet = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,

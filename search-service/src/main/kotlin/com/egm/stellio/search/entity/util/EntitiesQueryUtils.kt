@@ -4,10 +4,12 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.QUERY_PARAM_ATTRS
 import com.egm.stellio.shared.util.QUERY_PARAM_DATASET_ID
@@ -26,11 +28,11 @@ import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
 import org.springframework.util.MultiValueMap
 
-fun composeEntitiesQuery(
+fun composeEntitiesQueryFromGet(
     defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
-): Either<APIException, EntitiesQuery> = either {
+): Either<APIException, EntitiesQueryFromGet> = either {
     val ids = requestParams.getFirst(QUERY_PARAM_ID)?.split(",").orEmpty().toListOfUri().toSet()
     val typeSelection = expandTypeSelection(requestParams.getFirst(QUERY_PARAM_TYPE), contexts)
     val idPattern = validateIdPattern(requestParams.getFirst(QUERY_PARAM_ID_PATTERN)).bind()
@@ -51,7 +53,7 @@ fun composeEntitiesQuery(
 
     val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contexts).bind()
 
-    EntitiesQuery(
+    EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
         idPattern = idPattern,
@@ -65,7 +67,7 @@ fun composeEntitiesQuery(
     )
 }
 
-fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQuery> = either {
+fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQueryFromGet> = either {
     if (
         geoQuery == null &&
         q.isNullOrEmpty() &&
@@ -74,20 +76,25 @@ fun EntitiesQuery.validateMinimalQueryEntitiesParameters(): Either<APIException,
     )
         return@either BadRequestDataException(
             "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
-        ).left().bind<EntitiesQuery>()
+        ).left().bind<EntitiesQueryFromGet>()
 
     this@validateMinimalQueryEntitiesParameters
 }
 
-fun composeEntitiesQueryFromPostRequest(
+fun composeEntitiesQueryFromPost(
     defaultPagination: ApplicationProperties.Pagination,
     query: Query,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
-): Either<APIException, EntitiesQuery> = either {
-    val entitySelector = query.entities?.get(0)
-    val typeSelection = expandTypeSelection(entitySelector?.typeSelection, contexts)
-    val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
+): Either<APIException, EntitiesQueryFromPost> = either {
+    val entitySelectors = query.entities?.map { entitySelector ->
+        validateIdPattern(entitySelector.idPattern).bind()
+        EntitySelector(
+            entitySelector.id,
+            entitySelector.idPattern,
+            expandTypeSelection(entitySelector.typeSelection, contexts)!!
+        )
+    }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val datasetId = query.datasetId.orEmpty().toSet()
     val geoQuery = query.geoQ?.let {
@@ -106,10 +113,8 @@ fun composeEntitiesQueryFromPostRequest(
         defaultPagination.limitMax
     ).bind()
 
-    EntitiesQuery(
-        ids = setOfNotNull(entitySelector?.id),
-        typeSelection = typeSelection,
-        idPattern = idPattern,
+    EntitiesQueryFromPost(
+        entitySelectors = entitySelectors,
         q = query.q?.decode(),
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,

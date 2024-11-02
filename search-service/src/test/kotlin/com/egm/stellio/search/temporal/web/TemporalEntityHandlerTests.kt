@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalService.CreateOrUpdateResult
@@ -596,10 +597,11 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
-                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
-                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.typeSelection == BEEHIVE_TYPE &&
+                    val entitiesQueryFromGet = temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromGet
+                    temporalEntitiesQuery.getEntitiesQuery().paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.getEntitiesQuery().paginationQuery.offset == 0 &&
+                        entitiesQueryFromGet.ids.isEmpty() &&
+                        entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },

@@ -12,7 +12,7 @@ import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
@@ -501,7 +501,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     private fun createTemporalEntitiesQuery(
         aggrMethod: String,
         aggrPeriodDuration: String = "P1D"
-    ): TemporalEntitiesQuery =
+    ): TemporalEntitiesQueryFromGet =
         gimmeTemporalEntitiesQuery(
             buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.AFTER,

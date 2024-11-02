@@ -7,11 +7,13 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.model.Query
-import com.egm.stellio.search.entity.util.composeEntitiesQuery
-import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPost
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromPost
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
@@ -25,22 +27,22 @@ import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Optional
 
-fun composeTemporalEntitiesQuery(
+fun composeTemporalEntitiesQueryFromGet(
     defaultPagination: ApplicationProperties.Pagination,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>,
     inQueryEntities: Boolean = false
-): Either<APIException, TemporalEntitiesQuery> = either {
-    val entitiesQuery = composeEntitiesQuery(
+): Either<APIException, TemporalEntitiesQueryFromGet> = either {
+    val entitiesQueryFromGet = composeEntitiesQueryFromGet(
         defaultPagination,
         requestParams,
         contexts
     ).bind()
 
     if (inQueryEntities)
-        entitiesQuery.validateMinimalQueryEntitiesParameters().bind()
+        entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
 
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
@@ -57,8 +59,8 @@ fun composeTemporalEntitiesQuery(
     val temporalQuery =
         buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
 
-    TemporalEntitiesQuery(
-        entitiesQuery = entitiesQuery,
+    TemporalEntitiesQueryFromGet(
+        entitiesQueryFromGet = entitiesQueryFromGet,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,
@@ -66,19 +68,18 @@ fun composeTemporalEntitiesQuery(
     )
 }
 
-fun composeTemporalEntitiesQueryFromPostRequest(
+fun composeTemporalEntitiesQueryFromPost(
     defaultPagination: ApplicationProperties.Pagination,
     query: Query,
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, TemporalEntitiesQuery> = either {
-    val entitiesQuery = composeEntitiesQueryFromPostRequest(
+    val entitiesQueryFromPost = composeEntitiesQueryFromPost(
         defaultPagination,
         query,
         requestParams,
         contexts
     ).bind()
-        .validateMinimalQueryEntitiesParameters().bind()
 
     val withTemporalValues = hasValueInOptionsParam(
         Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)),
@@ -109,8 +110,8 @@ fun composeTemporalEntitiesQueryFromPostRequest(
         withAggregatedValues
     ).bind()
 
-    TemporalEntitiesQuery(
-        entitiesQuery = entitiesQuery,
+    TemporalEntitiesQueryFromPost(
+        entitiesQueryFromPost = entitiesQueryFromPost,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,

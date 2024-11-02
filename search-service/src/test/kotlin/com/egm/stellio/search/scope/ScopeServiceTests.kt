@@ -1,6 +1,6 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -10,7 +10,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
@@ -153,8 +153,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -179,8 +179,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -209,8 +209,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -243,8 +243,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -278,8 +278,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
             val scopeHistoryEntries = scopeService.retrieveHistory(
                 listOf(beehiveTestCId),
-                TemporalEntitiesQuery(
-                    EntitiesQuery(
+                TemporalEntitiesQueryFromGet(
+                    EntitiesQueryFromGet(
                         paginationQuery = PaginationQuery(limit = 100, offset = 0),
                         contexts = APIC_COMPOUND_CONTEXTS
                     ),
@@ -310,8 +310,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -359,8 +359,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -406,8 +406,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -446,8 +446,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

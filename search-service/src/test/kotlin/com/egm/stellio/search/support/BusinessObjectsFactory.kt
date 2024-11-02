@@ -2,10 +2,10 @@ package com.egm.stellio.search.support
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.AttributeInstance
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.PaginationQuery
@@ -149,9 +149,9 @@ fun gimmeTemporalEntitiesQuery(
     withTemporalValues: Boolean = false,
     withAudit: Boolean = false,
     withAggregatedValues: Boolean = false
-): TemporalEntitiesQuery =
-    TemporalEntitiesQuery(
-        entitiesQuery = EntitiesQuery(
+): TemporalEntitiesQueryFromGet =
+    TemporalEntitiesQueryFromGet(
+        entitiesQueryFromGet = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 50, offset = 0),
             contexts = APIC_COMPOUND_CONTEXTS
         ),
@@ -161,8 +161,8 @@ fun gimmeTemporalEntitiesQuery(
         withAggregatedValues = withAggregatedValues
     )
 
-fun buildDefaultQueryParams(): EntitiesQuery =
-    EntitiesQuery(
+fun buildDefaultQueryParams(): EntitiesQueryFromGet =
+    EntitiesQueryFromGet(
         paginationQuery = PaginationQuery(limit = 50, offset = 0),
         contexts = APIC_COMPOUND_CONTEXTS
     )

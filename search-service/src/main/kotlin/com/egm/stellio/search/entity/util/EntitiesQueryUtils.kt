@@ -12,9 +12,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.QUERY_PARAM_ATTRS
+import com.egm.stellio.shared.util.QUERY_PARAM_CONTAINED_BY
 import com.egm.stellio.shared.util.QUERY_PARAM_DATASET_ID
 import com.egm.stellio.shared.util.QUERY_PARAM_ID
 import com.egm.stellio.shared.util.QUERY_PARAM_ID_PATTERN
+import com.egm.stellio.shared.util.QUERY_PARAM_JOIN
+import com.egm.stellio.shared.util.QUERY_PARAM_JOIN_LEVEL
 import com.egm.stellio.shared.util.QUERY_PARAM_Q
 import com.egm.stellio.shared.util.QUERY_PARAM_SCOPEQ
 import com.egm.stellio.shared.util.QUERY_PARAM_TYPE
@@ -22,6 +25,7 @@ import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.parseAndExpandRequestParameter
 import com.egm.stellio.shared.util.parseGeoQueryParameters
+import com.egm.stellio.shared.util.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.util.parsePaginationParameters
 import com.egm.stellio.shared.util.parseRequestParameter
 import com.egm.stellio.shared.util.toListOfUri
@@ -52,6 +56,11 @@ fun composeEntitiesQueryFromGet(
     ).bind()
 
     val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contexts).bind()
+    val linkedEntityQuery = parseLinkedEntityQueryParameters(
+        requestParams.getFirst(QUERY_PARAM_JOIN),
+        requestParams.getFirst(QUERY_PARAM_JOIN_LEVEL),
+        requestParams.getFirst(QUERY_PARAM_CONTAINED_BY)
+    ).bind()
 
     EntitiesQueryFromGet(
         ids = ids,
@@ -63,6 +72,7 @@ fun composeEntitiesQueryFromGet(
         attrs = attrs,
         datasetId = datasetId,
         geoQuery = geoQuery,
+        linkedEntityQuery = linkedEntityQuery,
         contexts = contexts
     )
 }
@@ -106,6 +116,11 @@ fun composeEntitiesQueryFromPost(
         )
         parseGeoQueryParameters(geoQueryElements, contexts).bind()
     }
+    val linkedEntityQuery = parseLinkedEntityQueryParameters(
+        query.join,
+        query.joinLevel?.toString(),
+        query.containedBy?.joinToString(",")
+    ).bind()
 
     val paginationQuery = parsePaginationParameters(
         requestParams,
@@ -121,6 +136,7 @@ fun composeEntitiesQueryFromPost(
         attrs = attrs,
         datasetId = datasetId,
         geoQuery = geoQuery,
+        linkedEntityQuery = linkedEntityQuery,
         contexts = contexts
     )
 }

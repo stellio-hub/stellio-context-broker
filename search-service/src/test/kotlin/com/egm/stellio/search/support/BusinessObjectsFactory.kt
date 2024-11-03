@@ -59,7 +59,7 @@ fun gimmeNumericPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -85,7 +85,7 @@ fun gimmeJsonPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -111,7 +111,7 @@ fun gimmeLanguagePropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -137,7 +137,7 @@ fun gimmeVocabPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload

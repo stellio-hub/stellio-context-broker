@@ -52,6 +52,9 @@ const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
+const val QUERY_PARAM_CONTAINED_BY: String = "containedBy"
+const val QUERY_PARAM_JOIN: String = "join"
+const val QUERY_PARAM_JOIN_LEVEL: String = "joinLevel"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 

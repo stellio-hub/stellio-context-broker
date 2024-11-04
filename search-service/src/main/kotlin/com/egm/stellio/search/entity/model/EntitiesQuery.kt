@@ -8,12 +8,12 @@ import com.egm.stellio.shared.model.PaginationQuery
 import java.net.URI
 
 sealed class EntitiesQuery(
-    open val q: String? = null,
-    open val scopeQ: String? = null,
+    open val q: String?,
+    open val scopeQ: String?,
     open val paginationQuery: PaginationQuery,
-    open val attrs: Set<ExpandedTerm> = emptySet(),
-    open val datasetId: Set<String> = emptySet(),
-    open val geoQuery: GeoQuery? = null,
+    open val attrs: Set<ExpandedTerm>,
+    open val datasetId: Set<String>,
+    open val geoQuery: GeoQuery?,
     open val contexts: List<String>
 )
 
@@ -31,7 +31,7 @@ data class EntitiesQueryFromGet(
 ) : EntitiesQuery(q, scopeQ, paginationQuery, attrs, datasetId, geoQuery, contexts)
 
 data class EntitiesQueryFromPost(
-    val entitySelectors: List<EntitySelector>?,
+    val entitySelectors: List<EntitySelector>? = null,
     override val q: String? = null,
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,

@@ -382,6 +382,22 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should retrieve entities with a query without an entity selector`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    scopeQ = "/Madrid/Gardens/ParqueNorte",
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                )
+            ) { null }
+
+        assertThat(entitiesIds)
+            .hasSize(2)
+            .contains(entity01Uri, entity02Uri)
+    }
+
+    @Test
     fun `it should retrieve entities according to two entity selectors with type and idPattern`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(

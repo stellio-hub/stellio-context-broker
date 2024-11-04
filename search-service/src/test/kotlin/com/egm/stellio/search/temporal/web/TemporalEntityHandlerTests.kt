@@ -597,9 +597,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    val entitiesQueryFromGet = temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromGet
-                    temporalEntitiesQuery.getEntitiesQuery().paginationQuery.limit == 30 &&
-                        temporalEntitiesQuery.getEntitiesQuery().paginationQuery.offset == 0 &&
+                    val entitiesQueryFromGet = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet
+                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromGet.ids.isEmpty() &&
                         entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&

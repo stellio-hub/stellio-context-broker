@@ -39,7 +39,7 @@ object TemporalApiResponses {
             entities.toFinalRepresentation(representation),
             total,
             resourceUrl,
-            query.getEntitiesQuery().paginationQuery,
+            query.entitiesQuery.paginationQuery,
             requestParams,
             mediaType,
             contexts

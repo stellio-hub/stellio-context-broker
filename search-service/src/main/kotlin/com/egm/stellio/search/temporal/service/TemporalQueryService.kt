@@ -46,12 +46,12 @@ class TemporalQueryService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
-        val attrs = temporalEntitiesQuery.getEntitiesQuery().attrs
-        val datasetIds = temporalEntitiesQuery.getEntitiesQuery().datasetId
+        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
         val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
-                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.getEntitiesQuery().attrs)
+                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)
                 ).left()
             else it.right()
         }.bind()
@@ -102,7 +102,7 @@ class TemporalQueryService(
             val originForAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, attributes)
 
-            val attrs = temporalEntitiesQuery.getEntitiesQuery().attrs
+            val attrs = temporalEntitiesQuery.entitiesQuery.attrs
             val originForScope =
                 if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
@@ -121,9 +121,9 @@ class TemporalQueryService(
         sub: Sub? = null
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
-        val attrs = temporalEntitiesQuery.getEntitiesQuery().attrs
-        val entitiesIds = entityQueryService.queryEntities(temporalEntitiesQuery.getEntitiesQuery(), accessRightFilter)
-        val count = entityQueryService.queryEntitiesCount(temporalEntitiesQuery.getEntitiesQuery(), accessRightFilter)
+        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        val entitiesIds = entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
+        val count = entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
             .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
@@ -132,7 +132,7 @@ class TemporalQueryService(
 
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
-            temporalEntitiesQuery.getEntitiesQuery()
+            temporalEntitiesQuery.entitiesQuery
         )
 
         val scopesHistory =

@@ -92,13 +92,13 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    val entitiesQueryFromPost = temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromPost
-                    temporalEntitiesQuery.getEntitiesQuery().paginationQuery.limit == 30 &&
-                        temporalEntitiesQuery.getEntitiesQuery().paginationQuery.offset == 0 &&
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
+                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
                         entitiesQueryFromPost.entitySelectors!![0].id == null &&
                         entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
-                        temporalEntitiesQuery.getEntitiesQuery().attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
@@ -145,14 +145,14 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    val entitiesQueryFromPost = temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromPost
-                    temporalEntitiesQuery.getEntitiesQuery().paginationQuery.limit == 30 &&
-                        temporalEntitiesQuery.getEntitiesQuery().paginationQuery.offset == 0 &&
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
+                    temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
                         entitiesQueryFromPost.entitySelectors!![0].id == null &&
                         entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
-                        temporalEntitiesQuery.getEntitiesQuery().attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
-                        temporalEntitiesQuery.getEntitiesQuery().paginationQuery.count &&
+                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },

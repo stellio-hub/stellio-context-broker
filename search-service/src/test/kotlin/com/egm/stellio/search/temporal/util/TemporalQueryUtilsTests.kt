@@ -109,13 +109,13 @@ class TemporalQueryUtilsTests {
 
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
-            (temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromGet).ids
+            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).ids
         )
         assertEquals(
             "$BEEHIVE_TYPE,$APIARY_TYPE",
-            (temporalEntitiesQuery.getEntitiesQuery() as EntitiesQueryFromGet).typeSelection
+            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).typeSelection
         )
-        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.getEntitiesQuery().attrs)
+        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
             buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.BETWEEN,
@@ -126,9 +126,9 @@ class TemporalQueryUtilsTests {
         )
         assertTrue(temporalEntitiesQuery.withTemporalValues)
         assertFalse(temporalEntitiesQuery.withAudit)
-        assertEquals(10, temporalEntitiesQuery.getEntitiesQuery().paginationQuery.limit)
-        assertEquals(2, temporalEntitiesQuery.getEntitiesQuery().paginationQuery.offset)
-        assertEquals(true, temporalEntitiesQuery.getEntitiesQuery().paginationQuery.count)
+        assertEquals(10, temporalEntitiesQuery.entitiesQuery.paginationQuery.limit)
+        assertEquals(2, temporalEntitiesQuery.entitiesQuery.paginationQuery.offset)
+        assertEquals(true, temporalEntitiesQuery.entitiesQuery.paginationQuery.count)
     }
 
     @Test
@@ -180,8 +180,8 @@ class TemporalQueryUtilsTests {
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
 
-        assertEquals(1, temporalQuery.getEntitiesQuery().attrs.size)
-        assertTrue(temporalQuery.getEntitiesQuery().attrs.contains(OUTGOING_PROPERTY))
+        assertEquals(1, temporalQuery.entitiesQuery.attrs.size)
+        assertTrue(temporalQuery.entitiesQuery.attrs.contains(OUTGOING_PROPERTY))
     }
 
     @Test
@@ -200,8 +200,8 @@ class TemporalQueryUtilsTests {
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
 
-        assertEquals(2, temporalQuery.getEntitiesQuery().attrs.size)
-        assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.getEntitiesQuery().attrs)
+        assertEquals(2, temporalQuery.entitiesQuery.attrs.size)
+        assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.entitiesQuery.attrs)
     }
 
     @Test
@@ -218,7 +218,7 @@ class TemporalQueryUtilsTests {
         val temporalQuery =
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
-        assertTrue(temporalQuery.getEntitiesQuery().attrs.isEmpty())
+        assertTrue(temporalQuery.entitiesQuery.attrs.isEmpty())
     }
 
     @Test
@@ -305,8 +305,8 @@ class TemporalQueryUtilsTests {
         val temporalQuery =
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
-        assertEquals(1, temporalQuery.getEntitiesQuery().datasetId.size)
-        assertEquals("urn:ngsi-ld:Dataset:Test1", temporalQuery.getEntitiesQuery().datasetId.first())
+        assertEquals(1, temporalQuery.entitiesQuery.datasetId.size)
+        assertEquals("urn:ngsi-ld:Dataset:Test1", temporalQuery.entitiesQuery.datasetId.first())
     }
 
     @Test
@@ -324,10 +324,10 @@ class TemporalQueryUtilsTests {
         val temporalQuery =
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
-        assertEquals(2, temporalQuery.getEntitiesQuery().datasetId.size)
+        assertEquals(2, temporalQuery.entitiesQuery.datasetId.size)
         assertIterableEquals(
             setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"),
-            temporalQuery.getEntitiesQuery().datasetId
+            temporalQuery.entitiesQuery.datasetId
         )
     }
 
@@ -355,7 +355,7 @@ class TemporalQueryUtilsTests {
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
-            assertThat((it.getEntitiesQuery() as EntitiesQueryFromPost).entitySelectors)
+            assertThat((it.entitiesQuery as EntitiesQueryFromPost).entitySelectors)
                 .hasSize(1)
                 .contains(EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE))
             assertThat(it.temporalQuery)

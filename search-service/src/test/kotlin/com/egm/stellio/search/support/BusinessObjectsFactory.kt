@@ -151,7 +151,7 @@ fun gimmeTemporalEntitiesQuery(
     withAggregatedValues: Boolean = false
 ): TemporalEntitiesQueryFromGet =
     TemporalEntitiesQueryFromGet(
-        entitiesQueryFromGet = EntitiesQueryFromGet(
+        entitiesQuery = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 50, offset = 0),
             contexts = APIC_COMPOUND_CONTEXTS
         ),

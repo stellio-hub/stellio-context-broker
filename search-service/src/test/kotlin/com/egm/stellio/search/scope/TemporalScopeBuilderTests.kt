@@ -71,7 +71,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,
@@ -109,7 +109,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false,
@@ -149,7 +149,7 @@ class TemporalScopeBuilderTests {
             entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,

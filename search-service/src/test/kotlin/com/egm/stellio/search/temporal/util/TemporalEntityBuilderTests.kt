@@ -54,7 +54,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues = false,
                 withAudit = false,
@@ -87,7 +87,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, scopeHistory, attributeAndResultsMap),
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -112,7 +112,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntities(
             entityTemporalResults,
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues,
                 withAudit,
@@ -191,7 +191,7 @@ class TemporalEntityBuilderTests {
         val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
                 withAudit = false,

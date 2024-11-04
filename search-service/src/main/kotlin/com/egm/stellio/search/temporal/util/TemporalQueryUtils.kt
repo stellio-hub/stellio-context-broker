@@ -60,7 +60,7 @@ fun composeTemporalEntitiesQueryFromGet(
         buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
 
     TemporalEntitiesQueryFromGet(
-        entitiesQueryFromGet = entitiesQueryFromGet,
+        entitiesQuery = entitiesQueryFromGet,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,
@@ -111,7 +111,7 @@ fun composeTemporalEntitiesQueryFromPost(
     ).bind()
 
     TemporalEntitiesQueryFromPost(
-        entitiesQueryFromPost = entitiesQueryFromPost,
+        entitiesQuery = entitiesQueryFromPost,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit,

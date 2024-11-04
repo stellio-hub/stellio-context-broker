@@ -133,7 +133,7 @@ class TemporalPaginationServiceTests {
 
     private fun getQuery(temporalQuery: TemporalQuery): TemporalEntitiesQuery = TemporalEntitiesQueryFromGet(
         temporalQuery = temporalQuery,
-        entitiesQueryFromGet = EntitiesQueryFromGet(
+        entitiesQuery = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 0, offset = 50),
             attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
             contexts = APIC_COMPOUND_CONTEXTS
@@ -277,7 +277,7 @@ class TemporalPaginationServiceTests {
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
                 aggrPeriodDuration = "P1M"
             ),
-            entitiesQueryFromGet = EntitiesQueryFromGet(
+            entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 0, offset = 50),
                 attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 contexts = APIC_COMPOUND_CONTEXTS

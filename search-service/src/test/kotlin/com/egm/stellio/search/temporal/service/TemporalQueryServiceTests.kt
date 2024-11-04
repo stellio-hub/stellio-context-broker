@@ -89,7 +89,7 @@ class TemporalQueryServiceTests {
         temporalQueryService.queryTemporalEntity(
             entityUri,
             TemporalEntitiesQueryFromGet(
-                entitiesQueryFromGet = buildDefaultQueryParams(),
+                entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues = true,
                 withAudit = false,
@@ -136,7 +136,7 @@ class TemporalQueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                entitiesQueryFromGet = EntitiesQueryFromGet(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -169,7 +169,7 @@ class TemporalQueryServiceTests {
             entityUri,
             TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                entitiesQueryFromGet = EntitiesQueryFromGet(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -192,7 +192,7 @@ class TemporalQueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = now
                 ),
-                entitiesQueryFromGet = EntitiesQueryFromGet(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -220,7 +220,7 @@ class TemporalQueryServiceTests {
             entityUri,
             TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                entitiesQueryFromGet = EntitiesQueryFromGet(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

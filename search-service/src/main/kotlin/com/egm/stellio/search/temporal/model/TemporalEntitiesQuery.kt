@@ -8,7 +8,7 @@ import java.time.Period
 import java.time.temporal.TemporalAmount
 
 sealed class TemporalEntitiesQuery(
-    val entitiesQuery: EntitiesQuery,
+    open val entitiesQuery: EntitiesQuery,
     open val temporalQuery: TemporalQuery,
     open val withTemporalValues: Boolean,
     open val withAudit: Boolean,
@@ -34,17 +34,17 @@ sealed class TemporalEntitiesQuery(
 }
 
 data class TemporalEntitiesQueryFromGet(
-    val entitiesQueryFromGet: EntitiesQueryFromGet,
+    override val entitiesQuery: EntitiesQueryFromGet,
     override val temporalQuery: TemporalQuery,
     override val withTemporalValues: Boolean,
     override val withAudit: Boolean,
     override val withAggregatedValues: Boolean
-) : TemporalEntitiesQuery(entitiesQueryFromGet, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)
+) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)
 
 data class TemporalEntitiesQueryFromPost(
-    val entitiesQueryFromPost: EntitiesQueryFromPost,
+    override val entitiesQuery: EntitiesQueryFromPost,
     override val temporalQuery: TemporalQuery,
     override val withTemporalValues: Boolean,
     override val withAudit: Boolean,
     override val withAggregatedValues: Boolean
-) : TemporalEntitiesQuery(entitiesQueryFromPost, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)
+) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)

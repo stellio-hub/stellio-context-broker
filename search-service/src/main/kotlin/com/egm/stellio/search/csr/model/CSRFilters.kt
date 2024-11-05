@@ -4,7 +4,8 @@ import java.net.URI
 
 data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQuery (when we implement all operations)
     val ids: Set<URI> = emptySet(),
-    val csf: String? = null
+    val operations: List<Operation>? = null,
+    val csf: String? = null,
 ) {
     fun buildWhereStatement(): String {
         val idFilter = if (ids.isNotEmpty())
@@ -19,6 +20,17 @@ data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             )
             """.trimIndent()
         else "true"
-        return idFilter
+        val operationRegex = "operation==([a-zA-Z])+\$".toRegex()
+        val operations = operations ?: csf?.let {
+            operationRegex.find(it)?.value?.let { op -> listOf(Operation.fromString(op)) }
+        }
+
+        val csfFilter = operations?.map { "${it?.key} in entity_info.operations" }?.joinToString { " OR " } ?: "true"
+
+        return """
+            $idFilter 
+            AND
+            $csfFilter
+        """.trimMargin()
     }
 }

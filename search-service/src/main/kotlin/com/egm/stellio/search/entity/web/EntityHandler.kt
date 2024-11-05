@@ -233,7 +233,8 @@ class EntityHandler(
             contexts
         ).bind()
 
-        val csrFilters = CSRFilters(setOf(entityId))
+        val csrFilters =
+            CSRFilters(ids = setOf(entityId), operations = listOf(Operation.FEDERATION_OPS, Operation.RETRIEVE_ENTITY))
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             csrFilters

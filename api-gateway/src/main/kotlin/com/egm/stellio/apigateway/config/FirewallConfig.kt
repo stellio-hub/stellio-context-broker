@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.config
+package com.egm.stellio.apigateway.config
 
 import org.springframework.beans.BeansException
 import org.springframework.beans.factory.config.BeanPostProcessor

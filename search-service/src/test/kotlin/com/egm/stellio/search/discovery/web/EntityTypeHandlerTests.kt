@@ -14,6 +14,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -266,25 +267,25 @@ class EntityTypeHandlerTests {
         }
     }
 
-//   re-enable this test with spring-security 6.3.5
-//    @Test
-//    fun `get entity type information should search on entities with the expanded type if provided`() {
-//        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
-//            mockkClass(EntityTypeInfo::class, relaxed = true).right()
-//
-//        webClient.get()
-//            .uri("/ngsi-ld/v1/types/https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23BeeHive")
-//            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-//            .exchange()
-//            .expectStatus().isOk
-//
-//        coVerify {
-//            entityTypeService.getEntityTypeInfoByType(
-//                "https://ontology.eglobalmark.com/apic#BeeHive",
-//                listOf(applicationProperties.contexts.core)
-//            )
-//        }
-//    }
+    @Disabled("Re-enable this test with spring-security 6.3.5")
+    @Test
+    fun `get entity type information should search on entities with the expanded type if provided`() {
+        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
+            mockkClass(EntityTypeInfo::class, relaxed = true).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types/https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23BeeHive")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            entityTypeService.getEntityTypeInfoByType(
+                "https://ontology.eglobalmark.com/apic#BeeHive",
+                listOf(applicationProperties.contexts.core)
+            )
+        }
+    }
 
     @Test
     fun `get entity type information should return a 404 if no entities of that type exists`() {

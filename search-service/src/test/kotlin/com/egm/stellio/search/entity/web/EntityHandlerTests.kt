@@ -857,7 +857,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return the warnings send by the csr and update the csr status`() {
+    fun `get entity by id should return the warnings sent by the CSRs and update the CSRs statuses`() {
         val csr = gimmeRawCSR()
         coEvery {
             entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())

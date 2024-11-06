@@ -129,7 +129,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `getDistributedInformation should not ask context source for a GEO_JSON`() = runTest {
+    fun `getDistributedInformation should not ask context source for a GeoJson representation`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -146,7 +146,7 @@ class ContextSourceCallerTests {
         )
         verify(
             getRequestedFor(urlPathEqualTo(path))
-                .withHeader(ACCEPT, notContaining("GEO_JSON_MEDIA_TYPE"))
+                .withHeader(ACCEPT, notContaining(GEO_JSON_CONTENT_TYPE))
         )
     }
 

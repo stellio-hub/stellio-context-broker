@@ -21,7 +21,7 @@ import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
-typealias AttributeByDataSetId = Map<String?, CompactedAttributeInstance>
+typealias AttributeByDatasetId = Map<String?, CompactedAttributeInstance>
 object ContextSourceUtils {
 
     fun mergeEntities(
@@ -41,7 +41,7 @@ object ContextSourceUtils {
         return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
     }
 
-    fun getMergeNewValues(
+    internal fun getMergeNewValues(
         currentEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
         csr: ContextSourceRegistration
@@ -68,7 +68,7 @@ object ContextSourceUtils {
         }
     }
 
-    fun mergeTypeOrScope(
+    internal fun mergeTypeOrScope(
         currentValue: Any, // String || List<String> || Set<String>
         remoteValue: Any
     ) = when {
@@ -109,11 +109,11 @@ object ContextSourceUtils {
         if (values.size == 1) values[0] else values
     }
 
-    // do not work with CORE MEMBER since they can be a String
+    // only meant to work with attributes under the normalized representation
     private fun groupInstancesByDataSetId(
         attribute: Any,
         csr: ContextSourceRegistration
-    ): Either<NGSILDWarning, AttributeByDataSetId> =
+    ): Either<NGSILDWarning, AttributeByDatasetId> =
         when (attribute) {
             is Map<*, *> -> {
                 attribute as CompactedAttributeInstance

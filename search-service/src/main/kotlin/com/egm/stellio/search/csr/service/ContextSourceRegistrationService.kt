@@ -181,7 +181,7 @@ class ContextSourceRegistrationService(
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
     ): List<ContextSourceRegistration> {
-        val filterQuery = filters.buildWhereStatement()
+        val filterQuery = buildWhereStatement(filters)
 
         val selectStatement =
             """
@@ -212,6 +212,35 @@ class ContextSourceRegistrationService(
             .bind("limit", limit)
             .bind("offset", offset)
             .allToMappedList { rowToContextSourceRegistration(it) }
+    }
+
+    private fun buildWhereStatement(csrFilters: CSRFilters): String {
+        val idFilter = if (csrFilters.ids.isNotEmpty())
+            """
+            (
+                entity_info.id is null OR
+                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
+            ) AND
+            (
+                entity_info.idPattern is null OR 
+                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
+            )
+            """.trimIndent()
+        else "true"
+        val operationRegex = "operation==([a-zA-Z])+\$".toRegex()
+        val operations = csrFilters.operations ?: csrFilters.csf?.let {
+            operationRegex.find(it)?.value?.let { op -> listOf(Operation.fromString(op)) }
+        }
+
+        val csfFilter = operations?.let {
+            "operations && ARRAY[${it.joinToString(",") { op -> "'${op?.key}'" }}]"
+        } ?: "true"
+
+        return """
+            $idFilter 
+            AND
+            $csfFilter
+        """.trimMargin()
     }
 
     suspend fun getContextSourceRegistrationsCount(sub: Option<Sub>): Either<APIException, Int> {

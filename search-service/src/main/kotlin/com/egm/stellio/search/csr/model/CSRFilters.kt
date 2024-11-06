@@ -25,7 +25,9 @@ data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             operationRegex.find(it)?.value?.let { op -> listOf(Operation.fromString(op)) }
         }
 
-        val csfFilter = operations?.map { "${it?.key} in entity_info.operations" }?.joinToString { " OR " } ?: "true"
+        val csfFilter = operations?.let {
+            "operations && ARRAY[${it.joinToString(",") { op -> "'${op?.key}'" }}]"
+        } ?: "true"
 
         return """
             $idFilter 

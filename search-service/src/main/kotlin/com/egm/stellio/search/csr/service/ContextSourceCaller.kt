@@ -15,6 +15,7 @@ import org.springframework.core.codec.DecodingException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.util.CollectionUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBodyOrNull
@@ -31,9 +32,12 @@ object ContextSourceCaller {
         params: MultiValueMap<String, String>
     ): Either<NGSILDWarning, CompactedEntity?> = either {
         val uri = URI("${csr.endpoint}$path")
-        params.remove(QUERY_PARAM_GEOMETRY_PROPERTY)
-        params.remove(QUERY_PARAM_OPTIONS) // only request normalized
-        params.remove(QUERY_PARAM_LANG) // todo not sure its needed
+
+        val queryParams = CollectionUtils.toMultiValueMap(params.toMutableMap())
+        queryParams.remove(QUERY_PARAM_GEOMETRY_PROPERTY)
+        queryParams.remove(QUERY_PARAM_OPTIONS) // only normalized request
+        queryParams.remove(QUERY_PARAM_LANG)
+
         val request = WebClient.create()
             .method(HttpMethod.GET)
             .uri { uriBuilder ->
@@ -41,7 +45,7 @@ object ContextSourceCaller {
                     .host(uri.host)
                     .port(uri.port)
                     .path(uri.path)
-                    .queryParams(params)
+                    .queryParams(queryParams)
                     .build()
             }
             .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))

@@ -238,7 +238,7 @@ class EntityHandler(
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             csrFilters
-        ).filter { csr -> csr.operations.any { it == Operation.FEDERATION_OPS || it == Operation.RETRIEVE_ENTITY } }
+        )
 
         val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()

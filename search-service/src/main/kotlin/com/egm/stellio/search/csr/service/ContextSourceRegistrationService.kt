@@ -15,6 +15,7 @@ import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.CSRFilters.Companion.OPERATION_NAME
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
@@ -227,14 +228,12 @@ class ContextSourceRegistrationService(
             )
             """.trimIndent()
         else "true"
-        val operationRegex = "operation==([a-zA-Z])+\$".toRegex()
-        val operations = csrFilters.operations ?: csrFilters.csf?.let {
-            operationRegex.find(it)?.value?.let { op -> listOf(Operation.fromString(op)) }
-        }
-
-        val csfFilter = operations?.let {
-            "operations && ARRAY[${it.joinToString(",") { op -> "'${op?.key}'" }}]"
-        } ?: "true"
+        val operationRegex = "$OPERATION_NAME==([a-zA-Z]+)"
+        val validationRegex = "($operationRegex\\|?)+\$".toRegex()
+        val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
+            val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.value }
+            "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
+        } else "true"
 
         return """
             $idFilter 

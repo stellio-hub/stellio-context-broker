@@ -8,8 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
-import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPostRequest
-import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPost
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -243,13 +242,12 @@ class EntityOperationHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val query = Query(requestBody.awaitFirst()).bind()
 
-        val entitiesQuery = composeEntitiesQueryFromPostRequest(
+        val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
             query,
             params,
             contexts
         ).bind()
-            .validateMinimalQueryEntitiesParameters().bind()
 
         val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 

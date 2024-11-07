@@ -7,7 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
-import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQuery
+import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -141,7 +141,7 @@ class TemporalEntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQuery(applicationProperties.pagination, params, contexts, true).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts, true).bind()
 
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery,
@@ -179,7 +179,7 @@ class TemporalEntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQuery(applicationProperties.pagination, params, contexts).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts).bind()
 
         val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
             entityId,

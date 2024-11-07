@@ -8,7 +8,7 @@ import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateAttributeResult
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
-import com.egm.stellio.search.entity.util.composeEntitiesQuery
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -74,7 +74,7 @@ class EntityAccessControlHandler(
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val entitiesQuery = composeEntitiesQuery(
+        val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts
@@ -121,7 +121,7 @@ class EntityAccessControlHandler(
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val entitiesQuery = composeEntitiesQuery(
+        val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts
@@ -167,7 +167,7 @@ class EntityAccessControlHandler(
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val entitiesQuery = composeEntitiesQuery(
+        val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts

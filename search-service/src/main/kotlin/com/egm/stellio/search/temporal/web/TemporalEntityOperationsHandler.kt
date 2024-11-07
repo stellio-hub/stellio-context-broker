@@ -3,7 +3,7 @@ package com.egm.stellio.search.temporal.web
 import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.temporal.service.TemporalQueryService
-import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPostRequest
+import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPost
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -47,7 +47,7 @@ class TemporalEntityOperationsHandler(
         val query = Query(requestBody.awaitFirst()).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQueryFromPostRequest(
+            composeTemporalEntitiesQueryFromPost(
                 applicationProperties.pagination,
                 query,
                 params,

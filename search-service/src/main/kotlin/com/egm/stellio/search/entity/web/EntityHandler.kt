@@ -6,7 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.search.entity.util.composeEntitiesQuery
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -177,7 +177,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
-        val entitiesQuery = composeEntitiesQuery(
+        val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts
@@ -218,7 +218,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
-        val queryParams = composeEntitiesQuery(
+        val queryParams = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts

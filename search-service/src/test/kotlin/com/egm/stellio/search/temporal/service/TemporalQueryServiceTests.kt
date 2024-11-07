@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.scope.ScopeInstanceResult
@@ -18,7 +18,7 @@ import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -88,7 +88,7 @@ class TemporalQueryServiceTests {
 
         temporalQueryService.queryTemporalEntity(
             entityUri,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 withTemporalValues = true,
@@ -131,12 +131,12 @@ class TemporalQueryServiceTests {
 
         temporalQueryService.queryTemporalEntity(
             entityUri,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                entitiesQuery = EntitiesQuery(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -167,9 +167,9 @@ class TemporalQueryServiceTests {
     fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                entitiesQuery = EntitiesQuery(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -187,12 +187,12 @@ class TemporalQueryServiceTests {
     fun `it should return timeAt as the oldest timestamp if it is provided in the temporal query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = now
                 ),
-                entitiesQuery = EntitiesQuery(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -218,9 +218,9 @@ class TemporalQueryServiceTests {
 
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                entitiesQuery = EntitiesQuery(
+                entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -265,8 +265,8 @@ class TemporalQueryServiceTests {
             ).right()
 
         temporalQueryService.queryTemporalEntities(
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -284,7 +284,7 @@ class TemporalQueryServiceTests {
         coVerify {
             entityAttributeService.getForEntities(
                 listOf(entityUri),
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -300,7 +300,7 @@ class TemporalQueryServiceTests {
                 any<List<Attribute>>()
             )
             entityQueryService.queryEntitiesCount(
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -334,8 +334,8 @@ class TemporalQueryServiceTests {
         coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
 
         temporalQueryService.queryTemporalEntities(
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS

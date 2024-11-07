@@ -3,7 +3,7 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -877,7 +877,7 @@ class EntityHandlerTests {
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         coEvery {
             entityQueryService.queryEntities(
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     contexts = listOf(applicationProperties.contexts.core)
@@ -1011,7 +1011,7 @@ class EntityHandlerTests {
     fun `get entities with id and type should return 200`() {
         coEvery {
             entityQueryService.queryEntities(
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     ids = setOf(beehiveId),
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),

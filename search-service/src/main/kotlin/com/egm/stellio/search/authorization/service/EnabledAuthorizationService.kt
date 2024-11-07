@@ -9,7 +9,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -107,7 +107,7 @@ class EnabledAuthorizationService(
         entityAccessRightsService.removeRolesOnEntity(entityId)
 
     override suspend fun getAuthorizedEntities(
-        entitiesQuery: EntitiesQuery,
+        entitiesQuery: EntitiesQueryFromGet,
         contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {

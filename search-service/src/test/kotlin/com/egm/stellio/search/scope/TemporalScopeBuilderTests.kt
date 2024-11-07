@@ -4,7 +4,7 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -70,7 +70,7 @@ class TemporalScopeBuilderTests {
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,
@@ -108,7 +108,7 @@ class TemporalScopeBuilderTests {
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
@@ -148,7 +148,7 @@ class TemporalScopeBuilderTests {
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
             entityPayload,
             scopeInstances,
-            TemporalEntitiesQuery(
+            TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
                 withTemporalValues = false,

@@ -2,6 +2,7 @@ package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
@@ -91,10 +92,12 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
-                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
+                        entitiesQueryFromPost.entitySelectors!!.size == 1 &&
+                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -142,10 +145,12 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
-                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
+                        entitiesQueryFromPost.entitySelectors!!.size == 1 &&
+                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&

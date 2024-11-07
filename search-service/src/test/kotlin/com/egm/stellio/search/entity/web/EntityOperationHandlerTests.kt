@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.web
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -487,7 +488,8 @@ class EntityOperationHandlerTests {
                 match {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
-                        it.typeSelection == BEEHIVE_TYPE &&
+                        it is EntitiesQueryFromPost &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_TYPE &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
                 any<Sub>()

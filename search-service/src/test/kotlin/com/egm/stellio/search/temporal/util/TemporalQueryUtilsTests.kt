@@ -1,11 +1,15 @@
 package com.egm.stellio.search.temporal.util
 
+import com.egm.stellio.search.common.model.Query
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -13,10 +17,12 @@ import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import io.mockk.every
 import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -38,7 +44,7 @@ class TemporalQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        composeTemporalEntitiesQuery(
+        composeTemporalEntitiesQueryFromGet(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXTS,
@@ -58,7 +64,7 @@ class TemporalQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        composeTemporalEntitiesQuery(
+        composeTemporalEntitiesQueryFromGet(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXTS
@@ -77,7 +83,7 @@ class TemporalQueryUtilsTests {
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
 
-        composeTemporalEntitiesQuery(
+        composeTemporalEntitiesQueryFromGet(
             pagination,
             queryParams,
             APIC_COMPOUND_CONTEXTS,
@@ -98,13 +104,17 @@ class TemporalQueryUtilsTests {
         every { pagination.temporalLimit } returns 100
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
 
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
-            temporalEntitiesQuery.entitiesQuery.ids
+            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).ids
         )
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", temporalEntitiesQuery.entitiesQuery.typeSelection)
+        assertEquals(
+            "$BEEHIVE_TYPE,$APIARY_TYPE",
+            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).typeSelection
+        )
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
             buildDefaultTestTemporalQuery(
@@ -132,7 +142,8 @@ class TemporalQueryUtilsTests {
         every { pagination.temporalLimit } returns 1000
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
 
         assertTrue(temporalEntitiesQuery.withAudit)
     }
@@ -166,7 +177,8 @@ class TemporalQueryUtilsTests {
         queryParams.add("attrs", "outgoing")
 
         val temporalQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
 
         assertEquals(1, temporalQuery.entitiesQuery.attrs.size)
         assertTrue(temporalQuery.entitiesQuery.attrs.contains(OUTGOING_PROPERTY))
@@ -185,7 +197,8 @@ class TemporalQueryUtilsTests {
         queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.entitiesQuery.attrs.size)
         assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.entitiesQuery.attrs)
@@ -203,7 +216,8 @@ class TemporalQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
 
         val temporalQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
         assertTrue(temporalQuery.entitiesQuery.attrs.isEmpty())
     }
 
@@ -289,7 +303,8 @@ class TemporalQueryUtilsTests {
         queryParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1")
 
         val temporalQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
         assertEquals(1, temporalQuery.entitiesQuery.datasetId.size)
         assertEquals("urn:ngsi-ld:Dataset:Test1", temporalQuery.entitiesQuery.datasetId.first())
     }
@@ -307,11 +322,52 @@ class TemporalQueryUtilsTests {
         queryParams.add("datasetId", "urn:ngsi-ld:Dataset:Test1,urn:ngsi-ld:Dataset:Test2")
 
         val temporalQuery =
-            composeTemporalEntitiesQuery(pagination, queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+            composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
         assertEquals(2, temporalQuery.entitiesQuery.datasetId.size)
         assertIterableEquals(
             setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"),
             temporalQuery.entitiesQuery.datasetId
         )
+    }
+
+    @Test
+    fun `it should parse a Query datatype with a TemporalQuery`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "BeeHive"
+                }],
+                "attrs": ["attr1"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2024-11-07T07:31:39Z",
+                    "endTimeAt": "2024-11-12T07:31:39Z",
+                    "timeproperty": "modifiedAt"
+                }
+            }
+        """.trimIndent()
+
+        composeTemporalEntitiesQueryFromPost(
+            buildDefaultPagination(30, 100),
+            Query(query).shouldSucceedAndResult(),
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedWith {
+            assertThat((it.entitiesQuery as EntitiesQueryFromPost).entitySelectors)
+                .hasSize(1)
+                .contains(EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE))
+            assertThat(it.temporalQuery)
+                .isEqualTo(
+                    TemporalQuery(
+                        timerel = TemporalQuery.Timerel.BETWEEN,
+                        timeAt = ZonedDateTime.parse("2024-11-07T07:31:39Z"),
+                        endTimeAt = ZonedDateTime.parse("2024-11-12T07:31:39Z"),
+                        timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+                        instanceLimit = 100
+                    )
+                )
+        }
     }
 }

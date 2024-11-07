@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -184,6 +185,7 @@ class AttributeHandlerTests {
         }
     }
 
+    @Disabled("Re-enable this test with spring-security 6.3.5")
     @Test
     fun `get attribute type information should search on attributes with the expanded id if provided`() {
         coEvery {

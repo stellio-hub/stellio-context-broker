@@ -1,13 +1,29 @@
 package com.egm.stellio.search.entity.util
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.QUERY_PARAM_ATTRS
+import com.egm.stellio.shared.util.QUERY_PARAM_DATASET_ID
+import com.egm.stellio.shared.util.QUERY_PARAM_ID
+import com.egm.stellio.shared.util.QUERY_PARAM_ID_PATTERN
+import com.egm.stellio.shared.util.QUERY_PARAM_Q
+import com.egm.stellio.shared.util.QUERY_PARAM_SCOPEQ
+import com.egm.stellio.shared.util.QUERY_PARAM_TYPE
+import com.egm.stellio.shared.util.decode
+import com.egm.stellio.shared.util.expandTypeSelection
+import com.egm.stellio.shared.util.parseAndExpandRequestParameter
+import com.egm.stellio.shared.util.parseGeoQueryParameters
+import com.egm.stellio.shared.util.parsePaginationParameters
+import com.egm.stellio.shared.util.parseRequestParameter
+import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.validateIdPattern
 import org.springframework.util.MultiValueMap
 
 fun composeEntitiesQuery(
@@ -74,7 +90,7 @@ fun composeEntitiesQueryFromPostRequest(
     val idPattern = validateIdPattern(entitySelector?.idPattern).bind()
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val datasetId = query.datasetId.orEmpty().toSet()
-    val geoQuery = if (query.geoQ != null) {
+    val geoQuery = query.geoQ?.let {
         val geoQueryElements = mapOf(
             "geometry" to query.geoQ.geometry,
             "coordinates" to query.geoQ.coordinates.toString(),
@@ -82,7 +98,7 @@ fun composeEntitiesQueryFromPostRequest(
             "geoproperty" to query.geoQ.geoproperty
         )
         parseGeoQueryParameters(geoQueryElements, contexts).bind()
-    } else null
+    }
 
     val paginationQuery = parsePaginationParameters(
         requestParams,

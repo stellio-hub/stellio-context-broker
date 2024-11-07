@@ -3,12 +3,31 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.*
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.NotUpdatedDetails
+import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
+import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -22,8 +41,25 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.called
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -41,7 +77,11 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
@@ -117,9 +157,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(409)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
-                    "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"Already Exists\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
+                      "title":"The referred element already exists",
+                      "detail":"Already Exists"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -763,9 +807,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title":"The referred resource has not been found",
+                      "detail":"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}"
+                    }
+                """
             )
     }
 
@@ -892,10 +940,12 @@ class EntityHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
-                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+                """
+                    </ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=0>;rel="prev";type="application/ld+json"
+                """.trimIndent(),
+                """
+                    </ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel="next";type="application/ld+json"
+                """.trimIndent()
             )
             .expectBody().json(
                 """
@@ -1335,9 +1385,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BreedingService:0214 was not found\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title":"The referred resource has not been found",
+                      "detail":"Entity urn:ngsi-ld:BreedingService:0214 was not found"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -1826,9 +1880,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity $beehiveId was not found\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title":"The referred resource has not been found",
+                      "detail":"Entity $beehiveId was not found"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -2027,9 +2085,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BeeHive:TESTC was not found\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                      }
+                """.trimIndent()
             )
     }
 
@@ -2046,9 +2108,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Attribute Not Found\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"Attribute Not Found"
+                      }
+                """.trimIndent()
             )
     }
 

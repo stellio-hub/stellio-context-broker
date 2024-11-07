@@ -8,9 +8,26 @@ import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalService.CreateOrUpdateResult
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.TooManyResultsException
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.loadAndExpandSampleData
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.toUri
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
@@ -196,7 +213,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
+            .body(BodyInserters.fromValue("""{ "id": "bad" }"""))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -663,9 +680,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
-                    "type=BeeHive&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
+                """
+                    </ngsi-ld/v1/temporal/entities?timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive&limit=1&offset=1>;rel="prev";type="application/ld+json"
+                """.trimIndent()
             )
     }
 
@@ -724,9 +741,9 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
-                    "type=BeeHive&limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
+                """
+                    </ngsi-ld/v1/temporal/entities?timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive&limit=1&offset=1>;rel="next";type="application/ld+json"
+                """.trimIndent()
             )
     }
 
@@ -750,12 +767,12 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
-                    "type=BeeHive&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
-                    "type=BeeHive&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+                """
+                    </ngsi-ld/v1/temporal/entities?timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive&limit=1&offset=0>;rel="prev";type="application/ld+json"
+                """.trimIndent(),
+                """
+                    </ngsi-ld/v1/temporal/entities?timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive&limit=1&offset=2>;rel="next";type="application/ld+json"
+                """.trimIndent()
             )
     }
 

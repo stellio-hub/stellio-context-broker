@@ -1,7 +1,16 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
+import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEKEEPER_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEKEEPER_TYPE
+import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
@@ -9,8 +18,15 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
+import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.toUri
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 

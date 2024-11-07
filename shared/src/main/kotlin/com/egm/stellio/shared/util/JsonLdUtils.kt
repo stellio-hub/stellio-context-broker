@@ -12,13 +12,26 @@ import com.apicatalog.jsonld.document.JsonDocument
 import com.apicatalog.jsonld.http.DefaultHttpClient
 import com.apicatalog.jsonld.loader.DocumentLoaderOptions
 import com.apicatalog.jsonld.loader.HttpLoader
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedNonReifiedPropertyValue
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import jakarta.json.*
+import jakarta.json.Json
+import jakarta.json.JsonArray
+import jakarta.json.JsonObject
+import jakarta.json.JsonString
+import jakarta.json.JsonStructure
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -343,10 +356,10 @@ object JsonLdUtils {
             listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyFromWKT()))
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
-            val context: Any = when (jsonObject[JSONLD_CONTEXT]) {
-                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
-                else -> (jsonObject[JSONLD_CONTEXT] as JsonString).string
-            }
+            val context: Any =
+                if (jsonObject[JSONLD_CONTEXT] is JsonArray)
+                    (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
+                else (jsonObject[JSONLD_CONTEXT] as JsonString).string
             // extract compacted entities from the @graph key
             (jsonObject[JSONLD_GRAPH] as JsonArray).toPrimitiveListOfObjects()
                 .map {

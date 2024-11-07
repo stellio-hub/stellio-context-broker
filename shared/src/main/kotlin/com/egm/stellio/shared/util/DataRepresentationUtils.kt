@@ -19,7 +19,7 @@ suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException
     keys.parMap { key -> key.checkNameIsNgsiLdSupported().bind() }
     when (val type = get(JsonLdUtils.JSONLD_TYPE_TERM)) {
         is String -> type.checkNameIsNgsiLdSupported().bind()
-        is List<*> -> (type as List<String>).parMap { it.checkNameIsNgsiLdSupported().bind() }.map { Unit }
+        is List<*> -> (type as List<String>).parMap { it.checkNameIsNgsiLdSupported().bind() }
         else -> Unit.right().bind()
     }
     this@checkNamesAreNgsiLdSupported

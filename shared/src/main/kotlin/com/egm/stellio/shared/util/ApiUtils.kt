@@ -6,7 +6,16 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AttributeRepresentation
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.EntityRepresentation
+import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation
+import com.egm.stellio.shared.model.NotAcceptableException
+import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
@@ -78,7 +87,7 @@ fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, Str
         Either.Right(null)
 
 fun buildContextLinkHeader(contextLink: String): String =
-    "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
+    """<$contextLink>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json""""
 
 fun checkAndGetContext(
     httpHeaders: HttpHeaders,

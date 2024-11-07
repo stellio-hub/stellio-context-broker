@@ -2,7 +2,13 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.Either
 import arrow.core.raise.either
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AttributeRepresentation
+import com.egm.stellio.shared.model.EntityRepresentation
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation
+import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.acceptToMediaType

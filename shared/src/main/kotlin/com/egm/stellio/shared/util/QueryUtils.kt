@@ -75,7 +75,7 @@ fun String.parseAttributePath(): Pair<List<String>, List<String>> {
     )
 }
 
-private val innerRegexPattern: Pattern = Pattern.compile(".*(~=\"\\(\\?i\\)).*")
+private val innerRegexPattern: Pattern = Pattern.compile(""".*(~="\(\?i\)).*""")
 
 // Quick hack to allow inline options for regex expressions
 // (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)

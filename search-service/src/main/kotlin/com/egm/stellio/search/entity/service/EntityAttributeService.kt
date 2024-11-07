@@ -7,9 +7,26 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.common.util.*
-import com.egm.stellio.search.entity.model.*
+import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.common.util.execute
+import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toDatasetIdFilter
+import com.egm.stellio.search.common.util.toJson
+import com.egm.stellio.search.common.util.toOptionalUri
+import com.egm.stellio.search.common.util.toOptionalZonedDateTime
+import com.egm.stellio.search.common.util.toUri
+import com.egm.stellio.search.common.util.toUuid
+import com.egm.stellio.search.common.util.toZonedDateTime
+import com.egm.stellio.search.common.util.valueToDoubleOrNull
+import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.UpdateAttributeResult
+import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
+import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.guessAttributeValueType
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
@@ -18,9 +35,27 @@ import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdAttribute
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.flatOnInstances
+import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
+import com.egm.stellio.shared.model.getDatasetId
+import com.egm.stellio.shared.model.getMemberValue
+import com.egm.stellio.shared.model.getMemberValueAsDateTime
+import com.egm.stellio.shared.model.getPropertyValue
+import com.egm.stellio.shared.model.isAttributeOfType
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AttributeType
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
@@ -32,6 +67,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -536,11 +574,11 @@ class EntityAttributeService(
             }
             .oneToResult { Pair(it["entityExists"] as Boolean, it["attributeNameExists"] as Boolean) }
             .flatMap {
-                if (it.first) {
+                if (it.first)
                     if (it.second)
                         Unit.right()
                     else ResourceNotFoundException(attributeNotFoundMessage(attributeName, datasetId)).left()
-                } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+                else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
 

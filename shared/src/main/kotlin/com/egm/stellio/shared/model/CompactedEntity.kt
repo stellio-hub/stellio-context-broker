@@ -1,7 +1,15 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.model.AttributeCompactedType.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AttributeCompactedType.GEOPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.JSONPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
+import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
+import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
+import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
+import com.egm.stellio.shared.util.FEATURE_TYPE
+import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
@@ -21,6 +29,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TERM
+import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
+import com.egm.stellio.shared.util.QUERY_PARAM_LANG
 import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
@@ -35,7 +45,7 @@ private fun simplifyMultiInstanceAttribute(
     transformationParameters: Map<String, String>?
 ): Map<String, Map<String, Any>> {
     val datasetIds = value.map {
-        val datasetId = (it[NGSILD_DATASET_ID_TERM] as? String) ?: NGSILD_NONE_TERM
+        val datasetId = it[NGSILD_DATASET_ID_TERM] as? String ?: NGSILD_NONE_TERM
         val datasetValue: Any = simplifyAttribute(it, transformationParameters)
         Pair(datasetId, datasetValue)
     }
@@ -74,23 +84,20 @@ private fun filterMultiInstanceLanguageProperty(
 
 private fun filterLanguageProperty(value: Map<String, Any>, transformationParameters: Map<String, String>?): Any {
     val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
-    return when (attributeCompactedType) {
-        LANGUAGEPROPERTY -> {
-            val localeRanges = Locale.LanguageRange.parse(transformationParameters?.get(QUERY_PARAM_LANG)!!)
-            val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
-            val bestLocaleMatch = Locale.filterTags(localeRanges, propertyLocales)
-                .getOrElse(0) { _ ->
-                    // as the list is sorted, @none is the first in the list if it exists
-                    propertyLocales.first()
-                }
-            mapOf(
-                JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM,
-                JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],
-                NGSILD_LANG_TERM to bestLocaleMatch
-            )
-        }
-        else -> value
-    }
+    return if (attributeCompactedType == LANGUAGEPROPERTY) {
+        val localeRanges = Locale.LanguageRange.parse(transformationParameters?.get(QUERY_PARAM_LANG)!!)
+        val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
+        val bestLocaleMatch = Locale.filterTags(localeRanges, propertyLocales)
+            .getOrElse(0) { _ ->
+                // as the list is sorted, @none is the first in the list if it exists
+                propertyLocales.first()
+            }
+        mapOf(
+            JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM,
+            JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],
+            NGSILD_LANG_TERM to bestLocaleMatch
+        )
+    } else value
 }
 
 fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
@@ -116,13 +123,11 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
         when (it.value) {
             is Map<*, *> -> (it.value as Map<*, *>).minus(sysAttrsToRemove)
             is List<*> -> (it.value as List<*>).map { valueInstance ->
-                when (valueInstance) {
-                    is Map<*, *> -> valueInstance.minus(sysAttrsToRemove)
-                    // we keep @context value as it is (List<String>)
-                    else -> valueInstance
-                }
+                if (valueInstance is Map<*, *>)
+                    valueInstance.minus(sysAttrsToRemove)
+                // we keep @context value as it is (List<String>)
+                else valueInstance
             }
-
             else -> it.value
         }
     }
@@ -202,11 +207,10 @@ private fun applyAttributeTransformation(
         is Map<*, *> -> onSingleInstance(value as Map<String, Any>, transformationParameters)
         // an attribute with multiple instances
         is List<*> -> {
-            when (value.first()) {
-                is Map<*, *> -> onMultiInstance(value as List<Map<String, Any>>, transformationParameters)
-                // we keep @context value as it is (List<String>)
-                else -> value
-            }
+            if (value.first() is Map<*, *>)
+                onMultiInstance(value as List<Map<String, Any>>, transformationParameters)
+            // we keep @context value as it is (List<String>)
+            else value
         }
         // keep id, type and other non-reified properties as they are (typically string or list)
         else -> value

@@ -1,9 +1,17 @@
 package com.egm.stellio.search.entity.service
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
+import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.common.util.*
+import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toUri
+import com.egm.stellio.search.common.util.wrapToAndClause
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.util.rowToEntity
@@ -11,7 +19,13 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildGeoQuery
+import com.egm.stellio.shared.util.buildQQuery
+import com.egm.stellio.shared.util.buildScopeQQuery
+import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI

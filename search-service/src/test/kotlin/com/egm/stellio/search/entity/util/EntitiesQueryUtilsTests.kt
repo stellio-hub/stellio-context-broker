@@ -3,7 +3,6 @@ package com.egm.stellio.search.entity.util
 import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
-import com.egm.stellio.search.common.model.Query.Companion.invoke
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.shared.config.ApplicationProperties

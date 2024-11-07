@@ -5,7 +5,11 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.web.*
+import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.entity.web.BatchEntitySuccess
+import com.egm.stellio.search.entity.web.BatchOperationResult
+import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
+import com.egm.stellio.search.entity.web.entityId
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.Sub
@@ -163,10 +167,9 @@ class EntityOperationService(
         } else emptyList()
 
         if (existingOrDuplicatedEntities.isNotEmpty()) {
-            val updateOperationResult = when (options) {
-                "update" -> update(existingOrDuplicatedEntities, false, sub)
-                else -> replace(existingOrDuplicatedEntities, sub)
-            }
+            val updateOperationResult =
+                if (options == "update") update(existingOrDuplicatedEntities, false, sub)
+                else replace(existingOrDuplicatedEntities, sub)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)

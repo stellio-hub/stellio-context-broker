@@ -4,7 +4,11 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.GeoQuery
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -98,10 +102,9 @@ fun parseGeometryToWKT(
 private fun prepareGeorelQuery(georel: String): Triple<String, String?, String?> =
     if (georel.startsWith(GEO_QUERY_GEOREL_NEAR)) {
         val comparisonParams = georel.split(";")[1].split("==")
-        when (comparisonParams[0]) {
-            GEOREL_NEAR_MAXDISTANCE_MODIFIER -> Triple(GEOREL_NEAR_DISTANCE_MODIFIER, "<=", comparisonParams[1])
-            else -> Triple(GEOREL_NEAR_DISTANCE_MODIFIER, ">=", comparisonParams[1])
-        }
+        if (comparisonParams[0] == GEOREL_NEAR_MAXDISTANCE_MODIFIER)
+            Triple(GEOREL_NEAR_DISTANCE_MODIFIER, "<=", comparisonParams[1])
+        else Triple(GEOREL_NEAR_DISTANCE_MODIFIER, ">=", comparisonParams[1])
     } else Triple(georel, null, null)
 
 fun buildGeoQuery(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {

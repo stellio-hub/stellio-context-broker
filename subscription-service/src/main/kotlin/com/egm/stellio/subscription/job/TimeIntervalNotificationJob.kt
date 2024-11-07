@@ -4,7 +4,13 @@ import arrow.core.flatten
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.QUERY_PARAM_ATTRS
+import com.egm.stellio.shared.util.QUERY_PARAM_ID
+import com.egm.stellio.shared.util.QUERY_PARAM_ID_PATTERN
+import com.egm.stellio.shared.util.QUERY_PARAM_Q
+import com.egm.stellio.shared.util.QUERY_PARAM_TYPE
+import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription

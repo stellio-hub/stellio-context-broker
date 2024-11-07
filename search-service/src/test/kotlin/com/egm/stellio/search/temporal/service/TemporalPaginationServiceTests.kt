@@ -5,7 +5,11 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.shared.model.PaginationQuery
@@ -228,7 +232,6 @@ class TemporalPaginationServiceTests {
                 timerel = TemporalQuery.Timerel.AFTER,
                 timeAt = timeAt,
                 lastN = 100
-
             )
         )
         val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstancesForLastN, query)

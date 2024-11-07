@@ -3,12 +3,21 @@ package com.egm.stellio.search.discovery.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.discovery.model.*
+import com.egm.stellio.search.discovery.model.AttributeInfo
 import com.egm.stellio.search.discovery.model.AttributeType
+import com.egm.stellio.search.discovery.model.EntityType
+import com.egm.stellio.search.discovery.model.EntityTypeInfo
+import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.search.discovery.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.typeNotFoundMessage
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -298,9 +307,13 @@ class EntityTypeHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${typeNotFoundMessage(BEEHIVE_TYPE)}\"}"
+                """
+                      {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"${typeNotFoundMessage(BEEHIVE_TYPE)}"
+                      }
+                """
             )
     }
 }

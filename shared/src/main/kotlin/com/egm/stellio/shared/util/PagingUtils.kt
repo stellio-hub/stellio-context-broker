@@ -17,14 +17,16 @@ object PagingUtils {
         if (offset > 0 && resourcesCount > offset - limit) {
             val prevOffset = if (offset > limit) offset - limit else 0
             prevLink =
-                "<$resourceUrl?${requestParams.toEncodedUrl(offset = prevOffset, limit = limit)}>;" +
-                "rel=\"prev\";type=\"application/ld+json\""
+                """
+                    <$resourceUrl?${requestParams.toEncodedUrl(offset = prevOffset, limit = limit)}>;rel="prev";type="application/ld+json"
+                """.trimIndent()
         }
 
         if (resourcesCount > offset + limit)
             nextLink =
-                "<$resourceUrl?${requestParams.toEncodedUrl(offset = offset + limit, limit = limit)}>;" +
-                "rel=\"next\";type=\"application/ld+json\""
+                """
+                    <$resourceUrl?${requestParams.toEncodedUrl(offset = offset + limit, limit = limit)}>;rel="next";type="application/ld+json"
+                """.trimIndent()
 
         return Pair(prevLink, nextLink)
     }

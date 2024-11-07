@@ -63,6 +63,9 @@ class ContextSourceUtilsTests {
     private val entityWithName = minimalEntity.toMutableMap().plus(name to nameAttribute)
     private val entityWithLastName = minimalEntity.toMutableMap().plus("lastName" to nameAttribute)
     private val entityWithSurName = minimalEntity.toMutableMap().plus("surName" to nameAttribute)
+    private val invalidEntityithLastName = entityWithLastName.toMutableMap()
+        .plus(name to "invalidAttribute")
+        .plus(NGSILD_CREATED_AT_TERM to moreRecentTime)
 
     private val auxiliaryCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri(), mode = Mode.AUXILIARY)
     private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
@@ -210,6 +213,21 @@ class ContextSourceUtilsTests {
             )
             verify(exactly = 2) { ContextSourceUtils.mergeAttribute(any(), any(), any()) }
             verify(exactly = 2) { ContextSourceUtils.mergeTypeOrScope(any(), any()) }
+        }
+    }
+
+    @Test
+    fun `merge entity should not merge entities in error`() = runTest {
+        mockkObject(ContextSourceUtils) {
+            val (warnings, entity) = ContextSourceUtils.mergeEntities(
+                entityWithName,
+                listOf(invalidEntityithLastName to inclusiveCSR, entityWithSurName to inclusiveCSR)
+            ).toPair()
+
+            verify(exactly = 2) { ContextSourceUtils.getMergeNewValues(any(), any(), any()) }
+            assertThat(warnings).hasSize(1)
+            val entityWithNameAndSurname = entityWithName.plus("surName" to nameAttribute)
+            assertEquals(entityWithNameAndSurname, entity)
         }
     }
 }

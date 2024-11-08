@@ -64,6 +64,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkClass
+import io.mockk.mockkObject
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
@@ -872,7 +873,7 @@ class EntityHandlerTests {
             coEvery {
                 ContextSourceCaller.getDistributedInformation(any(), any(), any(), any())
             } returns MiscellaneousWarning(
-                "message\nwith\nline\nbreaks",
+                "message with\nline\nbreaks",
                 csr
             ).left() andThen
                 MiscellaneousWarning("message", csr).left()

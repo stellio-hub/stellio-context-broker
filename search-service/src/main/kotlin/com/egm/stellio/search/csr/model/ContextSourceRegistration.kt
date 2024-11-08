@@ -39,7 +39,6 @@ data class ContextSourceRegistration(
     val modifiedAt: ZonedDateTime? = null,
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
-
     val status: StatusType? = null,
     val timesSent: Int = 0,
     val timesFailed: Int = 0,

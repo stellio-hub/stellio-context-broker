@@ -179,8 +179,7 @@ fun buildQueryResponse(
 
 fun prepareGetSuccessResponseHeaders(
     mediaType: MediaType,
-    contexts:
-    List<String>,
+    contexts: List<String>,
 ): ResponseEntity.BodyBuilder =
     ResponseEntity.status(HttpStatus.OK)
         .apply {

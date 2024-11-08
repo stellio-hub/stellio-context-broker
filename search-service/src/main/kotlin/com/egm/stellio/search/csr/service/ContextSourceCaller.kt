@@ -4,7 +4,11 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.csr.model.*
+import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.util.QUERY_PARAM_GEOMETRY_PROPERTY
 import com.egm.stellio.shared.util.QUERY_PARAM_LANG
@@ -78,13 +82,13 @@ object ContextSourceCaller {
             onFailure = { e ->
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
-                when (e) {
-                    is DecodingException -> RevalidationFailedWarning(
+                if (e is DecodingException) {
+                    RevalidationFailedWarning(
                         "$uri returned badly formed data message: \"${e.cause}:${e.message}\"",
                         csr
                     )
-
-                    else -> MiscellaneousWarning(
+                } else {
+                    MiscellaneousWarning(
                         "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
                         csr
                     )

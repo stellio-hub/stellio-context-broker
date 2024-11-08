@@ -159,7 +159,7 @@ class ContextSourceUtilsTests {
         assertTrue(mergedEntity.isRight())
         assertEquals(
             evenMoreRecentTime,
-            (mergedEntity.getOrNull()?.get(NGSILD_MODIFIED_AT_TERM))
+            mergedEntity.getOrNull()?.get(NGSILD_MODIFIED_AT_TERM)
         )
     }
 
@@ -178,7 +178,7 @@ class ContextSourceUtilsTests {
 
         assertEquals(
             time,
-            (mergedEntity.getOrNull()?.get(NGSILD_CREATED_AT_TERM))
+            mergedEntity.getOrNull()?.get(NGSILD_CREATED_AT_TERM)
         )
     }
 

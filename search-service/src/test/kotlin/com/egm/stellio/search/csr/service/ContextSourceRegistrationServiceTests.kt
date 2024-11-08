@@ -6,8 +6,14 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notF
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.shouldFailWith
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -2,8 +2,12 @@ package com.egm.stellio.search.csr.model
 
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
+import com.egm.stellio.shared.util.shouldFailWith
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 

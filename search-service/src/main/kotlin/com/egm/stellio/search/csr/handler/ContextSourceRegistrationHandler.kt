@@ -1,15 +1,31 @@
 package com.egm.stellio.search.csr.handler
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.Option
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserialize
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.unauthorizedMessage
 import com.egm.stellio.search.csr.model.serialize
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS
+import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_SYSATTRS_VALUE
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildQueryResponse
+import com.egm.stellio.shared.util.checkAndGetContext
+import com.egm.stellio.shared.util.getApplicableMediaType
+import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.parsePaginationParameters
+import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
+import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -17,7 +33,15 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -102,7 +126,6 @@ class ContextSourceRegistrationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
         @RequestParam options: String?
-
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options == QUERY_PARAM_OPTIONS_SYSATTRS_VALUE
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()

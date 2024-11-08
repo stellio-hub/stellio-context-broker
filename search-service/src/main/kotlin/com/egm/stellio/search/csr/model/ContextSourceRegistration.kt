@@ -4,14 +4,20 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.invalidUriMessage
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
@@ -116,7 +122,7 @@ data class ContextSourceRegistration(
     ): String {
         return DataTypes.mapper.writeValueAsString(
             DataTypes.mapper.convertValue<Map<String, Any>>(
-                (this.compact(contexts))
+                this.compact(contexts)
             ).plus(
                 JSONLD_CONTEXT to contexts
             ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }

@@ -19,7 +19,7 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.3.4" apply false
+    id("org.springframework.boot") version "3.3.5" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
     id("org.graalvm.buildtools.native") version "0.10.3"
     kotlin("jvm") version "2.0.21" apply false

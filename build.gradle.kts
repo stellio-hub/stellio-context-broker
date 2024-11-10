@@ -116,6 +116,7 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
+        source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
 
         reports {
             xml.required.set(true)

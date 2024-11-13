@@ -63,7 +63,7 @@ class ContextSourceUtilsTests {
     private val entityWithName = minimalEntity.toMutableMap().plus(name to nameAttribute)
     private val entityWithLastName = minimalEntity.toMutableMap().plus("lastName" to nameAttribute)
     private val entityWithSurName = minimalEntity.toMutableMap().plus("surName" to nameAttribute)
-    private val invalidEntityithLastName = entityWithLastName.toMutableMap()
+    private val invalidEntityWithLastName = entityWithLastName.toMutableMap()
         .plus(name to "invalidAttribute")
         .plus(NGSILD_CREATED_AT_TERM to moreRecentTime)
 
@@ -221,7 +221,7 @@ class ContextSourceUtilsTests {
         mockkObject(ContextSourceUtils) {
             val (warnings, entity) = ContextSourceUtils.mergeEntities(
                 entityWithName,
-                listOf(invalidEntityithLastName to inclusiveCSR, entityWithSurName to inclusiveCSR)
+                listOf(invalidEntityWithLastName to inclusiveCSR, entityWithSurName to inclusiveCSR)
             ).toPair()
 
             verify(exactly = 2) { ContextSourceUtils.getMergeNewValues(any(), any(), any()) }

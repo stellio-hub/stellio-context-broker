@@ -7,9 +7,5 @@ data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
     val csf: String? = null,
 ) {
     constructor(ids: Set<URI> = emptySet(), operations: List<Operation>) :
-        this(ids = ids, csf = operations.joinToString("|") { "$OPERATION_NAME==$it" })
-
-    companion object {
-        const val OPERATION_NAME = "operations"
-    }
+        this(ids = ids, csf = operations.joinToString("|") { "${ContextSourceRegistration::operations.name}==$it" })
 }

@@ -15,7 +15,6 @@ import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.CSRFilters.Companion.OPERATION_NAME
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
@@ -215,33 +214,6 @@ class ContextSourceRegistrationService(
             .allToMappedList { rowToContextSourceRegistration(it) }
     }
 
-    private fun buildWhereStatement(csrFilters: CSRFilters): String {
-        val idFilter = if (csrFilters.ids.isNotEmpty())
-            """
-            (
-                entity_info.id is null OR
-                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
-            ) AND
-            (
-                entity_info.idPattern is null OR 
-                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
-            )
-            """.trimIndent()
-        else "true"
-        val operationRegex = "$OPERATION_NAME==([a-zA-Z]+)"
-        val validationRegex = "($operationRegex\\|?)+\$".toRegex()
-        val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
-            val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.value }
-            "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
-        } else "true"
-
-        return """
-            $idFilter 
-            AND
-            $csfFilter
-        """.trimMargin()
-    }
-
     suspend fun getContextSourceRegistrationsCount(sub: Option<Sub>): Either<APIException, Int> {
         val selectStatement =
             """
@@ -252,32 +224,6 @@ class ContextSourceRegistrationService(
         return databaseClient.sql(selectStatement)
             .bind("sub", sub.toStringValue())
             .oneToResult { toInt(it["count"]) }
-    }
-
-    private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->
-        ContextSourceRegistration(
-            id = toUri(row["id"]),
-            endpoint = toUri(row["endpoint"]),
-            mode = Mode.fromString(row["mode"] as? String),
-            information = mapper.readerForListOf(RegistrationInfo::class.java)
-                .readValue((row["information"] as Json).asString()),
-            operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
-            registrationName = row["registration_name"] as? String,
-            createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            observationInterval = row["observation_interval_start"]?.let {
-                TimeInterval(
-                    toZonedDateTime(it),
-                    toOptionalZonedDateTime(row["observation_interval_end"])
-                )
-            },
-            managementInterval = row["management_interval_start"]?.let {
-                TimeInterval(
-                    toZonedDateTime(it),
-                    toOptionalZonedDateTime(row["management_interval_end"])
-                )
-            },
-        )
     }
 
     suspend fun updateContextSourceStatus(
@@ -298,5 +244,62 @@ class ContextSourceRegistrationService(
             updateStatement,
             ContextSourceRegistration::class.java
         ).awaitFirst()
+    }
+
+    companion object {
+        private val operationRegex = "${ContextSourceRegistration::operations.name}==([a-zA-Z]+)"
+        private val validationRegex = "($operationRegex\\|?)+\$".toRegex()
+
+        private fun buildWhereStatement(csrFilters: CSRFilters): String {
+            val idFilter = if (csrFilters.ids.isNotEmpty())
+                """
+            (
+                entity_info.id is null OR
+                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
+            ) AND
+            (
+                entity_info.idPattern is null OR 
+                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
+            )
+                """.trimIndent()
+            else "true"
+
+            val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
+                val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.value }
+                "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
+            } else "true"
+
+            return """
+            $idFilter 
+            AND
+            $csfFilter
+            """.trimMargin()
+        }
+
+        private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->
+            ContextSourceRegistration(
+                id = toUri(row["id"]),
+                endpoint = toUri(row["endpoint"]),
+                mode = Mode.fromString(row["mode"] as? String),
+                information = mapper.readerForListOf(RegistrationInfo::class.java)
+                    .readValue((row["information"] as Json).asString()),
+                operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
+                registrationName = row["registration_name"] as? String,
+                createdAt = toZonedDateTime(row["created_at"]),
+                modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
+                observationInterval = row["observation_interval_start"]?.let {
+                    TimeInterval(
+                        toZonedDateTime(it),
+                        toOptionalZonedDateTime(row["observation_interval_end"])
+                    )
+                },
+                managementInterval = row["management_interval_start"]?.let {
+                    TimeInterval(
+                        toZonedDateTime(it),
+                        toOptionalZonedDateTime(row["management_interval_end"])
+                    )
+                },
+            )
+        }
     }
 }

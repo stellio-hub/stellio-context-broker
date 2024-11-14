@@ -35,7 +35,6 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.parseRepresentations
-import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders

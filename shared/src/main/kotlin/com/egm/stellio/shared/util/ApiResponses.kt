@@ -1,27 +1,7 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.AccessDeniedResponse
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.AlreadyExistsResponse
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.ErrorResponse
-import com.egm.stellio.shared.model.InternalErrorResponse
-import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.model.InvalidRequestResponse
-import com.egm.stellio.shared.model.LdContextNotAvailableException
-import com.egm.stellio.shared.model.LdContextNotAvailableResponse
-import com.egm.stellio.shared.model.NotImplementedException
-import com.egm.stellio.shared.model.NotImplementedResponse
-import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.model.OperationNotSupportedResponse
 import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.ResourceNotFoundResponse
-import com.egm.stellio.shared.model.TooManyResultsException
-import com.egm.stellio.shared.model.TooManyResultsResponse
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.slf4j.LoggerFactory
@@ -83,40 +63,6 @@ const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
 
 private val logger = LoggerFactory.getLogger("com.egm.stellio.shared.util.ApiResponses")
-
-/**
- * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
- * but main code there should move here when we no longer raise business exceptions
- */
-fun APIException.toErrorResponse(): ResponseEntity<*> =
-    when (this) {
-        is AlreadyExistsException ->
-            generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message))
-        is ResourceNotFoundException ->
-            generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(this.message))
-        is InvalidRequestException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, InvalidRequestResponse(this.message))
-        is BadRequestDataException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(this.message))
-        is OperationNotSupportedException ->
-            generateErrorResponse(HttpStatus.BAD_REQUEST, OperationNotSupportedResponse(this.message))
-        is AccessDeniedException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(this.message))
-        is NotImplementedException ->
-            generateErrorResponse(HttpStatus.NOT_IMPLEMENTED, NotImplementedResponse(this.message))
-        is LdContextNotAvailableException ->
-            generateErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, LdContextNotAvailableResponse(this.message))
-        is TooManyResultsException ->
-            generateErrorResponse(HttpStatus.FORBIDDEN, TooManyResultsResponse(this.message))
-        else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
-    }
-
-fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
-    logger.info("Returning error ${exception.type} (${exception.detail})")
-    return ResponseEntity.status(status)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(serializeObject(exception))
-}
 
 fun missingPathErrorResponse(errorMessage: String): ResponseEntity<*> {
     logger.info("Bad Request: $errorMessage")

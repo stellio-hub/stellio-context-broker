@@ -4,6 +4,7 @@ import arrow.core.Some
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
+import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -258,6 +259,28 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         )
 
         assertTrue(matchingCsrs.isEmpty())
+    }
+
+    @Test
+    fun `query CSR on operations`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val oneMatchingOperationCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(operations = listOf(Operation.FEDERATION_OPS))
+        )
+        assertEquals(1, oneMatchingOperationCsrs.size)
+
+        val twoOperationOneMatchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(operations = listOf(Operation.FEDERATION_OPS, Operation.CREATE_ENTITY))
+        )
+        assertEquals(1, twoOperationOneMatchingCsrs.size)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(operations = listOf(Operation.CREATE_ENTITY))
+        )
+        assertTrue(notMatchingCsr.isEmpty())
     }
 
     @Test

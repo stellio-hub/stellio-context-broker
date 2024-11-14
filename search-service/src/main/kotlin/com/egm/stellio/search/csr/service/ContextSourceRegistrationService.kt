@@ -265,7 +265,7 @@ class ContextSourceRegistrationService(
             else "true"
 
             val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
-                val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.value }
+                val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.groups[1]?.value }
                 "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
             } else "true"
 

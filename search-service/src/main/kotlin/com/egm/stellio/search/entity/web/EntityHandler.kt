@@ -44,7 +44,6 @@ import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders

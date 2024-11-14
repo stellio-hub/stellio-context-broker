@@ -1,21 +1,15 @@
 package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.NonexistentTenantResponse
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.model.NonexistentTenantException
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
-import org.springframework.core.io.buffer.DefaultDataBufferFactory
-import org.springframework.http.HttpHeaders.CONTENT_TYPE
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 const val NGSILD_TENANT_HEADER = "NGSILD-Tenant"
@@ -44,12 +38,7 @@ class TenantWebFilter(
         val tenantName = tenantNameFromHeader ?: DEFAULT_TENANT_NAME
         if (!tenantsNames.contains(tenantName)) {
             logger.error("Unknown tenant requested: $tenantName")
-            exchange.response.setStatusCode(HttpStatus.NOT_FOUND)
-            exchange.response.headers[CONTENT_TYPE] = MediaType.APPLICATION_JSON_VALUE
-            val errorResponse = serializeObject(NonexistentTenantResponse("Tenant $tenantName does not exist"))
-            return exchange.response.writeWith(
-                Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
-            )
+            return NonexistentTenantException("Tenant $tenantName does not exist").toServerWebExchange(exchange)
         }
 
         return chain

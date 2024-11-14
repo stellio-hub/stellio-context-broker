@@ -36,7 +36,6 @@ import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.replaceDefaultContextToAuthzContext
-import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders

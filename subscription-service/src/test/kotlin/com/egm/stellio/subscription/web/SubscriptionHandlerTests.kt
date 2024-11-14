@@ -236,7 +236,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
                     "title":"There has been an error during the operation execution",
-                    "detail":"InternalErrorException(message=Internal Server Exception)"
+                    "detail":"Internal Server Exception"
                 }
                 """
             )

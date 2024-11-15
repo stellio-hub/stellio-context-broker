@@ -3,6 +3,11 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.service.ContextSourceCaller
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateOperationResult
@@ -59,10 +64,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkClass
+import io.mockk.mockkObject
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -100,6 +107,9 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -110,6 +120,14 @@ class EntityHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
+    }
+
+    @BeforeEach
+    fun mockCSR() {
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf()
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -837,6 +855,43 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `get entity by id should return the warnings sent by the CSRs and update the CSRs statuses`() {
+        val csr = gimmeRawCSR()
+        coEvery {
+            entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
+        } returns ResourceNotFoundException("no entity").left()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        mockkObject(ContextSourceCaller) {
+            coEvery {
+                ContextSourceCaller.getDistributedInformation(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            webClient.get()
+                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
+                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+                .exchange()
+                .expectStatus().isNotFound
+                .expectHeader().valueEquals(
+                    NGSILDWarning.HEADER_NAME,
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+                )
+
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
     }
 
     @Test

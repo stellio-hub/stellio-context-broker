@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.web
 
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
@@ -38,6 +39,9 @@ class AnonymousUserHandlerTests {
 
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
+
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
 
     @Test
     @WithAnonymousUser

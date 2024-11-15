@@ -111,7 +111,7 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
+fun generateErrorResponse(status: HttpStatus, exception: ErrorResponse): ResponseEntity<*> {
     logger.info("Returning error ${exception.type} (${exception.detail})")
     return ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
@@ -177,7 +177,10 @@ fun buildQueryResponse(
     else responseHeaders.body(body)
 }
 
-fun prepareGetSuccessResponseHeaders(mediaType: MediaType, contexts: List<String>): ResponseEntity.BodyBuilder =
+fun prepareGetSuccessResponseHeaders(
+    mediaType: MediaType,
+    contexts: List<String>,
+): ResponseEntity.BodyBuilder =
     ResponseEntity.status(HttpStatus.OK)
         .apply {
             if (mediaType == JSON_LD_MEDIA_TYPE) {

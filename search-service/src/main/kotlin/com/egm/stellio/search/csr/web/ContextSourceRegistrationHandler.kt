@@ -1,4 +1,4 @@
-package com.egm.stellio.search.csr.handler
+package com.egm.stellio.search.csr.web
 
 import arrow.core.Either
 import arrow.core.Option

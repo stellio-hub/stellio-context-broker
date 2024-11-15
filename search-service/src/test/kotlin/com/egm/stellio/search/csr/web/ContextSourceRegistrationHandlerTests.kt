@@ -1,4 +1,4 @@
-package com.egm.stellio.search.csr.handler
+package com.egm.stellio.search.csr.web
 
 import arrow.core.left
 import arrow.core.right

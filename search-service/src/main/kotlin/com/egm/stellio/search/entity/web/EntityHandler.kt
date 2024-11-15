@@ -4,6 +4,14 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.core.separateEither
+import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.addWarnings
+import com.egm.stellio.search.csr.service.ContextSourceCaller
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
+import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
@@ -64,7 +72,8 @@ import java.util.Optional
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
-    private val entityQueryService: EntityQueryService
+    private val entityQueryService: EntityQueryService,
+    private val contextSourceRegistrationService: ContextSourceRegistrationService
 ) : BaseHandler() {
 
     /**
@@ -224,18 +233,56 @@ class EntityHandler(
             contexts
         ).bind()
 
-        val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+        val csrFilters =
+            CSRFilters(ids = setOf(entityId), operations = listOf(Operation.FEDERATION_OPS, Operation.RETRIEVE_ENTITY))
 
-        expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
-
-        val filteredExpandedEntity = ExpandedEntity(
-            expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
+            csrFilters
         )
-        val compactedEntity = compactEntity(filteredExpandedEntity, contexts)
+
+        val localEntity = either {
+            val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
+            expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
+
+            val filteredExpandedEntity = ExpandedEntity(
+                expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
+            )
+            compactEntity(filteredExpandedEntity, contexts)
+        }
+
+        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
+        val (warnings, remoteEntitiesWithCSR) = matchingCSR.parMap { csr ->
+            val response = ContextSourceCaller.getDistributedInformation(
+                httpHeaders,
+                csr,
+                "/ngsi-ld/v1/entities/$entityId",
+                params
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response.map { it?.let { it to csr } }
+        }.separateEither()
+            .let { (warnings, maybeResponses) ->
+                warnings.toMutableList() to maybeResponses.filterNotNull()
+            }
+
+        // we could simplify the code if we check the JsonPayload beforehand
+        val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
+            localEntity.getOrNull(),
+            remoteEntitiesWithCSR
+        ).toPair()
+
+        mergeWarnings?.let { warnings.addAll(it) }
+
+        if (mergedEntity == null) {
+            val localError = localEntity.leftOrNull()
+            return localError!!.toErrorResponse().addWarnings(warnings)
+        }
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+            .body(
+                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
+            ).addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }

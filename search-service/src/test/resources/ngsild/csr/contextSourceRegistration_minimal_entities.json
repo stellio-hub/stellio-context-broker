@@ -11,5 +11,6 @@
       ]
     }
   ],
+  "operations": ["federationOps"],
   "endpoint": "http://my.csr.endpoint/"
 }

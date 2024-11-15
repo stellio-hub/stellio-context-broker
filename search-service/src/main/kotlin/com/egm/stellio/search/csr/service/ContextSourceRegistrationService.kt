@@ -14,6 +14,7 @@ import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
@@ -24,11 +25,14 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import io.r2dbc.postgresql.codec.Json
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
+import org.springframework.data.relational.core.query.Update
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
@@ -57,6 +61,7 @@ class ContextSourceRegistrationService(
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
@@ -70,6 +75,7 @@ class ContextSourceRegistrationService(
                 :mode,
                 :information,
                 :operations,
+                :registration_name,
                 :observation_interval_start,
                 :observation_interval_end,
                 :management_interval_start,
@@ -87,6 +93,7 @@ class ContextSourceRegistrationService(
                 Json.of(mapper.writeValueAsString(contextSourceRegistration.information))
             )
             .bind("operations", contextSourceRegistration.operations.map { it.key }.toTypedArray())
+            .bind("registration_name", contextSourceRegistration.registrationName)
             .bind("observation_interval_start", contextSourceRegistration.observationInterval?.start)
             .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
             .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
@@ -131,6 +138,7 @@ class ContextSourceRegistrationService(
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
@@ -169,33 +177,40 @@ class ContextSourceRegistrationService(
     }
 
     suspend fun getContextSourceRegistrations(
-        limit: Int,
-        offset: Int,
-        sub: Option<Sub>
+        filters: CSRFilters = CSRFilters(),
+        limit: Int = Int.MAX_VALUE,
+        offset: Int = 0,
     ): List<ContextSourceRegistration> {
+        val filterQuery = buildWhereStatement(filters)
+
         val selectStatement =
             """
-            SELECT id,
+            SELECT csr.id,
                 endpoint,
                 mode,
                 information,
                 operations,
+                registration_name,
                 observation_interval_start,
                 observation_interval_end,
                 management_interval_start,
                 management_interval_end,
                 created_at,
                 modified_at
-            FROM context_source_registration 
-            WHERE sub = :sub 
-            ORDER BY id
+            FROM context_source_registration as csr
+            LEFT JOIN jsonb_to_recordset(information)
+                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+            LEFT JOIN jsonb_to_recordset(entities)
+                as entity_info(id text, idPattern text, type text) on true
+            WHERE $filterQuery
+            GROUP BY csr.id
+            ORDER BY csr.id
             LIMIT :limit
-            OFFSET :offset)
+            OFFSET :offset
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.toStringValue())
             .allToMappedList { rowToContextSourceRegistration(it) }
     }
 
@@ -211,28 +226,80 @@ class ContextSourceRegistrationService(
             .oneToResult { toInt(it["count"]) }
     }
 
-    private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->
-        ContextSourceRegistration(
-            id = toUri(row["id"]),
-            endpoint = toUri(row["endpoint"]),
-            mode = Mode.fromString(row["mode"] as? String),
-            information = mapper.readerForListOf(RegistrationInfo::class.java)
-                .readValue((row["information"] as Json).asString()),
-            operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
-            createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
-            observationInterval = row["observation_interval_start"]?.let {
-                TimeInterval(
-                    toZonedDateTime(it),
-                    toOptionalZonedDateTime(row["observation_interval_end"])
-                )
-            },
-            managementInterval = row["management_interval_start"]?.let {
-                TimeInterval(
-                    toZonedDateTime(it),
-                    toOptionalZonedDateTime(row["management_interval_end"])
-                )
-            },
-        )
+    suspend fun updateContextSourceStatus(
+        csr: ContextSourceRegistration,
+        success: Boolean
+    ) {
+        val updateStatement = if (success)
+            Update.update("status", ContextSourceRegistration.StatusType.OK.name)
+                .set("times_sent", csr.timesSent + 1)
+                .set("last_success", ngsiLdDateTime())
+        else Update.update("status", ContextSourceRegistration.StatusType.FAILED.name)
+            .set("times_sent", csr.timesSent + 1)
+            .set("times_failed", csr.timesFailed + 1)
+            .set("last_failure", ngsiLdDateTime())
+
+        r2dbcEntityTemplate.update(
+            query(where("id").`is`(csr.id)),
+            updateStatement,
+            ContextSourceRegistration::class.java
+        ).awaitFirst()
+    }
+
+    companion object {
+        private val operationRegex = "${ContextSourceRegistration::operations.name}==([a-zA-Z]+)"
+        private val validationRegex = "($operationRegex\\|?)+\$".toRegex()
+
+        private fun buildWhereStatement(csrFilters: CSRFilters): String {
+            val idFilter = if (csrFilters.ids.isNotEmpty())
+                """
+            (
+                entity_info.id is null OR
+                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
+            ) AND
+            (
+                entity_info.idPattern is null OR 
+                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
+            )
+                """.trimIndent()
+            else "true"
+
+            val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
+                val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.groups[1]?.value }
+                "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
+            } else "true"
+
+            return """
+            $idFilter 
+            AND
+            $csfFilter
+            """.trimMargin()
+        }
+
+        private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->
+            ContextSourceRegistration(
+                id = toUri(row["id"]),
+                endpoint = toUri(row["endpoint"]),
+                mode = Mode.fromString(row["mode"] as? String),
+                information = mapper.readerForListOf(RegistrationInfo::class.java)
+                    .readValue((row["information"] as Json).asString()),
+                operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
+                registrationName = row["registration_name"] as? String,
+                createdAt = toZonedDateTime(row["created_at"]),
+                modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
+                observationInterval = row["observation_interval_start"]?.let {
+                    TimeInterval(
+                        toZonedDateTime(it),
+                        toOptionalZonedDateTime(row["observation_interval_end"])
+                    )
+                },
+                managementInterval = row["management_interval_start"]?.let {
+                    TimeInterval(
+                        toZonedDateTime(it),
+                        toOptionalZonedDateTime(row["management_interval_end"])
+                    )
+                },
+            )
+        }
     }
 }

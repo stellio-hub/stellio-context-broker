@@ -5,6 +5,7 @@ CREATE TABLE context_source_registration
     mode text NOT NULL,
 	information jsonb NOT NULL,
 	operations text[] NOT NULL,
+	registration_name text,
     observation_interval_start timestamp with time zone,
     observation_interval_end timestamp with time zone,
     management_interval_start timestamp with time zone,

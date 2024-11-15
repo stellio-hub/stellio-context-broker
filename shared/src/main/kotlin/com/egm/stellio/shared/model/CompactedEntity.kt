@@ -34,6 +34,8 @@ import com.egm.stellio.shared.util.QUERY_PARAM_LANG
 import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
+typealias CompactedAttributeInstance = Map<String, Any>
+typealias CompactedAttributeInstances = List<CompactedAttributeInstance>
 
 fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
     this.mapValues { (_, value) ->

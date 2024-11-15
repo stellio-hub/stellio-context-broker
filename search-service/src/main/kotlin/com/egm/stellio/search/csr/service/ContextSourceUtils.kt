@@ -98,16 +98,16 @@ object ContextSourceUtils {
             val currentInstance = currentInstances[datasetId]
             when {
                 currentInstance == null -> currentInstances[datasetId] = remoteInstance
-                csr.isAuxiliary() -> {}
+                csr.isAuxiliary() -> Unit
                 currentInstance.isBefore(remoteInstance, NGSILD_OBSERVED_AT_TERM) ->
                     currentInstances[datasetId] = remoteInstance
-                remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> {}
+                remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> Unit
                 currentInstance.isBefore(remoteInstance, NGSILD_MODIFIED_AT_TERM) ->
                     currentInstances[datasetId] = remoteInstance
-                remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> {}
+                remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> Unit
                 // if there is no discriminating factor choose one at random
                 nextBoolean() -> currentInstances[datasetId] = remoteInstance
-                else -> {}
+                else -> Unit
             }
         }
         val values = currentInstances.values.toList()

@@ -100,7 +100,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return a CSR matching this id uniquely`() = runTest {
+    fun `query CSR on entities ids should return a CSR matching this id uniquely`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -113,7 +113,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return a CSR matching this id in one of the entities`() = runTest {
+    fun `query CSR on entities ids should return a CSR matching this id in one of the entities`() = runTest {
         val contextSourceRegistration =
             deserializeContextSourceRegistration(
                 """
@@ -148,7 +148,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return a CSR matching this id on idPattern`() = runTest {
+    fun `query CSR on entities ids should return a CSR matching this id on idPattern`() = runTest {
         val contextSourceRegistration =
             deserializeContextSourceRegistration(
                 """
@@ -179,7 +179,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return a CSR matching this id on idPattern but not on id`() = runTest {
+    fun `query CSR on entities ids should return a CSR matching this id on idPattern but not on id`() = runTest {
         val contextSourceRegistration =
             deserializeContextSourceRegistration(
                 """
@@ -214,7 +214,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return a single CSR when entities matches twice`() = runTest {
+    fun `query CSR on entities ids should return a single CSR when entities matches twice`() = runTest {
         val contextSourceRegistration =
             deserializeContextSourceRegistration(
                 """
@@ -249,7 +249,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on id should return an empty list if no CSR matches`() = runTest {
+    fun `query CSR on entities ids should return an empty list if no CSR matches`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
@@ -262,7 +262,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `query CSR on operations`() = runTest {
+    fun `query on CSR operations should filter the result`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()

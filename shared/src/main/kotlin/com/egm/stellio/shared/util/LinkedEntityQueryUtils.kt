@@ -17,10 +17,8 @@ fun parseLinkedEntityQueryParameters(
 ): Either<APIException, LinkedEntityQuery?> = either {
     val containedBy = containedBy?.split(",").orEmpty().toListOfUri().toSet()
     val join = join?.let {
-        if (JoinType.isSupportedType(it))
-            JoinType.forType(it).right()
-        else
-            BadRequestDataException(
+        JoinType.forType(it)?.right()
+            ?: BadRequestDataException(
                 "'$it' is not a recognized value for 'join' parameter (only 'flat', 'inline' and '@none' are allowed)"
             ).left()
     }?.bind()

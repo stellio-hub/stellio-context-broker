@@ -12,17 +12,14 @@ data class LinkedEntityQuery(
         const val DEFAULT_JOIN_LEVEL = 1
     }
 
-    enum class JoinType(val join: String) {
+    enum class JoinType(val type: String) {
         FLAT("flat"),
         INLINE("inline"),
         NONE("@none");
 
         companion object {
-            fun isSupportedType(join: String): Boolean =
-                entries.any { it.join == join }
-
-            fun forType(join: String): JoinType? =
-                entries.find { it.join == join }
+            fun forType(type: String): JoinType? =
+                entries.find { it.type == type }
         }
     }
 }

@@ -42,7 +42,7 @@ class TenantWebFilterTests {
             .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
             .expectBody()
             .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")
-            .jsonPath("$..detail")
+            .jsonPath("$..title")
             .isEqualTo("Tenant urn:ngsi-ld:tenant:02 does not exist")
     }
 

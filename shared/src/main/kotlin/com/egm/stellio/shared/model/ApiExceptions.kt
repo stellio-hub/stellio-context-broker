@@ -11,10 +11,10 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import java.net.URI
 
-const val DEFAULT_DETAIL = "If you have difficulty finding the issue" +
-    "you can check common issues here https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html" +
-    "If you think this is a bug of the broker" +
-    "you can create an issue on https://github.com/stellio-hub/stellio-context-broker"
+const val DEFAULT_DETAIL = "If you have difficulty identifying the issue," +
+    "you can check common problem on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html" +
+    "If you believe this is a bug, you can report it by creating an issue on" +
+    "https://github.com/stellio-hub/stellio-context-broker"
 
 sealed class APIException(
     val type: URI,
@@ -96,9 +96,9 @@ data class NonexistentTenantException(override val message: String) : APIExcepti
     HttpStatus.NOT_FOUND,
     message
 )
-data class TooComplexQueryException(override val message: String) : APIException( // todo check
+data class TooComplexQueryException(override val message: String) : APIException(
     ErrorType.TOO_COMPLEX_QUERY.type,
-    HttpStatus.INTERNAL_SERVER_ERROR, // todo check
+    HttpStatus.FORBIDDEN,
     message
 )
 data class NotAcceptableException(override val message: String) : APIException(

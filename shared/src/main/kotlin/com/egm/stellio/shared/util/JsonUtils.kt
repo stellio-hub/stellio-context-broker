@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.fasterxml.jackson.core.JsonProcessingException
@@ -31,7 +31,7 @@ object JsonUtils {
                 mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
             )
         } catch (e: JsonProcessingException) {
-            throw BadRequestDataException(e.message!!)
+            throw InvalidRequestException(e.message!!)
         }
 
     fun String.deserializeAsMap(): Map<String, Any> =
@@ -49,7 +49,7 @@ object JsonUtils {
                 mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
             )
         } catch (e: JsonProcessingException) {
-            throw BadRequestDataException(e.message!!)
+            throw InvalidRequestException(e.message!!)
         }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =

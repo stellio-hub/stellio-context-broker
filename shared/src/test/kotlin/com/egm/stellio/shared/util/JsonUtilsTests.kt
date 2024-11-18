@@ -4,11 +4,11 @@ import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -153,7 +153,7 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should throw an BadRequestDataException exception if the JSON-LD fragment is not a valid JSON document`() {
+    fun `it should throw an InvalidRequest exception if the JSON-LD fragment is not a valid JSON document`() {
         val rawEntity =
             """
             {
@@ -162,7 +162,7 @@ class JsonUtilsTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
+        val exception = assertThrows<InvalidRequestException> {
             rawEntity.deserializeAsMap()
         }
         assertThat(exception.message)

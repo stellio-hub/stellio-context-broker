@@ -2,19 +2,13 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.buffer.DefaultDataBufferFactory
-import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
-import org.springframework.web.server.ServerWebExchange
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.net.URI
 
 const val DEFAULT_DETAIL = "If you have difficulty finding the issue" +
@@ -32,26 +26,15 @@ sealed class APIException(
 ) : Exception(message) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.message).also {
+        it.title = this.title
+        it.type = this.type
+    }
     fun toErrorResponse(): ResponseEntity<ProblemDetail> {
         logger.info("Returning error ${this.type} (${this.message})")
         return ResponseEntity.status(status)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(
-                ProblemDetail.forStatusAndDetail(status, this.message).also {
-                    it.title = this.title
-                    it.type = this.type
-                }
-            )
-    }
-
-    fun toServerWebExchange(exchange: ServerWebExchange): Mono<Void> {
-        logger.info("Returning server web exchange error ${this.type} (${this.message})")
-        exchange.response.statusCode = this.status
-        exchange.response.headers[CONTENT_TYPE] = MediaType.APPLICATION_JSON_VALUE
-        val body = serializeObject(this)
-        return exchange.response.writeWith(
-            Flux.just(DefaultDataBufferFactory().wrap(body.toByteArray()))
-        )
+            .body(toProblemDetail())
     }
 }
 
@@ -62,7 +45,7 @@ data class AlreadyExistsException(override val message: String) : APIException(
     message
 )
 
-data class InvalidRequestException(override val message: String) : APIException( // todo check
+data class InvalidRequestException(override val message: String) : APIException(
     ErrorType.INVALID_REQUEST.type,
     HttpStatus.BAD_REQUEST,
     "The request associated to the operation is syntactically invalid or includes wrong content",

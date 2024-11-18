@@ -31,7 +31,7 @@ class ExceptionHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST)
             .expectBody()
-            .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")
+            .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")
     }
 
     @Test

@@ -112,7 +112,11 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
     val attributeCompactedType = AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)!!
     return when (attributeCompactedType) {
         PROPERTY, GEOPROPERTY -> value.getOrDefault(JSONLD_VALUE_TERM, value)
-        RELATIONSHIP -> value.getOrDefault(JSONLD_OBJECT, value)
+        RELATIONSHIP -> {
+            if (value.containsKey(NGSILD_ENTITY_TERM))
+                (value[NGSILD_ENTITY_TERM] as CompactedEntity).toSimplifiedAttributes()
+            else value.getOrDefault(JSONLD_OBJECT, value)
+        }
         JSONPROPERTY -> mapOf(JSONLD_JSON_TERM to value.getOrDefault(JSONLD_JSON_TERM, value))
         LANGUAGEPROPERTY -> mapOf(JSONLD_LANGUAGEMAP_TERM to value.getOrDefault(JSONLD_LANGUAGEMAP_TERM, value))
         VOCABPROPERTY -> mapOf(JSONLD_VOCAB_TERM to value.getOrDefault(JSONLD_VOCAB_TERM, value))

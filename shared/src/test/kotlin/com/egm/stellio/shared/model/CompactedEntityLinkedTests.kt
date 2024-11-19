@@ -454,4 +454,76 @@ class CompactedEntityLinkedTests {
             serializeObject(inlinedEntity)
         )
     }
+
+    @Test
+    fun `it should simplify relationships for inlined entities`() = runTest {
+        val inlineLinkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel1": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                     "entity": {
+                        "id": "urn:ngsi-ld:LinkedEntity:01",
+                        "type": "LinkedEntity",
+                        "name": "My linked entity 01"
+                    }
+                },
+                "rel2": [
+                    {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity",
+                            "name": "My linked entity 02"
+                        }
+                    },
+                    {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:03",
+                        "datasetId": "urn:ngsi-ld:Dataset:03",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:03",
+                            "type": "LinkedEntity",
+                            "name": "My linked entity 03"
+                        }
+                    }
+                ]
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val inlinedEntity = inlineLinkingEntity.toSimplifiedAttributes()
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel1": {
+                    "id": "urn:ngsi-ld:LinkedEntity:01",
+                    "type": "LinkedEntity",
+                    "name": "My linked entity 01"
+                },
+                "rel2": {
+                    "dataset": {
+                        "urn:ngsi-ld:Dataset:02": {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity",
+                            "name": "My linked entity 02"
+                        },
+                        "urn:ngsi-ld:Dataset:03": {
+                            "id": "urn:ngsi-ld:LinkedEntity:03",
+                            "type": "LinkedEntity",
+                            "name": "My linked entity 03"
+                        }
+                    }
+                }
+            }
+            """.trimIndent(),
+            serializeObject(inlinedEntity)
+        )
+    }
 }

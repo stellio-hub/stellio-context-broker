@@ -66,26 +66,19 @@ fun CompactedEntity.getRelationshipsObjects(): Set<URI> =
 fun List<CompactedEntity>.getRelationshipsObjects(): Set<URI> =
     this.map { it.getRelationshipsObjects() }.fold(emptySet()) { acc, value -> acc.plus(value) }
 
+private fun CompactedAttributeInstance.applyInlineLinkedEntity(
+    linkedEntities: Map<String, CompactedEntity>
+): CompactedAttributeInstance =
+    if (this[JSONLD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM && linkedEntities.contains(this[JSONLD_OBJECT] as String))
+        this.plus(NGSILD_ENTITY_TERM to linkedEntities[this[JSONLD_OBJECT] as String]!!)
+    else this
+
 fun CompactedEntity.inlineLinkedEntities(linkedEntities: Map<String, CompactedEntity>): CompactedEntity =
     this.mapValues { entry ->
         applyAttributeTransformation(
             entry,
-            { value ->
-                if (value[JSONLD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM &&
-                    linkedEntities.contains(value[JSONLD_OBJECT] as String)
-                )
-                    value.plus(NGSILD_ENTITY_TERM to linkedEntities[value[JSONLD_OBJECT] as String])
-                else value
-            },
-            { values ->
-                values.map {
-                    if (it[JSONLD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM &&
-                        linkedEntities.contains(it[JSONLD_OBJECT] as String)
-                    )
-                        it.plus(NGSILD_ENTITY_TERM to linkedEntities[it[JSONLD_OBJECT] as String])
-                    else it
-                }
-            }
+            { value -> value.applyInlineLinkedEntity(linkedEntities) },
+            { values -> values.map { it.applyInlineLinkedEntity(linkedEntities) } }
         )
     }
 
@@ -123,15 +116,16 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
     }
 }
 
-fun CompactedEntity.toFilteredLanguageProperties(languageFilter: String): CompactedEntity =
-    this.mapValues { entry ->
-        applyAttributeTransformationWithParameters(
+fun CompactedEntity.toFilteredLanguageProperties(languageFilter: String): CompactedEntity {
+    val transformationParameters = mapOf(QUERY_PARAM_LANG to languageFilter)
+    return this.mapValues { entry ->
+        applyAttributeTransformation(
             entry,
-            mapOf(QUERY_PARAM_LANG to languageFilter),
-            ::filterLanguageProperty,
-            ::filterMultiInstanceLanguageProperty
+            { filterLanguageProperty(it, transformationParameters) },
+            { filterMultiInstanceLanguageProperty(it, transformationParameters) },
         )
     }
+}
 
 private fun filterMultiInstanceLanguageProperty(
     value: List<Map<String, Any>>,
@@ -143,10 +137,10 @@ private fun filterMultiInstanceLanguageProperty(
 
 private fun filterLanguageProperty(value: Map<String, Any>, transformationParameters: Map<String, String>?): Any {
     val languageFilter = transformationParameters?.get(QUERY_PARAM_LANG)!!
-    return value.let { entry ->
-        val attributeCompactedType = value[JSONLD_TYPE_TERM]?.let {
-            AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)
-        }
+    val attributeCompactedType = value[JSONLD_TYPE_TERM]?.let {
+        AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)
+    }
+    val languageFilteredValue =
         if (attributeCompactedType == LANGUAGEPROPERTY) {
             val localeRanges = Locale.LanguageRange.parse(languageFilter)
             val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
@@ -160,8 +154,9 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
                 JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],
                 NGSILD_LANG_TERM to bestLocaleMatch
             )
-        } else entry
-    }.mapValues { entry ->
+        } else value
+
+    return languageFilteredValue.mapValues { entry ->
         if (entry.key == NGSILD_ENTITY_TERM)
             (entry.value as CompactedEntity).toFilteredLanguageProperties(languageFilter)
         else entry.value
@@ -201,7 +196,7 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
             is Map<*, *> -> removeSysAttrsFromAttrInstance(it.value as Map<*, *>)
             is List<*> -> (it.value as List<*>).map { valueInstance ->
                 if (valueInstance is Map<*, *>)
-                    removeSysAttrsFromAttrInstance(valueInstance as Map<*, *>)
+                    removeSysAttrsFromAttrInstance(valueInstance)
                 // we keep @context value as it is (List<String>)
                 else valueInstance
             }
@@ -284,22 +279,6 @@ private fun applyAttributeTransformation(
         entry.value is Map<*, *> -> onSingleInstance(entry.value as Map<String, Any>)
         // an attribute with multiple instances
         entry.value is List<*> -> onMultiInstance(entry.value as List<Map<String, Any>>)
-        // should not happen... just return the value
-        else -> entry.value
-    }
-
-private fun applyAttributeTransformationWithParameters(
-    entry: Map.Entry<String, Any>,
-    transformationParameters: Map<String, String>?,
-    onSingleInstance: (Map<String, Any>, Map<String, String>?) -> Any,
-    onMultiInstance: (List<Map<String, Any>>, Map<String, String>?) -> Any
-): Any =
-    when {
-        JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(entry.key) -> entry.value
-        // an attribute with a single instance
-        entry.value is Map<*, *> -> onSingleInstance(entry.value as Map<String, Any>, transformationParameters)
-        // an attribute with multiple instances
-        entry.value is List<*> -> onMultiInstance(entry.value as List<Map<String, Any>>, transformationParameters)
         // should not happen... just return the value
         else -> entry.value
     }

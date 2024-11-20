@@ -2,8 +2,6 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -11,16 +9,14 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import java.net.URI
 
-const val DEFAULT_DETAIL = "If you have difficulty identifying the issue," +
-    "you can check common problem on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html" +
-    "If you believe this is a bug, you can report it by creating an issue on" +
+const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause of the error," +
+    "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html." +
+    "If the error is still not clear or if you think it is a bug, feel free to open an issue on" +
     "https://github.com/stellio-hub/stellio-context-broker"
 
 sealed class APIException(
     val type: URI,
-    @JsonIgnore
     val status: HttpStatus,
-    @JsonProperty("detail")
     override val message: String,
     open val detail: String = DEFAULT_DETAIL
 ) : Exception(message) {
@@ -120,7 +116,7 @@ data class UnsupportedMediaTypeStatusApiException(override val message: String) 
 )
 
 data class JsonLdErrorApiResponse(override val message: String, override val detail: String) : APIException(
-    ErrorType.BAD_REQUEST_DATA.type, // todo check
+    ErrorType.BAD_REQUEST_DATA.type,
     HttpStatus.BAD_REQUEST,
     message,
     detail

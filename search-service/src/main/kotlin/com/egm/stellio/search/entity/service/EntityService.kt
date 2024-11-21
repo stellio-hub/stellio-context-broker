@@ -71,7 +71,7 @@ class EntityService(
         authorizationService.userCanCreateEntities(sub.toOption()).bind()
         entityQueryService.checkEntityExistence(ngsiLdEntity.id, true).bind()
 
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 

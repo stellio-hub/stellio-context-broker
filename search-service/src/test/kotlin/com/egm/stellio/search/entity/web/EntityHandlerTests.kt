@@ -19,6 +19,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -177,9 +178,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
-                      "title":"The referred element already exists",
-                      "detail":"Already Exists"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
+                      "title": "Already Exists",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                 """.trimIndent()
             )
@@ -201,9 +202,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                      "title":"There has been an error during the operation execution",
-                      "detail":"InternalErrorException(message=Internal Server Exception)"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title": "Internal Server Exception",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )
@@ -273,8 +274,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Target entity does not exist"
+                    "title": "Target entity does not exist",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -297,8 +298,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to create entities"
+                    "title": "User forbidden to create entities",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -440,9 +441,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title":"The referred resource has not been found",
-                    "detail":"$expectedMessage"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title": "$expectedMessage",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -508,9 +509,9 @@ class EntityHandlerTests {
                 {
                     "createdAt":"2015-10-18T11:20:30.000001Z",
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"DateTime",
+                            "type": "DateTime",
                             "@value":"2015-10-18T11:20:30.000001Z"
                         },
                         "createdAt":"2015-10-18T11:20:30.000001Z",
@@ -547,9 +548,9 @@ class EntityHandlerTests {
                 """
                 {
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"Date",
+                            "type": "Date",
                             "@value":"2015-10-18"
                         }
                     },
@@ -584,9 +585,9 @@ class EntityHandlerTests {
                 """
                 {
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"Time",
+                            "type": "Time",
                             "@value":"11:20:30"
                         }
                     },
@@ -622,8 +623,8 @@ class EntityHandlerTests {
                 """
                 {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
-                    "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
+                    "type": "Beehive",
+                    "name":{"type": "Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
                     "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
@@ -665,13 +666,13 @@ class EntityHandlerTests {
                 """
                  {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "name":[
                         {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
+                            "type": "Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
                         },
                         {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
+                            "type": "Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
                     "@context": "${applicationProperties.contexts.core}"
@@ -708,9 +709,9 @@ class EntityHandlerTests {
                 """
                 {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "managedBy": {
-                      "type":"Relationship",
+                      "type": "Relationship",
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
@@ -795,14 +796,14 @@ class EntityHandlerTests {
                 """
                  {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "managedBy":[
                        {
-                          "type":"Relationship",
+                          "type": "Relationship",
                           "object":"urn:ngsi-ld:Beekeeper:1229"
                        },
                        {
-                          "type":"Relationship",
+                          "type": "Relationship",
                           "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
@@ -827,9 +828,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                 """
             )
@@ -850,8 +851,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST"
+                    "title": "User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1037,9 +1038,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1054,9 +1055,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
-                    "title":"The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive",
-                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
+                    "title": "You asked for 200 results, but the supported maximum limit is 100",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1128,9 +1129,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset and limit must be greater than zero"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Offset and limit must be greater than zero",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1159,9 +1160,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1212,8 +1213,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to modify entity"
+                    "title": "User forbidden to modify entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1248,9 +1249,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"The id contained in the body is not the same as the one provided in the URL"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "The id contained in the body is not the same as the one provided in the URL",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1265,9 +1266,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Missing entity id when trying to replace an entity"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Missing entity id when trying to replace an entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1442,9 +1443,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"Entity urn:ngsi-ld:BreedingService:0214 was not found"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Entity urn:ngsi-ld:BreedingService:0214 was not found",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                 """.trimIndent()
             )
@@ -1458,7 +1459,7 @@ class EntityHandlerTests {
             """
             {
                 "connectsTo":{
-                    "type":"Relationship"
+                    "type": "Relationship"
                 }
             }
             """.trimIndent()
@@ -1480,8 +1481,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
+                    "title": "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field",
+                    "detail": "$DEFAULT_DETAIL"
                 } 
                 """.trimIndent()
             )
@@ -1507,8 +1508,8 @@ class EntityHandlerTests {
                 """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
-                    "title": "The request tried to access an unauthorized resource", 
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:BreedingService:0214" 
+                    "title": "User forbidden write access to entity urn:ngsi-ld:BreedingService:0214", 
+                    "detail": "$DEFAULT_DETAIL" 
                 } 
                 """.trimIndent()
             )
@@ -1614,8 +1615,8 @@ class EntityHandlerTests {
                 """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
-                    "title": "The request tried to access an unauthorized resource", 
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN" 
+                    "title": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN", 
+                    "detail": "$DEFAULT_DETAIL" 
                 } 
                 """.trimIndent()
             )
@@ -1714,9 +1715,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'observedAt' parameter is not a valid date"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "'observedAt' parameter is not a valid date",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1740,9 +1741,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                  "title":"The referred resource has not been found",
-                  "detail":"${entityNotFoundMessage(entityId.toString())}"
+                  "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title": "${entityNotFoundMessage(entityId.toString())}",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1768,8 +1769,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1789,9 +1790,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Missing entity id when trying to merge an entity"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Missing entity id when trying to merge an entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1906,8 +1907,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable",
-                    "title": "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
-                    "detail": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [https://easyglobalmarket.com/contexts/diat.jsonld]])"
+                    "title": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [https://easyglobalmarket.com/contexts/diat.jsonld]])",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1937,9 +1938,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"Entity $beehiveId was not found"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Entity $beehiveId was not found",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                 """.trimIndent()
             )
@@ -1965,8 +1966,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2000,9 +2001,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                  "title":"The referred resource has not been found",
-                  "detail":"${entityNotFoundMessage(beehiveId.toString())}"
+                  "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title": "${entityNotFoundMessage(beehiveId.toString())}",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2021,9 +2022,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                      "title":"There has been an error during the operation execution",
-                      "detail":"java.lang.RuntimeException: Unexpected server error"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title": "java.lang.RuntimeException: Unexpected server error",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )
@@ -2044,8 +2045,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden admin access to entity $beehiveId"
+                    "title": "User forbidden admin access to entity $beehiveId",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2142,9 +2143,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                       {
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found",
-                        "detail":"Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found",
+                        "detail": "$DEFAULT_DETAIL"
                       }
                 """.trimIndent()
             )
@@ -2165,9 +2166,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                       {
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found",
-                        "detail":"Attribute Not Found"
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "Attribute Not Found",
+                        "detail": "$DEFAULT_DETAIL"
                       }
                 """.trimIndent()
             )
@@ -2189,8 +2190,8 @@ class EntityHandlerTests {
                 """
                 {
                   "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title": "The request includes input data which does not meet the requirements of the operation",
-                  "detail": "Something is wrong with the request"
+                  "title": "Something is wrong with the request",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2212,8 +2213,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2275,9 +2276,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"Unknown attribute $INCOMING_PROPERTY in entity $beehiveId"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Unknown attribute $INCOMING_PROPERTY in entity $beehiveId",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )

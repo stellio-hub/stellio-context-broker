@@ -36,7 +36,6 @@ import com.egm.stellio.shared.util.getContextFromLinkHeader
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parseRepresentations
-import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders

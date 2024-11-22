@@ -26,7 +26,6 @@ import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parsePaginationParameters
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toErrorResponse
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize

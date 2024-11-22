@@ -9,6 +9,7 @@ import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.AttributeTypeInfo
 import com.egm.stellio.search.discovery.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -257,8 +258,8 @@ class AttributeHandlerTests {
                 """
                     {
                       "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"${attributeNotFoundMessage(OUTGOING_PROPERTY)}"
+                      "title":"${attributeNotFoundMessage(OUTGOING_PROPERTY)}",
+                      "detail":"$DEFAULT_DETAIL"
                     }
                 """
             )

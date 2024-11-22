@@ -8,6 +8,7 @@ import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -305,9 +306,9 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
-                "Request payload must contain @context term for a request having an application/ld+json content type"
+                    "title":
+                 "Request payload must contain @context term for a request having an application/ld+json content type",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -406,9 +407,10 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
-                "Request payload must contain @context term for a request having an application/ld+json content type"
+                    "title":
+                "Request payload must contain @context term for a request having an application/ld+json content type",
+                    "detail": "$DEFAULT_DETAIL",
+
                 }
                 """.trimIndent()
             )

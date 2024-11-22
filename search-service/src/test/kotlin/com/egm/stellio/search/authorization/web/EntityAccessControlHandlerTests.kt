@@ -10,6 +10,7 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
@@ -357,9 +358,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "User forbidden to remove ownership of entity",
+                    "title": "User forbidden to remove ownership of entity",
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource"
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -400,9 +401,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1",
+                    "detail": "$DEFAULT_DETAIL",
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "The referred resource has not been found"
+                    "title": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1"
                 }
                 """.trimIndent()
             )
@@ -503,9 +504,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "$expectedAttr is not authorized property name",
+                    "title": "$expectedAttr is not authorized property name",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation"
+                    "detail":"$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )

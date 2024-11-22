@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.QueryParam.Query.typeSelectionRegex
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -35,32 +36,15 @@ const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val GEO_JSON_CONTENT_TYPE = "application/geo+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
-const val QUERY_PARAM_COUNT: String = "count"
-const val QUERY_PARAM_OFFSET: String = "offset"
-const val QUERY_PARAM_LIMIT: String = "limit"
-const val QUERY_PARAM_ID: String = "id"
-const val QUERY_PARAM_TYPE: String = "type"
-const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
-const val QUERY_PARAM_ATTRS: String = "attrs"
-const val QUERY_PARAM_Q: String = "q"
-const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
-const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
-const val QUERY_PARAM_LANG: String = "lang"
-const val QUERY_PARAM_DATASET_ID: String = "datasetId"
-const val QUERY_PARAM_OPTIONS: String = "options"
-const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
-const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
-const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
-const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
+
+
 const val QUERY_PARAM_CONTAINED_BY: String = "containedBy"
 const val QUERY_PARAM_JOIN: String = "join"
 const val QUERY_PARAM_JOIN_LEVEL: String = "joinLevel"
+
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
-val qPattern: Pattern = Pattern.compile("([^();|]+)")
-val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
-val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 

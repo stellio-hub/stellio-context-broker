@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.util
+package com.egm.stellio.shared.model.param
 
 import arrow.core.Either
 import arrow.core.left
@@ -7,33 +7,16 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.decode
+import com.egm.stellio.shared.util.geoJsonToWkt
 
-const val GEO_QUERY_PARAM_GEOREL = "georel"
-const val GEO_QUERY_PARAM_GEOMETRY = "geometry"
-const val GEO_QUERY_PARAM_COORDINATES = "coordinates"
-const val GEO_QUERY_PARAM_GEOPROPERTY = "geoproperty"
 
-const val GEO_QUERY_GEOREL_NEAR = "near"
-const val GEO_QUERY_GEOREL_WITHIN = "within"
-const val GEO_QUERY_GEOREL_CONTAINS = "contains"
-const val GEO_QUERY_GEOREL_INTERSECTS = "intersects"
-const val GEO_QUERY_GEOREL_EQUALS = "equals"
-const val GEO_QUERY_GEOREL_DISJOINT = "disjoint"
-const val GEO_QUERY_GEOREL_OVERLAPS = "overlaps"
-val GEO_QUERY_ALL_GEORELS = listOf(
-    GEO_QUERY_GEOREL_NEAR,
-    GEO_QUERY_GEOREL_WITHIN,
-    GEO_QUERY_GEOREL_CONTAINS,
-    GEO_QUERY_GEOREL_INTERSECTS,
-    GEO_QUERY_GEOREL_EQUALS,
-    GEO_QUERY_GEOREL_DISJOINT,
-    GEO_QUERY_GEOREL_OVERLAPS
-)
 const val GEOREL_NEAR_DISTANCE_MODIFIER = "distance"
 const val GEOREL_NEAR_MAXDISTANCE_MODIFIER = "maxDistance"
 

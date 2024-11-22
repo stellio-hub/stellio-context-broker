@@ -24,7 +24,7 @@ import com.egm.stellio.shared.util.QUERY_PARAM_TYPE
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.parseAndExpandRequestParameter
-import com.egm.stellio.shared.util.parseGeoQueryParameters
+import com.egm.stellio.shared.model.param.parseGeoQueryParameters
 import com.egm.stellio.shared.util.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.util.parsePaginationParameters
 import com.egm.stellio.shared.util.parseRequestParameter

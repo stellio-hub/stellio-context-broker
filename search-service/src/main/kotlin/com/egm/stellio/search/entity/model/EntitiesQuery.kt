@@ -3,7 +3,7 @@ package com.egm.stellio.search.entity.model
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.GeoQuery
+import com.egm.stellio.shared.model.param.GeoQuery
 import com.egm.stellio.shared.model.LinkedEntityQuery
 import com.egm.stellio.shared.model.PaginationQuery
 import java.net.URI

@@ -2,8 +2,10 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.GeoQuery
-import com.egm.stellio.shared.model.GeoQuery.GeometryType
+import com.egm.stellio.shared.model.param.GeoQuery
+import com.egm.stellio.shared.model.param.GeoQuery.GeometryType
+import com.egm.stellio.shared.model.param.buildGeoQuery
+import com.egm.stellio.shared.model.param.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import kotlinx.coroutines.test.runTest

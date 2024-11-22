@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.GeoQuery
+import com.egm.stellio.shared.model.param.GeoQuery
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

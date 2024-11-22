@@ -1,5 +1,7 @@
-package com.egm.stellio.shared.model
+package com.egm.stellio.shared.model.param
 
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 
 data class GeoQuery(

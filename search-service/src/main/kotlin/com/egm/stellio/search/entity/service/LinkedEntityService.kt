@@ -70,14 +70,7 @@ class LinkedEntityService(
         )
         val linkedEntities = entityQueryService.queryEntities(relationshipsQuery, sub).bind()
             .first
-            .let {
-                compactEntities(it, contexts).let {
-                    // remove the inner contexts when inline mode (part of the linking entity)
-                    if (linkedEntityQuery.join == JoinType.INLINE)
-                        it.map { compactedEntity -> compactedEntity.minus(JSONLD_CONTEXT) }
-                    else it
-                }
-            }
+            .let { compactEntities(it, contexts) }
 
         when (linkedEntityQuery.join) {
             JoinType.FLAT ->
@@ -111,7 +104,11 @@ class LinkedEntityService(
         compactedEntities: List<CompactedEntity>,
         linkedEntities: List<CompactedEntity>
     ): List<CompactedEntity> =
-        compactedEntities.inlineLinkedEntities(linkedEntities.associateBy { it[JSONLD_ID_TERM] as String })
+        compactedEntities.inlineLinkedEntities(
+            // remove the inner contexts when inline mode, the context is the one from the linking entity
+            linkedEntities.map { it.minus(JSONLD_CONTEXT) }
+                .associateBy { it[JSONLD_ID_TERM] as String }
+        )
 
     internal fun flattenLinkedEntities(
         compactedEntities: List<CompactedEntity>,

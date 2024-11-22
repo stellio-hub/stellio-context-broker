@@ -2,7 +2,6 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.util.QueryParam.GeoQuery.GeorelValue
 import java.util.regex.Pattern
-import kotlin.reflect.KClass
 
 sealed interface Parameter {
     val key: String

@@ -16,7 +16,6 @@ import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.geoJsonToWkt
 
-
 const val GEOREL_NEAR_DISTANCE_MODIFIER = "distance"
 const val GEOREL_NEAR_MAXDISTANCE_MODIFIER = "maxDistance"
 

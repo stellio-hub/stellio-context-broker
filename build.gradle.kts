@@ -77,12 +77,9 @@ subprojects {
         runtimeOnly("de.siegmar:logback-gelf:6.1.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
-        testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            // to ensure we are using mocks and spies from springmockk (and not from Mockito)
-            exclude(module = "mockito-core")
-        }
-        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("org.springframework.boot:spring-boot-starter-test")
         testImplementation("io.projectreactor:reactor-test")
+        testImplementation("com.ninja-squad:springmockk:4.0.2")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }

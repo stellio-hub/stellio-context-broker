@@ -24,7 +24,10 @@ data class Query private constructor(
     val temporalQ: UnparsedTemporalQuery? = null,
     val scopeQ: String? = null,
     val lang: String? = null,
-    val datasetId: List<String>? = null
+    val datasetId: List<String>? = null,
+    val join: String? = null,
+    val joinLevel: Int? = null,
+    val containedBy: List<String>? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {

@@ -14,6 +14,7 @@ import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -72,7 +73,8 @@ class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
-    private val contextSourceRegistrationService: ContextSourceRegistrationService
+    private val contextSourceRegistrationService: ContextSourceRegistrationService,
+    private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
 
     /**
@@ -196,7 +198,10 @@ class EntityHandler(
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
-        val compactedEntities = compactEntities(filteredEntities, contexts)
+        val compactedEntities =
+            compactEntities(filteredEntities, contexts).let {
+                linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
+            }
 
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         buildQueryResponse(
@@ -226,7 +231,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
-        val queryParams = composeEntitiesQueryFromGet(
+        val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
             contexts
@@ -235,16 +240,14 @@ class EntityHandler(
         val csrFilters =
             CSRFilters(ids = setOf(entityId), operations = listOf(Operation.FEDERATION_OPS, Operation.RETRIEVE_ENTITY))
 
-        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
-            csrFilters
-        )
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
 
         val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
-            expandedEntity.checkContainsAnyOf(queryParams.attrs).bind()
+            expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
 
             val filteredExpandedEntity = ExpandedEntity(
-                expandedEntity.filterAttributes(queryParams.attrs, queryParams.datasetId)
+                expandedEntity.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
             )
             compactEntity(filteredExpandedEntity, contexts)
         }
@@ -277,11 +280,19 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
+        val mergedEntityWithLinkedEntities =
+            linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
+
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(
-                serializeObject(mergedEntity.toFinalRepresentation(ngsiLdDataRepresentation))
-            ).addWarnings(warnings)
+            .let {
+                val body = if (mergedEntityWithLinkedEntities.size == 1)
+                    serializeObject(mergedEntityWithLinkedEntities[0].toFinalRepresentation(ngsiLdDataRepresentation))
+                else
+                    serializeObject(mergedEntityWithLinkedEntities.toFinalRepresentation(ngsiLdDataRepresentation))
+                it.body(body)
+            }
+            .addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }

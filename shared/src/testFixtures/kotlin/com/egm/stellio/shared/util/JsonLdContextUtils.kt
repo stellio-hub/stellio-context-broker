@@ -45,3 +45,5 @@ const val MANAGED_BY_RELATIONSHIP = "https://ontology.eglobalmark.com/egm#$MANAG
 
 const val NGSILD_NAME_TERM = "name"
 const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
+
+const val LINKED_ENTITY_COMPACT_TYPE = "LinkedEntity"

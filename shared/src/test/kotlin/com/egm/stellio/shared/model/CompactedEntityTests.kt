@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedEntity
+import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAttributeEntity
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -9,43 +11,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 
 class CompactedEntityTests {
-
-    private val normalizedEntity =
-        """
-        {
-            "id": "urn:ngsi-ld:Vehicle:A4567",
-            "type": "Vehicle",
-            "brandName": {
-                "type": "Property",
-                "value": "Mercedes"
-            },
-            "isParked": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
-                "observedAt": "2017-07-29T12:00:04Z",
-                "providedBy": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:Person:Bob"
-                }
-            },
-           "location": {
-              "type": "GeoProperty",
-              "value": {
-                 "type": "Point",
-                 "coordinates": [
-                    24.30623,
-                    60.07966
-                 ]
-              }
-           },
-            "@context": [
-                "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                "https://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "https://example.org/ngsi-ld/latest/parking.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-            ]
-        }
-        """.trimIndent()
 
     private val simplifiedEntity =
         """
@@ -66,38 +31,6 @@ class CompactedEntityTests {
                 "https://example.org/ngsi-ld/latest/vehicle.jsonld",
                 "https://example.org/ngsi-ld/latest/parking.jsonld",
                 "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-            ]
-        }
-        """.trimIndent()
-
-    private val normalizedMultiAttributeEntity =
-        """
-        {
-            "id": "urn:ngsi-ld:Vehicle:A4567",
-            "type": "Vehicle",
-            "speed": [
-                {
-                    "type": "Property",
-                    "datasetId": "urn:ngsi-ld:Dataset:01",
-                    "value": 10
-                },
-                {
-                    "type": "Property",
-                    "datasetId": "urn:ngsi-ld:Dataset:02",
-                    "value": 11
-                }
-            ],
-            "hasOwner": [
-                {
-                    "type": "Relationship",
-                    "datasetId": "urn:ngsi-ld:Dataset:01",
-                    "object": "urn:ngsi-ld:Person:John"
-                },
-                {
-                    "type": "Relationship",
-                    "datasetId": "urn:ngsi-ld:Dataset:02",
-                    "object": "urn:ngsi-ld:Person:Jane"
-                }
             ]
         }
         """.trimIndent()
@@ -124,20 +57,18 @@ class CompactedEntityTests {
 
     @Test
     fun `it should simplify a compacted entity`() {
-        val normalizedMap = normalizedEntity.deserializeAsMap()
         val simplifiedMap = simplifiedEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toSimplifiedAttributes()
+        val resultMap = normalizedEntity.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
 
     @Test
     fun `it should simplify a compacted entity with multi-attributes`() {
-        val normalizedMap = normalizedMultiAttributeEntity.deserializeAsMap()
         val simplifiedMap = simplifiedMultiAttributeEntity.deserializeAsMap()
 
-        val resultMap = normalizedMap.toSimplifiedAttributes()
+        val resultMap = normalizedMultiAttributeEntity.toSimplifiedAttributes()
 
         assertEquals(simplifiedMap, resultMap)
     }
@@ -157,8 +88,7 @@ class CompactedEntityTests {
                     }
                 }
             }
-        """.trimIndent()
-            .deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
@@ -192,8 +122,7 @@ class CompactedEntityTests {
                     ]
                 }
             }
-        """.trimIndent()
-            .deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
@@ -546,8 +475,6 @@ class CompactedEntityTests {
 
     @Test
     fun `it should return the GeoJSON representation of a normalized entity on location attribute`() {
-        val inputEntity = normalizedEntity.deserializeAsMap()
-
         val expectedEntity =
             """
             {
@@ -592,7 +519,7 @@ class CompactedEntityTests {
             }
             """.trimIndent().deserializeAsMap()
 
-        val actualEntity = inputEntity.toFinalRepresentation(
+        val actualEntity = normalizedEntity.toFinalRepresentation(
             NgsiLdDataRepresentation(
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.NORMALIZED,
@@ -606,8 +533,6 @@ class CompactedEntityTests {
 
     @Test
     fun `it should return the GeoJSON representation of a simplified entity on location attribute`() {
-        val inputEntity = normalizedEntity.deserializeAsMap()
-
         val expectedEntity =
             """
             {
@@ -635,7 +560,7 @@ class CompactedEntityTests {
             }
             """.trimIndent().deserializeAsMap()
 
-        val simplifiedEntity = inputEntity.toFinalRepresentation(
+        val simplifiedEntity = normalizedEntity.toFinalRepresentation(
             NgsiLdDataRepresentation(
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
@@ -649,8 +574,7 @@ class CompactedEntityTests {
 
     @Test
     fun `it should return the GeoJSON representation of an entity with a null geometry if it does not exist`() {
-        val inputEntity =
-            """
+        val inputEntity = """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
                 "type": "Vehicle",
@@ -659,10 +583,9 @@ class CompactedEntityTests {
                     "value": "Mercedes"
                 }
             }
-            """.trimIndent().deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
-        val expectedEntity =
-            """
+        val expectedEntity = """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
                 "type": "Feature",
@@ -672,7 +595,7 @@ class CompactedEntityTests {
                     "brandName": "Mercedes"
                 }
             }
-            """.trimIndent().deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedEntity = inputEntity.toFinalRepresentation(
             NgsiLdDataRepresentation(
@@ -688,8 +611,7 @@ class CompactedEntityTests {
 
     @Test
     fun `it should return the GeoJSON representation of simplified entities`() {
-        val inputEntity =
-            """
+        val inputEntity = """
             {
                 "id": "urn:ngsi-ld:Vehicle:A4567",
                 "type": "Vehicle",
@@ -701,10 +623,9 @@ class CompactedEntityTests {
                     }
                 }
             }
-            """.trimIndent().deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
-        val expectedEntities =
-            """
+        val expectedEntities = """
             {
                 "type": "FeatureCollection",
                 "features": [{
@@ -737,7 +658,7 @@ class CompactedEntityTests {
                     }
                 }]
             }
-            """.trimIndent().deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val actualEntities = listOf(inputEntity, inputEntity).toFinalRepresentation(
             NgsiLdDataRepresentation(
@@ -765,8 +686,7 @@ class CompactedEntityTests {
                     }
                 }
             }
-        """.trimIndent()
-            .deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
@@ -797,8 +717,7 @@ class CompactedEntityTests {
                     "vocab": "stellio"
                 }
             }
-        """.trimIndent()
-            .deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 
@@ -826,8 +745,7 @@ class CompactedEntityTests {
                     "vocab": ["stellio", "egm"]
                 }
             }
-        """.trimIndent()
-            .deserializeAsMap()
+        """.trimIndent().deserializeAsMap()
 
         val simplifiedRepresentation = compactedEntity.toSimplifiedAttributes()
 

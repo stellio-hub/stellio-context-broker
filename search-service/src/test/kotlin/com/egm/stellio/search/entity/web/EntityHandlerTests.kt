@@ -15,10 +15,12 @@ import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -66,6 +68,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.mockkObject
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
@@ -110,6 +113,9 @@ class EntityHandlerTests {
 
     @MockkBean
     private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+
+    @MockkBean(relaxed = true)
+    private lateinit var linkedEntityService: LinkedEntityService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -305,8 +311,19 @@ class EntityHandlerTests {
             )
     }
 
+    fun initializeRetrieveEntityMocks() {
+        val compactedEntity = slot<CompactedEntity>()
+
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntity), any(), any())
+        } answers {
+            listOf(compactedEntity.captured).right()
+        }
+    }
+
     @Test
     fun `get entity by id should return 200 when entity exists`() {
+        initializeRetrieveEntityMocks()
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns returnedExpandedEntity.right()
         every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
@@ -320,6 +337,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -349,6 +367,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly filter the asked attributes`() = runTest {
+        initializeRetrieveEntityMocks()
         val entity = """
             {
                 "id": "$beehiveId",
@@ -382,6 +401,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly return the simplified representation of an entity`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -422,6 +442,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -451,6 +472,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -470,6 +492,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -525,6 +548,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -562,6 +586,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -599,6 +624,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
@@ -633,6 +659,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
@@ -683,6 +710,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -723,6 +751,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -762,6 +791,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -816,6 +846,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 when entity does not exist`() {
+        initializeRetrieveEntityMocks()
         coEvery {
             entityQueryService.queryEntity(any(), MOCK_USER_SUB)
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")).left()
@@ -838,6 +869,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 403 if user is not authorized to read an entity`() {
+        initializeRetrieveEntityMocks()
         coEvery {
             entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
@@ -856,6 +888,16 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    fun initializeQueryEntitiesMocks() {
+        val compactedEntities = slot<List<CompactedEntity>>()
+
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntities), any(), any())
+        } answers {
+            compactedEntities.captured.right()
+        }
     }
 
     @Test
@@ -897,6 +939,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
+        initializeQueryEntitiesMocks()
         coEvery { entityQueryService.queryEntities(any(), any<Sub>()) } returns Pair(
             listOf(
                 ExpandedEntity(
@@ -931,6 +974,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -978,6 +1022,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 with prev and next link header if exists`() {
+        initializeQueryEntitiesMocks()
         coEvery { entityQueryService.queryEntities(any(), any<Sub>()) } returns Pair(
             listOf(
                 ExpandedEntity(
@@ -1018,6 +1063,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
@@ -1065,6 +1111,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities with id and type should return 200`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -1108,6 +1155,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and the number of results`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 3).right()
@@ -1139,6 +1187,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()

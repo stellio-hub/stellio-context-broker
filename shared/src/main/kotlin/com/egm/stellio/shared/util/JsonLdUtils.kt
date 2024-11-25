@@ -93,12 +93,28 @@ object JsonLdUtils {
     const val NGSILD_LANG_TERM = "lang"
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
+    const val NGSILD_ENTITY_TERM = "entity"
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
     // List of members that are part of a core entity base definition (i.e., without attributes)
-    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
+    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
+        setOf(
+            JSONLD_ID,
+            JSONLD_TYPE,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_PROPERTY,
+            NGSILD_CREATED_AT_PROPERTY,
+            NGSILD_MODIFIED_AT_PROPERTY
+        )
     val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
-        setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT, NGSILD_SCOPE_TERM)
+        setOf(
+            JSONLD_ID_TERM,
+            JSONLD_TYPE_TERM,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_TERM,
+            NGSILD_CREATED_AT_TERM,
+            NGSILD_MODIFIED_AT_TERM
+        )
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"

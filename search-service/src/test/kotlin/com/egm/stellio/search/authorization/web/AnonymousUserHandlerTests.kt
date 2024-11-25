@@ -6,6 +6,7 @@ import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.search.entity.web.EntityHandler
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
@@ -42,6 +43,9 @@ class AnonymousUserHandlerTests {
 
     @MockkBean
     private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+
+    @MockkBean(relaxed = true)
+    private lateinit var linkedEntityService: LinkedEntityService
 
     @Test
     @WithAnonymousUser

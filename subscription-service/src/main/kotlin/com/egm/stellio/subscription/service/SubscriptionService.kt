@@ -364,76 +364,64 @@ class SubscriptionService(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Unit> = either {
-        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to ngsiLdDateTime())
+        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
+            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_SUBSCRIPTION_TERM'"))
 
-        if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
-            subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM
-        )
-            BadRequestDataException(
-                "type attribute must be present and equal to '${NGSILD_SUBSCRIPTION_TERM}'"
-            ).left().bind<Unit>()
-
-        subscriptionInputWithModifiedAt.filterKeys {
+        input.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-        }.forEach {
-            when {
-                it.key == "geoQ" ->
-                    parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
-                        ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
-
-                it.key == "notification" -> {
-                    val notification = it.value as Map<String, Any>
-                    updateNotification(subscriptionId, notification, contexts).bind()
-                }
-
-                it.key == "entities" -> {
-                    val entities = it.value as List<Map<String, Any>>
-                    updateEntities(subscriptionId, entities, contexts).bind()
-                }
-
-                it.key == "expiresAt" -> {
-                    val columnName = it.key.toSqlColumnName()
-                    val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
-                    updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
-                }
-
-                it.key == "watchedAttributes" -> {
-                    val value = (it.value as List<String>).map { watchedAttribute ->
-                        expandJsonLdTerm(watchedAttribute, contexts)
-                    }.toSqlValue(it.key)
-                    updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
-                }
-
-                listOf(
-                    "subscriptionName",
-                    "description",
-                    "notificationTrigger",
-                    "timeInterval",
-                    "q",
-                    "scopeQ",
-                    "isActive",
-                    "modifiedAt",
-                    "throttling",
-                    "lang",
-                    "datasetId",
-                    "jsonldContext"
-                ).contains(it.key) -> {
-                    val columnName = it.key.toSqlColumnName()
-                    val value = it.value.toSqlValue(it.key)
-                    updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
-                }
-
-                listOf("csf", "temporalQ").contains(it.key) -> {
-                    NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
-                        .left().bind<Unit>()
-                }
-
-                else -> {
-                    BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
-                        .left().bind<Unit>()
+        }.plus("modifiedAt" to ngsiLdDateTime())
+            .forEach {
+                when {
+                    it.key == "geoQ" ->
+                        parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
+                            ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
+                    it.key == "notification" -> {
+                        val notification = it.value as Map<String, Any>
+                        updateNotification(subscriptionId, notification, contexts).bind()
+                    }
+                    it.key == "entities" -> {
+                        val entities = it.value as List<Map<String, Any>>
+                        updateEntities(subscriptionId, entities, contexts).bind()
+                    }
+                    it.key == "expiresAt" -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
+                        updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
+                    }
+                    it.key == "watchedAttributes" -> {
+                        val value = (it.value as List<String>).map { watchedAttribute ->
+                            expandJsonLdTerm(watchedAttribute, contexts)
+                        }.toSqlValue(it.key)
+                        updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
+                    }
+                    listOf(
+                        "subscriptionName",
+                        "description",
+                        "notificationTrigger",
+                        "timeInterval",
+                        "q",
+                        "scopeQ",
+                        "isActive",
+                        "modifiedAt",
+                        "throttling",
+                        "lang",
+                        "datasetId",
+                        "jsonldContext"
+                    ).contains(it.key) -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val value = it.value.toSqlValue(it.key)
+                        updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
+                    }
+                    listOf("csf", "temporalQ").contains(it.key) -> {
+                        NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
+                            .left().bind<Unit>()
+                    }
+                    else -> {
+                        BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
+                            .left().bind<Unit>()
+                    }
                 }
             }
-        }
     }
 
     private suspend fun updateSubscriptionAttribute(

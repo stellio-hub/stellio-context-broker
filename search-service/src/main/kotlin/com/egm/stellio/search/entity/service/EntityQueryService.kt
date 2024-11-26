@@ -21,7 +21,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parameter.buildGeoQuery
+import com.egm.stellio.shared.model.parameter.GeoQuery
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
@@ -131,7 +131,7 @@ class EntityQueryService(
             } ?: sqlFilter
         }.let { sqlFilter ->
             entitiesQuery.geoQuery?.let { geoQuery ->
-                sqlFilter.wrapToAndClause(buildGeoQuery(geoQuery))
+                sqlFilter.wrapToAndClause(GeoQuery.buildSqlFilter(geoQuery))
             } ?: sqlFilter
         }
 

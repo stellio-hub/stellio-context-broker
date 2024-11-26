@@ -4,8 +4,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.parameter.GeoQuery
 import com.egm.stellio.shared.model.parameter.GeoQuery.GeometryType
-import com.egm.stellio.shared.model.parameter.buildGeoQuery
-import com.egm.stellio.shared.model.parameter.parseGeoQueryParameters
+import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import kotlinx.coroutines.test.runTest
@@ -141,7 +140,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 24.30623, 60.07966)
 
-        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
+        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -165,7 +164,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.07966, 24.30623)
 
-        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
+        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -189,7 +188,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.30623, 30.07966)
 
-        val queryStatement = buildGeoQuery(geoQuery, expandedEntity)
+        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
 
         assertEqualsIgnoringNoise(
             """

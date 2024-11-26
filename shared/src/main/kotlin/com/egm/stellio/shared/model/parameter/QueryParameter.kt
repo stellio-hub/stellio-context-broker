@@ -1,13 +1,5 @@
 package com.egm.stellio.shared.model.parameter
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.model.TooManyResultsException
-import org.springframework.util.MultiValueMap
 import java.util.regex.Pattern
 
 sealed interface QueryParameter {
@@ -29,6 +21,9 @@ enum class QueryParam(
     LANG("lang"),
     DATASET_ID("datasetId"),
     OPTIONS("options"),
+    CONTAINED_BY("containedBy"),
+    JOIN("join"),
+    JOIN_LEVEL("joinLevel"),
     PICK("pick", false),
     OMIT("omit", false); // todo other not implemented parameters
 
@@ -46,11 +41,5 @@ enum class QueryParam(
         val qPattern: Pattern = Pattern.compile("([^();|]+)")
         val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
         val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
-    }
-
-    companion object {
-
-
-
     }
 }

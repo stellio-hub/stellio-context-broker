@@ -13,8 +13,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.parameter.GeoQuery
-import com.egm.stellio.shared.model.parameter.buildGeoQuery
-import com.egm.stellio.shared.model.parameter.parseGeoQueryParameters
+import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -673,7 +672,7 @@ class SubscriptionService(
         expandedEntity: ExpandedEntity
     ): String? =
         geoQ?.let {
-            buildGeoQuery(
+            GeoQuery.buildSqlFilter(
                 GeoQuery(
                     georel = geoQ.georel,
                     geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,

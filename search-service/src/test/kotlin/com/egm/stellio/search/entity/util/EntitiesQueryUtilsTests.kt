@@ -9,13 +9,13 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.parameter.GeoQuery
 import com.egm.stellio.shared.model.LinkedEntityQuery.JoinType
+import com.egm.stellio.shared.model.parameter.GeoQuery
+import com.egm.stellio.shared.model.parameter.GeoQueryParameter
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.BEEKEEPER_TYPE
-import com.egm.stellio.shared.util.GEO_QUERY_GEOREL_EQUALS
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
@@ -239,7 +239,7 @@ class EntitiesQueryUtilsTests {
             assertEquals("temperature>32", it.q)
             assertEquals(GeoQuery.GeometryType.POINT, it.geoQuery?.geometry)
             assertEquals("[1.0, 1.0]", it.geoQuery?.coordinates)
-            assertEquals(GEO_QUERY_GEOREL_EQUALS, it.geoQuery?.georel)
+            assertEquals(GeoQueryParameter.Georel.EQUALS.key, it.geoQuery?.georel)
             assertEquals(NGSILD_OBSERVATION_SPACE_PROPERTY, it.geoQuery?.geoproperty)
             assertEquals("/Nantes", it.scopeQ)
             assertEquals(setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"), it.datasetId)

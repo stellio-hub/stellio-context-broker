@@ -4,11 +4,11 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
@@ -175,7 +175,7 @@ class ContextSourceCallerTests {
             get(urlMatching(path))
                 .willReturn(notFound())
         )
-        val params = LinkedMultiValueMap(mapOf(QUERY_PARAM_OPTIONS to listOf("simplified")))
+        val params = LinkedMultiValueMap(mapOf(QueryParam.OPTIONS.key to listOf("simplified")))
         ContextSourceCaller.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
@@ -184,7 +184,7 @@ class ContextSourceCallerTests {
         )
         verify(
             getRequestedFor(urlPathEqualTo(path))
-                .withQueryParam(QUERY_PARAM_OPTIONS, notContaining("simplified"))
+                .withQueryParam(QueryParam.OPTIONS.key, notContaining("simplified"))
         )
     }
 }

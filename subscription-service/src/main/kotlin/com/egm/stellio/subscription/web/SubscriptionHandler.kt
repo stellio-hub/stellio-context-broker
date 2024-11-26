@@ -11,13 +11,12 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_SYSATTRS_VALUE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
@@ -95,8 +94,8 @@ class SubscriptionHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val includeSysAttrs = params.getOrDefault(QueryParam.OPTIONS.key, emptyList())
+            .contains(QueryParam.OptionValue.SYS_ATTRS.value)
         val paginationQuery = parsePaginationParameters(
             params,
             applicationProperties.pagination.limitDefault,
@@ -129,7 +128,7 @@ class SubscriptionHandler(
         @PathVariable subscriptionId: URI,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
+        val includeSysAttrs = options.filter { it.contains(QueryParam.OptionValue.SYS_ATTRS.value) }.isPresent
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

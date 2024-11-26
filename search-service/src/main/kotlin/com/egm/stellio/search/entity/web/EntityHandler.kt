@@ -22,6 +22,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -34,8 +35,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -114,7 +113,7 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val observedAt = options.getFirst(QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE)
+        val observedAt = options.getFirst(QueryParam.OptionValue.OBSERVED_AT.value)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
         val expandedAttributes = expandAttributes(body, contexts)
@@ -327,7 +326,7 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
+        val disallowOverwrite = options.map { it == QueryParam.OptionValue.NO_OVERWRITE.value }.orElse(false)
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()

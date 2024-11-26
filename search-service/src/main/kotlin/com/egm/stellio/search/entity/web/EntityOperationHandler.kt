@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -24,7 +25,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE
 import com.egm.stellio.shared.util.addCoreContextIfMissing
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkContentIsNgsiLdSupported
@@ -144,7 +144,7 @@ class EntityOperationHandler(
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
+        val disallowOverwrite = options.map { it == QueryParam.OptionValue.NO_OVERWRITE.value }.orElse(false)
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)

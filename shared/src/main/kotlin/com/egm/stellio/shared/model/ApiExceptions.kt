@@ -9,9 +9,9 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import java.net.URI
 
-const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause of the error," +
-    "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html." +
-    "If the error is still not clear or if you think it is a bug, feel free to open an issue on" +
+const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause of the error, " +
+    "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html . " +
+    "If the error is still not clear or if you think it is a bug, feel free to open an issue on " +
     "https://github.com/stellio-hub/stellio-context-broker"
 
 sealed class APIException(

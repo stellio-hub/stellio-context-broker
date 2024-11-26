@@ -10,6 +10,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.parameter.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.QUERY_PARAM_ATTRS
 import com.egm.stellio.shared.util.QUERY_PARAM_CONTAINED_BY

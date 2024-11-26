@@ -20,7 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.QueryParam.Query.typeSelectionRegex
+import com.egm.stellio.shared.model.parameter.QueryParam.Query.typeSelectionRegex
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -248,26 +248,6 @@ fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
         )
     } ?: Either.Right(null)
 
-fun parsePaginationParameters(
-    queryParams: MultiValueMap<String, String>,
-    limitDefault: Int,
-    limitMax: Int
-): Either<APIException, PaginationQuery> {
-    val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-    val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: limitDefault
-    if (!count && (limit <= 0 || offset < 0))
-        return BadRequestDataException(
-            "Offset must be greater than zero and limit must be strictly greater than zero"
-        ).left()
-    if (count && (limit < 0 || offset < 0))
-        return BadRequestDataException("Offset and limit must be greater than zero").left()
-    if (limit > limitMax)
-        return TooManyResultsException(
-            "You asked for $limit results, but the supported maximum limit is $limitMax"
-        ).left()
-    return PaginationQuery(offset, limit, count).right()
-}
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, MediaType> =
     httpHeaders.accept.getApplicable()

@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2023.0.3"
+extra["springCloudVersion"] = "2024.0.0-RC1"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -19,7 +19,7 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.3.5" apply false
+    id("org.springframework.boot") version "3.4.0" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
     id("org.graalvm.buildtools.native") version "0.10.3"
     kotlin("jvm") version "2.0.21" apply false
@@ -77,12 +77,9 @@ subprojects {
         runtimeOnly("de.siegmar:logback-gelf:6.1.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
-        testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            // to ensure we are using mocks and spies from springmockk (and not from Mockito)
-            exclude(module = "mockito-core")
-        }
-        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("org.springframework.boot:spring-boot-starter-test")
         testImplementation("io.projectreactor:reactor-test")
+        testImplementation("com.ninja-squad:springmockk:4.0.2")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }

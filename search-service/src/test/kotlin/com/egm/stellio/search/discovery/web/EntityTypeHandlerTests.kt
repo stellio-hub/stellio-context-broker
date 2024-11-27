@@ -10,6 +10,7 @@ import com.egm.stellio.search.discovery.model.EntityTypeInfo
 import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.search.discovery.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.FirewallConfig
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -24,11 +25,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -38,6 +39,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityTypeHandler::class)
+@Import(FirewallConfig::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityTypeHandlerTests {
 
@@ -277,7 +279,6 @@ class EntityTypeHandlerTests {
         }
     }
 
-    @Disabled("Re-enable this test with spring-security 6.3.5")
     @Test
     fun `get entity type information should search on entities with the expanded type if provided`() {
         coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns

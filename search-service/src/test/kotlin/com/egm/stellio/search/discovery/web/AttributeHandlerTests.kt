@@ -9,6 +9,7 @@ import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.AttributeTypeInfo
 import com.egm.stellio.search.discovery.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.FirewallConfig
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -28,11 +29,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -42,6 +43,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
 @WebFluxTest(AttributeHandler::class)
+@Import(FirewallConfig::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class AttributeHandlerTests {
 
@@ -197,7 +199,6 @@ class AttributeHandlerTests {
         }
     }
 
-    @Disabled("Re-enable this test with spring-security 6.3.5")
     @Test
     fun `get attribute type information should search on attributes with the expanded id if provided`() {
         coEvery {

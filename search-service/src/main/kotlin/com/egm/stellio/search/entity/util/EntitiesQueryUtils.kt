@@ -12,7 +12,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.model.parameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode

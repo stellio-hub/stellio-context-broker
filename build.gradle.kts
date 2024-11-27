@@ -58,6 +58,7 @@ subprojects {
         implementation("org.springframework.boot:spring-boot-starter-webflux")
         implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
         implementation("org.springframework.boot:spring-boot-starter-security")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
         // it provides support for JWT decoding and verification
         implementation("org.springframework.security:spring-security-oauth2-jose")
 

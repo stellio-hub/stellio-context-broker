@@ -23,6 +23,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.parameter.AllowedParameters
 import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
@@ -51,6 +52,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -68,6 +70,7 @@ import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
+@Validated
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
@@ -180,7 +183,12 @@ class EntityHandler(
     @GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun getEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam
+        @AllowedParameters(
+            implemented = [QueryParam.Q, QueryParam.TYPE, QueryParam.ID_PATTERN],
+            notImplemented = [QueryParam.ATTRS]
+        )
+        params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()

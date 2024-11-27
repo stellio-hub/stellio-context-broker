@@ -14,6 +14,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -34,7 +35,6 @@ import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders

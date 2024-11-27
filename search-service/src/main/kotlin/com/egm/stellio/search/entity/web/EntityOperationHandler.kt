@@ -13,6 +13,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -35,7 +36,6 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeader
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders

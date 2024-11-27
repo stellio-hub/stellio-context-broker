@@ -20,6 +20,7 @@ import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.parameter.QueryParam
@@ -41,7 +42,6 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.missingPathErrorResponse
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toUri

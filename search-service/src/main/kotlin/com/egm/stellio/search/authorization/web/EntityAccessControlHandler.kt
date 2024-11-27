@@ -12,6 +12,7 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdAttribute
@@ -34,7 +35,6 @@ import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.replaceDefaultContextToAuthzContext
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst

@@ -1,8 +1,11 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import org.springframework.http.MediaType
+import org.springframework.util.MultiValueMap
 
 /**
  * Wrapper data class used to convey possible NGSI-LD Data Representations for entities as defined in 4.5
@@ -17,7 +20,35 @@ data class NgsiLdDataRepresentation(
     val geometryProperty: String? = null,
     // In the case of a temporal property, do not remove this property if sysAttrs is not asked
     val timeproperty: String? = null
-)
+) {
+    companion object {
+        fun parseRepresentations(
+            requestParams: MultiValueMap<String, String>,
+            acceptMediaType: MediaType
+        ): NgsiLdDataRepresentation {
+            val optionsParam = requestParams.getOrDefault(QueryParam.OPTIONS.key, emptyList())
+            val includeSysAttrs = optionsParam.contains(QueryParam.OptionValue.SYS_ATTRS.value)
+            val attributeRepresentation = optionsParam.contains(QueryParam.OptionValue.KEY_VALUES.value)
+                .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
+            val languageFilter = requestParams.getFirst(QueryParam.LANG.key)
+            val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
+            val geometryProperty =
+                if (entityRepresentation == EntityRepresentation.GEO_JSON)
+                    requestParams.getFirst(QueryParam.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
+                else null
+            val timeproperty = requestParams.getFirst("timeproperty")
+
+            return NgsiLdDataRepresentation(
+                entityRepresentation,
+                attributeRepresentation,
+                includeSysAttrs,
+                languageFilter,
+                geometryProperty,
+                timeproperty
+            )
+        }
+    }
+}
 
 enum class AttributeRepresentation {
     NORMALIZED,

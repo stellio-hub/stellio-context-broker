@@ -34,12 +34,11 @@ data class GeoQuery(
 
     companion object {
 
-
         fun buildSqlFilter(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {
             val targetWKTCoordinates =
                 """
         (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
-        """.trimIndent()
+                """.trimIndent()
             val georelQuery = GeoQueryParameter.Georel.prepareQuery(geoQuery.georel)
 
             return (
@@ -50,14 +49,14 @@ data class GeoQuery(
                 cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
                 false
             ) ${georelQuery.second} ${georelQuery.third}
-            """.trimIndent()
+                    """.trimIndent()
                 else
                     """
             public.ST_${georelQuery.first}(
                 public.ST_GeomFromText('${geoQuery.wktCoordinates.value}'), 
                 public.ST_GeomFromText($targetWKTCoordinates)
             ) 
-            """.trimIndent()
+                    """.trimIndent()
                 )
                 .let {
                     if (target == null)
@@ -66,6 +65,5 @@ data class GeoQuery(
                         it.replace("#{TARGET}#", "'" + JsonUtils.serializeObject(target.members) + "'")
                 }
         }
-
     }
 }

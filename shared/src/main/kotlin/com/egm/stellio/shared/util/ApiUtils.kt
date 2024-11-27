@@ -7,29 +7,18 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AttributeRepresentation
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.EntityTypeSelection
-import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.NotAcceptableException
-import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.model.TooManyResultsException
-import com.egm.stellio.shared.model.parameter.PaginationParameter.COUNT
-import com.egm.stellio.shared.model.parameter.PaginationParameter.LIMIT
-import com.egm.stellio.shared.model.parameter.PaginationParameter.OFFSET
-import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.model.parameter.QueryParam.Query.typeSelectionRegex
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
-import org.springframework.util.MultiValueMap
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -211,32 +200,6 @@ fun parseAndExpandRequestParameter(requestParam: String?, contexts: List<String>
             JsonLdUtils.expandJsonLdTerm(it.trim(), contexts)
         }.toSet()
 
-fun parseRepresentations(
-    requestParams: MultiValueMap<String, String>,
-    acceptMediaType: MediaType
-): NgsiLdDataRepresentation {
-    val optionsParam = requestParams.getOrDefault(QueryParam.OPTIONS.key, emptyList())
-    val includeSysAttrs = optionsParam.contains(QueryParam.OptionValue.SYS_ATTRS.value)
-    val attributeRepresentation = optionsParam.contains(QueryParam.OptionValue.KEY_VALUES.value)
-        .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
-    val languageFilter = requestParams.getFirst(QueryParam.LANG.key)
-    val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
-    val geometryProperty =
-        if (entityRepresentation == EntityRepresentation.GEO_JSON)
-            requestParams.getFirst(QueryParam.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
-        else null
-    val timeproperty = requestParams.getFirst("timeproperty")
-
-    return NgsiLdDataRepresentation(
-        entityRepresentation,
-        attributeRepresentation,
-        includeSysAttrs,
-        languageFilter,
-        geometryProperty,
-        timeproperty
-    )
-}
-
 fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
     idPattern?.let {
         runCatching {
@@ -246,27 +209,6 @@ fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
             { BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left() }
         )
     } ?: Either.Right(null)
-
-fun parsePaginationParameters(
-    queryParams: MultiValueMap<String, String>,
-    limitDefault: Int,
-    limitMax: Int
-): Either<APIException, PaginationQuery> {
-    val count = queryParams.getFirst(COUNT.key)?.toBoolean() ?: false
-    val offset = queryParams.getFirst(OFFSET.key)?.toIntOrNull() ?: 0
-    val limit = queryParams.getFirst(LIMIT.key)?.toIntOrNull() ?: limitDefault
-    if (!count && (limit <= 0 || offset < 0))
-        return BadRequestDataException(
-            "Offset must be greater than zero and limit must be strictly greater than zero"
-        ).left()
-    if (count && (limit < 0 || offset < 0))
-        return BadRequestDataException("Offset and limit must be greater than zero").left()
-    if (limit > limitMax)
-        return TooManyResultsException(
-            "You asked for $limit results, but the supported maximum limit is $limitMax"
-        ).left()
-    return PaginationQuery(offset, limit, count).right()
-}
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, MediaType> =
     httpHeaders.accept.getApplicable()

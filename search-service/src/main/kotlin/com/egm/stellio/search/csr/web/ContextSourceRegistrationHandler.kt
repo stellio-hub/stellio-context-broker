@@ -13,6 +13,7 @@ import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.model.parameter.QueryParam
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -22,7 +23,6 @@ import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parsePaginationParameters
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst

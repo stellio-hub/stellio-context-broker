@@ -3,10 +3,10 @@ package com.egm.stellio.search.temporal.web
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.buildQueryResponse
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toHttpHeaderFormat
 import org.springframework.http.HttpHeaders

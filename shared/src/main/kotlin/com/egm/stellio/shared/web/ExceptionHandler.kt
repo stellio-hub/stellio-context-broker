@@ -40,7 +40,7 @@ class ExceptionHandler {
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is ConstraintViolationException -> {
                 val message = cause.constraintViolations.map { it.message }.joinToString(" . ")
-                if (cause.constraintViolations.any
+                if (cause.constraintViolations.any // todo simplify
                         { constraint -> constraint.propertyPath.any { it.name == HttpStatus.NOT_IMPLEMENTED.name } }
                 ) {
                     NotImplementedException(message).toErrorResponse()

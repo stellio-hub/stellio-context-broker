@@ -13,7 +13,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.parameter.GeoQuery
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.model.parameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY

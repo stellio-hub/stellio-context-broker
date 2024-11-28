@@ -14,10 +14,12 @@ import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -42,16 +44,20 @@ fun gimmeEntityPayload(
 
 fun gimmeNumericPropertyAttributeInstance(
     attributeUuid: UUID,
-    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+    measuredValue: Double? = Random.nextDouble(),
+    value: String? = null,
+    time: ZonedDateTime = ngsiLdDateTime(),
+    sub: Sub? = null
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
-        measuredValue = Random.nextDouble(),
-        value = null,
+        measuredValue = measuredValue,
+        value = value,
         geoValue = null,
         valueType = Attribute.AttributeValueType.NUMBER,
         datasetId = null,
         type = Attribute.AttributeType.Property,
-        observedAt = ngsiLdDateTime()
+        observedAt = time
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.measuredValue!!)
         .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
@@ -62,7 +68,8 @@ fun gimmeNumericPropertyAttributeInstance(
         time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
-        payload = payload
+        payload = payload,
+        sub = sub
     )
 }
 

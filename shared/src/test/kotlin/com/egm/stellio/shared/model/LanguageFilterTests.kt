@@ -3,6 +3,8 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -163,5 +165,93 @@ class LanguageFilterTests {
         """.trimIndent()
 
         assertJsonPayloadsAreEqual(expectedFilteredRepresentation, serializeObject(filteredRepresentation))
+    }
+
+    @Test
+    fun `it should filter language properties for sub attributes`() = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "managedBy": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Beekeeper:1",
+                    "name": {
+                        "type": "LanguageProperty",
+                        "languageMap": {
+                            "en": "beekeeper",
+                            "fr": "apiculteur"
+                        }
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val filteredEntity = entity.toFilteredLanguageProperties("en")
+
+        assertJsonPayloadsAreEqual(
+            """
+                {
+                    "id": "urn:ngsi-ld:Beehive:01",
+                    "type": "Beehive",
+                    "managedBy": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:Beekeeper:1",
+                        "name": {
+                            "type": "Property",
+                            "value": "beekeeper",
+                            "lang": "en"
+                        }
+                    }
+                }
+            """.trimIndent(),
+            serializeObject(filteredEntity)
+        )
+    }
+
+    @Test
+    fun `it should filter language properties for an attribute and its sub attributes`() = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "name": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "en": "beekeeper",
+                        "fr": "apiculteur"
+                    },
+                    "subAttribute": {
+                        "type": "LanguageProperty",
+                        "languageMap": {
+                            "en": "English",
+                            "fr": "Français"
+                        }
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val filteredEntity = entity.toFilteredLanguageProperties("en")
+
+        assertJsonPayloadsAreEqual(
+            """
+             {
+                 "id": "urn:ngsi-ld:Beehive:01",
+                 "type": "Beehive",
+                 "name": {
+                     "type": "Property",
+                     "value": "beekeeper",
+                     "lang": "en",
+                     "subAttribute": {
+                         "type": "Property",
+                         "value": "English",
+                         "lang": "en"
+                     }
+                 }
+             }
+            """.trimIndent(),
+            serializeObject(filteredEntity)
+        )
     }
 }

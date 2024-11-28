@@ -24,7 +24,7 @@ import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepr
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.parameter.AllowedParameters
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -66,7 +66,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -85,7 +84,9 @@ class EntityHandler(
     @PostMapping(consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -110,13 +111,23 @@ class EntityHandler(
     suspend fun merge(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam options: MultiValueMap<String, String>,
+        @RequestParam
+        @AllowedParameters(
+            implemented = [
+                QueryParameter.OPTIONS,
+                QueryParameter.TYPE,
+                QueryParameter.OBSERVED_AT,
+                QueryParameter.LANG
+            ],
+            notImplemented = [QueryParameter.FORMAT, QueryParameter.LOCAL, QueryParameter.VIA]
+        )
+        options: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val observedAt = options.getFirst(QueryParam.OptionValue.OBSERVED_AT.value)
+        val observedAt = options.getFirst(QueryParameter.OBSERVED_AT.key)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
         val expandedAttributes = expandAttributes(body, contexts)
@@ -148,7 +159,9 @@ class EntityHandler(
     suspend fun replace(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -185,8 +198,38 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam
         @AllowedParameters(
-            implemented = [QueryParam.Q, QueryParam.TYPE, QueryParam.ID_PATTERN],
-            notImplemented = [QueryParam.ATTRS]
+            implemented = [
+                QueryParameter.OPTIONS,
+                QueryParameter.FORMAT,
+                QueryParameter.COUNT,
+                QueryParameter.OFFSET,
+                QueryParameter.LIMIT,
+                QueryParameter.ID,
+                QueryParameter.TYPE,
+                QueryParameter.ID_PATTERN,
+                QueryParameter.ATTRS,
+                QueryParameter.Q,
+                QueryParameter.GEOMETRY,
+                QueryParameter.GEOREL,
+                QueryParameter.COORDINATES,
+                QueryParameter.GEOPROPERTY,
+                QueryParameter.GEOMETRY_PROPERTY,
+                QueryParameter.LANG,
+                QueryParameter.SCOPEQ,
+                QueryParameter.CONTAINED_BY,
+                QueryParameter.JOIN,
+                QueryParameter.JOIN_LEVEL,
+                QueryParameter.DATASET_ID,
+            ],
+            notImplemented = [
+                QueryParameter.PICK,
+                QueryParameter.OMIT,
+                QueryParameter.EXPAND_VALUES,
+                QueryParameter.CSF,
+                QueryParameter.ENTITY_MAP,
+                QueryParameter.LOCAL,
+                QueryParameter.VIA
+            ]
         )
         params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -232,7 +275,28 @@ class EntityHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam
+        @AllowedParameters(
+            implemented = [
+                QueryParameter.OPTIONS,
+                QueryParameter.FORMAT,
+                QueryParameter.TYPE,
+                QueryParameter.ATTRS,
+                QueryParameter.GEOMETRY_PROPERTY,
+                QueryParameter.LANG,
+                QueryParameter.CONTAINED_BY,
+                QueryParameter.JOIN,
+                QueryParameter.JOIN_LEVEL,
+                QueryParameter.DATASET_ID,
+            ],
+            notImplemented = [
+                QueryParameter.PICK,
+                QueryParameter.OMIT,
+                QueryParameter.ENTITY_MAP,
+                QueryParameter.LOCAL, QueryParameter.VIA
+            ]
+        )
+        params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
@@ -310,7 +374,9 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun delete(
-        @PathVariable entityId: URI
+        @PathVariable entityId: URI,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -330,11 +396,17 @@ class EntityHandler(
     suspend fun appendEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam options: Optional<String>,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @RequestParam
+        @AllowedParameters(
+            implemented = [QueryParameter.OPTIONS], // todo type no implemented?
+            notImplemented = [QueryParameter.TYPE, QueryParameter.LOCAL, QueryParameter.VIA]
+        )
+        params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val options = params.getFirst(QueryParameter.OPTIONS.key)
         val sub = getSubFromSecurityContext()
-        val disallowOverwrite = options.map { it == QueryParam.OptionValue.NO_OVERWRITE.value }.orElse(false)
+        val disallowOverwrite = options?.let { it == QueryParameter.NO_OVERWRITE.key } ?: false
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
@@ -371,7 +443,9 @@ class EntityHandler(
     suspend fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -409,7 +483,9 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -448,11 +524,15 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
+        @AllowedParameters(
+            implemented = [QueryParameter.DELETE_ALL, QueryParameter.TYPE, QueryParameter.DATASET_ID],
+            notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
-        val datasetId = params.getFirst("datasetId")?.toUri()
+        val deleteAll = params.getFirst(QueryParameter.DELETE_ALL.key)?.toBoolean() ?: false
+        val datasetId = params.getFirst(QueryParameter.DATASET_ID.key)?.toUri()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
@@ -483,7 +563,9 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =

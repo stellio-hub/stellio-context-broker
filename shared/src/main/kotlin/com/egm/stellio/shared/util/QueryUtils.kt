@@ -2,9 +2,9 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.parameter.QueryParam.Query.qPattern
-import com.egm.stellio.shared.model.parameter.QueryParam.Query.scopeSelectionRegex
-import com.egm.stellio.shared.model.parameter.QueryParam.Query.typeSelectionRegex
+import com.egm.stellio.shared.model.parameter.QueryParameter.Query.qPattern
+import com.egm.stellio.shared.model.parameter.QueryParameter.Query.scopeSelectionRegex
+import com.egm.stellio.shared.model.parameter.QueryParameter.Query.typeSelectionRegex
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE

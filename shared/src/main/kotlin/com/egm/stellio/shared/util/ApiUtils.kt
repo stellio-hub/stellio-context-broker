@@ -11,7 +11,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NotAcceptableException
-import com.egm.stellio.shared.model.parameter.QueryParam.Query.typeSelectionRegex
+import com.egm.stellio.shared.model.parameter.QueryParameter.Query.typeSelectionRegex
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -35,6 +35,8 @@ val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
+
+const val WHOLE_TIME_RANGE_DURATION = "PT0S"
 
 /**
  * As per 6.3.5, If the request verb is GET or DELETE, then the associated JSON-LD "@context" shall be obtained from a

@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.springframework.data.relational.core.mapping.Table
@@ -17,9 +17,9 @@ data class GeoQ(
     // representation passed to function checking for the correctness of geo-queries
     fun toMap(): Map<String, String> =
         mapOf(
-            GeoQueryParameter.GEOREL.key to georel,
-            GeoQueryParameter.GEOMETRY.key to geometry,
-            GeoQueryParameter.COORDINATES.key to coordinates,
-            GeoQueryParameter.GEOPROPERTY.key to geoproperty
+            QueryParameter.GEOREL.key to georel,
+            QueryParameter.GEOMETRY.key to geometry,
+            QueryParameter.COORDINATES.key to coordinates,
+            QueryParameter.GEOPROPERTY.key to geoproperty
         )
 }

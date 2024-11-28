@@ -9,9 +9,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.parseGeometryToWKT
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Companion.stringifyCoordinates
-import com.egm.stellio.shared.model.parameter.GeoQueryParameter.Georel
+import com.egm.stellio.shared.model.parseGeometryToWKT
+import com.egm.stellio.shared.model.stringifyCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
@@ -50,19 +49,19 @@ data class GeoQuery(
             requestParams: Map<String, String>,
             contexts: List<String>
         ): Either<APIException, GeoQuery?> = either {
-            val georel = requestParams[GeoQueryParameter.GEOREL.key]?.decode()?.also {
+            val georel = requestParams[QueryParameter.GEOREL.key]?.decode()?.also {
                 Georel.verify(it).bind()
             }
-            val geometry = requestParams[GeoQueryParameter.GEOMETRY.key]?.let {
+            val geometry = requestParams[QueryParameter.GEOMETRY.key]?.let {
                 if (GeoQuery.GeometryType.isSupportedType(it))
                     GeoQuery.GeometryType.forType(it).right()
                 else
                     BadRequestDataException("$it is not a recognized value for 'geometry' parameter").left()
             }?.bind()
-            val coordinates = requestParams[GeoQueryParameter.COORDINATES.key]?.decode()?.let {
+            val coordinates = requestParams[QueryParameter.COORDINATES.key]?.decode()?.let {
                 stringifyCoordinates(it)
             }
-            val geoproperty = requestParams[GeoQueryParameter.GEOPROPERTY.key]?.let {
+            val geoproperty = requestParams[QueryParameter.GEOPROPERTY.key]?.let {
                 expandJsonLdTerm(it, contexts)
             } ?: JsonLdUtils.NGSILD_LOCATION_PROPERTY
 
@@ -90,10 +89,10 @@ data class GeoQuery(
                 """
         (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
                 """.trimIndent()
-            val georelQuery = GeoQueryParameter.Georel.prepareQuery(geoQuery.georel)
+            val georelQuery = Georel.prepareQuery(geoQuery.georel)
 
             return (
-                if (georelQuery.first == GeoQueryParameter.Georel.NEAR_DISTANCE_MODIFIER)
+                if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
                     """
             public.ST_Distance(
                 cast('SRID=4326;${geoQuery.wktCoordinates.value}' as public.geography), 

@@ -12,7 +12,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -94,8 +94,8 @@ class SubscriptionHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QueryParam.OPTIONS.key, emptyList())
-            .contains(QueryParam.OptionValue.SYS_ATTRS.value)
+        val includeSysAttrs = params.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            .contains(QueryParameter.SYS_ATTRS.key)
         val paginationQuery = parsePaginationParameters(
             params,
             applicationProperties.pagination.limitDefault,
@@ -128,7 +128,7 @@ class SubscriptionHandler(
         @PathVariable subscriptionId: URI,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options.filter { it.contains(QueryParam.OptionValue.SYS_ATTRS.value) }.isPresent
+        val includeSysAttrs = options.filter { it.contains(QueryParameter.SYS_ATTRS.key) }.isPresent
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

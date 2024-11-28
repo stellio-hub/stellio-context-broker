@@ -15,7 +15,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -144,7 +144,7 @@ class EntityOperationHandler(
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val disallowOverwrite = options.map { it == QueryParam.OptionValue.NO_OVERWRITE.value }.orElse(false)
+        val disallowOverwrite = options.map { it == QueryParameter.NO_OVERWRITE.key }.orElse(false)
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)

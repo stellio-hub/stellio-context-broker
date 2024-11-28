@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
@@ -26,15 +26,15 @@ data class NgsiLdDataRepresentation(
             requestParams: MultiValueMap<String, String>,
             acceptMediaType: MediaType
         ): NgsiLdDataRepresentation {
-            val optionsParam = requestParams.getOrDefault(QueryParam.OPTIONS.key, emptyList())
-            val includeSysAttrs = optionsParam.contains(QueryParam.OptionValue.SYS_ATTRS.value)
-            val attributeRepresentation = optionsParam.contains(QueryParam.OptionValue.KEY_VALUES.value)
+            val optionsParam = requestParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            val includeSysAttrs = optionsParam.contains(QueryParameter.SYS_ATTRS.key)
+            val attributeRepresentation = optionsParam.contains(QueryParameter.KEY_VALUES.key)
                 .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
-            val languageFilter = requestParams.getFirst(QueryParam.LANG.key)
+            val languageFilter = requestParams.getFirst(QueryParameter.LANG.key)
             val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
             val geometryProperty =
                 if (entityRepresentation == EntityRepresentation.GEO_JSON)
-                    requestParams.getFirst(QueryParam.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
+                    requestParams.getFirst(QueryParameter.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
                 else null
             val timeproperty = requestParams.getFirst("timeproperty")
 

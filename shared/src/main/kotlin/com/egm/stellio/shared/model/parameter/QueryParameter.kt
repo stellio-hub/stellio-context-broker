@@ -2,15 +2,9 @@ package com.egm.stellio.shared.model.parameter
 
 import java.util.regex.Pattern
 
-sealed interface QueryParameter {
-    val key: String
-    val implemented: Boolean
-}
-
-enum class QueryParam(
-    override val key: String,
-    override val implemented: Boolean = true,
-) : QueryParameter {
+enum class QueryParameter(
+    val key: String,
+) {
     ID("id"),
     TYPE("type"),
     ID_PATTERN("idPattern"),
@@ -20,21 +14,53 @@ enum class QueryParam(
     GEOMETRY_PROPERTY("geometryProperty"),
     LANG("lang"),
     DATASET_ID("datasetId"),
-    OPTIONS("options"),
     CONTAINED_BY("containedBy"),
     JOIN("join"),
     JOIN_LEVEL("joinLevel"),
-    PICK("pick", false),
-    OMIT("omit", false); // todo other not implemented parameters
+    OPTIONS("options"),
 
-    enum class OptionValue(val value: String) {
-        SYS_ATTRS("sysAttrs"),
-        KEY_VALUES("keyValues"),
-        NO_OVERWRITE("noOverwrite"),
-        OBSERVED_AT("observedAt");
-        companion object {
-            val ALL = OptionValue.entries.map { it.value }
-        }
+    // options
+    SYS_ATTRS("sysAttrs"),
+    KEY_VALUES("keyValues"),
+    NO_OVERWRITE("noOverwrite"),
+    OBSERVED_AT("observedAt"),
+
+    // geoQuery
+    GEOREL("georel"),
+    GEOMETRY("geometry"),
+    COORDINATES("coordinates"),
+    GEOPROPERTY("geoproperty"),
+
+    // temporal
+    TIMEREL("timerel"),
+    TIMEAT("timeAt"),
+    ENDTIMEAT("endTimeAt"),
+    AGGRPERIODDURATION("aggrPeriodDuration"),
+    AGGRMETHODS("aggrMethods"),
+    LASTN("lastN"),
+    TIMEPROPERTY("timeproperty"),
+
+    // pagination
+    COUNT("count",),
+    OFFSET("offset"),
+    LIMIT("limit"),
+
+    DELETE_ALL("deleteAll"),
+
+    // not implemented yet
+    FORMAT("format"),
+    PICK("pick"),
+    OMIT("omit"),
+    EXPAND_VALUES("expandValues"),
+    CSF("csf"),
+    ENTITY_MAP("entityMap"),
+
+    // 6.3.18 limiting distributed operations
+    LOCAL("local"), // 6.3.18
+    VIA("Via"); // 6.3.18
+
+    override fun toString(): String {
+        return key
     }
 
     object Query {

@@ -32,9 +32,9 @@ import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parameter.TemporalQueryParameter.Companion.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.r2dbc.core.DatabaseClient

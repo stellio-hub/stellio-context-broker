@@ -10,7 +10,7 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException
@@ -36,9 +36,9 @@ object ContextSourceCaller {
         val uri = URI("${csr.endpoint}$path")
 
         val queryParams = CollectionUtils.toMultiValueMap(params.toMutableMap())
-        queryParams.remove(QueryParam.GEOMETRY_PROPERTY.key)
-        queryParams.remove(QueryParam.OPTIONS.key) // only normalized request
-        queryParams.remove(QueryParam.LANG.key)
+        queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
+        queryParams.remove(QueryParameter.OPTIONS.key) // only normalized request
+        queryParams.remove(QueryParameter.LANG.key)
 
         val request = WebClient.create()
             .method(HttpMethod.GET)

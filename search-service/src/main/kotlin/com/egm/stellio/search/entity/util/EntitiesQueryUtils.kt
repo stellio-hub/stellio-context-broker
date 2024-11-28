@@ -13,7 +13,7 @@ import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.model.parameter.GeoQuery.Companion.parseGeoQueryParameters
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
@@ -28,18 +28,18 @@ fun composeEntitiesQueryFromGet(
     requestParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromGet> = either {
-    val ids = requestParams.getFirst(QueryParam.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
-    val typeSelection = expandTypeSelection(requestParams.getFirst(QueryParam.TYPE.key), contexts)
-    val idPattern = validateIdPattern(requestParams.getFirst(QueryParam.ID_PATTERN.key)).bind()
+    val ids = requestParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
+    val typeSelection = expandTypeSelection(requestParams.getFirst(QueryParameter.TYPE.key), contexts)
+    val idPattern = validateIdPattern(requestParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
 
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = requestParams.getFirst(QueryParam.Q.key)?.decode()
-    val scopeQ = requestParams.getFirst(QueryParam.SCOPEQ.key)
-    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QueryParam.ATTRS.key), contexts)
-    val datasetId = parseRequestParameter(requestParams.getFirst(QueryParam.DATASET_ID.key))
+    val q = requestParams.getFirst(QueryParameter.Q.key)?.decode()
+    val scopeQ = requestParams.getFirst(QueryParameter.SCOPEQ.key)
+    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QueryParameter.ATTRS.key), contexts)
+    val datasetId = parseRequestParameter(requestParams.getFirst(QueryParameter.DATASET_ID.key))
     val paginationQuery = parsePaginationParameters(
         requestParams,
         defaultPagination.limitDefault,
@@ -48,9 +48,9 @@ fun composeEntitiesQueryFromGet(
 
     val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contexts).bind()
     val linkedEntityQuery = parseLinkedEntityQueryParameters(
-        requestParams.getFirst(QueryParam.JOIN.key),
-        requestParams.getFirst(QueryParam.JOIN_LEVEL.key),
-        requestParams.getFirst(QueryParam.CONTAINED_BY.key)
+        requestParams.getFirst(QueryParameter.JOIN.key),
+        requestParams.getFirst(QueryParameter.JOIN_LEVEL.key),
+        requestParams.getFirst(QueryParameter.CONTAINED_BY.key)
     ).bind()
 
     EntitiesQueryFromGet(

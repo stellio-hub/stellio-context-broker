@@ -14,7 +14,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
@@ -86,8 +86,8 @@ class ContextSourceRegistrationHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QueryParam.OPTIONS.key, emptyList())
-            .contains(QueryParam.OptionValue.SYS_ATTRS.value)
+        val includeSysAttrs = params.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            .contains(QueryParameter.SYS_ATTRS.key)
         val paginationQuery = parsePaginationParameters(
             params,
             applicationProperties.pagination.limitDefault,
@@ -124,7 +124,7 @@ class ContextSourceRegistrationHandler(
         @PathVariable contextSourceRegistrationId: URI,
         @RequestParam options: String?
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options == QueryParam.OptionValue.SYS_ATTRS.value
+        val includeSysAttrs = options == QueryParameter.SYS_ATTRS.key
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

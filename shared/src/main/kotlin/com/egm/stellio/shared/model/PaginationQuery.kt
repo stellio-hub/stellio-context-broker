@@ -3,9 +3,7 @@ package com.egm.stellio.shared.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.model.parameter.PaginationParameter.COUNT
-import com.egm.stellio.shared.model.parameter.PaginationParameter.LIMIT
-import com.egm.stellio.shared.model.parameter.PaginationParameter.OFFSET
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import org.springframework.util.MultiValueMap
 
 data class PaginationQuery(
@@ -20,9 +18,9 @@ data class PaginationQuery(
             limitDefault: Int,
             limitMax: Int
         ): Either<APIException, PaginationQuery> {
-            val count = queryParams.getFirst(COUNT.key)?.toBoolean() ?: false
-            val offset = queryParams.getFirst(OFFSET.key)?.toIntOrNull() ?: 0
-            val limit = queryParams.getFirst(LIMIT.key)?.toIntOrNull() ?: limitDefault
+            val count = queryParams.getFirst(QueryParameter.COUNT.key)?.toBoolean() ?: false
+            val offset = queryParams.getFirst(QueryParameter.OFFSET.key)?.toIntOrNull() ?: 0
+            val limit = queryParams.getFirst(QueryParameter.LIMIT.key)?.toIntOrNull() ?: limitDefault
             if (!count && (limit <= 0 || offset < 0))
                 return BadRequestDataException(
                     "Offset must be greater than zero and limit must be strictly greater than zero"

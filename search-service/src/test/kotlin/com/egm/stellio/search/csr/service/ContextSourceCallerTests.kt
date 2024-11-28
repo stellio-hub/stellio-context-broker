@@ -4,7 +4,7 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
@@ -175,7 +175,7 @@ class ContextSourceCallerTests {
             get(urlMatching(path))
                 .willReturn(notFound())
         )
-        val params = LinkedMultiValueMap(mapOf(QueryParam.OPTIONS.key to listOf("simplified")))
+        val params = LinkedMultiValueMap(mapOf(QueryParameter.OPTIONS.key to listOf("simplified")))
         ContextSourceCaller.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
@@ -184,7 +184,7 @@ class ContextSourceCallerTests {
         )
         verify(
             getRequestedFor(urlPathEqualTo(path))
-                .withQueryParam(QueryParam.OPTIONS.key, notContaining("simplified"))
+                .withQueryParam(QueryParameter.OPTIONS.key, notContaining("simplified"))
         )
     }
 }

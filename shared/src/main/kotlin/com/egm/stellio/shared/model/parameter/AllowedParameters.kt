@@ -9,15 +9,14 @@ import kotlin.reflect.KClass
 
 @Target(
     AnnotationTarget.VALUE_PARAMETER,
-    AnnotationTarget.FUNCTION,
 )
 @Retention(
     AnnotationRetention.RUNTIME
 )
 @Constraint(validatedBy = [ AllowedParameters.ParamValidator::class])
 annotation class AllowedParameters(
-    val implemented: Array<QueryParam>,
-    val notImplemented: Array<QueryParam> = [],
+    val implemented: Array<QueryParameter>,
+    val notImplemented: Array<QueryParameter> = [],
     val message: String = "Invalid parameter received",
     val groups: Array<KClass<*>> = [],
     val payload: Array<KClass<*>> = [],
@@ -28,8 +27,8 @@ annotation class AllowedParameters(
         private var notImplemented: List<String> = listOf()
 
         override fun initialize(requiredIfChecked: AllowedParameters) {
-            this.implemented = requiredIfChecked.implemented.map(QueryParam::key)
-            this.notImplemented = requiredIfChecked.notImplemented.map(QueryParam::key)
+            this.implemented = requiredIfChecked.implemented.map(QueryParameter::key)
+            this.notImplemented = requiredIfChecked.notImplemented.map(QueryParameter::key)
         }
 
         override fun isValid(value: MultiValueMap<String, String>?, context: ConstraintValidatorContext): Boolean {

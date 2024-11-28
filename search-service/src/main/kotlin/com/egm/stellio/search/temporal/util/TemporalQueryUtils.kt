@@ -20,10 +20,9 @@ import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.parameter.QueryParam
-import com.egm.stellio.shared.model.parameter.TemporalQueryParameter
-import com.egm.stellio.shared.model.parameter.TemporalQueryParameter.Companion.WHOLE_TIME_RANGE_DURATION
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.OptionsParamValue
+import com.egm.stellio.shared.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
@@ -47,15 +46,15 @@ fun composeTemporalEntitiesQueryFromGet(
         entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
 
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.AUDIT
     )
     val withAggregatedValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.AGGREGATED_VALUES
     )
     val temporalQuery =
@@ -84,26 +83,26 @@ fun composeTemporalEntitiesQueryFromPost(
     ).bind()
 
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.AUDIT
     )
     val withAggregatedValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParam.OPTIONS.key)),
+        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         OptionsParamValue.AGGREGATED_VALUES
     )
 
     val temporalParams = mapOf(
-        TemporalQueryParameter.TIMEREL.key to listOf(query.temporalQ?.timerel),
-        TemporalQueryParameter.TIMEAT.key to listOf(query.temporalQ?.timeAt),
-        TemporalQueryParameter.ENDTIMEAT.key to listOf(query.temporalQ?.endTimeAt),
-        TemporalQueryParameter.AGGRPERIODDURATION.key to listOf(query.temporalQ?.aggrPeriodDuration),
-        TemporalQueryParameter.AGGRMETHODS.key to query.temporalQ?.aggrMethods,
-        TemporalQueryParameter.LASTN.key to listOf(query.temporalQ?.lastN.toString()),
-        TemporalQueryParameter.TIMEPROPERTY.key to listOf(query.temporalQ?.timeproperty)
+        QueryParameter.TIMEREL.key to listOf(query.temporalQ?.timerel),
+        QueryParameter.TIMEAT.key to listOf(query.temporalQ?.timeAt),
+        QueryParameter.ENDTIMEAT.key to listOf(query.temporalQ?.endTimeAt),
+        QueryParameter.AGGRPERIODDURATION.key to listOf(query.temporalQ?.aggrPeriodDuration),
+        QueryParameter.AGGRMETHODS.key to query.temporalQ?.aggrMethods,
+        QueryParameter.LASTN.key to listOf(query.temporalQ?.lastN.toString()),
+        QueryParameter.TIMEPROPERTY.key to listOf(query.temporalQ?.timeproperty)
     )
     val temporalQuery = buildTemporalQuery(
         MultiValueMapAdapter(temporalParams),
@@ -128,16 +127,16 @@ fun buildTemporalQuery(
     inQueryEntities: Boolean = false,
     withAggregatedValues: Boolean = false,
 ): Either<APIException, TemporalQuery> {
-    val timerelParam = params.getFirst(TemporalQueryParameter.TIMEREL.key)
-    val timeAtParam = params.getFirst(TemporalQueryParameter.TIMEAT.key)
-    val endTimeAtParam = params.getFirst(TemporalQueryParameter.ENDTIMEAT.key)
+    val timerelParam = params.getFirst(QueryParameter.TIMEREL.key)
+    val timeAtParam = params.getFirst(QueryParameter.TIMEAT.key)
+    val endTimeAtParam = params.getFirst(QueryParameter.ENDTIMEAT.key)
     val aggrPeriodDurationParam =
         if (withAggregatedValues)
-            params.getFirst(TemporalQueryParameter.AGGRPERIODDURATION.key) ?: WHOLE_TIME_RANGE_DURATION
+            params.getFirst(QueryParameter.AGGRPERIODDURATION.key) ?: WHOLE_TIME_RANGE_DURATION
         else null
-    val aggrMethodsParam = params.getFirst(TemporalQueryParameter.AGGRMETHODS.key)
-    val lastNParam = params.getFirst(TemporalQueryParameter.LASTN.key)
-    val timeproperty = params.getFirst(TemporalQueryParameter.TIMEPROPERTY.key)?.let {
+    val aggrMethodsParam = params.getFirst(QueryParameter.AGGRMETHODS.key)
+    val lastNParam = params.getFirst(QueryParameter.LASTN.key)
+    val timeproperty = params.getFirst(QueryParameter.TIMEPROPERTY.key)?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 

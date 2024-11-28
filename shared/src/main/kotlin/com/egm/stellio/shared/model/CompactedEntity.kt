@@ -6,7 +6,7 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
-import com.egm.stellio.shared.model.parameter.QueryParam
+import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
 import com.egm.stellio.shared.util.FEATURE_TYPE
@@ -136,7 +136,7 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
 }
 
 fun CompactedEntity.toFilteredLanguageProperties(languageFilter: String): CompactedEntity {
-    val transformationParameters = mapOf(QueryParam.LANG.key to languageFilter)
+    val transformationParameters = mapOf(QueryParameter.LANG.key to languageFilter)
     return this.mapValues { entry ->
         applyAttributeTransformation(
             entry,
@@ -155,7 +155,7 @@ private fun filterMultiInstanceLanguageProperty(
     }
 
 private fun filterLanguageProperty(value: Map<String, Any>, transformationParameters: Map<String, String>?): Any {
-    val languageFilter = transformationParameters?.get(QueryParam.LANG.key)!!
+    val languageFilter = transformationParameters?.get(QueryParameter.LANG.key)!!
     val attributeCompactedType = value[JSONLD_TYPE_TERM]?.let {
         AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)
     }

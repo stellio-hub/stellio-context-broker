@@ -16,6 +16,17 @@ data class LinkedEntityQuery(
     companion object {
         const val DEFAULT_JOIN_LEVEL = 1
 
+        enum class JoinType(val type: String) {
+            FLAT("flat"),
+            INLINE("inline"),
+            NONE("@none");
+
+            companion object {
+                fun forType(type: String): JoinType? =
+                    entries.find { it.type == type }
+            }
+        }
+
         fun parseLinkedEntityQueryParameters(
             join: String?,
             joinLevel: String?,
@@ -46,16 +57,5 @@ data class LinkedEntityQuery(
 
         private fun badJoinLevelParameterMessage(param: String) =
             "'$param' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)"
-    }
-}
-
-enum class JoinType(val type: String) {
-    FLAT("flat"),
-    INLINE("inline"),
-    NONE("@none");
-
-    companion object {
-        fun forType(type: String): JoinType? =
-            entries.find { it.type == type }
     }
 }

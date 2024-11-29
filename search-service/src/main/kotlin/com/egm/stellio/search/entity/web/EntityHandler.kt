@@ -356,8 +356,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>,
         @RequestParam
         @AllowedParameters(
-            implemented = [QP.OPTIONS], // todo type no implemented?
-            notImplemented = [QP.TYPE, QP.LOCAL, QP.VIA]
+            implemented = [QP.OPTIONS],
+            notImplemented = [QP.TYPE, QP.LOCAL, QP.VIA] // type is for dist-ops
         )
         params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

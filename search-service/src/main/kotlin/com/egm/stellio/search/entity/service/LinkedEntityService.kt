@@ -7,8 +7,8 @@ import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.JoinType
 import com.egm.stellio.shared.model.LinkedEntityQuery
+import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getRelationshipsObjects
 import com.egm.stellio.shared.model.inlineLinkedEntities

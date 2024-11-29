@@ -140,7 +140,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 24.30623, 60.07966)
 
-        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
+        val queryStatement = geoQuery.buildSqlFilter(expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -164,7 +164,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.07966, 24.30623)
 
-        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
+        val queryStatement = geoQuery.buildSqlFilter(expandedEntity)
 
         assertEqualsIgnoringNoise(
             """
@@ -188,7 +188,7 @@ class GeoQueryUtilsTests {
         )
         val expandedEntity = gimmeSimpleEntityWithGeoProperty("location", 60.30623, 30.07966)
 
-        val queryStatement = GeoQuery.buildSqlFilter(geoQuery, expandedEntity)
+        val queryStatement = geoQuery.buildSqlFilter(expandedEntity)
 
         assertEqualsIgnoringNoise(
             """

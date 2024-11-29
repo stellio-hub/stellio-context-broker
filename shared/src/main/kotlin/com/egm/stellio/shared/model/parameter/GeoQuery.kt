@@ -43,6 +43,38 @@ data class GeoQuery(
         }
     }
 
+    fun buildSqlFilter(target: ExpandedEntity? = null): String {
+        val targetWKTCoordinates =
+            """
+        (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
+            """.trimIndent()
+        val georelQuery = Georel.prepareQuery(georel)
+
+        return (
+            if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
+                """
+            public.ST_Distance(
+                cast('SRID=4326;${wktCoordinates.value}' as public.geography), 
+                cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
+                false
+            ) ${georelQuery.second} ${georelQuery.third}
+                """.trimIndent()
+            else
+                """
+            public.ST_${georelQuery.first}(
+                public.ST_GeomFromText('${wktCoordinates.value}'), 
+                public.ST_GeomFromText($targetWKTCoordinates)
+            ) 
+                """.trimIndent()
+            )
+            .let {
+                if (target == null)
+                    it.replace("#{TARGET}#", "entity_payload.payload")
+                else
+                    it.replace("#{TARGET}#", "'" + JsonUtils.serializeObject(target.members) + "'")
+            }
+    }
+
     companion object {
 
         fun parseGeoQueryParameters(
@@ -82,38 +114,6 @@ data class GeoQuery(
                     wktCoordinates = parseGeometryToWKT(geometry, coordinates).bind(),
                     geoproperty = geoproperty
                 )
-        }
-
-        fun buildSqlFilter(geoQuery: GeoQuery, target: ExpandedEntity? = null): String {
-            val targetWKTCoordinates =
-                """
-        (select jsonb_path_query_first(#{TARGET}#, '$."${geoQuery.geoproperty}"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
-                """.trimIndent()
-            val georelQuery = Georel.prepareQuery(geoQuery.georel)
-
-            return (
-                if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
-                    """
-            public.ST_Distance(
-                cast('SRID=4326;${geoQuery.wktCoordinates.value}' as public.geography), 
-                cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
-                false
-            ) ${georelQuery.second} ${georelQuery.third}
-                    """.trimIndent()
-                else
-                    """
-            public.ST_${georelQuery.first}(
-                public.ST_GeomFromText('${geoQuery.wktCoordinates.value}'), 
-                public.ST_GeomFromText($targetWKTCoordinates)
-            ) 
-                    """.trimIndent()
-                )
-                .let {
-                    if (target == null)
-                        it.replace("#{TARGET}#", "entity_payload.payload")
-                    else
-                        it.replace("#{TARGET}#", "'" + JsonUtils.serializeObject(target.members) + "'")
-                }
         }
     }
 }

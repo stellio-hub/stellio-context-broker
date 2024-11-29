@@ -4,8 +4,8 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.JoinType
 import com.egm.stellio.shared.model.LinkedEntityQuery
+import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

@@ -22,13 +22,14 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.OptionsParamValue
-import com.egm.stellio.shared.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime
 import java.util.Optional
+
+const val WHOLE_TIME_RANGE_DURATION = "PT0S"
 
 fun composeTemporalEntitiesQueryFromGet(
     defaultPagination: ApplicationProperties.Pagination,

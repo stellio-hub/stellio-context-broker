@@ -672,16 +672,13 @@ class SubscriptionService(
         expandedEntity: ExpandedEntity
     ): String? =
         geoQ?.let {
-            GeoQuery.buildSqlFilter(
-                GeoQuery(
-                    georel = geoQ.georel,
-                    geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
-                    coordinates = geoQ.coordinates,
-                    geoproperty = geoQ.geoproperty,
-                    wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
-                ),
-                expandedEntity
-            )
+            GeoQuery(
+                georel = geoQ.georel,
+                geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
+                coordinates = geoQ.coordinates,
+                geoproperty = geoQ.geoproperty,
+                wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
+            ).buildSqlFilter(expandedEntity)
         }
 
     suspend fun updateSubscriptionNotification(

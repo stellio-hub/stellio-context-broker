@@ -36,8 +36,6 @@ val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
-const val WHOLE_TIME_RANGE_DURATION = "PT0S"
-
 /**
  * As per 6.3.5, If the request verb is GET or DELETE, then the associated JSON-LD "@context" shall be obtained from a
  * Link header as mandated by JSON-LD, section 6.2.extract @context from Link header.

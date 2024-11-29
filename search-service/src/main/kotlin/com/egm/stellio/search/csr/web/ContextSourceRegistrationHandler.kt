@@ -14,6 +14,8 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
+import com.egm.stellio.shared.model.parameter.AllowedParameters
+import com.egm.stellio.shared.model.parameter.QP
 import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -80,6 +82,15 @@ class ContextSourceRegistrationHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun get(
         @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT],
+            notImplemented = [
+                QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q, QP.CSF,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY,
+                QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT,
+                QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ,
+            ]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -122,7 +133,9 @@ class ContextSourceRegistrationHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
-        @RequestParam options: String?
+        @RequestParam options: String?,
+        @AllowedParameters(implemented = [QP.OPTIONS])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options == QueryParameter.SYS_ATTRS.key
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -143,7 +156,11 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
-    suspend fun delete(@PathVariable contextSourceRegistrationId: URI): ResponseEntity<*> = either {
+    suspend fun delete(
+        @PathVariable contextSourceRegistrationId: URI,
+        @AllowedParameters(notImplemented = [])
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         checkIsAllowed(contextSourceRegistrationId, sub).bind()
 

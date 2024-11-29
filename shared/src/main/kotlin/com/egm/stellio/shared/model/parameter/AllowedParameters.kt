@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 )
 @Constraint(validatedBy = [ AllowedParameters.ParamValidator::class])
 annotation class AllowedParameters(
-    val implemented: Array<QueryParameter>,
+    val implemented: Array<QueryParameter> = [],
     val notImplemented: Array<QueryParameter> = [],
     val message: String = "Invalid parameter received",
     val groups: Array<KClass<*>> = [],

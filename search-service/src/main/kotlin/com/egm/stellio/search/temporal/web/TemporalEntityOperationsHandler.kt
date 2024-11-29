@@ -6,6 +6,8 @@ import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPost
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.parameter.AllowedParameters
+import com.egm.stellio.shared.model.parameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -38,6 +40,13 @@ class TemporalEntityOperationsHandler(
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
+        @AllowedParameters( // todo double check GEOMETRY_PROPERTY, OPTIONS  in spec
+            implemented = [
+                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.GEOMETRY_PROPERTY, QP.OPTIONS,
+                QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.AGGRPERIODDURATION, QP.AGGRMETHODS, QP.LASTN, QP.TIMEPROPERTY
+            ],
+            notImplemented = [QP.LOCAL, QP.VIA, QP.DETAILS]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()

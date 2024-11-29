@@ -2,6 +2,8 @@ package com.egm.stellio.shared.model.parameter
 
 import java.util.regex.Pattern
 
+typealias QP = QueryParameter
+
 enum class QueryParameter(
     val key: String,
 ) {
@@ -54,6 +56,7 @@ enum class QueryParameter(
     EXPAND_VALUES("expandValues"),
     CSF("csf"),
     ENTITY_MAP("entityMap"),
+    DETAILS("details"),
 
     // 6.3.18 limiting distributed operations
     LOCAL("local"), // 6.3.18

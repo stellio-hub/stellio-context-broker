@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.web
 
 import arrow.core.Either
+import arrow.core.computations.ResultEffect.bind
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -15,6 +16,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.parameter.AllowedParameters
+import com.egm.stellio.shared.model.parameter.QP
 import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
@@ -67,7 +70,9 @@ class EntityOperationHandler(
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -98,7 +103,12 @@ class EntityOperationHandler(
     suspend fun upsert(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam(required = false) options: String?
+        @RequestParam(required = false) options: String?,
+        @AllowedParameters(
+            implemented = [QP.OPTIONS],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -138,7 +148,12 @@ class EntityOperationHandler(
     suspend fun update(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam options: Optional<String>
+        @RequestParam options: Optional<String>,
+        @AllowedParameters(
+            implemented = [QP.OPTIONS],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -174,6 +189,8 @@ class EntityOperationHandler(
     suspend fun merge(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -203,7 +220,11 @@ class EntityOperationHandler(
      * Implements 6.17.3.1 - Delete Batch of Entities
      */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> = either {
+    suspend fun delete(
+        @RequestBody requestBody: Mono<List<String>>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
         val body = requestBody.awaitFirst()
@@ -234,6 +255,10 @@ class EntityOperationHandler(
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(
+            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT], // todo double check
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()

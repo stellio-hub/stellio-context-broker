@@ -56,7 +56,7 @@ import reactor.core.publisher.Mono
 import java.net.URI
 
 @RestController
-@RequestMapping("/ngsi-ld/v1/entityAccessControl")
+@RequestMapping("/ngsi-ld/v1/entityAccessControl") // todo
 class EntityAccessControlHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityAccessRightsService: EntityAccessRightsService,

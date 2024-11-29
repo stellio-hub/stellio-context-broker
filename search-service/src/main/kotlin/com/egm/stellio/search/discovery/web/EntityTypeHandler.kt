@@ -3,6 +3,8 @@ package com.egm.stellio.search.discovery.web
 import arrow.core.raise.either
 import com.egm.stellio.search.discovery.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.parameter.AllowedParameters
+import com.egm.stellio.shared.model.parameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
@@ -13,13 +15,13 @@ import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/types")
@@ -34,11 +36,13 @@ class EntityTypeHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getTypes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam details: Optional<Boolean>
+        @RequestParam details: Boolean?,
+        @AllowedParameters(implemented = [QP.DETAILS], notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val detailedRepresentation = details.orElse(false)
+        val detailedRepresentation = details ?: false
 
         val availableEntityTypes: Any = if (detailedRepresentation)
             entityTypeService.getEntityTypes(contexts)
@@ -58,7 +62,9 @@ class EntityTypeHandler(
     @GetMapping("/{type}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByType(
         @RequestHeader httpHeaders: HttpHeaders,
-        @PathVariable type: String
+        @PathVariable type: String,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()

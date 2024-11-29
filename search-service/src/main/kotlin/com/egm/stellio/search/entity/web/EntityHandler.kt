@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepr
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.parameter.AllowedParameters
+import com.egm.stellio.shared.model.parameter.QP
 import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
@@ -113,13 +114,8 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @RequestParam
         @AllowedParameters(
-            implemented = [
-                QueryParameter.OPTIONS,
-                QueryParameter.TYPE,
-                QueryParameter.OBSERVED_AT,
-                QueryParameter.LANG
-            ],
-            notImplemented = [QueryParameter.FORMAT, QueryParameter.LOCAL, QueryParameter.VIA]
+            implemented = [QP.OPTIONS, QP.TYPE, QP.OBSERVED_AT, QP.LANG],
+            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA]
         )
         options: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
@@ -199,37 +195,11 @@ class EntityHandler(
         @RequestParam
         @AllowedParameters(
             implemented = [
-                QueryParameter.OPTIONS,
-                QueryParameter.FORMAT,
-                QueryParameter.COUNT,
-                QueryParameter.OFFSET,
-                QueryParameter.LIMIT,
-                QueryParameter.ID,
-                QueryParameter.TYPE,
-                QueryParameter.ID_PATTERN,
-                QueryParameter.ATTRS,
-                QueryParameter.Q,
-                QueryParameter.GEOMETRY,
-                QueryParameter.GEOREL,
-                QueryParameter.COORDINATES,
-                QueryParameter.GEOPROPERTY,
-                QueryParameter.GEOMETRY_PROPERTY,
-                QueryParameter.LANG,
-                QueryParameter.SCOPEQ,
-                QueryParameter.CONTAINED_BY,
-                QueryParameter.JOIN,
-                QueryParameter.JOIN_LEVEL,
-                QueryParameter.DATASET_ID,
+                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
             ],
-            notImplemented = [
-                QueryParameter.PICK,
-                QueryParameter.OMIT,
-                QueryParameter.EXPAND_VALUES,
-                QueryParameter.CSF,
-                QueryParameter.ENTITY_MAP,
-                QueryParameter.LOCAL,
-                QueryParameter.VIA
-            ]
+            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )
         params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -278,23 +248,10 @@ class EntityHandler(
         @RequestParam
         @AllowedParameters(
             implemented = [
-                QueryParameter.OPTIONS,
-                QueryParameter.FORMAT,
-                QueryParameter.TYPE,
-                QueryParameter.ATTRS,
-                QueryParameter.GEOMETRY_PROPERTY,
-                QueryParameter.LANG,
-                QueryParameter.CONTAINED_BY,
-                QueryParameter.JOIN,
-                QueryParameter.JOIN_LEVEL,
-                QueryParameter.DATASET_ID,
+                QP.OPTIONS, QP.FORMAT, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY,
+                QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
             ],
-            notImplemented = [
-                QueryParameter.PICK,
-                QueryParameter.OMIT,
-                QueryParameter.ENTITY_MAP,
-                QueryParameter.LOCAL, QueryParameter.VIA
-            ]
+            notImplemented = [QP.PICK, QP.OMIT, QP.ENTITY_MAP, QP.LOCAL, QueryParameter.VIA]
         )
         params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -375,7 +332,7 @@ class EntityHandler(
     @DeleteMapping("/{entityId}")
     suspend fun delete(
         @PathVariable entityId: URI,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -399,8 +356,8 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>,
         @RequestParam
         @AllowedParameters(
-            implemented = [QueryParameter.OPTIONS], // todo type no implemented?
-            notImplemented = [QueryParameter.TYPE, QueryParameter.LOCAL, QueryParameter.VIA]
+            implemented = [QP.OPTIONS], // todo type no implemented?
+            notImplemented = [QP.TYPE, QP.LOCAL, QP.VIA]
         )
         params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -444,7 +401,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -484,7 +441,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -525,8 +482,8 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @AllowedParameters(
-            implemented = [QueryParameter.DELETE_ALL, QueryParameter.TYPE, QueryParameter.DATASET_ID],
-            notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA]
+            implemented = [QP.DELETE_ALL, QP.TYPE, QP.DATASET_ID],
+            notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -564,7 +521,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()

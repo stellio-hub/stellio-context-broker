@@ -9,8 +9,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.model.parseGeometryToWKT
-import com.egm.stellio.shared.model.stringifyCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
@@ -18,6 +16,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.decode
+import com.egm.stellio.shared.util.parseGeometryToWKT
+import com.egm.stellio.shared.util.stringifyCoordinates
 
 data class GeoQuery(
     val georel: String,

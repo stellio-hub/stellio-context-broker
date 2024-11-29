@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NotAcceptableException
-import com.egm.stellio.shared.model.parameter.QueryParameter.Query.typeSelectionRegex
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -33,6 +32,9 @@ const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
+val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
+val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 

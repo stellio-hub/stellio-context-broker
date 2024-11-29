@@ -55,9 +55,8 @@ class TimeIntervalNotificationJob(
         val param = java.lang.StringBuilder()
         param.append("?${QueryParameter.TYPE.key}=${entitySelector.typeSelection.encode()}")
         if (entitySelector.id != null) param.append("&${QueryParameter.ID.key}=${entitySelector.id}")
-        if (entitySelector.idPattern != null) param.append(
-            "&${QueryParameter.ID_PATTERN.key}=${entitySelector.idPattern}"
-        )
+        if (entitySelector.idPattern != null)
+            param.append("&${QueryParameter.ID_PATTERN.key}=${entitySelector.idPattern}")
         if (q != null) param.append("&${QueryParameter.Q.key}=${q.encode()}")
         if (!attributes.isNullOrEmpty())
             param.append("&${QueryParameter.ATTRS.key}=${attributes.joinToString(",") { it.encode() }}")

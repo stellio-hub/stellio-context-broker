@@ -1,8 +1,9 @@
-package com.egm.stellio.shared.model
+package com.egm.stellio.shared.util
 
 import arrow.core.Either
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.parameter.GeoQuery
-import com.egm.stellio.shared.util.geoJsonToWkt
 
 fun stringifyCoordinates(coordinates: Any): String =
     when (coordinates) {

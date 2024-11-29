@@ -1,7 +1,5 @@
 package com.egm.stellio.shared.model.parameter
 
-import java.util.regex.Pattern
-
 typealias QP = QueryParameter
 
 enum class QueryParameter(
@@ -22,10 +20,10 @@ enum class QueryParameter(
     OPTIONS("options"),
 
     // options
-    SYS_ATTRS("sysAttrs"),
+    SYS_ATTRS("sysAttrs"), // todo its not parameters
     KEY_VALUES("keyValues"),
     NO_OVERWRITE("noOverwrite"),
-    OBSERVED_AT("observedAt"),
+    OBSERVED_AT("observedAt"), // except this one who is both
 
     // geoQuery
     GEOREL("georel"),
@@ -59,16 +57,10 @@ enum class QueryParameter(
     DETAILS("details"),
 
     // 6.3.18 limiting distributed operations
-    LOCAL("local"), // 6.3.18
-    VIA("Via"); // 6.3.18
+    LOCAL("local"),
+    VIA("Via");
 
     override fun toString(): String {
         return key
-    }
-
-    object Query {
-        val qPattern: Pattern = Pattern.compile("([^();|]+)")
-        val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
-        val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
     }
 }

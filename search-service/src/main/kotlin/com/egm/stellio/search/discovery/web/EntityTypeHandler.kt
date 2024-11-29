@@ -3,8 +3,8 @@ package com.egm.stellio.search.discovery.web
 import arrow.core.raise.either
 import com.egm.stellio.search.discovery.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.parameter.AllowedParameters
-import com.egm.stellio.shared.model.parameter.QP
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils

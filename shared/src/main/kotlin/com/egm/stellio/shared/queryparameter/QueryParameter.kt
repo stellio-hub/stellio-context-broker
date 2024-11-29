@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.model.parameter
+package com.egm.stellio.shared.queryparameter
 
 typealias QP = QueryParameter
 
@@ -18,12 +18,7 @@ enum class QueryParameter(
     JOIN("join"),
     JOIN_LEVEL("joinLevel"),
     OPTIONS("options"),
-
-    // options
-    SYS_ATTRS("sysAttrs"), // todo its not parameters
-    KEY_VALUES("keyValues"),
-    NO_OVERWRITE("noOverwrite"),
-    OBSERVED_AT("observedAt"), // except this one who is both
+    OBSERVED_AT("observedAt"),
 
     // geoQuery
     GEOREL("georel"),

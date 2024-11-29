@@ -1,9 +1,11 @@
-package com.egm.stellio.shared.model
+package com.egm.stellio.shared.queryparameter
 
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.toListOfUri
 import java.net.URI
 import kotlin.UInt

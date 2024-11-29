@@ -6,7 +6,7 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
 import com.egm.stellio.shared.util.FEATURE_TYPE

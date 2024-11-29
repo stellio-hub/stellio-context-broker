@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.model.parameter
+package com.egm.stellio.shared.queryparameter
 
 import arrow.core.Either
 import arrow.core.left
@@ -85,8 +85,8 @@ data class GeoQuery(
                 Georel.verify(it).bind()
             }
             val geometry = requestParams[QueryParameter.GEOMETRY.key]?.let {
-                if (GeoQuery.GeometryType.isSupportedType(it))
-                    GeoQuery.GeometryType.forType(it).right()
+                if (GeometryType.isSupportedType(it))
+                    GeometryType.forType(it).right()
                 else
                     BadRequestDataException("$it is not a recognized value for 'geometry' parameter").left()
             }?.bind()

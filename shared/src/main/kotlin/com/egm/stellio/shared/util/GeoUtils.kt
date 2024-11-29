@@ -6,7 +6,7 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.model.parameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.locationtech.jts.io.WKTReader
@@ -54,3 +54,16 @@ fun wktToGeoJson(wkt: String): Map<String, Any> {
     geoJsonWriter.setEncodeCRS(false)
     return deserializeObject(geoJsonWriter.write(geometry))
 }
+
+fun stringifyCoordinates(coordinates: Any): String =
+    when (coordinates) {
+        is String -> coordinates
+        is List<*> -> coordinates.toString()
+        else -> coordinates.toString()
+    }
+
+fun parseGeometryToWKT(
+    geometryType: GeoQuery.GeometryType,
+    coordinates: String
+): Either<APIException, WKTCoordinates> =
+    geoJsonToWkt(geometryType, coordinates)

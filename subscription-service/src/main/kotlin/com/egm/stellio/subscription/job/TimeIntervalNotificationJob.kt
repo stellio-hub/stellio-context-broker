@@ -4,7 +4,7 @@ import arrow.core.flatten
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER

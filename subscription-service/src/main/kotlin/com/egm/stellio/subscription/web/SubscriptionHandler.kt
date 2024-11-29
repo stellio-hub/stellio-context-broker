@@ -10,11 +10,12 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parameter.AllowedParameters
-import com.egm.stellio.shared.model.parameter.QP
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
+import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -103,7 +104,7 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
 
         val includeSysAttrs = params.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
-            .contains(QueryParameter.SYS_ATTRS.key)
+            .contains(OptionsValue.SYS_ATTRS.value)
         val paginationQuery = parsePaginationParameters(
             params,
             applicationProperties.pagination.limitDefault,
@@ -138,7 +139,7 @@ class SubscriptionHandler(
         @AllowedParameters(implemented = [QP.OPTIONS], notImplemented = [QP.VIA])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options.filter { it.contains(QueryParameter.SYS_ATTRS.key) }.isPresent
+        val includeSysAttrs = options.filter { it.contains(OptionsValue.SYS_ATTRS.value) }.isPresent
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

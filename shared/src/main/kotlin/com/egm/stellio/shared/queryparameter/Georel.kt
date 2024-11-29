@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.model.parameter
+package com.egm.stellio.shared.queryparameter
 
 import arrow.core.Either
 import arrow.core.left

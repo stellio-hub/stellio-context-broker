@@ -23,11 +23,12 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
-import com.egm.stellio.shared.model.parameter.AllowedParameters
-import com.egm.stellio.shared.model.parameter.QP
-import com.egm.stellio.shared.model.parameter.QueryParameter
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -363,7 +364,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val options = params.getFirst(QueryParameter.OPTIONS.key)
         val sub = getSubFromSecurityContext()
-        val disallowOverwrite = options?.let { it == QueryParameter.NO_OVERWRITE.key } ?: false
+        val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } ?: false
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()

@@ -4,8 +4,8 @@ import arrow.core.computations.ResultEffect.bind
 import arrow.core.raise.either
 import com.egm.stellio.search.discovery.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.parameter.AllowedParameters
-import com.egm.stellio.shared.model.parameter.QP
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils

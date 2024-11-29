@@ -9,7 +9,7 @@ import com.egm.stellio.search.authorization.model.Group
 import com.egm.stellio.search.authorization.model.User
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AccessRight

@@ -12,8 +12,8 @@ import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData

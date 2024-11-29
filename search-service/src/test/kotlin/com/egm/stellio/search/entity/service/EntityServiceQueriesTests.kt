@@ -9,8 +9,8 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.model.parameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel

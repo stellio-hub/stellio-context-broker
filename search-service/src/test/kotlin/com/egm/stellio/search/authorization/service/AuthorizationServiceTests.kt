@@ -3,7 +3,7 @@ package com.egm.stellio.search.authorization.service
 import arrow.core.None
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri

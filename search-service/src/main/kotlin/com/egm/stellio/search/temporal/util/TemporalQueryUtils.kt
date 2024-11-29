@@ -20,7 +20,7 @@ import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.OptionsParamValue
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter

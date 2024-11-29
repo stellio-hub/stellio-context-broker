@@ -10,10 +10,10 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
-import com.egm.stellio.shared.model.PaginationQuery.Companion.parsePaginationParameters
-import com.egm.stellio.shared.model.parameter.GeoQuery.Companion.parseGeoQueryParameters
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
+import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection

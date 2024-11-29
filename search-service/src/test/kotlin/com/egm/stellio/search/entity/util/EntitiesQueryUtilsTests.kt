@@ -9,9 +9,9 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.model.LinkedEntityQuery.Companion.JoinType
-import com.egm.stellio.shared.model.parameter.GeoQuery
-import com.egm.stellio.shared.model.parameter.Georel
+import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.Georel
+import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE

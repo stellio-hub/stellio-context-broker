@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.springframework.data.relational.core.mapping.Table

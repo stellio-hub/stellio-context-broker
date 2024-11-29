@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
@@ -27,8 +28,8 @@ data class NgsiLdDataRepresentation(
             acceptMediaType: MediaType
         ): NgsiLdDataRepresentation {
             val optionsParam = requestParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
-            val includeSysAttrs = optionsParam.contains(QueryParameter.SYS_ATTRS.key)
-            val attributeRepresentation = optionsParam.contains(QueryParameter.KEY_VALUES.key)
+            val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS.value)
+            val attributeRepresentation = optionsParam.contains(OptionsValue.KEY_VALUES.value)
                 .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
             val languageFilter = requestParams.getFirst(QueryParameter.LANG.key)
             val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)

@@ -10,7 +10,7 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException

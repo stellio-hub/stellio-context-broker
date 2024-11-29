@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.model.parameter
+package com.egm.stellio.shared.queryparameter
 
 import jakarta.validation.Constraint
 import jakarta.validation.ConstraintValidator

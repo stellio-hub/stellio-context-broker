@@ -1,9 +1,11 @@
-package com.egm.stellio.shared.model
+package com.egm.stellio.shared.queryparameter
 
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.model.parameter.QueryParameter
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.TooManyResultsException
 import org.springframework.util.MultiValueMap
 
 data class PaginationQuery(

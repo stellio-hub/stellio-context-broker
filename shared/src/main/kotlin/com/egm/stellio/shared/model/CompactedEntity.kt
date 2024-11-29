@@ -173,8 +173,8 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
             NGSILD_LANG_TERM to bestLocaleMatch
         )
 
-        value.filter { entry ->
-            !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(entry.key) && entry.key != JSONLD_LANGUAGEMAP_TERM
+        value.filter { (key,_) ->
+            !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key) && key != JSONLD_LANGUAGEMAP_TERM
         }.forEach { entry ->
             if (entry.value is Map<*, *>) {
                 filteredMainAttribute[entry.key] = filterLanguageProperty(

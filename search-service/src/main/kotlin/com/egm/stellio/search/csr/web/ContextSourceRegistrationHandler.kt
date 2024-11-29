@@ -136,7 +136,7 @@ class ContextSourceRegistrationHandler(
         @PathVariable contextSourceRegistrationId: URI,
         @RequestParam options: String?,
         @AllowedParameters(implemented = [QP.OPTIONS])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options == OptionsValue.SYS_ATTRS.value
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -160,7 +160,7 @@ class ContextSourceRegistrationHandler(
     suspend fun delete(
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters(notImplemented = [])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         checkIsAllowed(contextSourceRegistrationId, sub).bind()

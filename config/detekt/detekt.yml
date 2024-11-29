@@ -733,7 +733,7 @@ style:
     active: true
   UnusedParameter:
     active: true
-    allowedNames: 'ignored|expected|params'
+    allowedNames: 'ignored|expected|queryParams'
   UnusedPrivateClass:
     active: true
   UnusedPrivateMember:

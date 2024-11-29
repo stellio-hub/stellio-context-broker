@@ -68,7 +68,7 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
@@ -137,7 +137,7 @@ class SubscriptionHandler(
         @PathVariable subscriptionId: URI,
         @RequestParam options: Optional<String>,
         @AllowedParameters(implemented = [QP.OPTIONS], notImplemented = [QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val includeSysAttrs = options.filter { it.contains(OptionsValue.SYS_ATTRS.value) }.isPresent
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -184,7 +184,7 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 
@@ -207,7 +207,7 @@ class SubscriptionHandler(
     suspend fun delete(
         @PathVariable subscriptionId: URI,
         @AllowedParameters(notImplemented = [QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 

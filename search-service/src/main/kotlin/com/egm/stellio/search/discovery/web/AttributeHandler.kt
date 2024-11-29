@@ -39,7 +39,7 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Optional<Boolean>,
         @AllowedParameters(implemented = [QP.DETAILS], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
@@ -64,7 +64,7 @@ class AttributeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable attrId: String,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()

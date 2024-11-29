@@ -72,7 +72,7 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -108,7 +108,7 @@ class EntityOperationHandler(
             implemented = [QP.OPTIONS],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -153,7 +153,7 @@ class EntityOperationHandler(
             implemented = [QP.OPTIONS],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -190,7 +190,7 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -223,7 +223,7 @@ class EntityOperationHandler(
     suspend fun delete(
         @RequestBody requestBody: Mono<List<String>>,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 

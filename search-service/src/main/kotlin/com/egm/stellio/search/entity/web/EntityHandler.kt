@@ -88,7 +88,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -158,7 +158,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -334,7 +334,7 @@ class EntityHandler(
     suspend fun delete(
         @PathVariable entityId: URI,
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -403,7 +403,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -443,7 +443,7 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -523,7 +523,7 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =

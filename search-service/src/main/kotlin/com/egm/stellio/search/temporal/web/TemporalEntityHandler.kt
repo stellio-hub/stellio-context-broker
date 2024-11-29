@@ -74,7 +74,7 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -112,7 +112,7 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -232,7 +232,7 @@ class TemporalEntityHandler(
         @PathVariable instanceId: URI,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -271,7 +271,7 @@ class TemporalEntityHandler(
     suspend fun deleteTemporalEntity(
         @PathVariable entityId: URI,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -333,7 +333,7 @@ class TemporalEntityHandler(
         @PathVariable attrId: String,
         @PathVariable instanceId: URI,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()

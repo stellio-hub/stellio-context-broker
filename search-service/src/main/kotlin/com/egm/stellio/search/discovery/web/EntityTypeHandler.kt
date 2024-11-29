@@ -38,7 +38,7 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam details: Boolean?,
         @AllowedParameters(implemented = [QP.DETAILS], notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
@@ -64,7 +64,7 @@ class EntityTypeHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable type: String,
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()

@@ -3,7 +3,6 @@ package com.egm.stellio.shared.queryparameter
 import jakarta.validation.Constraint
 import jakarta.validation.ConstraintValidator
 import jakarta.validation.ConstraintValidatorContext
-import jdk.internal.org.jline.utils.AttributedStringBuilder.append
 import org.springframework.http.HttpStatus
 import org.springframework.util.MultiValueMap
 import kotlin.reflect.KClass
@@ -53,9 +52,9 @@ annotation class AllowedParameters(
                         "The '${errorKeys.joinToString("', '")}' parameter is not allowed on this endpoint. "
                     )
                 }
-                append(
-                    "Accepted parameters are '${implemented.joinToString("', '")}'. "
-                )
+                if (implemented.isNotEmpty())
+                    append("Accepted query parameters are '${implemented.joinToString("', '")}'. ")
+                else append("This endpoint does not accept any query parameters. ")
             }.toString()
 
             context.buildConstraintViolationWithTemplate(

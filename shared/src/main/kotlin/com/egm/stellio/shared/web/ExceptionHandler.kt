@@ -39,14 +39,13 @@ class ExceptionHandler {
             is MethodNotAllowedException ->
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is ConstraintViolationException -> {
-                val message = cause.constraintViolations.map { it.message }.joinToString(" . ")
-                if (cause.constraintViolations.any // todo simplify
-                        { constraint -> constraint.propertyPath.any { it.name == HttpStatus.NOT_IMPLEMENTED.name } }
-                ) {
+                val message = cause.constraintViolations.joinToString(" . ") { it.message }
+                if (cause.constraintViolations.flatMap { it.propertyPath }
+                        .any { it.name == HttpStatus.NOT_IMPLEMENTED.name }
+                )
                     NotImplementedException(message).toErrorResponse()
-                } else {
+                else
                     InvalidRequestException(message).toErrorResponse()
-                }
             }
 
             else -> InternalErrorException("$cause").toErrorResponse()

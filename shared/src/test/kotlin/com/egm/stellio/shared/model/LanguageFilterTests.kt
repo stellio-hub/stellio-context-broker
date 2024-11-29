@@ -254,4 +254,40 @@ class LanguageFilterTests {
             serializeObject(filteredEntity)
         )
     }
+
+    @Test
+    fun `it should filter language properties having other core attribute members`() = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "name": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "en": "beekeeper",
+                        "fr": "apiculteur"
+                    },
+                    "observedAt": "2024-11-30T00:00:00Z"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val filteredEntity = entity.toFilteredLanguageProperties("en")
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "name": {
+                    "type": "Property",
+                    "value": "beekeeper",
+                    "lang": "en",
+                    "observedAt": "2024-11-30T00:00:00Z"
+                }
+            }
+            """.trimIndent(),
+            serializeObject(filteredEntity)
+        )
+    }
 }

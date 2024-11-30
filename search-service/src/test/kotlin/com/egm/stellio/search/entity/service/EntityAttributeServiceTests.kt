@@ -473,6 +473,41 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should delete an entity attribute in merge operation if its value is NGSI-LD null`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val createdAt = ngsiLdDateTime()
+        val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null.json")
+        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
+        entityAttributeService.mergeAttributes(
+            beehiveTestCId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            createdAt,
+            null,
+            null
+        ).shouldSucceedWith { updateResult ->
+            val updatedDetails = updateResult.updated
+            assertEquals(1, updatedDetails.size)
+            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.DELETED }.size)
+        }
+
+        coVerify(exactly = 1) {
+            attributeInstanceService.deleteInstancesOfAttribute(
+                beehiveTestCId,
+                INCOMING_PROPERTY,
+                null
+            )
+        }
+    }
+
+    @Test
     fun `it should replace an entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 

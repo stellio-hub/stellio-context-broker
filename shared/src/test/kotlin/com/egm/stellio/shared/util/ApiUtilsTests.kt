@@ -58,17 +58,17 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return an empty list if no attrs param is provided`() {
-        assertTrue(parseAndExpandRequestParameter(null, emptyList()).isEmpty())
+        assertTrue(parseAndExpandQueryParameter(null, emptyList()).isEmpty())
     }
 
     @Test
     fun `it should return an singleton list if there is one provided attrs param`() {
-        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(1, parseAndExpandQueryParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test
     fun `it should return a list with two elements if there are two provided attrs param`() {
-        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(2, parseAndExpandQueryParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test

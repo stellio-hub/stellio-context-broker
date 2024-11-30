@@ -1,7 +1,6 @@
 package com.egm.stellio.search.entity.web
 
 import arrow.core.Either
-import arrow.core.computations.ResultEffect.bind
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -47,6 +46,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
@@ -58,6 +58,7 @@ import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
+@Validated
 class EntityOperationHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
@@ -256,10 +257,10 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(
-            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT], // todo double check
+            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -269,7 +270,7 @@ class EntityOperationHandler(
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
             query,
-            params,
+            queryParams,
             contexts
         ).bind()
 
@@ -279,7 +280,7 @@ class EntityOperationHandler(
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
             .copy(languageFilter = query.lang)
 
         buildQueryResponse(

@@ -44,6 +44,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -59,6 +60,7 @@ import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
+@Validated
 class TemporalEntityHandler(
     private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
@@ -141,20 +143,20 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
-                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
                 QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts, true).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery,
@@ -168,7 +170,7 @@ class TemporalEntityHandler(
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,
-            params,
+            queryParams,
             mediaType,
             contexts,
             range
@@ -187,19 +189,19 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [
-                QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
+                QP.OPTIONS, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
                 QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
+            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
         val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
             entityId,
@@ -209,7 +211,7 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
@@ -295,11 +297,11 @@ class TemporalEntityHandler(
             implemented = [QP.DELETE_ALL, QP.DATASET_ID],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val deleteAll = params.getFirst(QP.DELETE_ALL.key)?.toBoolean() ?: false
-        val datasetId = params.getFirst(QP.DATASET_ID.key)?.toUri()
+        val deleteAll = queryParams.getFirst(QP.DELETE_ALL.key)?.toBoolean() ?: false
+        val datasetId = queryParams.getFirst(QP.DATASET_ID.key)?.toUri()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()

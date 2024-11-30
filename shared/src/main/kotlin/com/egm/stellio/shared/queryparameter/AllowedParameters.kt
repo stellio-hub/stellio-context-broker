@@ -7,12 +7,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.util.MultiValueMap
 import kotlin.reflect.KClass
 
-@Target(
-    AnnotationTarget.VALUE_PARAMETER,
-)
-@Retention(
-    AnnotationRetention.RUNTIME
-)
+@Target(AnnotationTarget.VALUE_PARAMETER,)
+@Retention(AnnotationRetention.RUNTIME)
 @Constraint(validatedBy = [ AllowedParameters.ParamValidator::class])
 annotation class AllowedParameters(
     val implemented: Array<QueryParameter> = [],
@@ -21,8 +17,7 @@ annotation class AllowedParameters(
     val groups: Array<KClass<*>> = [],
     val payload: Array<KClass<*>> = [],
 ) {
-    class ParamValidator :
-        ConstraintValidator<AllowedParameters, MultiValueMap<String, String>> {
+    class ParamValidator : ConstraintValidator<AllowedParameters, MultiValueMap<String, String>> {
         private var implemented: List<String> = listOf()
         private var notImplemented: List<String> = listOf()
 
@@ -37,7 +32,7 @@ annotation class AllowedParameters(
             }
 
             val notImplementedKeys = params.keys.intersect(notImplemented)
-            val errorKeys = params.keys - notImplementedKeys - implemented
+            val invalidKeys = params.keys - notImplementedKeys - implemented
 
             context.disableDefaultConstraintViolation()
 
@@ -47,9 +42,9 @@ annotation class AllowedParameters(
                         "The '${notImplementedKeys.joinToString("', '")}' parameter is not implemented yet. "
                     )
                 }
-                if (errorKeys.isNotEmpty()) {
+                if (invalidKeys.isNotEmpty()) {
                     append(
-                        "The '${errorKeys.joinToString("', '")}' parameter is not allowed on this endpoint. "
+                        "The '${invalidKeys.joinToString("', '")}' parameter is not allowed on this endpoint. "
                     )
                 }
                 if (implemented.isNotEmpty())

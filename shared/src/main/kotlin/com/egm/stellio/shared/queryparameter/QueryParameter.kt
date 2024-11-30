@@ -36,7 +36,7 @@ enum class QueryParameter(
     TIMEPROPERTY("timeproperty"),
 
     // pagination
-    COUNT("count",),
+    COUNT("count"),
     OFFSET("offset"),
     LIMIT("limit"),
 

@@ -24,20 +24,20 @@ data class NgsiLdDataRepresentation(
 ) {
     companion object {
         fun parseRepresentations(
-            requestParams: MultiValueMap<String, String>,
+            queryParams: MultiValueMap<String, String>,
             acceptMediaType: MediaType
         ): NgsiLdDataRepresentation {
-            val optionsParam = requestParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            val optionsParam = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS.value)
             val attributeRepresentation = optionsParam.contains(OptionsValue.KEY_VALUES.value)
                 .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
-            val languageFilter = requestParams.getFirst(QueryParameter.LANG.key)
+            val languageFilter = queryParams.getFirst(QueryParameter.LANG.key)
             val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
             val geometryProperty =
                 if (entityRepresentation == EntityRepresentation.GEO_JSON)
-                    requestParams.getFirst(QueryParameter.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
+                    queryParams.getFirst(QueryParameter.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
                 else null
-            val timeproperty = requestParams.getFirst("timeproperty")
+            val timeproperty = queryParams.getFirst("timeproperty")
 
             return NgsiLdDataRepresentation(
                 entityRepresentation,

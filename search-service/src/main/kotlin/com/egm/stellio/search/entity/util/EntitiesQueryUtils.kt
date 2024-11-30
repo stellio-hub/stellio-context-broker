@@ -17,40 +17,40 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAndExpandRequestParameter
-import com.egm.stellio.shared.util.parseRequestParameter
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
 import org.springframework.util.MultiValueMap
 
 fun composeEntitiesQueryFromGet(
     defaultPagination: ApplicationProperties.Pagination,
-    requestParams: MultiValueMap<String, String>,
+    queryParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromGet> = either {
-    val ids = requestParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
-    val typeSelection = expandTypeSelection(requestParams.getFirst(QueryParameter.TYPE.key), contexts)
-    val idPattern = validateIdPattern(requestParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
+    val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
+    val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
+    val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
 
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = requestParams.getFirst(QueryParameter.Q.key)?.decode()
-    val scopeQ = requestParams.getFirst(QueryParameter.SCOPEQ.key)
-    val attrs = parseAndExpandRequestParameter(requestParams.getFirst(QueryParameter.ATTRS.key), contexts)
-    val datasetId = parseRequestParameter(requestParams.getFirst(QueryParameter.DATASET_ID.key))
+    val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
+    val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
+    val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
+    val datasetId = parseQueryParameter(queryParams.getFirst(QueryParameter.DATASET_ID.key))
     val paginationQuery = parsePaginationParameters(
-        requestParams,
+        queryParams,
         defaultPagination.limitDefault,
         defaultPagination.limitMax
     ).bind()
 
-    val geoQuery = parseGeoQueryParameters(requestParams.toSingleValueMap(), contexts).bind()
+    val geoQuery = parseGeoQueryParameters(queryParams.toSingleValueMap(), contexts).bind()
     val linkedEntityQuery = parseLinkedEntityQueryParameters(
-        requestParams.getFirst(QueryParameter.JOIN.key),
-        requestParams.getFirst(QueryParameter.JOIN_LEVEL.key),
-        requestParams.getFirst(QueryParameter.CONTAINED_BY.key)
+        queryParams.getFirst(QueryParameter.JOIN.key),
+        queryParams.getFirst(QueryParameter.JOIN_LEVEL.key),
+        queryParams.getFirst(QueryParameter.CONTAINED_BY.key)
     ).bind()
 
     EntitiesQueryFromGet(
@@ -85,7 +85,7 @@ fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIExc
 fun composeEntitiesQueryFromPost(
     defaultPagination: ApplicationProperties.Pagination,
     query: Query,
-    requestParams: MultiValueMap<String, String>,
+    queryParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromPost> = either {
     val entitySelectors = query.entities?.map { entitySelector ->
@@ -114,7 +114,7 @@ fun composeEntitiesQueryFromPost(
     ).bind()
 
     val paginationQuery = parsePaginationParameters(
-        requestParams,
+        queryParams,
         defaultPagination.limitDefault,
         defaultPagination.limitMax
     ).bind()

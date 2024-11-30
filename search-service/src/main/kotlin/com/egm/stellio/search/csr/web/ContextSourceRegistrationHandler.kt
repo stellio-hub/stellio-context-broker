@@ -34,6 +34,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -48,6 +49,7 @@ import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/csourceRegistrations")
+@Validated
 class ContextSourceRegistrationHandler(
     private val applicationProperties: ApplicationProperties,
     private val contextSourceRegistrationService: ContextSourceRegistrationService
@@ -92,16 +94,16 @@ class ContextSourceRegistrationHandler(
                 QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ,
             ]
         )
-        @RequestParam params: MultiValueMap<String, String>
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+        val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
         val paginationQuery = parsePaginationParameters(
-            params,
+            queryParams,
             applicationProperties.pagination.limitDefault,
             applicationProperties.pagination.limitMax
         ).bind()
@@ -118,7 +120,7 @@ class ContextSourceRegistrationHandler(
             contextSourceRegistrationsCount,
             "/ngsi-ld/v1/csourceRegistrations",
             paginationQuery,
-            params,
+            queryParams,
             mediaType,
             contexts
         )

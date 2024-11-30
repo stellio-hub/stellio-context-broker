@@ -180,8 +180,8 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
         .filter { it.any { option -> option == optionValue.value } }
         .isPresent
 
-fun parseRequestParameter(requestParam: String?): Set<String> =
-    requestParam
+fun parseQueryParameter(queryParam: String?): Set<String> =
+    queryParam
         ?.split(",")
         .orEmpty()
         .toSet()
@@ -196,8 +196,8 @@ fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: Lis
         JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
-fun parseAndExpandRequestParameter(requestParam: String?, contexts: List<String>): Set<String> =
-    parseRequestParameter(requestParam)
+fun parseAndExpandQueryParameter(queryParam: String?, contexts: List<String>): Set<String> =
+    parseQueryParameter(queryParam)
         .map {
             JsonLdUtils.expandJsonLdTerm(it.trim(), contexts)
         }.toSet()

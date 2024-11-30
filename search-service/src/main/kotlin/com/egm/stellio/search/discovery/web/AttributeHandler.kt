@@ -1,6 +1,5 @@
 package com.egm.stellio.search.discovery.web
 
-import arrow.core.computations.ResultEffect.bind
 import arrow.core.raise.either
 import com.egm.stellio.search.discovery.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -17,6 +16,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestHeader
@@ -27,6 +27,7 @@ import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/attributes")
+@Validated
 class AttributeHandler(
     private val attributeService: AttributeService,
     private val applicationProperties: ApplicationProperties

@@ -20,7 +20,7 @@ data class PaginationQuery(
             limitDefault: Int,
             limitMax: Int
         ): Either<APIException, PaginationQuery> {
-            val count = queryParams.getFirst(QueryParameter.COUNT.key)?.toBoolean() ?: false
+            val count = queryParams.getFirst(QueryParameter.COUNT.key)?.toBoolean() == true
             val offset = queryParams.getFirst(QueryParameter.OFFSET.key)?.toIntOrNull() ?: 0
             val limit = queryParams.getFirst(QueryParameter.LIMIT.key)?.toIntOrNull() ?: limitDefault
             if (!count && (limit <= 0 || offset < 0))

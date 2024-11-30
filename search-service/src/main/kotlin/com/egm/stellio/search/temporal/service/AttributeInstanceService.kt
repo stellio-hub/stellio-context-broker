@@ -14,11 +14,13 @@ import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toUuid
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty.DELETED_AT
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty.OBSERVED_AT
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
@@ -36,6 +38,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -123,7 +126,7 @@ class AttributeInstanceService(
     }
 
     @Transactional
-    suspend fun addAttributeInstance(
+    suspend fun addObservedAttributeInstance(
         attributeUuid: UUID,
         attributeMetadata: AttributeMetadata,
         attributeValues: Map<String, List<Any>>
@@ -133,6 +136,23 @@ class AttributeInstanceService(
             time = attributeMetadata.observedAt!!,
             attributeMetadata = attributeMetadata,
             payload = attributeValues
+        )
+        return create(attributeInstance)
+    }
+
+    @Transactional
+    suspend fun addDeletedAttributeInstance(
+        attributeUuid: UUID,
+        value: String,
+        deletedAt: ZonedDateTime,
+        attributeValues: Map<String, List<Any>>
+    ): Either<APIException, Unit> {
+        val attributeInstance = AttributeInstance(
+            attributeUuid = attributeUuid,
+            timeAndProperty = deletedAt to DELETED_AT,
+            value = Triple(value, null, null),
+            payload = attributeValues,
+            sub = getSubFromSecurityContext().getOrNull()
         )
         return create(attributeInstance)
     }
@@ -248,9 +268,11 @@ class AttributeInstanceService(
         } else
             "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
     } else {
-        val valueColumn = when (attributes[0].attributeValueType) {
-            Attribute.AttributeValueType.NUMBER -> "measured_value as value"
-            Attribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
+        val valueColumn = when {
+            // for deletedAt, the NGSI-LD Null representation is always stored as string in value column
+            temporalQuery.timeproperty == DELETED_AT -> "value"
+            attributes[0].attributeValueType == AttributeValueType.NUMBER -> "measured_value as value"
+            attributes[0].attributeValueType == AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
             else -> "value"
         }
         val subColumn =

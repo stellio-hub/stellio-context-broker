@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.service
 
+import arrow.core.left
 import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
@@ -9,50 +10,57 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
-import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
+import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityService: EntityService
@@ -145,7 +153,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should not create an entity payload if one already existed`() = runTest {
+    fun `it should not create an entity payload if one already exists`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) =
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(
@@ -154,13 +162,91 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             now,
         )
 
-        assertThrows<DataIntegrityViolationException> {
-            entityService.createEntityPayload(
-                ngsiLdEntity,
-                jsonLdEntity,
-                now,
-            )
-        }
+        entityService.createEntity(
+            ngsiLdEntity,
+            jsonLdEntity,
+            sub,
+        ).shouldFail { assertInstanceOf(AlreadyExistsException::class.java, it) }
+    }
+
+    @Test
+    fun `it should allow to create an entity over a deleted one if authorized`() = runTest {
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.createAttributes(any(), any(), any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        )
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
+            .shouldSucceedWith {
+                assertEquals(entity01Uri, it.entityId)
+                assertNotNull(it.payload)
+            }
+
+        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `it should not allow to create an entity over a deleted one if not authorized`() = runTest {
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanAdminEntity(any(), any())
+        } returns AccessDeniedException("Unauthorized").left()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        )
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
+            .shouldSucceedWith {
+                assertEquals(entity01Uri, it.entityId)
+                assertNotNull(it.payload)
+            }
+
+        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+            .shouldFail { assertInstanceOf(AccessDeniedException::class.java, it) }
+    }
+
+    @Test
+    fun `it should create the deleted representation of an entity when deleting it`() = runTest {
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        ).shouldSucceed()
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime()).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                val payload = entity.payload.deserializeAsMap()
+                assertThat(payload)
+                    .hasSize(2)
+                    .containsKeys(JSONLD_ID, NGSILD_DELETED_AT_PROPERTY)
+            }
     }
 
     @Test
@@ -334,7 +420,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
-        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -364,7 +450,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify {
             authorizationService.userCanCreateEntities(sub.toOption())
             authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
-            entityAttributeService.deleteAttributes(beehiveTestCId)
+            entityAttributeService.deleteAttributes(beehiveTestCId, any())
             entityAttributeService.createAttributes(
                 any(),
                 any(),
@@ -459,54 +545,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should upsert an entity payload if one already existed`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
-            .sampleDataToNgsiLdEntity()
-            .map {
-                entityService.createEntityPayload(
-                    it.second,
-                    it.first,
-                    now
-                )
-            }
-
-        entityService.upsertEntityPayload(entity01Uri, EMPTY_PAYLOAD)
-            .shouldSucceed()
-    }
-
-    @Test
-    fun `it should delete an entity payload`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
-
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
-            .sampleDataToNgsiLdEntity()
-            .map {
-                entityService.createEntityPayload(
-                    it.second,
-                    it.first,
-                    now
-                )
-            }
-
-        entityService.deleteEntityPayload(entity01Uri)
-            .shouldSucceedWith {
-                assertEquals(entity01Uri, it.entityId)
-                assertNotNull(it.payload)
-            }
-
-        // if correctly deleted, we should be able to create a new one
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
-            .sampleDataToNgsiLdEntity()
-            .map {
-                entityService.createEntityPayload(
-                    it.second,
-                    it.first,
-                    now
-                ).shouldSucceed()
-            }
-    }
-
-    @Test
     fun `it should remove the scopes from an entity`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
@@ -533,5 +571,83 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .shouldSucceedWith {
                 assertNull(it.scopes)
             }
+    }
+
+    @Test
+    fun `it should permanently delete an entity`() = runTest {
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.permanentlyDeleteAttributes(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteEntity(entity01Uri).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldFail {
+                assertInstanceOf(ResourceNotFoundException::class.java, it)
+            }
+    }
+
+    @Test
+    fun `it should permanently delete an attribute`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null).shouldSucceed()
+
+        coVerify {
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, null)
+            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null, false)
+            entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        }
+    }
+
+    @Test
+    fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+        } returns ResourceNotFoundException("Entity does not exist").left()
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+        }
+
+        coVerify {
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_PROPERTY, null)
+            listOf(
+                entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null, false),
+                entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+            ) wasNot Called
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.Entity
@@ -42,6 +43,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
@@ -50,7 +52,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityQueryService: EntityQueryService
@@ -95,15 +97,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
 
     @AfterAll
     fun deleteEntities() {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
-        runBlocking {
-            entityService.deleteEntity(entity01Uri)
-            entityService.deleteEntity(entity02Uri)
-            entityService.deleteEntity(entity03Uri)
-            entityService.deleteEntity(entity04Uri)
-            entityService.deleteEntity(entity05Uri)
-        }
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
+        r2dbcEntityTemplate.delete<Attribute>().from("temporal_entity_attribute").all().block()
     }
 
     @ParameterizedTest

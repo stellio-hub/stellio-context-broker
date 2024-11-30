@@ -94,6 +94,8 @@ object JsonLdUtils {
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     const val NGSILD_ENTITY_TERM = "entity"
+    const val NGSILD_NULL = "urn:ngsi-ld:null"
+
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
     // List of members that are part of a core entity base definition (i.e., without attributes)
@@ -124,6 +126,8 @@ object JsonLdUtils {
     val NGSILD_SYSATTRS_PROPERTIES = setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
+    const val NGSILD_DELETED_AT_TERM = "deletedAt"
+    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"
     const val NGSILD_LOCATION_TERM = "location"
@@ -295,13 +299,13 @@ object JsonLdUtils {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
             when (it.value) {
                 is Map<*, *> -> {
-                    val geoProperty = it.value as MutableMap<String, Any>
-                    val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM]!! as Map<String, Any>)
+                    val geoProperty = it.value as Map<String, Any>
+                    val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
                     geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                 }
                 is List<*> -> {
                     (it.value as List<Map<String, Any>>).map { geoProperty ->
-                        val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM] as Map<String, Any>)
+                        val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
                         geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                     }
                 }
@@ -309,6 +313,12 @@ object JsonLdUtils {
             }
         } else it.value
     }
+
+    private fun geoPropertyToWKTOrNull(geoPropertyValue: Any): String =
+        if (geoPropertyValue is String && geoPropertyValue == NGSILD_NULL)
+            NGSILD_NULL
+        else
+            throwingGeoJsonToWkt(geoPropertyValue as Map<String, Any>)
 
     private fun restoreGeoPropertyFromWKT(): (Map.Entry<String, Any>) -> Any = {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {

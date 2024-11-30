@@ -7,8 +7,10 @@ import com.egm.stellio.search.authorization.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.model.SubjectAccessRight
 import com.egm.stellio.search.authorization.model.SubjectReferential
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -58,7 +60,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityAccessRightsServiceTests : WithTimescaleContainer {
+class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityAccessRightsService: EntityAccessRightsService
@@ -245,7 +247,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -274,7 +279,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -305,7 +313,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(2, it.size)
             it.forEach { entityAccessControl ->
@@ -336,8 +347,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            BEEHIVE_TYPE,
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                typeSelection = BEEHIVE_TYPE,
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -369,9 +383,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            null,
-            setOf(entityId01, entityId02),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                ids = setOf(entityId01, entityId02),
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(entityId01, it[0].id)
@@ -402,9 +418,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            BEEHIVE_TYPE,
-            setOf(entityId01, entityId03),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                ids = setOf(entityId01, entityId02),
+                typeSelection = BEEHIVE_TYPE,
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(entityId01, it[0].id)
@@ -435,7 +454,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             listOf(AccessRight.CAN_WRITE),
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -464,8 +486,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             listOf(AccessRight.CAN_WRITE),
-            "$BEEHIVE_TYPE,$APIARY_TYPE",
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
@@ -493,13 +518,76 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.getSubjectAccessRights(
             Some(userUuid),
             emptyList(),
-            BEEHIVE_TYPE,
-            paginationQuery = PaginationQuery(limit = 100, offset = 0)
+            entitiesQuery = EntitiesQueryFromGet(
+                typeSelection = BEEHIVE_TYPE,
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             val entityAccessControl = it[0]
             assertEquals(entityId01, entityAccessControl.id)
             assertEquals(AccessRight.CAN_ADMIN, entityAccessControl.right)
+        }
+    }
+
+    @Test
+    fun `getSubjectAccessRights should include deleted entities if it is asked for`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE), AUTH_READ)
+        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
+        entityService.deleteEntity(entityId02, userUuid).shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(userUuid),
+            emptyList(),
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            ),
+            includeDeleted = true
+        ).shouldSucceedWith { entityAccessRights ->
+            assertEquals(2, entityAccessRights.size)
+            assertEquals(1, entityAccessRights.filter { it.isDeleted }.size)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(userUuid),
+            emptyList(),
+            includeDeleted = true
+        ).shouldSucceedWith {
+            assertEquals(2, it)
+        }
+    }
+
+    @Test
+    fun `getSubjectAccessRights should not include deleted entities if it is not asked for`() = runTest {
+        createEntityPayload(entityId01, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+
+        createEntityPayload(entityId02, setOf(BEEHIVE_TYPE))
+        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
+        entityService.deleteEntity(entityId02, userUuid).shouldSucceed()
+
+        entityAccessRightsService.getSubjectAccessRights(
+            Some(userUuid),
+            emptyList(),
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                contexts = emptyList()
+            )
+        ).shouldSucceedWith { entityAccessRights ->
+            assertEquals(1, entityAccessRights.size)
+            assertEquals(0, entityAccessRights.filter { it.isDeleted }.size)
+        }
+
+        entityAccessRightsService.getSubjectAccessRightsCount(
+            Some(userUuid),
+            emptyList()
+        ).shouldSucceedWith {
+            assertEquals(1, it)
         }
     }
 

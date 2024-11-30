@@ -296,7 +296,10 @@ class EntityOperationServiceTests {
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
-        coVerify { entityService.replaceEntity(firstEntityURI, any(), any(), any()) }
+        coVerify {
+            entityService.replaceEntity(firstEntityURI, any(), any(), any())
+            entityService.replaceEntity(secondEntityURI, any(), any(), any())
+        }
     }
 
     @Test

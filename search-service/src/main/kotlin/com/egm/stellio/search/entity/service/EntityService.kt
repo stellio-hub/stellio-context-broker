@@ -1,6 +1,9 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.Either.Left
+import arrow.core.Either.Right
+import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
@@ -24,7 +27,9 @@ import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
@@ -35,10 +40,12 @@ import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.getSpecificAccessPolicy
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -48,7 +55,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
@@ -68,14 +74,23 @@ class EntityService(
         expandedEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        authorizationService.userCanCreateEntities(sub.toOption()).bind()
-        entityQueryService.checkEntityExistence(ngsiLdEntity.id, true).bind()
+        entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
+            when (it) {
+                is Left -> authorizationService.userCanCreateEntities(sub.toOption()).bind()
+                is Right ->
+                    if (!it.value)
+                        AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
+                    else
+                        authorizationService.userCanAdminEntity(ngsiLdEntity.id, sub.toOption()).bind()
+            }
+        }
 
         val createdAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub).bind()
+        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
+        scopeService.createHistory(ngsiLdEntity, createdAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -96,14 +111,20 @@ class EntityService(
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        createdAt: ZonedDateTime,
-        sub: Sub? = null
+        createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
             INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
             VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
+            ON CONFLICT (entity_id)
+                DO UPDATE SET types = :types,
+                    scopes = :scopes,
+                    modified_at = :created_at,
+                    deleted_at = null,
+                    payload = :payload,
+                    specific_access_policy = :specific_access_policy
             """.trimIndent()
         )
             .bind("entity_id", ngsiLdEntity.id)
@@ -113,9 +134,6 @@ class EntityService(
             .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.createHistory(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     @Transactional
@@ -129,7 +147,10 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+            expandedAttributes.toList()
+                // remove @id if it is present (optional as per 5.4)
+                .filter { it.first != JSONLD_ID }
+                .partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
@@ -173,13 +194,14 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        val replacedAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeService.deleteAttributes(entityId)
+        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
 
-        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
+        val replacedAt = ngsiLdDateTime()
+        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt).bind()
+        scopeService.replace(ngsiLdEntity, replacedAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -199,8 +221,7 @@ class EntityService(
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        replacedAt: ZonedDateTime,
-        sub: Sub? = null
+        replacedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
@@ -225,9 +246,6 @@ class EntityService(
             .bind("payload", Json.of(serializedPayload))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     private suspend fun retrieveCreatedAt(entityId: URI): Either<APIException, ZonedDateTime> =
@@ -439,7 +457,7 @@ class EntityService(
         expandedAttributes: ExpandedAttributes,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
         expandedAttributes.forEach { (attributeName, expandedAttributeInstances) ->
             expandedAttributeInstances.forEach { expandedAttributeInstance ->
                 val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
@@ -545,35 +563,57 @@ class EntityService(
     }
 
     @Transactional
-    suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            INSERT INTO entity_payload (entity_id, payload)
-            VALUES (:entity_id, :payload)
-            ON CONFLICT (entity_id)
-            DO UPDATE SET payload = :payload
-            """.trimIndent()
-        )
-            .bind("payload", Json.of(payload))
-            .bind("entity_id", entityId)
-            .execute()
-
-    @Transactional
     suspend fun deleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
-        val entity = deleteEntityPayload(entityId).bind()
+        val deletedAt = ngsiLdDateTime()
+        val entity = deleteEntityPayload(entityId, deletedAt).bind()
+        entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+        scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
-        entityAttributeService.deleteAttributes(entityId).bind()
-        scopeService.deleteHistory(entityId).bind()
+        entityEventService.publishEntityDeleteEvent(sub, entity)
+    }
+
+    @Transactional
+    suspend fun deleteEntityPayload(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Entity> = either {
+        val expandedDeletedEntity = Entity.toExpandedDeletedEntity(entityId, deletedAt)
+        val entity = databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET deleted_at = :deleted_at,
+                payload = :payload,
+                scopes = null,
+                specific_access_policy = null,
+                types = '{}'
+            WHERE entity_id = :entity_id
+            RETURNING *
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("deleted_at", deletedAt)
+            .bind("payload", Json.of(serializeObject(expandedDeletedEntity.members)))
+            .oneToResult {
+                it.rowToEntity()
+            }
+            .bind()
+        entity
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
+        entityQueryService.checkEntityExistence(entityId, true).bind()
+        authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
+
+        val entity = permanentyDeleteEntityPayload(entityId).bind()
+        entityAttributeService.permanentlyDeleteAttributes(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
         entityEventService.publishEntityDeleteEvent(sub, entity)
     }
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
+    suspend fun permanentyDeleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
         val entity = databaseClient.sql(
             """
             DELETE FROM entity_payload
@@ -612,7 +652,8 @@ class EntityService(
                 entityId,
                 attributeName,
                 datasetId,
-                deleteAll
+                deleteAll,
+                ngsiLdDateTime()
             ).bind()
         }
         updateState(
@@ -628,5 +669,37 @@ class EntityService(
             datasetId,
             deleteAll
         )
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        deleteAll: Boolean = false,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+
+        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+            scopeService.permanentlyDelete(entityId).bind()
+        } else {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                entityId,
+                attributeName,
+                datasetId
+            ).bind()
+            entityAttributeService.permanentlyDeleteAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                deleteAll
+            ).bind()
+        }
+        updateState(
+            entityId,
+            ngsiLdDateTime(),
+            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+        ).bind()
     }
 }

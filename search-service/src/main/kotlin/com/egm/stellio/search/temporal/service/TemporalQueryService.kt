@@ -48,7 +48,7 @@ class TemporalQueryService(
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
-        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
+        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds, false).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
                     entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)
@@ -94,10 +94,10 @@ class TemporalQueryService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
 
-        if (!temporalEntitiesQuery.withAggregatedValues)
-            return null
+        return if (!temporalEntitiesQuery.withAggregatedValues)
+            null
         else if (temporalQuery.timeAt != null)
-            return temporalQuery.timeAt
+            temporalQuery.timeAt
         else {
             val originForAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, attributes)
@@ -108,7 +108,7 @@ class TemporalQueryService(
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
                 else null
 
-            return when {
+            when {
                 originForAttributes == null -> originForScope
                 originForScope == null -> originForAttributes
                 else -> minOf(originForAttributes, originForScope)
@@ -122,9 +122,11 @@ class TemporalQueryService(
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val entitiesIds = entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-        val count = entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-            .getOrElse { 0 }
+        val entitiesIds =
+            entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
+        val count =
+            entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
+                .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())

@@ -596,7 +596,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -610,7 +610,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -621,9 +621,43 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
+    fun `get authorized entities should not ask for deleted entities if includeDeleted query param is not provided`() {
+        coEvery {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        coVerify {
+            authorizationService.getAuthorizedEntities(any(), false, any(), any())
+        }
+    }
+
+    @Test
+    fun `get authorized entities should ask for deleted entities if includeDeleted query param is true`() {
+        coEvery {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?includeDeleted=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        coVerify {
+            authorizationService.getAuthorizedEntities(any(), true, any(), any())
+        }
+    }
+
+    @Test
     fun `get authorized entities should return entities I have a right on`() = runTest {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(
             2,
             listOf(
@@ -697,7 +731,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()

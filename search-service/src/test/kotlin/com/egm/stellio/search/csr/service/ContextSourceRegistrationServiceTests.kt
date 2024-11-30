@@ -5,6 +5,7 @@ import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -33,7 +34,7 @@ import java.util.UUID
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
+class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService

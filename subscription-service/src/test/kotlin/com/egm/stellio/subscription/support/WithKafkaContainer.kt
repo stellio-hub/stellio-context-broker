@@ -1,29 +1,21 @@
 package com.egm.stellio.subscription.support
 
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.kafka.ConfluentKafkaContainer
-import org.testcontainers.utility.DockerImageName
 
-interface WithKafkaContainer {
+@Testcontainers
+@Suppress("UtilityClassWithPublicConstructor")
+open class WithKafkaContainer {
 
     companion object {
 
-        private val kafkaImage: DockerImageName =
-            DockerImageName.parse("confluentinc/cp-kafka:7.6.0")
-
-        private val kafkaContainer = ConfluentKafkaContainer(kafkaImage).apply {
-            withReuse(true)
-        }
-
+        @Container
+        @ServiceConnection
         @JvmStatic
-        @DynamicPropertySource
-        fun properties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.kafka.bootstrap-servers") { kafkaContainer.bootstrapServers }
-        }
-
-        init {
-            kafkaContainer.start()
+        val kafkaContainer = ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0").apply {
+            withReuse(true)
         }
     }
 }

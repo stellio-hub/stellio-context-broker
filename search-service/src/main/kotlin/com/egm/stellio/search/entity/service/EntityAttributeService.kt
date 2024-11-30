@@ -60,6 +60,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -844,6 +845,20 @@ class EntityAttributeService(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
                         UpdateOperationResult.APPENDED,
+                        null
+                    )
+                }.bind()
+            } else if (attributeMetadata.value == NGSILD_NULL) {
+                deleteAttribute(
+                    entityUri,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
+                    false
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.DELETED,
                         null
                     )
                 }.bind()

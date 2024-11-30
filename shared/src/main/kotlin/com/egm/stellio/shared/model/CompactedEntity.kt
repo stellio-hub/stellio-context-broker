@@ -53,12 +53,12 @@ val JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS =
         JSONLD_OBJECT,
         JSONLD_JSON_TERM,
         JSONLD_VOCAB_TERM,
+        JSONLD_LANGUAGEMAP_TERM,
         NGSILD_UNIT_CODE_TERM,
         NGSILD_DATASET_ID_TERM,
         NGSILD_CREATED_AT_TERM,
         NGSILD_MODIFIED_AT_TERM,
-        NGSILD_OBSERVED_AT_TERM,
-        JSONLD_LANGUAGEMAP_TERM
+        NGSILD_OBSERVED_AT_TERM
     )
 
 fun CompactedEntity.getRelationshipsObjects(): Set<URI> =
@@ -160,7 +160,7 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
         AttributeCompactedType.forKey(value[JSONLD_TYPE_TERM] as String)
     }
 
-    if (attributeCompactedType == LANGUAGEPROPERTY) {
+    return if (attributeCompactedType == LANGUAGEPROPERTY) {
         val localeRanges = Locale.LanguageRange.parse(languageFilter)
         val propertyLocales = (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>).keys.sorted()
         val bestLocaleMatch = Locale.filterTags(localeRanges, propertyLocales)
@@ -168,34 +168,29 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
                 // as the list is sorted, @none is the first in the list if it exists
                 propertyLocales.first()
             }
-        val filteredMainAttribute = mutableMapOf(
-            JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM,
-            JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch],
-            NGSILD_LANG_TERM to bestLocaleMatch
-        )
-        value.forEach { (key, value) ->
-            if (JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key)) {
-                if (key != JSONLD_LANGUAGEMAP_TERM && key != JSONLD_TYPE_TERM) filteredMainAttribute[key] = value
-            } else {
-                filteredMainAttribute[key] = filterLanguageProperty(
-                    value as Map<String, Any>,
-                    transformationParameters
-                )
-            }
-        }
 
-        return filteredMainAttribute
-    } else {
-        return value.map { entry ->
+        value.map { entry ->
             when {
-                entry.key == NGSILD_ENTITY_TERM ->
-                    entry.key to (entry.value as CompactedEntity).toFilteredLanguageProperties(languageFilter)
-                !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(entry.key) ->
+                entry.key == JSONLD_TYPE_TERM ->
+                    JSONLD_TYPE_TERM to NGSILD_PROPERTY_TERM
+                entry.key == JSONLD_LANGUAGEMAP_TERM ->
+                    JSONLD_VALUE_TERM to (value[JSONLD_LANGUAGEMAP_TERM] as Map<String, Any>)[bestLocaleMatch]
+                JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(entry.key) ->
+                    entry.key to entry.value
+                else ->
                     entry.key to filterLanguageProperty(entry.value as Map<String, Any>, transformationParameters)
-                else -> entry.key to entry.value
             }
         }.toMap()
-    }
+            .plus(NGSILD_LANG_TERM to bestLocaleMatch)
+    } else value.map { entry ->
+        when {
+            entry.key == NGSILD_ENTITY_TERM ->
+                entry.key to (entry.value as CompactedEntity).toFilteredLanguageProperties(languageFilter)
+            !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(entry.key) ->
+                entry.key to filterLanguageProperty(entry.value as Map<String, Any>, transformationParameters)
+            else -> entry.key to entry.value
+        }
+    }.toMap()
 }
 
 fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {

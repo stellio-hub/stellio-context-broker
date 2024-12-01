@@ -1,12 +1,18 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
@@ -29,6 +35,7 @@ data class Attribute(
     val datasetId: URI? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
+    val deletedAt: ZonedDateTime? = null,
     val payload: Json
 ) {
     enum class AttributeValueType {
@@ -75,5 +82,25 @@ data class Attribute(
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_VALUES
                 VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
             }
+
+        fun toDeletedPayload(): Map<String, Any> {
+            return when (this) {
+                Property, GeoProperty, JsonProperty, VocabProperty ->
+                    mapOf(
+                        JSONLD_TYPE_TERM to this.name,
+                        JSONLD_VALUE_TERM to NGSILD_NULL
+                    )
+                Relationship ->
+                    mapOf(
+                        JSONLD_TYPE_TERM to this.name,
+                        JSONLD_OBJECT to NGSILD_NULL
+                    )
+                LanguageProperty ->
+                    mapOf(
+                        JSONLD_TYPE_TERM to this.name,
+                        JSONLD_LANGUAGEMAP_TERM to mapOf(NGSILD_NONE_TERM to NGSILD_NULL)
+                    )
+            }
+        }
     }
 }

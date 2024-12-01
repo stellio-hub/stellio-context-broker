@@ -334,7 +334,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
         } returns Unit.right()
-        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -364,7 +364,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify {
             authorizationService.userCanCreateEntities(sub.toOption())
             authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
-            entityAttributeService.deleteAttributes(beehiveTestCId)
+            entityAttributeService.deleteAttributes(beehiveTestCId, any())
             entityAttributeService.createAttributes(
                 any(),
                 any(),
@@ -476,7 +476,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should delete an entity payload`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any()) } returns Unit.right()
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
 
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
             .sampleDataToNgsiLdEntity()

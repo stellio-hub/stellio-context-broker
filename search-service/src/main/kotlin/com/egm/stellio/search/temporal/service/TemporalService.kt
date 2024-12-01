@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Service
@@ -122,6 +123,21 @@ class TemporalService(
             jsonLdInstances.sorted(),
             sub
         ).bind()
+    }
+
+    @Transactional
+    suspend fun deleteAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        deleteAll: Boolean = false,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        entityService.deleteAttribute(entityId, attributeName, datasetId, deleteAll, sub).bind()
+        if (deleteAll)
+            attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
+        else
+            attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
     }
 
     suspend fun modifyAttributeInstance(

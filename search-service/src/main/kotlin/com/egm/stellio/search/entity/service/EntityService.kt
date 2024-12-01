@@ -173,12 +173,12 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        val replacedAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeService.deleteAttributes(entityId)
+        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
 
+        val replacedAt = ngsiLdDateTime()
         replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
@@ -565,7 +565,7 @@ class EntityService(
 
         val entity = deleteEntityPayload(entityId).bind()
 
-        entityAttributeService.deleteAttributes(entityId).bind()
+        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
         scopeService.deleteHistory(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
@@ -612,7 +612,8 @@ class EntityService(
                 entityId,
                 attributeName,
                 datasetId,
-                deleteAll
+                deleteAll,
+                ngsiLdDateTime()
             ).bind()
         }
         updateState(

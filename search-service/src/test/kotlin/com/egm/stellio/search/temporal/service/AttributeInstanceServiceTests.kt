@@ -641,7 +641,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.addAttributeInstance(
+        attributeInstanceService.addObservedAttributeInstance(
             incomingAttribute.id,
             attributeMetadata,
             attributeValues
@@ -703,7 +703,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.addAttributeInstance(
+        attributeInstanceService.addObservedAttributeInstance(
             incomingAttribute.id,
             attributeMetadata,
             attributeValues

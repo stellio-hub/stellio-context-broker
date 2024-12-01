@@ -81,7 +81,7 @@ class EntityQueryService(
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
+            ON tea.entity_id = entity_payload.entity_id AND tea.deleted_at is null
             WHERE $filterQuery
             ORDER BY entity_id
             LIMIT :limit
@@ -106,7 +106,7 @@ class EntityQueryService(
             SELECT count(distinct(entity_payload.entity_id)) as count_entity
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
+            ON tea.entity_id = entity_payload.entity_id AND tea.deleted_at is null
             WHERE $filterQuery
             """.trimIndent()
 

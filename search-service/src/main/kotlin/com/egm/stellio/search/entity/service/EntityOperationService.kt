@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.web.entityId
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -256,7 +257,7 @@ class EntityOperationService(
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityAttributeService.deleteAttributes(ngsiLdEntity.id).bind()
+        entityAttributeService.deleteAttributes(ngsiLdEntity.id, ngsiLdDateTime()).bind()
         entityService.appendAttributes(
             ngsiLdEntity.id,
             jsonLdEntity.getModifiableMembers(),

@@ -19,6 +19,7 @@ import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty.DELETED_AT
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty.OBSERVED_AT
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
@@ -35,7 +36,9 @@ import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -123,7 +126,7 @@ class AttributeInstanceService(
     }
 
     @Transactional
-    suspend fun addAttributeInstance(
+    suspend fun addObservedAttributeInstance(
         attributeUuid: UUID,
         attributeMetadata: AttributeMetadata,
         attributeValues: Map<String, List<Any>>
@@ -133,6 +136,21 @@ class AttributeInstanceService(
             time = attributeMetadata.observedAt!!,
             attributeMetadata = attributeMetadata,
             payload = attributeValues
+        )
+        return create(attributeInstance)
+    }
+
+    @Transactional
+    suspend fun addDeletedAttributeInstance(
+        attributeUuid: UUID,
+        attributeValues: Map<String, List<Any>>
+    ): Either<APIException, Unit> {
+        val attributeInstance = AttributeInstance(
+            attributeUuid = attributeUuid,
+            timeAndProperty = ngsiLdDateTime() to DELETED_AT,
+            value = Triple(NGSILD_NULL, null, null),
+            payload = attributeValues,
+            sub = getSubFromSecurityContext().getOrNull()
         )
         return create(attributeInstance)
     }

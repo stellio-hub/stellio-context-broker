@@ -53,8 +53,8 @@ data class UpdateAttributeResult(
             UpdateOperationResult.APPENDED,
             UpdateOperationResult.REPLACED,
             UpdateOperationResult.UPDATED,
-            UpdateOperationResult.IGNORED,
-            UpdateOperationResult.DELETED
+            UpdateOperationResult.DELETED,
+            UpdateOperationResult.IGNORED
         )
 }
 

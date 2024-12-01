@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -473,11 +474,11 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should delete an entity attribute in merge operation if its value is NGSI-LD null`() = runTest {
+    fun `it should delete an attribute in merge operation if its value is NGSI-LD null`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
 
@@ -499,10 +500,18 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         }
 
         coVerify(exactly = 1) {
-            attributeInstanceService.deleteInstancesOfAttribute(
-                beehiveTestCId,
-                INCOMING_PROPERTY,
-                null
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
             )
         }
     }
@@ -616,34 +625,51 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should delete a temporal attribute references`() = runTest {
+    fun `it should flag and audit a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
+        val deletedAt = ngsiLdDateTime()
         entityAttributeService.deleteAttribute(
             beehiveTestDId,
             INCOMING_PROPERTY,
-            null
+            null,
+            false,
+            deletedAt
         ).shouldSucceed()
 
         coVerify {
-            attributeInstanceService.deleteInstancesOfAttribute(eq(beehiveTestDId), eq(INCOMING_PROPERTY), null)
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
+            )
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_PROPERTY)
-            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+            .shouldSucceedWith {
+                assertEquals(deletedAt, it.deletedAt)
+            }
     }
 
     @Test
-    fun `it should delete references of all temporal attribute instances`() = runTest {
+    fun `it should flag and audit all instances of a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.deleteAllInstancesOfAttribute(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -651,11 +677,12 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             beehiveTestCId,
             INCOMING_PROPERTY,
             null,
-            deleteAll = true
+            deleteAll = true,
+            ngsiLdDateTime()
         ).shouldSucceed()
 
-        coVerify {
-            attributeInstanceService.deleteAllInstancesOfAttribute(eq(beehiveTestCId), eq(INCOMING_PROPERTY))
+        coVerify(exactly = 2) {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)

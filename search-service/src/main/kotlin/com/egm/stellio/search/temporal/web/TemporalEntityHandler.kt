@@ -307,7 +307,7 @@ class TemporalEntityHandler(
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        entityService.deleteAttribute(
+        temporalService.deleteAttribute(
             entityId,
             expandedAttrId,
             datasetId,

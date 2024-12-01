@@ -1077,7 +1077,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 204 if the attribute has been successfully deleted`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1089,7 +1089,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -1102,7 +1102,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should delete all instances if deleteAll flag is true`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1114,7 +1114,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -1128,7 +1128,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `delete attribute temporal should delete instance with the provided datasetId`() {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1140,7 +1140,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
@@ -1153,7 +1153,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 404 if the entity is not found`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1176,7 +1176,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 404 if the attribute is not found`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException("Attribute Not Found").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1199,7 +1199,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 400 if the request is not correct`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1273,7 +1273,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 403 if user is not allowed to update entity`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.method(HttpMethod.DELETE)

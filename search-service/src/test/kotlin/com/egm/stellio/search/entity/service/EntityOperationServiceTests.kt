@@ -282,7 +282,7 @@ class EntityOperationServiceTests {
     @Test
     fun `batch replace should ask to replace entities`() = runTest {
         coEvery {
-            entityAttributeService.deleteAttributes(any())
+            entityAttributeService.deleteAttributes(any(), any())
         } returns Unit.right()
         coEvery {
             entityService.appendAttributes(any(), any(), any(), any())
@@ -302,8 +302,8 @@ class EntityOperationServiceTests {
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
-        coVerify { entityAttributeService.deleteAttributes(firstEntityURI) }
-        coVerify { entityAttributeService.deleteAttributes(secondEntityURI) }
+        coVerify { entityAttributeService.deleteAttributes(firstEntityURI, any()) }
+        coVerify { entityAttributeService.deleteAttributes(secondEntityURI, any()) }
         coVerify {
             entityService.appendAttributes(eq(firstEntityURI), any(), false, sub)
         }

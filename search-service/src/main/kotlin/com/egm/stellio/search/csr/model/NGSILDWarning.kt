@@ -47,12 +47,13 @@ data class MiscellaneousPersistentWarning(
     override val csr: ContextSourceRegistration
 ) : NGSILDWarning(MISCELLANEOUS_PERSISTENT_WARNING_CODE, message, csr)
 
-fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> {
-    val headers = HttpHeaders.writableHttpHeaders(this.headers)
-    if (!warnings.isNullOrEmpty())
-        headers.addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() })
+fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> =
+    if (!warnings.isNullOrEmpty()) {
+        val headers = HttpHeaders(this.headers).apply {
+            addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() })
+        }
 
-    return ResponseEntity.status(this.statusCode)
-        .headers(headers)
-        .body(this.body)
-}
+        ResponseEntity.status(this.statusCode)
+            .headers(headers)
+            .body(this.body)
+    } else this

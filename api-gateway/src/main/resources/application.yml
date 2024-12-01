@@ -33,15 +33,16 @@ application:
 
 management:
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
         include: health,info
+    access:
+      default: none
   endpoint:
     info:
-      enabled: false
+      access: none
     health:
-      enabled: true
+      access: read_only
 
 logbook:
   format.style: http

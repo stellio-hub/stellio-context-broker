@@ -188,9 +188,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve a full instance if temporalValues are not asked for`() = runTest {
-        val observation = gimmeNumericPropertyAttributeInstance(incomingAttribute.id).copy(
-            time = now,
-            measuredValue = 12.4
+        val observation = gimmeNumericPropertyAttributeInstance(
+            attributeUuid = incomingAttribute.id,
+            measuredValue = 12.4,
+            time = now
         )
         attributeInstanceService.create(observation)
 
@@ -210,7 +211,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve an instance having the corresponding time property value`() = runTest {
-        val observation = gimmeNumericPropertyAttributeInstance(incomingAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(
+            attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
@@ -233,7 +235,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should retrieve an instance with audit info if time property is not observedAt`() = runTest {
-        val observation = gimmeNumericPropertyAttributeInstance(incomingAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(
+            attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4,
@@ -258,7 +261,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should not retrieve an instance not having the corresponding time property value`() = runTest {
-        val observation = gimmeNumericPropertyAttributeInstance(incomingAttribute.id).copy(
+        val observation = gimmeNumericPropertyAttributeInstance(
+            attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = now,
             measuredValue = 12.4
@@ -365,11 +369,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
+                gimmeNumericPropertyAttributeInstance(
+                    attributeUuid = incomingAttribute.id,
+                    measuredValue = index.toDouble(),
+                    time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                )
             attributeInstanceService.create(attributeInstance)
         }
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -393,11 +397,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should include lower bound of interval with after timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
+                gimmeNumericPropertyAttributeInstance(
+                    attributeUuid = incomingAttribute.id,
+                    measuredValue = index.toDouble(),
+                    time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                )
             attributeInstanceService.create(attributeInstance)
         }
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -418,11 +422,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should exclude upper bound of interval with between timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
-                    .copy(
-                        measuredValue = index.toDouble(),
-                        time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
-                    )
+                gimmeNumericPropertyAttributeInstance(
+                    attributeUuid = incomingAttribute.id,
+                    measuredValue = index.toDouble(),
+                    time = ZonedDateTime.parse("2022-07-0${index + 1}T00:00:00Z")
+                )
             attributeInstanceService.create(attributeInstance)
         }
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -446,8 +450,10 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Test
     fun `it should only return the limited instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
-                .copy(measuredValue = 1.0)
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = incomingAttribute.id,
+                measuredValue = 1.0
+            )
             attributeInstanceService.create(attributeInstance)
         }
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
@@ -470,11 +476,11 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val now = ngsiLdDateTime()
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =
-                gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
-                    .copy(
-                        measuredValue = 1.0,
-                        time = now.minusSeconds(index.toLong())
-                    )
+                gimmeNumericPropertyAttributeInstance(
+                    attributeUuid = incomingAttribute.id,
+                    measuredValue = 1.0,
+                    time = now.minusSeconds(index.toLong())
+                )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -572,11 +578,20 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
     @Test
     fun `it should update an existing attribute instance with same observation date`() = runTest {
-        val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(
+            attributeUuid = incomingAttribute.id,
+            time = now
+        )
 
         attributeInstanceService.create(attributeInstance)
 
-        val createResult = attributeInstanceService.create(attributeInstance.copy(measuredValue = 100.0))
+        val createResult = attributeInstanceService.create(
+            gimmeNumericPropertyAttributeInstance(
+                attributeUuid = incomingAttribute.id,
+                time = now,
+                measuredValue = 100.0
+            )
+        )
         assertThat(createResult.isRight())
 
         attributeInstanceService.search(

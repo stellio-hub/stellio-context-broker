@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>CyclomaticComplexMethod:ExceptionHandler.kt$ExceptionHandler$@ExceptionHandler fun transformErrorResponse(throwable: Throwable): ResponseEntity&lt;ProblemDetail&gt;</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should inline two entities with their respective relationhips`()</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should simplify relationships for inlined entities`()</ID>
     <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>

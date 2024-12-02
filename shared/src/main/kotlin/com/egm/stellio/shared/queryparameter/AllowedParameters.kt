@@ -59,7 +59,7 @@ annotation class AllowedParameters(
             context.buildConstraintViolationWithTemplate(
                 message
             ).addPropertyNode(
-                if (notImplemented.isEmpty()) HttpStatus.BAD_REQUEST.name else HttpStatus.NOT_IMPLEMENTED.name
+                if (notImplementedKeys.isEmpty()) HttpStatus.BAD_REQUEST.name else HttpStatus.NOT_IMPLEMENTED.name
             ).addConstraintViolation()
 
             return false

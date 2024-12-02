@@ -311,6 +311,46 @@ class EntityHandlerTests {
             )
     }
 
+    @Test
+    fun `create entity should return a 400 if  it contain a invalid queryparameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?invalid=invalid")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "The 'invalid' parameter(s) is/are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 501 if it contain a notImplemented queryParameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?local=true")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(501)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+                    "title": "The 'local' parameter(s) has/have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
     fun initializeRetrieveEntityMocks() {
         val compactedEntity = slot<CompactedEntity>()
 

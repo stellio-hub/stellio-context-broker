@@ -52,7 +52,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
@@ -137,11 +136,13 @@ class SubscriptionHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subscriptionId: URI,
-        @RequestParam options: Optional<String>,
         @AllowedParameters(implemented = [QP.OPTIONS], notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options.filter { it.contains(OptionsValue.SYS_ATTRS.value) }.isPresent
+        val options: String? = queryParams.getFirst(QP.OPTIONS.key) // list of options see 6.3.11
+
+        val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
+
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

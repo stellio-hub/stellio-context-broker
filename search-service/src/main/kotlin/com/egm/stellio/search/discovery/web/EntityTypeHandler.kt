@@ -38,10 +38,11 @@ class EntityTypeHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getTypes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam details: Boolean?,
         @AllowedParameters(implemented = [QP.DETAILS], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val details = queryParams.getFirst(QP.DETAILS.key)?.toBoolean()
+
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val detailedRepresentation = details ?: false

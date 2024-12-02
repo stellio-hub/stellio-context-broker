@@ -136,11 +136,11 @@ class ContextSourceRegistrationHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
-        @RequestParam options: String?,
         @AllowedParameters(implemented = [QP.OPTIONS])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options == OptionsValue.SYS_ATTRS.value
+        val options = queryParams.getFirst(QP.OPTIONS.key)
+        val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 

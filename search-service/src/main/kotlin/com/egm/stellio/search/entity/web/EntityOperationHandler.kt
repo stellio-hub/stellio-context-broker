@@ -54,7 +54,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
@@ -104,13 +103,13 @@ class EntityOperationHandler(
     suspend fun upsert(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam(required = false) options: String?,
         @AllowedParameters(
             implemented = [QP.OPTIONS],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val options = queryParams.getFirst(QP.OPTIONS.key)
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
@@ -149,18 +148,18 @@ class EntityOperationHandler(
     suspend fun update(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam options: Optional<String>,
         @AllowedParameters(
             implemented = [QP.OPTIONS],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val options = queryParams.getFirst(QP.OPTIONS.key)
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val disallowOverwrite = options.map { it == OptionsValue.NO_OVERWRITE.value }.orElse(false)
+        val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } ?: false
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)

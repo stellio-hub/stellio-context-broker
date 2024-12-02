@@ -115,7 +115,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [QP.OBSERVED_AT],
-            notImplemented = [QP.OPTIONS, QP.TYPE, QP.LANG, QP.FORMAT, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.FORMAT, QP.OPTIONS, QP.TYPE, QP.LANG, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>

@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/attributes")
@@ -38,13 +37,14 @@ class AttributeHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam details: Optional<Boolean>,
         @AllowedParameters(implemented = [QP.DETAILS], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val details = queryParams.getFirst(QP.DETAILS.key)?.toBoolean()
+
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val detailedRepresentation = details.orElse(false)
+        val detailedRepresentation = details ?: false
 
         val availableAttribute: Any = if (detailedRepresentation)
             attributeService.getAttributeDetails(contexts)

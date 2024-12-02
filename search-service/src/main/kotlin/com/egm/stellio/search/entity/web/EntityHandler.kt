@@ -114,8 +114,8 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @AllowedParameters(
-            implemented = [QP.OPTIONS, QP.TYPE, QP.OBSERVED_AT, QP.LANG],
-            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA]
+            implemented = [QP.OBSERVED_AT],
+            notImplemented = [QP.OPTIONS, QP.TYPE, QP.LANG, QP.FORMAT, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>

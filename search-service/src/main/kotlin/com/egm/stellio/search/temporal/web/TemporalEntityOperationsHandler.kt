@@ -42,12 +42,11 @@ class TemporalEntityOperationsHandler(
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters( // todo double check GEOMETRY_PROPERTY, OPTIONS  in spec
+        @AllowedParameters(
             implemented = [
-                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.GEOMETRY_PROPERTY, QP.OPTIONS,
-                QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.AGGRPERIODDURATION, QP.AGGRMETHODS, QP.LASTN, QP.TIMEPROPERTY
+                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.DETAILS]
+            notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

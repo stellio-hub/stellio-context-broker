@@ -37,7 +37,7 @@ data class NgsiLdDataRepresentation(
                 if (entityRepresentation == EntityRepresentation.GEO_JSON)
                     queryParams.getFirst(QueryParameter.GEOMETRY_PROPERTY.key) ?: NGSILD_LOCATION_TERM
                 else null
-            val timeproperty = queryParams.getFirst("timeproperty")
+            val timeproperty = queryParams.getFirst(QueryParameter.TIMEPROPERTY.key)
 
             return NgsiLdDataRepresentation(
                 entityRepresentation,

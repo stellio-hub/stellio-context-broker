@@ -32,8 +32,10 @@ object TemporalApiResponses {
         lang: String? = null,
     ): ResponseEntity<String> {
         val baseRepresentation = parseRepresentations(requestParams, mediaType)
-
-        val representation = lang?.let { baseRepresentation.copy(languageFilter = it) } ?: baseRepresentation
+        val representation = lang?.let {
+            baseRepresentation.copy(languageFilter = it, timeproperty = query.temporalQuery.timeproperty.propertyName)
+        }
+            ?: baseRepresentation.copy(timeproperty = query.temporalQuery.timeproperty.propertyName)
 
         val successResponse = buildQueryResponse(
             entities.toFinalRepresentation(representation),

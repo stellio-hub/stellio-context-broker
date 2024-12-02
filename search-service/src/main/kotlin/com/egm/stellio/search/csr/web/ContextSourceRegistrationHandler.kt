@@ -161,7 +161,7 @@ class ContextSourceRegistrationHandler(
     @DeleteMapping("/{contextSourceRegistrationId}")
     suspend fun delete(
         @PathVariable contextSourceRegistrationId: URI,
-        @AllowedParameters(notImplemented = [])
+        @AllowedParameters // no query parameter define in the specification
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()

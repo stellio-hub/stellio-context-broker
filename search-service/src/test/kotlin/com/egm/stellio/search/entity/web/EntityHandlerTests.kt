@@ -312,7 +312,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `create entity should return a 400 if  it contain a invalid queryparameter`() {
+    fun `create entity should return a 400 if it contains an invalid query parameter`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         webClient.post()
@@ -332,7 +332,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `create entity should return a 501 if it contain a notImplemented queryParameter`() {
+    fun `create entity should return a 501 if it contains a not implemented query parameter`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         webClient.post()

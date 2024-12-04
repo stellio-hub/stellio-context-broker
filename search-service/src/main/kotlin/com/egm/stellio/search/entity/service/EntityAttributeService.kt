@@ -402,6 +402,35 @@ class EntityAttributeService(
         }
     }
 
+    @Transactional
+    suspend fun permanentlyDeleteAttribute(
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI?,
+        deleteAll: Boolean = false
+    ): Either<APIException, Unit> = either {
+        logger.debug("Permanently deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
+        val attributesToDelete =
+            if (deleteAll)
+                getForEntity(entityId, setOf(attributeName), emptySet())
+            else
+                listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
+
+        databaseClient.sql(
+            """
+            DELETE FROM temporal_entity_attribute
+            WHERE id IN(:uuids)
+            """.trimIndent()
+        )
+            .bind("uuids", attributesToDelete.map { it.id })
+            .execute()
+
+        if (deleteAll)
+            attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
+        else
+            attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
+    }
+
     suspend fun getForEntities(
         entitiesIds: List<URI>,
         entitiesQuery: EntitiesQuery

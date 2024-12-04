@@ -630,4 +630,36 @@ class EntityService(
             deleteAll
         )
     }
+
+    @Transactional
+    suspend fun permanentlyDeleteAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        deleteAll: Boolean = false,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+
+        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+            scopeService.delete(entityId).bind()
+        } else {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                entityId,
+                attributeName,
+                datasetId
+            ).bind()
+            entityAttributeService.permanentlyDeleteAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                deleteAll
+            ).bind()
+        }
+        updateState(
+            entityId,
+            ngsiLdDateTime(),
+            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+        ).bind()
+    }
 }

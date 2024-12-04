@@ -82,7 +82,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
+import kotlin.collections.map
 
 @Service
 class EntityAttributeService(
@@ -334,37 +335,8 @@ class EntityAttributeService(
 
     @Transactional
     suspend fun deleteAttributes(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Unit> = either {
-        val deletedAttributes = databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET deleted_at = :deleted_at
-            WHERE entity_id = :entity_id
-            RETURNING id, attribute_type, attribute_name
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("deleted_at", deletedAt)
-            .allToMappedList {
-                Triple(
-                    toUuid(it["id"]),
-                    Attribute.AttributeType.valueOf(it["attribute_type"] as String),
-                    it["attribute_name"] as String
-                )
-            }
-
-        deletedAttributes.forEach { (uuid, attributeType, attributeName) ->
-            val expandedAttributePayload = JsonLdUtils.expandAttribute(
-                attributeName,
-                attributeType.toDeletedPayload(),
-                listOf(applicationProperties.contexts.core)
-            ).second[0]
-            attributeInstanceService.addDeletedAttributeInstance(
-                attributeUuid = uuid,
-                attributeValues = expandedAttributePayload
-            ).bind()
-        }
-
-        Unit.right()
+        val attributesToDelete = getForEntity(entityId, emptySet(), emptySet())
+        deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
     }
 
     @Transactional
@@ -376,73 +348,59 @@ class EntityAttributeService(
         deletedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
-        val deletedAttributes = if (deleteAll)
-            deleteAllInstances(entityId, attributeName, deletedAt)
-        else
-            listOf(deleteSpecificInstance(entityId, attributeName, datasetId, deletedAt).bind())
+        val attributesToDelete =
+            if (deleteAll)
+                getForEntity(entityId, setOf(attributeName), emptySet())
+            else
+                listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
+        deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
+    }
 
-        deletedAttributes.forEach { (uuid, attributeType) ->
-            val expandedAttributePayload = JsonLdUtils.expandAttribute(
-                attributeName,
-                attributeType.toDeletedPayload(),
-                listOf(applicationProperties.contexts.core)
-            ).second[0]
+    @Transactional
+    internal suspend fun deleteSelectedAttributes(
+        attributesToDelete: List<Attribute>,
+        deletedAt: ZonedDateTime
+    ): Either<APIException, Unit> = either {
+        if (attributesToDelete.isEmpty()) return Unit.right()
+        val attributesToDeleteWithPayload = attributesToDelete
+            .map {
+                Triple(
+                    it.id,
+                    deletedAt,
+                    JsonLdUtils.expandAttribute(
+                        it.attributeName,
+                        it.attributeType.toDeletedPayload(),
+                        listOf(applicationProperties.contexts.core)
+                    ).second[0]
+                )
+            }
+
+        databaseClient.sql(
+            """
+            UPDATE temporal_entity_attribute
+            SET deleted_at = new.deleted_at,
+                payload = new.payload
+            FROM (VALUES :values) AS new(uuid, deleted_at, payload)
+            WHERE temporal_entity_attribute.id = new.uuid
+            """.trimIndent()
+        )
+            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first, it.second, it.third.toJson()) })
+            .allToMappedList {
+                Triple(
+                    toUuid(it["id"]),
+                    Attribute.AttributeType.valueOf(it["attribute_type"] as String),
+                    it["attribute_name"] as String
+                )
+            }
+
+        attributesToDeleteWithPayload.forEach { (uuid, deletedAt, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = uuid,
+                deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
         }
     }
-
-    @Transactional
-    suspend fun deleteSpecificInstance(
-        entityId: URI,
-        attributeName: String,
-        datasetId: URI?,
-        deletedAt: ZonedDateTime
-    ): Either<APIException, Pair<UUID, Attribute.AttributeType>> =
-        databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET deleted_at = :deleted_at
-            WHERE entity_id = :entity_id
-            ${datasetId.toDatasetIdFilter()}
-            AND attribute_name = :attribute_name
-            RETURNING id, attribute_type
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("attribute_name", attributeName)
-            .bind("deleted_at", deletedAt)
-            .let {
-                if (datasetId != null) it.bind("dataset_id", datasetId)
-                else it
-            }
-            .oneToResult {
-                toUuid(it["id"]) to Attribute.AttributeType.valueOf(it["attribute_type"] as String)
-            }
-
-    @Transactional
-    suspend fun deleteAllInstances(
-        entityId: URI,
-        attributeName: String,
-        deletedAt: ZonedDateTime
-    ): List<Pair<UUID, Attribute.AttributeType>> =
-        databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET deleted_at = :deleted_at
-            WHERE entity_id = :entity_id
-            AND attribute_name = :attribute_name
-            RETURNING id, attribute_type
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("attribute_name", attributeName)
-            .bind("deleted_at", deletedAt)
-            .allToMappedList {
-                toUuid(it["id"]) to Attribute.AttributeType.valueOf(it["attribute_type"] as String)
-            }
 
     suspend fun getForEntities(
         entitiesIds: List<URI>,

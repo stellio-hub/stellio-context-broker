@@ -143,11 +143,12 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addDeletedAttributeInstance(
         attributeUuid: UUID,
+        deletedAt: ZonedDateTime,
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeInstance = AttributeInstance(
             attributeUuid = attributeUuid,
-            timeAndProperty = ngsiLdDateTime() to DELETED_AT,
+            timeAndProperty = deletedAt to DELETED_AT,
             value = Triple(NGSILD_NULL, null, null),
             payload = attributeValues,
             sub = getSubFromSecurityContext().getOrNull()

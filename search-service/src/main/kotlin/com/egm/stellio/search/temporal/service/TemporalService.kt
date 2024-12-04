@@ -133,11 +133,7 @@ class TemporalService(
         deleteAll: Boolean = false,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        entityService.deleteAttribute(entityId, attributeName, datasetId, deleteAll, sub).bind()
-        if (deleteAll)
-            attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
-        else
-            attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
+        entityService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, deleteAll, sub).bind()
     }
 
     suspend fun modifyAttributeInstance(

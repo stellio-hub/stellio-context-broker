@@ -1,5 +1,6 @@
 package com.egm.stellio.search.authorization.web
 
+import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.service.AuthorizationService
@@ -17,6 +18,8 @@ import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel.ALL_ASSIGNABLE_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
@@ -56,7 +59,7 @@ import reactor.core.publisher.Mono
 import java.net.URI
 
 @RestController
-@RequestMapping("/ngsi-ld/v1/entityAccessControl") // todo
+@RequestMapping("/ngsi-ld/v1/entityAccessControl")
 class EntityAccessControlHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityAccessRightsService: EntityAccessRightsService,
@@ -66,7 +69,15 @@ class EntityAccessControlHandler(
     @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAuthorizedEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+            ],
+            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -75,7 +86,7 @@ class EntityAccessControlHandler(
 
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
-            params,
+            queryParams,
             contexts
         ).bind()
 
@@ -96,13 +107,13 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
             "/ngsi-ld/v1/entityAccessControl/entities",
             entitiesQuery.paginationQuery,
-            params,
+            queryParams,
             mediaType,
             contexts
         )
@@ -114,6 +125,14 @@ class EntityAccessControlHandler(
     @GetMapping("/groups", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getGroupsMemberships(
         @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+            ],
+            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -158,6 +177,14 @@ class EntityAccessControlHandler(
     @GetMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getUsers(
         @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+            ],
+            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+        )
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -204,7 +231,9 @@ class EntityAccessControlHandler(
     suspend fun addRightsOnEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subjectId: String,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -282,7 +311,9 @@ class EntityAccessControlHandler(
     @DeleteMapping("/{subjectId}/attrs/{entityId}")
     suspend fun removeRightsOnEntity(
         @PathVariable subjectId: String,
-        @PathVariable entityId: URI
+        @PathVariable entityId: URI,
+        @AllowedParameters
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -305,7 +336,9 @@ class EntityAccessControlHandler(
     suspend fun updateSpecificAccessPolicy(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -331,7 +364,9 @@ class EntityAccessControlHandler(
 
     @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")
     suspend fun deleteSpecificAccessPolicy(
-        @PathVariable entityId: URI
+        @PathVariable entityId: URI,
+        @AllowedParameters
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 

@@ -39,16 +39,12 @@ annotation class AllowedParameters(
             val message = StringBuilder().apply {
                 if (notImplementedKeys.isNotEmpty()) {
                     append(
-                        "The ['${
-                            notImplementedKeys.joinToString("', '")
-                        }'] parameters have not been implemented yet. "
+                        "The ['${notImplementedKeys.joinToString("', '")}'] parameters have not been implemented yet. "
                     )
                 }
                 if (invalidKeys.isNotEmpty()) {
                     append(
-                        "The ['${
-                            invalidKeys.joinToString("', '")
-                        }'] parameters are not allowed on this endpoint. "
+                        "The ['${invalidKeys.joinToString("', '")}'] parameters are not allowed on this endpoint. "
                     )
                 }
                 if (implemented.isNotEmpty())

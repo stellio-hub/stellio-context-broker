@@ -32,6 +32,7 @@ object TemporalApiResponses {
         lang: String? = null,
     ): ResponseEntity<String> {
         val baseRepresentation = parseRepresentations(requestParams, mediaType)
+        // this is needed for queryEntitiesViaPost where the properties are not in the query parameters
         val representation = lang?.let {
             baseRepresentation.copy(languageFilter = it, timeproperty = query.temporalQuery.timeproperty.propertyName)
         }

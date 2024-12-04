@@ -324,7 +324,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "The 'invalid' parameter(s) is/are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
+                    "title": "The ['invalid'] parameters are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
@@ -344,7 +344,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
-                    "title": "The 'local' parameter(s) has/have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()

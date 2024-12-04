@@ -478,7 +478,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
 
@@ -502,6 +502,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
+                createdAt,
                 expandAttribute(
                     INCOMING_PROPERTY,
                     """
@@ -629,7 +630,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -645,6 +646,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
+                deletedAt,
                 expandAttribute(
                     INCOMING_PROPERTY,
                     """
@@ -669,7 +671,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -682,11 +684,33 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         ).shouldSucceed()
 
         coVerify(exactly = 2) {
-            attributeInstanceService.addDeletedAttributeInstance(any(), any())
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `it should flag and audit all deleted attributes of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.deleteAttributes(
+            beehiveTestCId,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        coVerify(exactly = 4) {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any())
+        }
+
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+            .shouldSucceedWith { assertTrue(it.deletedAt != null) }
     }
 
     @Test

@@ -853,7 +853,7 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentAttribute == null) {
+            if (currentAttribute == null)
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -868,7 +868,7 @@ class EntityAttributeService(
                         UpdateOperationResult.APPENDED
                     )
                 }.bind()
-            } else if (attributeMetadata.value == NGSILD_NULL) {
+            else if (attributeMetadata.value == NGSILD_NULL)
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -882,7 +882,7 @@ class EntityAttributeService(
                         UpdateOperationResult.DELETED
                     )
                 }.bind()
-            } else {
+            else
                 mergeAttribute(
                     currentAttribute,
                     ngsiLdAttribute.name,
@@ -898,7 +898,6 @@ class EntityAttributeService(
                         UpdateOperationResult.UPDATED
                     )
                 }.bind()
-            }
         }
     }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
 

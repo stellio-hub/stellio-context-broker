@@ -412,7 +412,7 @@ class EntityAttributeService(
         logger.debug("Permanently deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
-                getForEntity(entityId, setOf(attributeName), emptySet())
+                getForEntity(entityId, setOf(attributeName), emptySet(), false)
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
@@ -468,7 +468,12 @@ class EntityAttributeService(
             .allToMappedList { rowToAttribute(it) }
     }
 
-    suspend fun getForEntity(id: URI, attrs: Set<String>, datasetIds: Set<String>): List<Attribute> {
+    suspend fun getForEntity(
+        id: URI,
+        attrs: Set<String>,
+        datasetIds: Set<String>,
+        excludedDeleted: Boolean = true
+    ): List<Attribute> {
         val filterOnAttributes =
             if (attrs.isNotEmpty())
                 " AND " + attrs.joinToString(
@@ -491,6 +496,7 @@ class EntityAttributeService(
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
+            ${if (excludedDeleted) " and deleted_at is null " else ""}
             $filterOnAttributes
             $filterOnDatasetId
             """.trimIndent()

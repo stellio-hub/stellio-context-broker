@@ -69,7 +69,7 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.4.1")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.0.0")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 

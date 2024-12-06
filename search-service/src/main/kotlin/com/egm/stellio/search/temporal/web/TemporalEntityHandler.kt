@@ -14,9 +14,12 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -34,7 +37,6 @@ import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
@@ -42,6 +44,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -57,6 +60,7 @@ import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
+@Validated
 class TemporalEntityHandler(
     private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
@@ -70,7 +74,9 @@ class TemporalEntityHandler(
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -106,7 +112,9 @@ class TemporalEntityHandler(
     suspend fun addAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -133,14 +141,22 @@ class TemporalEntityHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getForEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
+                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID
+            ],
+            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts, true).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery,
@@ -154,7 +170,7 @@ class TemporalEntityHandler(
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,
-            params,
+            queryParams,
             mediaType,
             contexts,
             range
@@ -171,14 +187,21 @@ class TemporalEntityHandler(
     suspend fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
+                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID
+            ],
+            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val temporalEntitiesQuery =
-            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, params, contexts).bind()
+            composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
         val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
             entityId,
@@ -188,7 +211,7 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
@@ -209,7 +232,9 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
         @PathVariable instanceId: URI,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
@@ -246,7 +271,9 @@ class TemporalEntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun deleteTemporalEntity(
-        @PathVariable entityId: URI
+        @PathVariable entityId: URI,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -266,11 +293,15 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [QP.DELETE_ALL, QP.DATASET_ID],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
-        val datasetId = params.getFirst("datasetId")?.toUri()
+        val deleteAll = queryParams.getFirst(QP.DELETE_ALL.key)?.toBoolean() ?: false
+        val datasetId = queryParams.getFirst(QP.DATASET_ID.key)?.toUri()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()
@@ -302,7 +333,9 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @PathVariable attrId: String,
-        @PathVariable instanceId: URI
+        @PathVariable instanceId: URI,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()

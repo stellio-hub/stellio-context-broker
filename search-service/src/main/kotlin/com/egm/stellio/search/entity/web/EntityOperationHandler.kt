@@ -13,9 +13,13 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -24,7 +28,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE
 import com.egm.stellio.shared.util.addCoreContextIfMissing
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkContentIsNgsiLdSupported
@@ -35,7 +38,6 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeader
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -44,6 +46,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
@@ -51,10 +54,10 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
+@Validated
 class EntityOperationHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
@@ -67,7 +70,9 @@ class EntityOperationHandler(
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -98,8 +103,13 @@ class EntityOperationHandler(
     suspend fun upsert(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam(required = false) options: String?
+        @AllowedParameters(
+            implemented = [QP.OPTIONS],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val options = queryParams.getFirst(QP.OPTIONS.key)
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
@@ -138,13 +148,18 @@ class EntityOperationHandler(
     suspend fun update(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam options: Optional<String>
+        @AllowedParameters(
+            implemented = [QP.OPTIONS],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val options = queryParams.getFirst(QP.OPTIONS.key)
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
-        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
+        val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } ?: false
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)
@@ -174,6 +189,8 @@ class EntityOperationHandler(
     suspend fun merge(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
@@ -203,7 +220,11 @@ class EntityOperationHandler(
      * Implements 6.17.3.1 - Delete Batch of Entities
      */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> = either {
+    suspend fun delete(
+        @RequestBody requestBody: Mono<List<String>>,
+        @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
         val body = requestBody.awaitFirst()
@@ -234,7 +255,11 @@ class EntityOperationHandler(
     suspend fun queryEntitiesViaPost(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -244,7 +269,7 @@ class EntityOperationHandler(
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
             query,
-            params,
+            queryParams,
             contexts
         ).bind()
 
@@ -254,7 +279,7 @@ class EntityOperationHandler(
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
             .copy(languageFilter = query.lang)
 
         buildQueryResponse(

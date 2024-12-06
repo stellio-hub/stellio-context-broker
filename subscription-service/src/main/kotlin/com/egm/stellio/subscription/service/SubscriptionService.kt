@@ -10,9 +10,10 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.GeoQuery
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -21,14 +22,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.buildGeoQuery
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.parseGeoQueryParameters
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
@@ -673,16 +672,13 @@ class SubscriptionService(
         expandedEntity: ExpandedEntity
     ): String? =
         geoQ?.let {
-            buildGeoQuery(
-                GeoQuery(
-                    georel = geoQ.georel,
-                    geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
-                    coordinates = geoQ.coordinates,
-                    geoproperty = geoQ.geoproperty,
-                    wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
-                ),
-                expandedEntity
-            )
+            GeoQuery(
+                georel = geoQ.georel,
+                geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
+                coordinates = geoQ.coordinates,
+                geoproperty = geoQ.geoproperty,
+                wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
+            ).buildSqlFilter(expandedEntity)
         }
 
     suspend fun updateSubscriptionNotification(

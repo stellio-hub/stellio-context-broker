@@ -13,17 +13,19 @@ import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
+import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS
-import com.egm.stellio.shared.util.QUERY_PARAM_OPTIONS_SYSATTRS_VALUE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parsePaginationParameters
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -32,6 +34,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -46,6 +49,7 @@ import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/csourceRegistrations")
+@Validated
 class ContextSourceRegistrationHandler(
     private val applicationProperties: ApplicationProperties,
     private val contextSourceRegistrationService: ContextSourceRegistrationService
@@ -81,16 +85,25 @@ class ContextSourceRegistrationHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun get(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT],
+            notImplemented = [
+                QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q, QP.CSF,
+                QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY,
+                QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT,
+                QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ,
+            ]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            .contains(OptionsValue.SYS_ATTRS.value)
         val paginationQuery = parsePaginationParameters(
-            params,
+            queryParams,
             applicationProperties.pagination.limitDefault,
             applicationProperties.pagination.limitMax
         ).bind()
@@ -107,7 +120,7 @@ class ContextSourceRegistrationHandler(
             contextSourceRegistrationsCount,
             "/ngsi-ld/v1/csourceRegistrations",
             paginationQuery,
-            params,
+            queryParams,
             mediaType,
             contexts
         )
@@ -123,9 +136,11 @@ class ContextSourceRegistrationHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
-        @RequestParam options: String?
+        @AllowedParameters(implemented = [QP.OPTIONS])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options == QUERY_PARAM_OPTIONS_SYSATTRS_VALUE
+        val options = queryParams.getFirst(QP.OPTIONS.key)
+        val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
@@ -144,7 +159,11 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
-    suspend fun delete(@PathVariable contextSourceRegistrationId: URI): ResponseEntity<*> = either {
+    suspend fun delete(
+        @PathVariable contextSourceRegistrationId: URI,
+        @AllowedParameters // no query parameter is defined in the specification
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         checkIsAllowed(contextSourceRegistrationId, sub).bind()
 

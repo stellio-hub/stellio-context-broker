@@ -3,11 +3,14 @@ package com.egm.stellio.shared.web
 import com.apicatalog.jsonld.JsonLdError
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JsonLdErrorApiResponse
 import com.egm.stellio.shared.model.JsonParseApiException
 import com.egm.stellio.shared.model.NotAcceptableException
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.UnsupportedMediaTypeStatusApiException
 import com.fasterxml.jackson.core.JsonParseException
+import jakarta.validation.ConstraintViolationException
 import org.springframework.core.codec.CodecException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -35,6 +38,15 @@ class ExceptionHandler {
                 NotAcceptableException(cause.message).toErrorResponse()
             is MethodNotAllowedException ->
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
+            is ConstraintViolationException -> {
+                val message = cause.constraintViolations.joinToString(". ") { it.message }
+                if (cause.constraintViolations.flatMap { it.propertyPath }
+                        .any { it.name == HttpStatus.NOT_IMPLEMENTED.name }
+                )
+                    NotImplementedException(message).toErrorResponse()
+                else
+                    InvalidRequestException(message).toErrorResponse()
+            }
 
             else -> InternalErrorException("$cause").toErrorResponse()
         }

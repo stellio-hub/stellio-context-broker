@@ -25,8 +25,8 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -305,6 +305,46 @@ class EntityHandlerTests {
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title": "User forbidden to create entities",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 400 if it contains an invalid query parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?invalid=invalid")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "The ['invalid'] parameters are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 501 if it contains a not implemented query parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?local=true")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(501)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()

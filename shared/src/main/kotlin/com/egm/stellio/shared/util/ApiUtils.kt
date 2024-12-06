@@ -7,24 +7,17 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AttributeRepresentation
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.EntityTypeSelection
-import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.NotAcceptableException
-import com.egm.stellio.shared.model.PaginationQuery
-import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
-import org.springframework.util.MultiValueMap
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -35,26 +28,7 @@ const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val GEO_JSON_CONTENT_TYPE = "application/geo+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
-const val QUERY_PARAM_COUNT: String = "count"
-const val QUERY_PARAM_OFFSET: String = "offset"
-const val QUERY_PARAM_LIMIT: String = "limit"
-const val QUERY_PARAM_ID: String = "id"
-const val QUERY_PARAM_TYPE: String = "type"
-const val QUERY_PARAM_ID_PATTERN: String = "idPattern"
-const val QUERY_PARAM_ATTRS: String = "attrs"
-const val QUERY_PARAM_Q: String = "q"
-const val QUERY_PARAM_SCOPEQ: String = "scopeQ"
-const val QUERY_PARAM_GEOMETRY_PROPERTY: String = "geometryProperty"
-const val QUERY_PARAM_LANG: String = "lang"
-const val QUERY_PARAM_DATASET_ID: String = "datasetId"
-const val QUERY_PARAM_OPTIONS: String = "options"
-const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
-const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
-const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
-const val QUERY_PARAM_OPTIONS_OBSERVEDAT_VALUE: String = "observedAt"
-const val QUERY_PARAM_CONTAINED_BY: String = "containedBy"
-const val QUERY_PARAM_JOIN: String = "join"
-const val QUERY_PARAM_JOIN_LEVEL: String = "joinLevel"
+
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
@@ -206,8 +180,8 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
         .filter { it.any { option -> option == optionValue.value } }
         .isPresent
 
-fun parseRequestParameter(requestParam: String?): Set<String> =
-    requestParam
+fun parseQueryParameter(queryParam: String?): Set<String> =
+    queryParam
         ?.split(",")
         .orEmpty()
         .toSet()
@@ -222,37 +196,11 @@ fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: Lis
         JsonLdUtils.compactTerm(it.value.trim(), contexts)
     }
 
-fun parseAndExpandRequestParameter(requestParam: String?, contexts: List<String>): Set<String> =
-    parseRequestParameter(requestParam)
+fun parseAndExpandQueryParameter(queryParam: String?, contexts: List<String>): Set<String> =
+    parseQueryParameter(queryParam)
         .map {
             JsonLdUtils.expandJsonLdTerm(it.trim(), contexts)
         }.toSet()
-
-fun parseRepresentations(
-    requestParams: MultiValueMap<String, String>,
-    acceptMediaType: MediaType
-): NgsiLdDataRepresentation {
-    val optionsParam = requestParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-    val includeSysAttrs = optionsParam.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-    val attributeRepresentation = optionsParam.contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
-        .let { if (it) AttributeRepresentation.SIMPLIFIED else AttributeRepresentation.NORMALIZED }
-    val languageFilter = requestParams.getFirst(QUERY_PARAM_LANG)
-    val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
-    val geometryProperty =
-        if (entityRepresentation == EntityRepresentation.GEO_JSON)
-            requestParams.getFirst(QUERY_PARAM_GEOMETRY_PROPERTY) ?: NGSILD_LOCATION_TERM
-        else null
-    val timeproperty = requestParams.getFirst("timeproperty")
-
-    return NgsiLdDataRepresentation(
-        entityRepresentation,
-        attributeRepresentation,
-        includeSysAttrs,
-        languageFilter,
-        geometryProperty,
-        timeproperty
-    )
-}
 
 fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
     idPattern?.let {
@@ -263,27 +211,6 @@ fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
             { BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left() }
         )
     } ?: Either.Right(null)
-
-fun parsePaginationParameters(
-    queryParams: MultiValueMap<String, String>,
-    limitDefault: Int,
-    limitMax: Int
-): Either<APIException, PaginationQuery> {
-    val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-    val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: limitDefault
-    if (!count && (limit <= 0 || offset < 0))
-        return BadRequestDataException(
-            "Offset must be greater than zero and limit must be strictly greater than zero"
-        ).left()
-    if (count && (limit < 0 || offset < 0))
-        return BadRequestDataException("Offset and limit must be greater than zero").left()
-    if (limit > limitMax)
-        return TooManyResultsException(
-            "You asked for $limit results, but the supported maximum limit is $limitMax"
-        ).left()
-    return PaginationQuery(offset, limit, count).right()
-}
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, MediaType> =
     httpHeaders.accept.getApplicable()

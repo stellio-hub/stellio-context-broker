@@ -3,10 +3,10 @@ package com.egm.stellio.search.temporal.web
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.buildQueryResponse
-import com.egm.stellio.shared.util.parseRepresentations
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toHttpHeaderFormat
 import org.springframework.http.HttpHeaders
@@ -32,8 +32,11 @@ object TemporalApiResponses {
         lang: String? = null,
     ): ResponseEntity<String> {
         val baseRepresentation = parseRepresentations(requestParams, mediaType)
-
-        val representation = lang?.let { baseRepresentation.copy(languageFilter = it) } ?: baseRepresentation
+        // this is needed for queryEntitiesViaPost where the properties are not in the query parameters
+        val representation = lang?.let {
+            baseRepresentation.copy(languageFilter = it, timeproperty = query.temporalQuery.timeproperty.propertyName)
+        }
+            ?: baseRepresentation.copy(timeproperty = query.temporalQuery.timeproperty.propertyName)
 
         val successResponse = buildQueryResponse(
             entities.toFinalRepresentation(representation),

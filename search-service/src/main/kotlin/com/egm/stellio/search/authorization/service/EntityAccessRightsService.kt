@@ -23,8 +23,8 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.CAN_ADMIN
 import com.egm.stellio.shared.util.AccessRight.CAN_READ

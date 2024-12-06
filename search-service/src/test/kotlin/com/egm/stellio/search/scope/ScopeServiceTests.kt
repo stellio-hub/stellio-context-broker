@@ -1,6 +1,6 @@
 package com.egm.stellio.search.scope
 
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -10,16 +10,27 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.getScopes
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
+import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -142,8 +153,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -168,8 +179,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -198,8 +209,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -232,8 +243,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -267,8 +278,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
             val scopeHistoryEntries = scopeService.retrieveHistory(
                 listOf(beehiveTestCId),
-                TemporalEntitiesQuery(
-                    EntitiesQuery(
+                TemporalEntitiesQueryFromGet(
+                    EntitiesQueryFromGet(
                         paginationQuery = PaginationQuery(limit = 100, offset = 0),
                         contexts = APIC_COMPOUND_CONTEXTS
                     ),
@@ -299,8 +310,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -348,8 +359,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -395,8 +406,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -435,8 +446,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             }
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
-            TemporalEntitiesQuery(
-                EntitiesQuery(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

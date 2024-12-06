@@ -7,7 +7,12 @@ import com.egm.stellio.shared.web.CustomWebFilter
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.http.HttpHeaders
@@ -53,17 +58,17 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return an empty list if no attrs param is provided`() {
-        assertTrue(parseAndExpandRequestParameter(null, emptyList()).isEmpty())
+        assertTrue(parseAndExpandQueryParameter(null, emptyList()).isEmpty())
     }
 
     @Test
     fun `it should return an singleton list if there is one provided attrs param`() {
-        assertEquals(1, parseAndExpandRequestParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(1, parseAndExpandQueryParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test
     fun `it should return a list with two elements if there are two provided attrs param`() {
-        assertEquals(2, parseAndExpandRequestParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(2, parseAndExpandQueryParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
     }
 
     @Test

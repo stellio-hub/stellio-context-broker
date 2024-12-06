@@ -3,12 +3,39 @@ package com.egm.stellio.search.entity.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.*
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.service.ContextSourceCaller
+import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.entity.model.NotUpdatedDetails
+import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
+import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -22,11 +49,31 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.called
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.mockkObject
+import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -41,7 +88,11 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
@@ -60,6 +111,12 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+
+    @MockkBean(relaxed = true)
+    private lateinit var linkedEntityService: LinkedEntityService
+
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -70,6 +127,14 @@ class EntityHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
+    }
+
+    @BeforeEach
+    fun mockCSR() {
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf()
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -117,9 +182,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(409)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
-                    "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"Already Exists\"}"
+                """
+                    {
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
+                      "title": "Already Exists",
+                      "detail": "$DEFAULT_DETAIL"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -139,9 +208,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                      "title":"There has been an error during the operation execution",
-                      "detail":"InternalErrorException(message=Internal Server Exception)"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title": "Internal Server Exception",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )
@@ -211,8 +280,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Target entity does not exist"
+                    "title": "Target entity does not exist",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -235,15 +304,66 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to create entities"
+                    "title": "User forbidden to create entities",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
     }
 
     @Test
+    fun `create entity should return a 400 if it contains an invalid query parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?invalid=invalid")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "The ['invalid'] parameters are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 501 if it contains a not implemented query parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?local=true")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(501)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    fun initializeRetrieveEntityMocks() {
+        val compactedEntity = slot<CompactedEntity>()
+
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntity), any(), any())
+        } answers {
+            listOf(compactedEntity.captured).right()
+        }
+    }
+
+    @Test
     fun `get entity by id should return 200 when entity exists`() {
+        initializeRetrieveEntityMocks()
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns returnedExpandedEntity.right()
         every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
@@ -257,6 +377,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -286,6 +407,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly filter the asked attributes`() = runTest {
+        initializeRetrieveEntityMocks()
         val entity = """
             {
                 "id": "$beehiveId",
@@ -319,6 +441,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly return the simplified representation of an entity`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -359,6 +482,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -378,9 +502,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title":"The referred resource has not been found",
-                    "detail":"$expectedMessage"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title": "$expectedMessage",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -388,6 +512,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
@@ -407,6 +532,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -446,9 +572,9 @@ class EntityHandlerTests {
                 {
                     "createdAt":"2015-10-18T11:20:30.000001Z",
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"DateTime",
+                            "type": "DateTime",
                             "@value":"2015-10-18T11:20:30.000001Z"
                         },
                         "createdAt":"2015-10-18T11:20:30.000001Z",
@@ -462,6 +588,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -485,9 +612,9 @@ class EntityHandlerTests {
                 """
                 {
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"Date",
+                            "type": "Date",
                             "@value":"2015-10-18"
                         }
                     },
@@ -499,6 +626,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -522,9 +650,9 @@ class EntityHandlerTests {
                 """
                 {
                     "testedAt":{
-                        "type":"Property",
+                        "type": "Property",
                         "value":{
-                            "type":"Time",
+                            "type": "Time",
                             "@value":"11:20:30"
                         }
                     },
@@ -536,6 +664,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
@@ -560,8 +689,8 @@ class EntityHandlerTests {
                 """
                 {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
-                    "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
+                    "type": "Beehive",
+                    "name":{"type": "Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
                     "@context": "${applicationProperties.contexts.core}"
                 }
                 """.trimIndent()
@@ -570,6 +699,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
@@ -603,13 +733,13 @@ class EntityHandlerTests {
                 """
                  {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "name":[
                         {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
+                            "type": "Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
                         },
                         {
-                            "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
+                            "type": "Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
                     "@context": "${applicationProperties.contexts.core}"
@@ -620,6 +750,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -646,9 +777,9 @@ class EntityHandlerTests {
                 """
                 {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "managedBy": {
-                      "type":"Relationship",
+                      "type": "Relationship",
                        "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                         "object":"urn:ngsi-ld:Beekeeper:1230"
                     },
@@ -660,6 +791,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -699,6 +831,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
+        initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -733,14 +866,14 @@ class EntityHandlerTests {
                 """
                  {
                     "id":"urn:ngsi-ld:Beehive:4567",
-                    "type":"Beehive",
+                    "type": "Beehive",
                     "managedBy":[
                        {
-                          "type":"Relationship",
+                          "type": "Relationship",
                           "object":"urn:ngsi-ld:Beekeeper:1229"
                        },
                        {
-                          "type":"Relationship",
+                          "type": "Relationship",
                           "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
@@ -753,6 +886,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 when entity does not exist`() {
+        initializeRetrieveEntityMocks()
         coEvery {
             entityQueryService.queryEntity(any(), MOCK_USER_SUB)
         } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")).left()
@@ -763,14 +897,19 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}\"}"
+                """
+                    {
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}",
+                      "detail": "$DEFAULT_DETAIL"
+                    }
+                """
             )
     }
 
     @Test
     fun `get entity by id should return 403 if user is not authorized to read an entity`() {
+        initializeRetrieveEntityMocks()
         coEvery {
             entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
@@ -784,15 +923,63 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST"
+                    "title": "User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
     }
 
+    fun initializeQueryEntitiesMocks() {
+        val compactedEntities = slot<List<CompactedEntity>>()
+
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntities), any(), any())
+        } answers {
+            compactedEntities.captured.right()
+        }
+    }
+
+    @Test
+    fun `get entity by id should return the warnings sent by the CSRs and update the CSRs statuses`() {
+        val csr = gimmeRawCSR()
+        coEvery {
+            entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
+        } returns ResourceNotFoundException("no entity").left()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        mockkObject(ContextSourceCaller) {
+            coEvery {
+                ContextSourceCaller.getDistributedInformation(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            webClient.get()
+                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
+                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+                .exchange()
+                .expectStatus().isNotFound
+                .expectHeader().valueEquals(
+                    NGSILDWarning.HEADER_NAME,
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+                )
+
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
+    }
+
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
+        initializeQueryEntitiesMocks()
         coEvery { entityQueryService.queryEntities(any(), any<Sub>()) } returns Pair(
             listOf(
                 ExpandedEntity(
@@ -827,9 +1014,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     typeSelection = "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     contexts = listOf(applicationProperties.contexts.core)
@@ -874,6 +1062,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 with prev and next link header if exists`() {
+        initializeQueryEntitiesMocks()
         coEvery { entityQueryService.queryEntities(any(), any<Sub>()) } returns Pair(
             listOf(
                 ExpandedEntity(
@@ -892,10 +1081,12 @@ class EntityHandlerTests {
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
-                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+                """
+                    </ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=0>;rel="prev";type="application/ld+json"
+                """.trimIndent(),
+                """
+                    </ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel="next";type="application/ld+json"
+                """.trimIndent()
             )
             .expectBody().json(
                 """
@@ -912,6 +1103,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and empty response if requested offset does not exists`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
@@ -932,9 +1124,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -949,9 +1141,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
-                    "title":"The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive",
-                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
+                    "title": "You asked for 200 results, but the supported maximum limit is 100",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -959,9 +1151,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities with id and type should return 200`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(
-                EntitiesQuery(
+                EntitiesQueryFromGet(
                     ids = setOf(beehiveId),
                     typeSelection = BEEHIVE_TYPE,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
@@ -1002,6 +1195,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should return 200 and the number of results`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 3).right()
@@ -1023,9 +1217,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset and limit must be greater than zero"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Offset and limit must be greater than zero",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1033,6 +1227,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entities should allow a query not including a type request parameter`() {
+        initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(any(), any<Sub>())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
@@ -1054,9 +1249,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1107,8 +1302,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to modify entity"
+                    "title": "User forbidden to modify entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1143,9 +1338,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"The id contained in the body is not the same as the one provided in the URL"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "The id contained in the body is not the same as the one provided in the URL",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1160,9 +1355,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Missing entity id when trying to replace an entity"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Missing entity id when trying to replace an entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1335,9 +1530,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BreedingService:0214 was not found\"}"
+                """
+                    {
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Entity urn:ngsi-ld:BreedingService:0214 was not found",
+                      "detail": "$DEFAULT_DETAIL"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -1349,7 +1548,7 @@ class EntityHandlerTests {
             """
             {
                 "connectsTo":{
-                    "type":"Relationship"
+                    "type": "Relationship"
                 }
             }
             """.trimIndent()
@@ -1371,8 +1570,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
+                    "title": "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field",
+                    "detail": "$DEFAULT_DETAIL"
                 } 
                 """.trimIndent()
             )
@@ -1398,8 +1597,8 @@ class EntityHandlerTests {
                 """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
-                    "title": "The request tried to access an unauthorized resource", 
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:BreedingService:0214" 
+                    "title": "User forbidden write access to entity urn:ngsi-ld:BreedingService:0214", 
+                    "detail": "$DEFAULT_DETAIL" 
                 } 
                 """.trimIndent()
             )
@@ -1505,8 +1704,8 @@ class EntityHandlerTests {
                 """
                 { 
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
-                    "title": "The request tried to access an unauthorized resource", 
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN" 
+                    "title": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN", 
+                    "detail": "$DEFAULT_DETAIL" 
                 } 
                 """.trimIndent()
             )
@@ -1605,9 +1804,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'observedAt' parameter is not a valid date"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "'observedAt' parameter is not a valid date",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1631,9 +1830,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                  "title":"The referred resource has not been found",
-                  "detail":"${entityNotFoundMessage(entityId.toString())}"
+                  "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title": "${entityNotFoundMessage(entityId.toString())}",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1659,8 +1858,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1680,9 +1879,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Missing entity id when trying to merge an entity"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Missing entity id when trying to merge an entity",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1797,8 +1996,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable",
-                    "title": "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
-                    "detail": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [https://easyglobalmarket.com/contexts/diat.jsonld]])"
+                    "title": "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem encountered loading a remote context [https://easyglobalmarket.com/contexts/diat.jsonld]])",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1826,9 +2025,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity $beehiveId was not found\"}"
+                """
+                    {
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Entity $beehiveId was not found",
+                      "detail": "$DEFAULT_DETAIL"
+                    }
+                """.trimIndent()
             )
     }
 
@@ -1852,8 +2055,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1887,9 +2090,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                 {
-                  "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                  "title":"The referred resource has not been found",
-                  "detail":"${entityNotFoundMessage(beehiveId.toString())}"
+                  "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                  "title": "${entityNotFoundMessage(beehiveId.toString())}",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -1908,9 +2111,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                      "title":"There has been an error during the operation execution",
-                      "detail":"java.lang.RuntimeException: Unexpected server error"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title": "java.lang.RuntimeException: Unexpected server error",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )
@@ -1931,8 +2134,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden admin access to entity $beehiveId"
+                    "title": "User forbidden admin access to entity $beehiveId",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2027,9 +2230,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BeeHive:TESTC was not found\"}"
+                """
+                      {
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found",
+                        "detail": "$DEFAULT_DETAIL"
+                      }
+                """.trimIndent()
             )
     }
 
@@ -2046,9 +2253,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Attribute Not Found\"}"
+                """
+                      {
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "Attribute Not Found",
+                        "detail": "$DEFAULT_DETAIL"
+                      }
+                """.trimIndent()
             )
     }
 
@@ -2068,8 +2279,8 @@ class EntityHandlerTests {
                 """
                 {
                   "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                  "title": "The request includes input data which does not meet the requirements of the operation",
-                  "detail": "Something is wrong with the request"
+                  "title": "Something is wrong with the request",
+                  "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2091,8 +2302,8 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -2154,9 +2365,9 @@ class EntityHandlerTests {
             .expectBody().json(
                 """
                     {
-                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"The referred resource has not been found",
-                      "detail":"Unknown attribute $INCOMING_PROPERTY in entity $beehiveId"
+                      "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title": "Unknown attribute $INCOMING_PROPERTY in entity $beehiveId",
+                      "detail": "$DEFAULT_DETAIL"
                     }
                     """
             )

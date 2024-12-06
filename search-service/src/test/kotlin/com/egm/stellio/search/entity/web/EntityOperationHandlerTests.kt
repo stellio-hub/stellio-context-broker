@@ -3,16 +3,29 @@ package com.egm.stellio.search.entity.web
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.DEVICE_TYPE
+import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
+import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.SENSOR_TYPE
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -293,9 +306,9 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
-                "Request payload must contain @context term for a request having an application/ld+json content type"
+                    "title":
+                 "Request payload must contain @context term for a request having an application/ld+json content type",
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -394,9 +407,10 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
-                "Request payload must contain @context term for a request having an application/ld+json content type"
+                    "title":
+                "Request payload must contain @context term for a request having an application/ld+json content type",
+                    "detail": "$DEFAULT_DETAIL",
+
                 }
                 """.trimIndent()
             )
@@ -476,7 +490,8 @@ class EntityOperationHandlerTests {
                 match {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
-                        it.typeSelection == BEEHIVE_TYPE &&
+                        it is EntitiesQueryFromPost &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_TYPE &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
                 any<Sub>()

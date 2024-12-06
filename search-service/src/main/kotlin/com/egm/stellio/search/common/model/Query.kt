@@ -7,7 +7,7 @@ import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.DataTypes
 
 /**
  * A Query data type as defined in 5.2.23.
@@ -24,12 +24,15 @@ data class Query private constructor(
     val temporalQ: UnparsedTemporalQuery? = null,
     val scopeQ: String? = null,
     val lang: String? = null,
-    val datasetId: List<String>? = null
+    val datasetId: List<String>? = null,
+    val join: String? = null,
+    val joinLevel: Int? = null,
+    val containedBy: List<String>? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {
             runCatching {
-                JsonUtils.deserializeDataTypeAs<Query>(queryBody)
+                DataTypes.deserializeAs<Query>(queryBody)
             }.fold(
                 {
                     ensure(it.type == "Query") {

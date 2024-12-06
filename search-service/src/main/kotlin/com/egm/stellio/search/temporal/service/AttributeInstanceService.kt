@@ -5,16 +5,35 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.common.util.*
+import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.execute
+import com.egm.stellio.search.common.util.executeExpected
+import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toJsonString
+import com.egm.stellio.search.common.util.toUuid
+import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.util.toAttributeMetadata
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty.OBSERVED_AT
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.search.temporal.util.composeAggregationSelectClause
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -28,7 +47,8 @@ import java.util.UUID
 
 @Service
 class AttributeInstanceService(
-    private val databaseClient: DatabaseClient
+    private val databaseClient: DatabaseClient,
+    private val searchProperties: SearchProperties
 ) {
 
     private val attributesInstancesTables = listOf("attribute_instance", "attribute_instance_audit")
@@ -36,7 +56,7 @@ class AttributeInstanceService(
     @Transactional
     suspend fun create(attributeInstance: AttributeInstance): Either<APIException, Unit> {
         val insertStatement =
-            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+            if (attributeInstance.timeProperty == OBSERVED_AT &&
                 attributeInstance.geoValue != null
             )
                 """
@@ -50,7 +70,7 @@ class AttributeInstanceService(
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload,
                               instance_id = :instance_id, geo_value = public.ST_GeomFromText(:geo_value)
                 """.trimIndent()
-            else if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+            else if (attributeInstance.timeProperty == OBSERVED_AT)
                 """
                 INSERT INTO attribute_instance 
                     (time, measured_value, value, temporal_entity_attribute, 
@@ -94,7 +114,7 @@ class AttributeInstanceService(
             .bind("instance_id", attributeInstance.instanceId)
             .bind("payload", attributeInstance.payload)
             .let {
-                if (attributeInstance.timeProperty != AttributeInstance.TemporalProperty.OBSERVED_AT)
+                if (attributeInstance.timeProperty != OBSERVED_AT)
                     it.bind("time_property", attributeInstance.timeProperty.toString())
                         .bind("sub", attributeInstance.sub)
                 else it
@@ -137,7 +157,7 @@ class AttributeInstanceService(
         if (!temporalEntitiesQuery.withTemporalValues && !temporalEntitiesQuery.withAggregatedValues)
             sqlQueryBuilder.append(", payload")
 
-        if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+        if (temporalQuery.timeproperty == OBSERVED_AT)
             sqlQueryBuilder.append(
                 """
                 FROM attribute_instance
@@ -212,36 +232,32 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         attributes: List<Attribute>,
         origin: ZonedDateTime?
-    ) = when {
-        temporalQuery.aggrPeriodDuration != null -> {
-            val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
-            val allAggregates = temporalQuery.aggrMethods
-                ?.composeAggregationSelectClause(attributes[0].attributeValueType)
-            // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
-            // if querying temporal entities, timeAt is mandatory and will be used if origin is null
-            if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
-                val computedOrigin = origin ?: temporalQuery.timeAt
-                """
+    ) = if (temporalQuery.aggrPeriodDuration != null) {
+        val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
+        val allAggregates = temporalQuery.aggrMethods
+            ?.composeAggregationSelectClause(attributes[0].attributeValueType)
+        // if retrieving a temporal entity, origin is calculated beforehand as timeAt is optional in this case
+        // if querying temporal entities, timeAt is mandatory and will be used if origin is null
+        if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
+            val computedOrigin = origin ?: temporalQuery.timeAt
+            """
                 SELECT temporal_entity_attribute,
-                    public.time_bucket('$aggrPeriodDuration', time, TIMESTAMPTZ '${computedOrigin!!}') as start,
+                    public.time_bucket('$aggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
                     $allAggregates
-                """.trimIndent()
-            } else
-                "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
+            """.trimIndent()
+        } else
+            "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
+    } else {
+        val valueColumn = when (attributes[0].attributeValueType) {
+            Attribute.AttributeValueType.NUMBER -> "measured_value as value"
+            Attribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
+            else -> "value"
         }
-        else -> {
-            val valueColumn = when (attributes[0].attributeValueType) {
-                Attribute.AttributeValueType.NUMBER -> "measured_value as value"
-                Attribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
-                else -> "value"
-            }
-            val subColumn = when (temporalQuery.timeproperty) {
-                AttributeInstance.TemporalProperty.OBSERVED_AT -> null
-                else -> "sub"
-            }
-            "SELECT " + listOfNotNull("temporal_entity_attribute", "time as start", valueColumn, subColumn)
-                .joinToString(",")
-        }
+        val subColumn =
+            if (temporalQuery.timeproperty == OBSERVED_AT) null
+            else "sub"
+        "SELECT " + listOfNotNull("temporal_entity_attribute", "time as start", valueColumn, subColumn)
+            .joinToString(",")
     }
 
     suspend fun selectOldestDate(
@@ -255,7 +271,7 @@ class AttributeInstanceService(
             """.trimIndent()
 
         selectQuery =
-            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+            if (temporalQuery.timeproperty == OBSERVED_AT)
                 selectQuery.plus(
                     """
                     FROM attribute_instance

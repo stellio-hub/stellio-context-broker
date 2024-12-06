@@ -2,13 +2,12 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>CyclomaticComplexMethod:ExceptionHandler.kt$ExceptionHandler$@ExceptionHandler fun transformErrorResponse(throwable: Throwable): ResponseEntity&lt;ProblemDetail&gt;</ID>
-    <ID>LongMethod:CompactedEntityTests.kt$CompactedEntityTests$@Test fun `it should return the GeoJSON representation of simplified entities`()</ID>
+    <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should inline two entities with their respective relationhips`()</ID>
+    <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should simplify relationships for inlined entities`()</ID>
     <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>
     <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:ApiResponses.kt$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>SpreadOperator:EntityEvent.kt$EntityEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityReplaceEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class), JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class) ] )</ID>
-    <ID>SwallowedException:JsonLdUtils.kt$JsonLdUtils$e: JsonLdError</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
   </CurrentIssues>
 </SmellBaseline>

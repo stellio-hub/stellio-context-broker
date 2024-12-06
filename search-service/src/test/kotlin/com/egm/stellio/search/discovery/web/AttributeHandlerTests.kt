@@ -9,8 +9,21 @@ import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.AttributeTypeInfo
 import com.egm.stellio.search.discovery.service.AttributeService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.FirewallConfig
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -20,6 +33,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
@@ -29,6 +43,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 @ActiveProfiles("test")
 @WebFluxTest(AttributeHandler::class)
+@Import(FirewallConfig::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class AttributeHandlerTests {
 
@@ -241,9 +256,13 @@ class AttributeHandlerTests {
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${attributeNotFoundMessage(OUTGOING_PROPERTY)}\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                      "title":"${attributeNotFoundMessage(OUTGOING_PROPERTY)}",
+                      "detail":"$DEFAULT_DETAIL"
+                    }
+                """
             )
     }
 }

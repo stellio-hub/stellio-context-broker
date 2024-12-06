@@ -1,11 +1,27 @@
 package com.egm.stellio.search.temporal.service
 
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
-import com.egm.stellio.search.support.*
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.WithKafkaContainer
+import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.support.gimmeNumericPropertyAttributeInstance
+import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toUri
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.AbstractObjectAssert
 import org.assertj.core.api.Assertions
@@ -13,6 +29,7 @@ import org.assertj.core.api.InstanceOfAssertFactories
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -39,9 +56,17 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
+    @MockkBean(relaxed = true)
+    private lateinit var searchProperties: SearchProperties
+
     private val now = ngsiLdDateTime()
     private val attributeUuid = UUID.randomUUID()
     private val entityId = "urn:ngsi-ld:BeeHive:${UUID.randomUUID()}".toUri()
+
+    @BeforeEach
+    fun mockSearchProperties() {
+        every { searchProperties.timezoneForTimeBuckets } returns "GMT"
+    }
 
     @AfterEach
     fun clearAttributesInstances() {
@@ -72,8 +97,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on JSON Number values`(aggrMethod: String, expectedValue: String) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(measuredValue = i.toDouble())
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                measuredValue = i.toDouble()
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -101,8 +128,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on JSON String values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.STRING)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(measuredValue = null, value = "a$i")
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = "a$i"
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -130,15 +159,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on JSON Object values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.OBJECT)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = """
-                    {
-                        "a": $i
-                    }
-                    """.trimIndent()
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = """{ "a": $i }"""
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -166,13 +190,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on JSON Array values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.ARRAY)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = """
-                    [ $i ]
-                    """.trimIndent()
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = """[ $i ]"""
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -200,11 +221,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on JSON Boolean values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.BOOLEAN)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = if (i % 2 == 0) "true" else "false"
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = if (i % 2 == 0) "true" else "false"
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -233,11 +253,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         val attribute = createAttribute(Attribute.AttributeValueType.DATETIME)
         val baseDateTime = ZonedDateTime.parse("2023-03-05T00:01:01Z")
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = baseDateTime.plusHours(i.toLong()).toString()
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = baseDateTime.plusHours(i.toLong()).toString()
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -266,11 +285,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         val attribute = createAttribute(Attribute.AttributeValueType.DATE)
         val baseDateTime = LocalDate.parse("2023-03-05")
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = baseDateTime.plusDays(i.toLong()).toString()
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = baseDateTime.plusDays(i.toLong()).toString()
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -299,11 +317,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         val attribute = createAttribute(Attribute.AttributeValueType.TIME)
         val baseDateTime = OffsetTime.parse("00:00:01Z")
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = baseDateTime.plusHours(i.toLong()).toString()
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = baseDateTime.plusHours(i.toLong()).toString()
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -331,11 +348,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should correctly aggregate on URI values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.URI)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(
-                    measuredValue = null,
-                    value = "urn:ngsi-ld:Entity:$i"
-                )
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = "urn:ngsi-ld:Entity:$i"
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -353,8 +369,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(measuredValue = i.toDouble())
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                measuredValue = i.toDouble()
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -390,8 +408,10 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
         val startTimestamp = ZonedDateTime.parse("2023-12-28T12:00:00Z")
         (1..10).forEach { i ->
-            val attributeInstance = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(time = startTimestamp.plusDays(i.toLong()))
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                time = startTimestamp.plusDays(i.toLong())
+            )
             attributeInstanceService.create(attributeInstance)
         }
 
@@ -412,11 +432,15 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     fun `it should handle aggregates for an attribute having different types of values in history`() = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.ARRAY)
         (1..10).forEach { i ->
-            val attributeInstanceWithArrayValue = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(measuredValue = null, value = "[ $i ]")
+            val attributeInstanceWithArrayValue = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = "[ $i ]"
+            )
             attributeInstanceService.create(attributeInstanceWithArrayValue)
-            val attributeInstanceWithStringValue = gimmeNumericPropertyAttributeInstance(attributeUuid)
-                .copy(measuredValue = null, value = "$i")
+            val attributeInstanceWithStringValue = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                value = "$i"
+            )
             attributeInstanceService.create(attributeInstanceWithStringValue)
         }
 
@@ -425,6 +449,36 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
             .shouldFail {
                 assertInstanceOf(OperationNotSupportedException::class.java, it)
                 assertEquals("cannot get array length of a scalar", it.message)
+            }
+    }
+
+    @Test
+    fun `it should aggregate using the specified timezone`() = runTest {
+        // set the timezone to Europe/Paris to have all the results aggregated on January 2024
+        every { searchProperties.timezoneForTimeBuckets } returns "Europe/Paris"
+
+        val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
+        val startTimestamp = ZonedDateTime.parse("2023-12-31T23:00:00Z")
+        (0..9).forEach { i ->
+            val attributeInstance = gimmeNumericPropertyAttributeInstance(
+                attributeUuid = attributeUuid,
+                measuredValue = 1.0,
+                time = startTimestamp.plusHours(i.toLong())
+            )
+            attributeInstanceService.create(attributeInstance)
+        }
+
+        val temporalEntitiesQuery = createTemporalEntitiesQuery("sum", "P1M")
+        attributeInstanceService.search(
+            temporalEntitiesQuery.copy(
+                temporalQuery = temporalEntitiesQuery.temporalQuery.copy(timeAt = startTimestamp)
+            ),
+            attribute,
+            startTimestamp
+        )
+            .shouldSucceedWith { results ->
+                assertEquals(1, results.size)
+                assertEquals(10.0, (results[0] as AggregatedAttributeInstanceResult).values[0].value)
             }
     }
 
@@ -446,7 +500,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     private fun createTemporalEntitiesQuery(
         aggrMethod: String,
         aggrPeriodDuration: String = "P1D"
-    ): TemporalEntitiesQuery =
+    ): TemporalEntitiesQueryFromGet =
         gimmeTemporalEntitiesQuery(
             buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.AFTER,

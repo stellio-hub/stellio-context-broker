@@ -1,16 +1,33 @@
 package com.egm.stellio.subscription.web
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.Option
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
+import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildQueryResponse
+import com.egm.stellio.shared.util.checkAndGetContext
+import com.egm.stellio.shared.util.getApplicableMediaType
+import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.serialize
@@ -22,13 +39,23 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.*
+import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
+@Validated
 class SubscriptionHandler(
     private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService
@@ -40,7 +67,9 @@ class SubscriptionHandler(
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
@@ -65,16 +94,20 @@ class SubscriptionHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getSubscriptions(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
+        @AllowedParameters(
+            implemented = [QP.OPTIONS, QP.LIMIT, QP.OFFSET, QP.COUNT],
+            notImplemented = [QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
 
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
+            .contains(OptionsValue.SYS_ATTRS.value)
         val paginationQuery = parsePaginationParameters(
-            params,
+            queryParams,
             applicationProperties.pagination.limitDefault,
             applicationProperties.pagination.limitMax
         ).bind()
@@ -87,7 +120,7 @@ class SubscriptionHandler(
             subscriptionsCount,
             "/ngsi-ld/v1/subscriptions",
             paginationQuery,
-            params,
+            queryParams,
             mediaType,
             contexts
         )
@@ -103,9 +136,13 @@ class SubscriptionHandler(
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subscriptionId: URI,
-        @RequestParam options: Optional<String>
+        @AllowedParameters(implemented = [QP.OPTIONS], notImplemented = [QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val includeSysAttrs = options.filter { it.contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE) }.isPresent
+        val options: String? = queryParams.getFirst(QP.OPTIONS.key) // list of options see 6.3.11
+
+        val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
+
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
@@ -148,7 +185,9 @@ class SubscriptionHandler(
     suspend fun update(
         @PathVariable subscriptionId: URI,
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestBody requestBody: Mono<String>
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(notImplemented = [QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 
@@ -168,7 +207,11 @@ class SubscriptionHandler(
      * Implements 6.11.3.3 - Delete Subscription
      */
     @DeleteMapping("/{subscriptionId}")
-    suspend fun delete(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
+    suspend fun delete(
+        @PathVariable subscriptionId: URI,
+        @AllowedParameters(notImplemented = [QP.VIA])
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
         checkSubscriptionExists(subscriptionId).bind()
 
         val sub = getSubFromSecurityContext()

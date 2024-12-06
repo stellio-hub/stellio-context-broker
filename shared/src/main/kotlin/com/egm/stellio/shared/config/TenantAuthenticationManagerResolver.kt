@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders
 import org.springframework.security.oauth2.server.resource.authentication.JwtReactiveAuthenticationManager
 import org.springframework.stereotype.Component
@@ -25,7 +26,7 @@ class TenantAuthenticationManagerResolver(
 
     override fun afterPropertiesSet() {
         applicationProperties.tenants.forEach { tenantConfiguration ->
-            val jwtDecoder = ReactiveJwtDecoders.fromIssuerLocation(tenantConfiguration.issuer)
+            val jwtDecoder: ReactiveJwtDecoder = ReactiveJwtDecoders.fromIssuerLocation(tenantConfiguration.issuer)
             val jwtAuthenticationManager = JwtReactiveAuthenticationManager(jwtDecoder)
             authenticationManagers[tenantConfiguration.name] = jwtAuthenticationManager
         }

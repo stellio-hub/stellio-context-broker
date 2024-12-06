@@ -1,21 +1,46 @@
 package com.egm.stellio.search.entity.service
 
-import arrow.core.*
+import arrow.core.Either
 import arrow.core.raise.either
+import arrow.core.right
+import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.common.util.*
-import com.egm.stellio.search.entity.model.*
+import com.egm.stellio.search.common.util.deserializeExpandedPayload
+import com.egm.stellio.search.common.util.execute
+import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.OperationType.*
+import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
+import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.OperationType
+import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES
+import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
+import com.egm.stellio.search.entity.model.OperationType.MERGE_ENTITY
+import com.egm.stellio.search.entity.model.OperationType.UPDATE_ATTRIBUTES
+import com.egm.stellio.search.entity.model.UpdateAttributeResult
+import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
+import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.addSysAttrs
+import com.egm.stellio.shared.model.toExpandedAttributes
+import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.getSpecificAccessPolicy
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -46,7 +71,7 @@ class EntityService(
         authorizationService.userCanCreateEntities(sub.toOption()).bind()
         entityQueryService.checkEntityExistence(ngsiLdEntity.id, true).bind()
 
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
@@ -574,21 +599,20 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        when (attributeName) {
-            NGSILD_SCOPE_PROPERTY -> scopeService.delete(entityId).bind()
-            else -> {
-                entityAttributeService.checkEntityAndAttributeExistence(
-                    entityId,
-                    attributeName,
-                    datasetId
-                ).bind()
-                entityAttributeService.deleteAttribute(
-                    entityId,
-                    attributeName,
-                    datasetId,
-                    deleteAll
-                ).bind()
-            }
+        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+            scopeService.delete(entityId).bind()
+        } else {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                entityId,
+                attributeName,
+                datasetId
+            ).bind()
+            entityAttributeService.deleteAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                deleteAll
+            ).bind()
         }
         updateState(
             entityId,

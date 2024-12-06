@@ -3,7 +3,11 @@ package com.egm.stellio.subscription.service.mqtt
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
+import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithMosquittoContainer
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery

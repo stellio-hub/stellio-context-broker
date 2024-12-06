@@ -2,11 +2,22 @@ package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
+import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -82,10 +93,12 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
-                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
+                        entitiesQueryFromPost.entitySelectors!!.size == 1 &&
+                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -133,10 +146,12 @@ class TemporalEntityOperationsHandlerTests {
         coVerify {
             temporalQueryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
-                        temporalEntitiesQuery.entitiesQuery.ids.isEmpty() &&
-                        temporalEntitiesQuery.entitiesQuery.typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
+                        entitiesQueryFromPost.entitySelectors!!.size == 1 &&
+                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
@@ -172,8 +187,8 @@ class TemporalEntityOperationsHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' and 'time' must be used in conjunction"
+                    "title":"'timerel' and 'time' must be used in conjunction",
+                    "detail":"$DEFAULT_DETAIL"
                 }
                 """
             )

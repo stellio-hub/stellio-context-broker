@@ -23,7 +23,7 @@ dependencies {
     implementation("org.json:json:20240303")
     implementation(project(":shared"))
 
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.7")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -31,12 +31,11 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.r2dbc:r2dbc-pool")
 
+    testImplementation("org.wiremock:wiremock-standalone:3.3.1")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
-    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

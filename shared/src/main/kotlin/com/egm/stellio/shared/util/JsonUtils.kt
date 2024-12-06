@@ -3,7 +3,6 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -19,21 +18,10 @@ val mapper: ObjectMapper =
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
-// a specific object mapper for data types defined in 5.2
-// difference is that unknown properties are not allowed (in contrast to entities)
-val dataTypeMapper: ObjectMapper =
-    jacksonObjectMapper()
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        .findAndRegisterModules()
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-
 object JsonUtils {
 
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue(content, T::class.java)
-
-    inline fun <reified T> deserializeDataTypeAs(content: String): T =
-        dataTypeMapper.readValue(content, T::class.java)
 
     @SuppressWarnings("SwallowedException")
     fun deserializeObject(input: String): Map<String, Any> =
@@ -116,10 +104,8 @@ object JsonUtils {
                 entry.value is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
                 entry.value is List<*> ->
                     (entry.value as List<Any>).map {
-                        when (it) {
-                            is Map<*, *> -> (it as Map<String, Any>).getAllValues()
-                            else -> setOf(it)
-                        }
+                        if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
+                        else setOf(it)
                     }.flatten().toSet()
                 else -> setOf(entry.value)
             }

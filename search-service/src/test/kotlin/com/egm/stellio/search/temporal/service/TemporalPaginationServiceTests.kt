@@ -2,13 +2,18 @@ package com.egm.stellio.search.temporal.service
 
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
@@ -126,9 +131,9 @@ class TemporalPaginationServiceTests {
         )
     )
 
-    private fun getQuery(temporalQuery: TemporalQuery): TemporalEntitiesQuery = TemporalEntitiesQuery(
+    private fun getQuery(temporalQuery: TemporalQuery): TemporalEntitiesQuery = TemporalEntitiesQueryFromGet(
         temporalQuery = temporalQuery,
-        entitiesQuery = EntitiesQuery(
+        entitiesQuery = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 0, offset = 50),
             attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
             contexts = APIC_COMPOUND_CONTEXTS
@@ -228,7 +233,6 @@ class TemporalPaginationServiceTests {
                 timerel = TemporalQuery.Timerel.AFTER,
                 timeAt = timeAt,
                 lastN = 100
-
             )
         )
         val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstancesForLastN, query)
@@ -265,7 +269,7 @@ class TemporalPaginationServiceTests {
 
     @Test
     fun `range calculation with aggregatedValues`() = runTest {
-        val query = TemporalEntitiesQuery(
+        val query = TemporalEntitiesQueryFromGet(
             temporalQuery = buildDefaultTestTemporalQuery(
                 instanceLimit = 2,
                 timerel = TemporalQuery.Timerel.AFTER,
@@ -273,7 +277,7 @@ class TemporalPaginationServiceTests {
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
                 aggrPeriodDuration = "P1M"
             ),
-            entitiesQuery = EntitiesQuery(
+            entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 0, offset = 50),
                 attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 contexts = APIC_COMPOUND_CONTEXTS

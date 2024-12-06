@@ -1,9 +1,9 @@
 package com.egm.stellio.search.authorization.service
 
 import arrow.core.None
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.PaginationQuery
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -36,7 +36,7 @@ class AuthorizationServiceTests {
     @Test
     fun `get authorized entities should return a count of -1 if authentication is not enabled`() = runTest {
         authorizationService.getAuthorizedEntities(
-            EntitiesQuery(
+            EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 0, offset = 0),
                 contexts = listOf(applicationProperties.contexts.core)
             ),

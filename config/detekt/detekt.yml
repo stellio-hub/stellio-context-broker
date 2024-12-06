@@ -455,7 +455,7 @@ potential-bugs:
   ImplicitDefaultLocale:
     active: true
   ImplicitUnitReturnType:
-    active: false
+    active: true
     allowExplicitReturnType: true
   InvalidRange:
     active: true
@@ -481,7 +481,7 @@ potential-bugs:
   UnconditionalJumpStatementInLoop:
     active: false
   UnnecessaryNotNullCheck:
-    active: false
+    active: true
   UnnecessaryNotNullOperator:
     active: true
   UnnecessarySafeCall:
@@ -505,7 +505,7 @@ potential-bugs:
 style:
   active: true
   AlsoCouldBeApply:
-    active: false
+    active: true
   BracesOnIfStatements:
     active: false
     singleLine: 'never'
@@ -534,7 +534,7 @@ style:
     active: true
     maxDestructuringEntries: 3
   DoubleNegativeLambda:
-    active: false
+    active: true
     negativeFunctions:
       - reason: 'Use `takeIf` instead.'
         value: 'takeUnless'
@@ -555,7 +555,7 @@ style:
     active: false
     includeLineWrapping: false
   ForbiddenAnnotation:
-    active: false
+    active: true
     annotations:
       - reason: 'it is a java annotation. Use `Suppress` instead.'
         value: 'java.lang.SuppressWarnings'
@@ -586,7 +586,7 @@ style:
     imports: []
     forbiddenPatterns: ''
   ForbiddenMethodCall:
-    active: false
+    active: true
     methods:
       - reason: 'print does not allow you to configure the output stream. Use a logger instead.'
         value: 'kotlin.io.print'
@@ -628,8 +628,8 @@ style:
   MandatoryBracesLoops:
     active: false
   MaxChainedCallsOnSameLine:
-    active: false
-    maxChainedCalls: 5
+    active: true
+    maxChainedCalls: 3
   MaxLineLength:
     active: true
     maxLineLength: 120
@@ -642,7 +642,7 @@ style:
   ModifierOrder:
     active: true
   MultilineLambdaItParameter:
-    active: false
+    active: true
   MultilineRawStringIndentation:
     active: false
     indentSize: 4
@@ -654,25 +654,25 @@ style:
   NewLineAtEndOfFile:
     active: true
   NoTabs:
-    active: false
+    active: true
   NullableBooleanCheck:
-    active: false
+    active: true
   ObjectLiteralToLambda:
     active: true
   OptionalAbstractKeyword:
     active: true
   OptionalUnit:
-    active: false
+    active: true
   PreferToOverPairSyntax:
     active: false
   ProtectedMemberInFinalClass:
     active: true
   RedundantExplicitType:
-    active: false
+    active: true
   RedundantHigherOrderMapUsage:
     active: true
   RedundantVisibilityModifierRule:
-    active: false
+    active: true
   ReturnCount:
     active: true
     max: 4
@@ -686,9 +686,9 @@ style:
   SerialVersionUIDInSerializableClass:
     active: true
   SpacingBetweenPackageAndImports:
-    active: false
+    active: true
   StringShouldBeRawString:
-    active: false
+    active: true
     maxEscapedCharacterCount: 2
     ignoredCharacters: []
   ThrowsCount:
@@ -696,7 +696,7 @@ style:
     max: 2
     excludeGuardClauses: false
   TrailingWhitespace:
-    active: false
+    active: true
   TrimMultilineRawString:
     active: false
     trimmingMethods:
@@ -723,17 +723,17 @@ style:
   UnnecessaryInnerClass:
     active: false
   UnnecessaryLet:
-    active: false
+    active: true
   UnnecessaryParentheses:
-    active: false
+    active: true
     allowForUnclearPrecedence: false
   UntilInsteadOfRangeTo:
     active: false
   UnusedImports:
-    active: false
+    active: true
   UnusedParameter:
     active: true
-    allowedNames: 'ignored|expected'
+    allowedNames: 'ignored|expected|queryParams'
   UnusedPrivateClass:
     active: true
   UnusedPrivateMember:
@@ -751,19 +751,19 @@ style:
   UseCheckOrError:
     active: true
   UseDataClass:
-    active: false
+    active: true
     allowVars: false
   UseEmptyCounterpart:
     active: false
   UseIfEmptyOrIfBlank:
     active: false
   UseIfInsteadOfWhen:
-    active: false
+    active: true
     ignoreWhenContainingVariableDeclaration: false
   UseIsNullOrEmpty:
     active: true
   UseLet:
-    active: false
+    active: true
   UseOrEmpty:
     active: true
   UseRequire:
@@ -771,7 +771,7 @@ style:
   UseRequireNotNull:
     active: true
   UseSumOfInsteadOfFlatMapSize:
-    active: false
+    active: true
   UselessCallOnNotNull:
     active: true
   UtilityClassWithPublicConstructor:
@@ -780,9 +780,10 @@ style:
     active: true
     ignoreLateinitVar: false
   WildcardImport:
-    active: false
+    active: true
     excludeImports:
       - 'java.util.*'
+      - 'java.util.stream.*'
 
 formatting:
   active: true
@@ -901,7 +902,7 @@ formatting:
     active: true
     autoCorrect: true
   NoBlankLineInList:
-    active: false
+    active: true
     autoCorrect: true
   NoBlankLinesInChainedMethodCalls:
     active: true
@@ -947,8 +948,8 @@ formatting:
     active: true
     autoCorrect: true
   NoWildcardImports:
-    active: false
-    packagesToUseImportOnDemandProperty: 'java.util.*,kotlinx.android.synthetic.**'
+    active: true
+    packagesToUseImportOnDemandProperty: 'java.util.**'
   NullableTypeSpacing:
     active: true
     autoCorrect: true
@@ -956,7 +957,7 @@ formatting:
     active: true
     autoCorrect: true
   ParameterListSpacing:
-    active: false
+    active: true
     autoCorrect: true
   ParameterListWrapping:
     active: true
@@ -1033,15 +1034,15 @@ formatting:
     autoCorrect: true
     useTrailingCommaOnDeclarationSite: true
   TryCatchFinallySpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   TypeArgumentListSpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   TypeParameterListSpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   UnnecessaryParenthesesBeforeTrailingLambda:

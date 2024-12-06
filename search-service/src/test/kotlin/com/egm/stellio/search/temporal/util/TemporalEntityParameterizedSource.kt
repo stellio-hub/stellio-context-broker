@@ -4,8 +4,15 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.scope.FullScopeInstanceResult
 import com.egm.stellio.search.scope.ScopeInstanceResult
 import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
-import com.egm.stellio.search.support.*
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.SAMPLE_JSON_PROPERTY_PAYLOAD
+import com.egm.stellio.search.support.SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
+import com.egm.stellio.search.support.SAMPLE_VOCAB_PROPERTY_PAYLOAD
+import com.egm.stellio.search.support.buildAttributeInstancePayload
+import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri

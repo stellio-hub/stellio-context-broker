@@ -2,18 +2,24 @@ package com.egm.stellio.search.support
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.AttributeInstance
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.PaginationQuery
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlin.random.Random
 
@@ -38,16 +44,20 @@ fun gimmeEntityPayload(
 
 fun gimmeNumericPropertyAttributeInstance(
     attributeUuid: UUID,
-    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+    measuredValue: Double? = Random.nextDouble(),
+    value: String? = null,
+    time: ZonedDateTime = ngsiLdDateTime(),
+    sub: Sub? = null
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
-        measuredValue = Random.nextDouble(),
-        value = null,
+        measuredValue = measuredValue,
+        value = value,
         geoValue = null,
         valueType = Attribute.AttributeValueType.NUMBER,
         datasetId = null,
         type = Attribute.AttributeType.Property,
-        observedAt = ngsiLdDateTime()
+        observedAt = time
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.measuredValue!!)
         .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
@@ -55,10 +65,11 @@ fun gimmeNumericPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
-        payload = payload
+        payload = payload,
+        sub = sub
     )
 }
 
@@ -81,7 +92,7 @@ fun gimmeJsonPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -107,7 +118,7 @@ fun gimmeLanguagePropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -133,7 +144,7 @@ fun gimmeVocabPropertyAttributeInstance(
 
     return AttributeInstance(
         attributeUuid = attributeUuid,
-        time = attributeMetadata.observedAt!!,
+        time = attributeMetadata.observedAt,
         attributeMetadata = attributeMetadata,
         timeProperty = timeProperty,
         payload = payload
@@ -145,9 +156,9 @@ fun gimmeTemporalEntitiesQuery(
     withTemporalValues: Boolean = false,
     withAudit: Boolean = false,
     withAggregatedValues: Boolean = false
-): TemporalEntitiesQuery =
-    TemporalEntitiesQuery(
-        entitiesQuery = EntitiesQuery(
+): TemporalEntitiesQueryFromGet =
+    TemporalEntitiesQueryFromGet(
+        entitiesQuery = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 50, offset = 0),
             contexts = APIC_COMPOUND_CONTEXTS
         ),
@@ -157,8 +168,8 @@ fun gimmeTemporalEntitiesQuery(
         withAggregatedValues = withAggregatedValues
     )
 
-fun buildDefaultQueryParams(): EntitiesQuery =
-    EntitiesQuery(
+fun buildDefaultQueryParams(): EntitiesQueryFromGet =
+    EntitiesQueryFromGet(
         paginationQuery = PaginationQuery(limit = 50, offset = 0),
         contexts = APIC_COMPOUND_CONTEXTS
     )

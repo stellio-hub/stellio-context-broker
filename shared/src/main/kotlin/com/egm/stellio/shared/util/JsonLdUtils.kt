@@ -12,13 +12,26 @@ import com.apicatalog.jsonld.document.JsonDocument
 import com.apicatalog.jsonld.http.DefaultHttpClient
 import com.apicatalog.jsonld.loader.DocumentLoaderOptions
 import com.apicatalog.jsonld.loader.HttpLoader
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedNonReifiedPropertyValue
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import jakarta.json.*
+import jakarta.json.Json
+import jakarta.json.JsonArray
+import jakarta.json.JsonObject
+import jakarta.json.JsonString
+import jakarta.json.JsonStructure
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -80,12 +93,28 @@ object JsonLdUtils {
     const val NGSILD_LANG_TERM = "lang"
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
+    const val NGSILD_ENTITY_TERM = "entity"
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
     // List of members that are part of a core entity base definition (i.e., without attributes)
-    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT, NGSILD_SCOPE_PROPERTY)
+    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
+        setOf(
+            JSONLD_ID,
+            JSONLD_TYPE,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_PROPERTY,
+            NGSILD_CREATED_AT_PROPERTY,
+            NGSILD_MODIFIED_AT_PROPERTY
+        )
     val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
-        setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT, NGSILD_SCOPE_TERM)
+        setOf(
+            JSONLD_ID_TERM,
+            JSONLD_TYPE_TERM,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_TERM,
+            NGSILD_CREATED_AT_TERM,
+            NGSILD_MODIFIED_AT_TERM
+        )
 
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
@@ -96,6 +125,7 @@ object JsonLdUtils {
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
+    const val NGSILD_UNIT_CODE_TERM = "unitCode"
     const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_OBSERVATION_SPACE_TERM = "observationSpace"
@@ -111,6 +141,7 @@ object JsonLdUtils {
 
     const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
     const val NGSILD_NOTIFICATION_TERM = "Notification"
+    const val NGSILD_CSR_TERM = "ContextSourceRegistration"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
@@ -343,10 +374,10 @@ object JsonLdUtils {
             listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyFromWKT()))
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
-            val context: Any = when (jsonObject[JSONLD_CONTEXT]) {
-                is JsonArray -> (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
-                else -> (jsonObject[JSONLD_CONTEXT] as JsonString).string
-            }
+            val context: Any =
+                if (jsonObject[JSONLD_CONTEXT] is JsonArray)
+                    (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
+                else (jsonObject[JSONLD_CONTEXT] as JsonString).string
             // extract compacted entities from the @graph key
             (jsonObject[JSONLD_GRAPH] as JsonArray).toPrimitiveListOfObjects()
                 .map {

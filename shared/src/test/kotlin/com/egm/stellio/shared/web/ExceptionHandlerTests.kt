@@ -13,7 +13,7 @@ class ExceptionHandlerTests {
     ).build()
 
     @Test
-    fun `it should raise an error of type InvalidRequest if the request payload is not a valid JSON fragment`() {
+    fun `it should raise an error of type BadRequestData if the request payload is not a valid JSON fragment`() {
         val invalidJsonLdPayload =
             """
             {

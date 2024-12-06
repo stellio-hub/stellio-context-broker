@@ -2,7 +2,13 @@ package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.scope.TemporalScopeBuilder
-import com.egm.stellio.search.temporal.model.*
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.EntityTemporalResult
+import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB

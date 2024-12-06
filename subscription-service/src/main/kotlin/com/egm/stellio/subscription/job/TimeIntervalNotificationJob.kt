@@ -4,7 +4,9 @@ import arrow.core.flatten
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
@@ -51,12 +53,13 @@ class TimeIntervalNotificationJob(
 
     fun prepareQueryParams(entitySelector: EntitySelector, q: String?, attributes: List<String>?): String {
         val param = java.lang.StringBuilder()
-        param.append("?$QUERY_PARAM_TYPE=${entitySelector.typeSelection.encode()}")
-        if (entitySelector.id != null) param.append("&$QUERY_PARAM_ID=${entitySelector.id}")
-        if (entitySelector.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entitySelector.idPattern}")
-        if (q != null) param.append("&$QUERY_PARAM_Q=${q.encode()}")
+        param.append("?${QueryParameter.TYPE.key}=${entitySelector.typeSelection.encode()}")
+        if (entitySelector.id != null) param.append("&${QueryParameter.ID.key}=${entitySelector.id}")
+        if (entitySelector.idPattern != null)
+            param.append("&${QueryParameter.ID_PATTERN.key}=${entitySelector.idPattern}")
+        if (q != null) param.append("&${QueryParameter.Q.key}=${q.encode()}")
         if (!attributes.isNullOrEmpty())
-            param.append("&$QUERY_PARAM_ATTRS=${attributes.joinToString(",") { it.encode() }}")
+            param.append("&${QueryParameter.ATTRS.key}=${attributes.joinToString(",") { it.encode() }}")
         return param.toString()
     }
 

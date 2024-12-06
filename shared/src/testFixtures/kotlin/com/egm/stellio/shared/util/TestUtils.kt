@@ -4,7 +4,11 @@ import arrow.core.Either
 import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -60,22 +64,27 @@ fun loadMinimalEntityWithSap(
 suspend fun loadAndExpandMinimalEntity(
     id: String,
     type: String,
+    attributes: String? = null,
     contexts: List<String> = APIC_COMPOUND_CONTEXTS
 ): ExpandedEntity =
-    loadAndExpandMinimalEntity(id, listOf(type), contexts)
+    loadAndExpandMinimalEntity(id, listOf(type), attributes, contexts)
 
 suspend fun loadAndExpandMinimalEntity(
     id: String,
     types: List<String>,
+    attributes: String? = null,
     contexts: List<String> = APIC_COMPOUND_CONTEXTS
-): ExpandedEntity {
-    val entity = mapOf(
-        "id" to id,
-        "type" to types
+): ExpandedEntity =
+    expandJsonLdEntity(
+        """
+        {
+            "id": "$id",
+            "type": [${types.joinToString(",") { "\"$it\"" }}]
+            ${attributes?.let { ", $it" } ?: ""}
+        }
+        """.trimIndent(),
+        contexts
     )
-
-    return expandJsonLdEntity(entity, contexts)
-}
 
 suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<ExpandedEntity, NgsiLdEntity>> {
     val expandedEntity = expandJsonLdEntity(this)

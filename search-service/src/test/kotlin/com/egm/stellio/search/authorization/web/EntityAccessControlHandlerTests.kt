@@ -8,8 +8,19 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.authorization.service.EntityAccessRightsService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AUTHZ_HEADER_LINK
+import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
+import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
@@ -24,7 +35,15 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
+import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.sub
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
@@ -339,9 +358,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "User forbidden to remove ownership of entity",
+                    "title": "User forbidden to remove ownership of entity",
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource"
+                    "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )
@@ -382,9 +401,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1",
+                    "detail": "$DEFAULT_DETAIL",
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "The referred resource has not been found"
+                    "title": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1"
                 }
                 """.trimIndent()
             )
@@ -485,9 +504,9 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "$expectedAttr is not authorized property name",
+                    "title": "$expectedAttr is not authorized property name",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation"
+                    "detail":"$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
             )

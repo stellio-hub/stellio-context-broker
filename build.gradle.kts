@@ -2,7 +2,8 @@ import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 buildscript {
     dependencies {
@@ -10,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2023.0.3"
+extra["springCloudVersion"] = "2024.0.0-RC1"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -18,14 +19,14 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.3.4" apply false
+    id("org.springframework.boot") version "3.4.0" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
-    id("org.graalvm.buildtools.native") version "0.10.3"
-    kotlin("jvm") version "1.9.24" apply false
-    kotlin("plugin.spring") version "1.9.24" apply false
-    id("com.google.cloud.tools.jib") version "3.4.3" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
-    id("org.sonarqube") version "5.1.0.4882"
+    id("org.graalvm.buildtools.native") version "0.10.4"
+    kotlin("jvm") version "2.1.0" apply false
+    kotlin("plugin.spring") version "2.1.0" apply false
+    id("com.google.cloud.tools.jib") version "3.4.4" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.7" apply false
+    id("org.sonarqube") version "6.0.1.5171"
     jacoco
 }
 
@@ -57,6 +58,7 @@ subprojects {
         implementation("org.springframework.boot:spring-boot-starter-webflux")
         implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
         implementation("org.springframework.boot:spring-boot-starter-security")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
         // it provides support for JWT decoding and verification
         implementation("org.springframework.security:spring-security-oauth2-jose")
 
@@ -76,21 +78,21 @@ subprojects {
         runtimeOnly("de.siegmar:logback-gelf:6.1.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
-        testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            // to ensure we are using mocks and spies from springmockk (and not from Mockito)
-            exclude(module = "mockito-core")
-        }
-        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("org.springframework.boot:spring-boot-starter-test")
         testImplementation("io.projectreactor:reactor-test")
+        testImplementation("com.ninja-squad:springmockk:4.0.2")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
-    tasks.withType<KotlinCompile> {
-        kotlinOptions {
-            freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = "${JavaVersion.VERSION_21}"
+    kotlin {
+        compilerOptions {
+            // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
+            freeCompilerArgs.addAll("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
+            apiVersion.set(KotlinVersion.KOTLIN_2_0)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
+        jvmToolchain(21)
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")
@@ -104,7 +106,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("1.9.23")
+                useVersion("2.0.10")
             }
         }
     }
@@ -113,6 +115,7 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
+        source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
 
         reports {
             xml.required.set(true)

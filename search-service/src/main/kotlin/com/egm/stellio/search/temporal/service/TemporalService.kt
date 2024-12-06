@@ -6,7 +6,14 @@ import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.addCoreMembers
+import com.egm.stellio.shared.model.getMemberValueAsDateTime
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Service

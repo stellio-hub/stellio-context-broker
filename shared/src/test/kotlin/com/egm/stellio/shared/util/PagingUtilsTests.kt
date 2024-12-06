@@ -33,7 +33,7 @@ class PagingUtilsTests {
 
         assertEquals(
             links,
-            Pair("</ngsi-ld/v1/subscriptions?limit=5&offset=0>;rel=\"prev\";type=\"application/ld+json\"", null)
+            Pair("""</ngsi-ld/v1/subscriptions?limit=5&offset=0>;rel="prev";type="application/ld+json"""", null)
         )
     }
 
@@ -49,7 +49,7 @@ class PagingUtilsTests {
 
         assertEquals(
             links,
-            Pair(null, "</ngsi-ld/v1/subscriptions?limit=5&offset=5>;rel=\"next\";type=\"application/ld+json\"")
+            Pair(null, """</ngsi-ld/v1/subscriptions?limit=5&offset=5>;rel="next";type="application/ld+json"""")
         )
     }
 
@@ -66,8 +66,8 @@ class PagingUtilsTests {
         assertEquals(
             links,
             Pair(
-                "</ngsi-ld/v1/subscriptions?limit=3&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/subscriptions?limit=3&offset=5>;rel=\"next\";type=\"application/ld+json\""
+                """</ngsi-ld/v1/subscriptions?limit=3&offset=0>;rel="prev";type="application/ld+json"""",
+                """</ngsi-ld/v1/subscriptions?limit=3&offset=5>;rel="next";type="application/ld+json""""
             )
         )
     }

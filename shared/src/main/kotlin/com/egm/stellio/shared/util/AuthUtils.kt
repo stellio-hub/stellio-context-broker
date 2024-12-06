@@ -1,8 +1,20 @@
 package com.egm.stellio.shared.util
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.None
+import arrow.core.Option
+import arrow.core.getOrElse
+import arrow.core.left
+import arrow.core.right
+import arrow.core.some
+import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdAttribute
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.AuthContextModel.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ

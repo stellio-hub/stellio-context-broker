@@ -355,7 +355,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             ensureNotNull(json) {
                 BadRequestDataException("JsonProperty $name has an instance without a json member")
             }
-            ensure(json is Map<*, *> || (json is List<*> && json.all { it is Map<*, *> })) {
+            ensure(json is Map<*, *> || json is List<*> && json.all { it is Map<*, *> }) {
                 BadRequestDataException(
                     "JsonProperty $name has a json member that is not a JSON object, nor an array of JSON objects"
                 )
@@ -425,8 +425,8 @@ class NgsiLdLanguagePropertyInstance private constructor(
             }
 
         private fun isValidStructure(langEntry: Map<*, *>): Boolean =
-            (langEntry.size == 2 && langEntry.containsKey(JSONLD_VALUE) && langEntry.containsKey(JSONLD_LANGUAGE)) ||
-                (langEntry.size == 1 && langEntry.containsKey(JSONLD_VALUE))
+            langEntry.size == 2 && langEntry.containsKey(JSONLD_VALUE) && langEntry.containsKey(JSONLD_LANGUAGE) ||
+                langEntry.size == 1 && langEntry.containsKey(JSONLD_VALUE)
 
         private fun isValidLangValue(values: Collection<Any?>): Boolean =
             values.all { value -> value is String || value is List<*> }
@@ -498,8 +498,7 @@ private suspend fun parseAttributes(
         .mapValues { castAttributeValue(it.value) }
         .toList()
         .map {
-            val attributeType = (it.second[0][JSONLD_TYPE] as? List<String>)?.get(0)
-            when (attributeType) {
+            when (val attributeType = (it.second[0][JSONLD_TYPE] as? List<String>)?.get(0)) {
                 NGSILD_PROPERTY_TYPE.uri -> NgsiLdProperty.create(it.first, it.second)
                 NGSILD_RELATIONSHIP_TYPE.uri -> NgsiLdRelationship.create(it.first, it.second)
                 NGSILD_GEOPROPERTY_TYPE.uri -> NgsiLdGeoProperty.create(it.first, it.second)

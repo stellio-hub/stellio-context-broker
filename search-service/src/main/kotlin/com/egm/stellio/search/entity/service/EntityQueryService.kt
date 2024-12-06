@@ -1,17 +1,32 @@
 package com.egm.stellio.search.entity.service
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
+import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.common.util.*
+import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toUri
+import com.egm.stellio.search.common.util.wrapToAndClause
 import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildQQuery
+import com.egm.stellio.shared.util.buildScopeQQuery
+import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -105,22 +120,31 @@ class EntityQueryService(
         buildEntitiesQueryFilter(
             entitiesQuery,
             accessRightFilter
-        ).let {
-            if (entitiesQuery.q != null)
-                it.wrapToAndClause(buildQQuery(entitiesQuery.q, entitiesQuery.contexts))
-            else it
-        }.let {
-            if (entitiesQuery.scopeQ != null)
-                it.wrapToAndClause(buildScopeQQuery(entitiesQuery.scopeQ))
-            else it
-        }.let {
-            if (entitiesQuery.geoQuery != null)
-                it.wrapToAndClause(buildGeoQuery(entitiesQuery.geoQuery))
-            else it
+        ).let { sqlFilter ->
+            entitiesQuery.q?.let { q ->
+                sqlFilter.wrapToAndClause(buildQQuery(q, entitiesQuery.contexts))
+            } ?: sqlFilter
+        }.let { sqlFilter ->
+            entitiesQuery.scopeQ?.let { scopeQ ->
+                sqlFilter.wrapToAndClause(buildScopeQQuery(scopeQ))
+            } ?: sqlFilter
+        }.let { sqlFilter ->
+            entitiesQuery.geoQuery?.let { geoQuery ->
+                sqlFilter.wrapToAndClause(geoQuery.buildSqlFilter())
+            } ?: sqlFilter
         }
 
     fun buildEntitiesQueryFilter(
         entitiesQuery: EntitiesQuery,
+        accessRightFilter: () -> String?
+    ): String =
+        when (entitiesQuery) {
+            is EntitiesQueryFromGet -> buildEntitiesQueryFilterFromGet(entitiesQuery, accessRightFilter)
+            is EntitiesQueryFromPost -> buildEntitiesQueryFilterFromPost(entitiesQuery, accessRightFilter)
+        }
+
+    fun buildEntitiesQueryFilterFromGet(
+        entitiesQuery: EntitiesQueryFromGet,
         accessRightFilter: () -> String?
     ): String {
         val formattedIds =
@@ -155,6 +179,37 @@ class EntityQueryService(
             )
 
         return queryFilter.joinToString(separator = " AND ")
+    }
+
+    fun buildEntitiesQueryFilterFromPost(
+        entitiesQuery: EntitiesQueryFromPost,
+        accessRightFilter: () -> String?
+    ): String {
+        val entitySelectorFilter = entitiesQuery.entitySelectors?.map { entitySelector ->
+            val formattedId =
+                entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
+            val formattedIdPattern =
+                entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
+            val formattedType = entitySelector.typeSelection.let { "(" + buildTypeQuery(it) + ")" }
+            val formattedAttrs =
+                if (entitiesQuery.attrs.isNotEmpty())
+                    entitiesQuery.attrs.joinToString(
+                        separator = ",",
+                        prefix = "attribute_name in (",
+                        postfix = ")"
+                    ) { "'$it'" }
+                else null
+
+            listOfNotNull(
+                formattedId,
+                formattedIdPattern,
+                formattedType,
+                formattedAttrs,
+                accessRightFilter()
+            ).joinToString(separator = " AND ", prefix = "(", postfix = ")")
+        }
+
+        return entitySelectorFilter?.joinToString(separator = " OR ") ?: " 1 = 1 "
     }
 
     suspend fun retrieve(entityId: URI): Either<APIException, Entity> =

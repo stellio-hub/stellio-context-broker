@@ -85,5 +85,5 @@ object TemporalPaginationService {
         }
 
     private fun Range.contain(time: ZonedDateTime): Boolean =
-        (this.first >= time && time >= this.second) || (this.first <= time && time <= this.second)
+        this.first >= time && time >= this.second || this.first <= time && time <= this.second
 }

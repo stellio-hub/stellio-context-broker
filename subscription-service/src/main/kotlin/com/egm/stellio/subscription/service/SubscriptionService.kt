@@ -5,22 +5,59 @@ import arrow.core.Option
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NotImplementedException
+import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.buildQQuery
+import com.egm.stellio.shared.util.buildScopeQQuery
+import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.decode
+import com.egm.stellio.shared.util.invalidUriMessage
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
-import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.utils.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.GeoQ
+import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationTrigger
+import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.mergeEntitySelectorsOnSubscriptions
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
+import com.egm.stellio.subscription.utils.allToMappedList
+import com.egm.stellio.subscription.utils.execute
+import com.egm.stellio.subscription.utils.oneToResult
+import com.egm.stellio.subscription.utils.toBoolean
+import com.egm.stellio.subscription.utils.toEnum
+import com.egm.stellio.subscription.utils.toInt
+import com.egm.stellio.subscription.utils.toJsonString
+import com.egm.stellio.subscription.utils.toList
+import com.egm.stellio.subscription.utils.toNullableInt
+import com.egm.stellio.subscription.utils.toNullableList
+import com.egm.stellio.subscription.utils.toNullableUri
+import com.egm.stellio.subscription.utils.toNullableZonedDateTime
+import com.egm.stellio.subscription.utils.toOptionalEnum
+import com.egm.stellio.subscription.utils.toUri
+import com.egm.stellio.subscription.utils.toZonedDateTime
 import com.egm.stellio.subscription.web.invalidSubscriptionAttributeMessage
 import com.egm.stellio.subscription.web.unsupportedSubscriptionAttributeMessage
 import io.r2dbc.postgresql.codec.Json
@@ -148,10 +185,9 @@ class SubscriptionService(
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         validateNewSubscription(subscription).bind()
 
-        val geoQuery =
-            if (subscription.geoQ != null)
-                parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
-            else null
+        val geoQuery = subscription.geoQ?.let {
+            parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
+        }
         val endpoint = subscription.notification.endpoint
 
         val insertStatement =
@@ -327,74 +363,64 @@ class SubscriptionService(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Unit> = either {
-        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to ngsiLdDateTime())
+        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
+            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_SUBSCRIPTION_TERM'"))
 
-        if (!subscriptionInputWithModifiedAt.containsKey(JSONLD_TYPE_TERM) ||
-            subscriptionInputWithModifiedAt[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM
-        )
-            BadRequestDataException("type attribute must be present and equal to 'Subscription'").left().bind<Unit>()
-
-        subscriptionInputWithModifiedAt.filterKeys {
+        input.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-        }.forEach {
-            when {
-                it.key == "geoQ" ->
-                    parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
-                        ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
-
-                it.key == "notification" -> {
-                    val notification = it.value as Map<String, Any>
-                    updateNotification(subscriptionId, notification, contexts).bind()
-                }
-
-                it.key == "entities" -> {
-                    val entities = it.value as List<Map<String, Any>>
-                    updateEntities(subscriptionId, entities, contexts).bind()
-                }
-
-                it.key == "expiresAt" -> {
-                    val columnName = it.key.toSqlColumnName()
-                    val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
-                    updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
-                }
-
-                it.key == "watchedAttributes" -> {
-                    val value = (it.value as List<String>).map { watchedAttribute ->
-                        expandJsonLdTerm(watchedAttribute, contexts)
-                    }.toSqlValue(it.key)
-                    updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
-                }
-
-                listOf(
-                    "subscriptionName",
-                    "description",
-                    "notificationTrigger",
-                    "timeInterval",
-                    "q",
-                    "scopeQ",
-                    "isActive",
-                    "modifiedAt",
-                    "throttling",
-                    "lang",
-                    "datasetId",
-                    "jsonldContext"
-                ).contains(it.key) -> {
-                    val columnName = it.key.toSqlColumnName()
-                    val value = it.value.toSqlValue(it.key)
-                    updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
-                }
-
-                listOf("csf", "temporalQ").contains(it.key) -> {
-                    NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
-                        .left().bind<Unit>()
-                }
-
-                else -> {
-                    BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
-                        .left().bind<Unit>()
+        }.plus("modifiedAt" to ngsiLdDateTime())
+            .forEach {
+                when {
+                    it.key == "geoQ" ->
+                        parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
+                            ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
+                    it.key == "notification" -> {
+                        val notification = it.value as Map<String, Any>
+                        updateNotification(subscriptionId, notification, contexts).bind()
+                    }
+                    it.key == "entities" -> {
+                        val entities = it.value as List<Map<String, Any>>
+                        updateEntities(subscriptionId, entities, contexts).bind()
+                    }
+                    it.key == "expiresAt" -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
+                        updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
+                    }
+                    it.key == "watchedAttributes" -> {
+                        val value = (it.value as List<String>).map { watchedAttribute ->
+                            expandJsonLdTerm(watchedAttribute, contexts)
+                        }.toSqlValue(it.key)
+                        updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
+                    }
+                    listOf(
+                        "subscriptionName",
+                        "description",
+                        "notificationTrigger",
+                        "timeInterval",
+                        "q",
+                        "scopeQ",
+                        "isActive",
+                        "modifiedAt",
+                        "throttling",
+                        "lang",
+                        "datasetId",
+                        "jsonldContext"
+                    ).contains(it.key) -> {
+                        val columnName = it.key.toSqlColumnName()
+                        val value = it.value.toSqlValue(it.key)
+                        updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
+                    }
+                    listOf("csf", "temporalQ").contains(it.key) -> {
+                        NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
+                            .left().bind<Unit>()
+                    }
+                    else -> {
+                        BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
+                            .left().bind<Unit>()
+                    }
                 }
             }
-        }
     }
 
     private suspend fun updateSubscriptionAttribute(
@@ -621,12 +647,8 @@ class SubscriptionService(
             val entityTypes = expandedEntity.types
             entities.joinToString(" OR ") {
                 val typeSelectionQuery = buildTypeQuery(it.typeSelection, entityTypes)
-                val idQuery =
-                    if (it.id == null) null
-                    else " '${expandedEntity.id}' = '${it.id}' "
-                val idPatternQuery =
-                    if (it.idPattern == null) null
-                    else " '${expandedEntity.id}' ~ '${it.idPattern}' "
+                val idQuery = it.id?.let { " '${expandedEntity.id}' = '$it' " }
+                val idPatternQuery = it.idPattern?.let { " '${expandedEntity.id}' ~ '$it' " }
                 listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)
                     .joinToString(separator = " AND ", prefix = "(", postfix = ")")
             }
@@ -637,31 +659,27 @@ class SubscriptionService(
         expandedEntity: ExpandedEntity,
         contexts: List<String>
     ): String? =
-        if (query == null) null
-        else buildQQuery(query, contexts, expandedEntity)
+        query?.let { buildQQuery(query, contexts, expandedEntity) }
 
     suspend fun prepareScopeQQuery(
         scopeQ: String?,
         expandedEntity: ExpandedEntity
     ): String? =
-        if (scopeQ == null) null
-        else buildScopeQQuery(scopeQ, expandedEntity)
+        scopeQ?.let { buildScopeQQuery(scopeQ, expandedEntity) }
 
     suspend fun prepareGeoQuery(
         geoQ: GeoQ?,
         expandedEntity: ExpandedEntity
     ): String? =
-        if (geoQ == null) null
-        else buildGeoQuery(
+        geoQ?.let {
             GeoQuery(
                 georel = geoQ.georel,
                 geometry = GeoQuery.GeometryType.forType(geoQ.geometry)!!,
                 coordinates = geoQ.coordinates,
                 geoproperty = geoQ.geoproperty,
                 wktCoordinates = WKTCoordinates(geoQ.pgisGeometry!!)
-            ),
-            expandedEntity
-        )
+            ).buildSqlFilter(expandedEntity)
+        }
 
     suspend fun updateSubscriptionNotification(
         subscription: Subscription,
@@ -759,7 +777,7 @@ class SubscriptionService(
     }
 
     private val rowToGeoQ: ((Map<String, Any>) -> GeoQ?) = { row ->
-        if (row["georel"] != null)
+        row["georel"]?.let {
             GeoQ(
                 georel = row["georel"] as String,
                 geometry = row["geometry"] as String,
@@ -767,19 +785,17 @@ class SubscriptionService(
                 pgisGeometry = (row["pgis_geometry"] as Geometry).toText(),
                 geoproperty = row["geoproperty"] as? ExpandedTerm ?: NGSILD_LOCATION_PROPERTY
             )
-        else
-            null
+        }
     }
 
     private val rowToEntityInfo: ((Map<String, Any>) -> EntitySelector?) = { row ->
-        if (row["type_selection"] != null)
+        row["type_selection"]?.let {
             EntitySelector(
                 id = toNullableUri(row["entity_id"]),
                 idPattern = row["id_pattern"] as? String,
                 typeSelection = row["type_selection"] as String
             )
-        else
-            null
+        }
     }
 
     suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {

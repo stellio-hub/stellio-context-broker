@@ -14,6 +14,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -161,6 +162,62 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             jsonLdEntity,
             sub,
         ).shouldFail { assertInstanceOf(AlreadyExistsException::class.java, it) }
+    }
+
+    @Test
+    fun `it should allow to create an entity over a deleted one if authorized`() = runTest {
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.createAttributes(any(), any(), any(), any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        )
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
+            .shouldSucceedWith {
+                assertEquals(entity01Uri, it.entityId)
+                assertNotNull(it.payload)
+            }
+
+        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `it should not allow to create an entity over a deleted one if not authorized`() = runTest {
+        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery {
+            authorizationService.userCanAdminEntity(any(), any())
+        } returns AccessDeniedException("Unauthorized").left()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        )
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
+            .shouldSucceedWith {
+                assertEquals(entity01Uri, it.entityId)
+                assertNotNull(it.payload)
+            }
+
+        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+            .shouldFail { assertInstanceOf(AccessDeniedException::class.java, it) }
     }
 
     @Test
@@ -459,62 +516,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should allow to create an entity over a deleted one if authorized`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.createAttributes(any(), any(), any(), any(), any()) } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
-
-        val (expandedEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
-                .sampleDataToNgsiLdEntity()
-                .shouldSucceedAndResult()
-
-        entityService.createEntityPayload(
-            ngsiLdEntity,
-            expandedEntity,
-            now
-        )
-
-        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
-            .shouldSucceedWith {
-                assertEquals(entity01Uri, it.entityId)
-                assertNotNull(it.payload)
-            }
-
-        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
-            .shouldSucceed()
-    }
-
-    @Test
-    fun `it should not allow to create an entity over a deleted one if not authorized`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
-        coEvery {
-            authorizationService.userCanAdminEntity(any(), any())
-        } returns AccessDeniedException("Unauthorized").left()
-
-        val (expandedEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
-                .sampleDataToNgsiLdEntity()
-                .shouldSucceedAndResult()
-
-        entityService.createEntityPayload(
-            ngsiLdEntity,
-            expandedEntity,
-            now
-        )
-
-        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime())
-            .shouldSucceedWith {
-                assertEquals(entity01Uri, it.entityId)
-                assertNotNull(it.payload)
-            }
-
-        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
-            .shouldFail { assertInstanceOf(AccessDeniedException::class.java, it) }
-    }
-
-    @Test
     fun `it should remove the scopes from an entity`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
@@ -540,6 +541,30 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertNull(it.scopes)
+            }
+    }
+
+    @Test
+    fun `it should permanently delete an entity`() = runTest {
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.permanentlyDeleteAttributes(any()) } returns Unit.right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteEntity(entity01Uri).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldFail {
+                assertInstanceOf(ResourceNotFoundException::class.java, it)
             }
     }
 }

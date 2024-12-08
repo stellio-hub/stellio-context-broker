@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
@@ -64,7 +63,6 @@ import java.net.URI
 class TemporalEntityHandler(
     private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
-    private val entityService: EntityService,
     private val applicationProperties: ApplicationProperties
 ) : BaseHandler() {
 
@@ -277,7 +275,7 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.deleteEntity(entityId, sub.getOrNull()).bind()
+        temporalService.deleteEntity(entityId, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

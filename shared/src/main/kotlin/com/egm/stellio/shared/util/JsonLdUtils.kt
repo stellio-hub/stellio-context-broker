@@ -94,6 +94,8 @@ object JsonLdUtils {
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     const val NGSILD_ENTITY_TERM = "entity"
+    const val NGSILD_NULL = "urn:ngsi-ld:null"
+
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
     // List of members that are part of a core entity base definition (i.e., without attributes)
@@ -124,6 +126,8 @@ object JsonLdUtils {
     val NGSILD_SYSATTRS_PROPERTIES = setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
+    const val NGSILD_DELETED_AT_TERM = "deletedAt"
+    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"
     const val NGSILD_LOCATION_TERM = "location"

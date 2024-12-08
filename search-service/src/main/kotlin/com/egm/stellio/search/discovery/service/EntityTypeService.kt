@@ -45,7 +45,7 @@ class EntityTypeService(
             JOIN temporal_entity_attribute 
                 ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 AND temporal_entity_attribute.deleted_at IS NULL
-            WHERE temporal_entity_attribute.deleted_at IS NULL
+            WHERE entity_payload.deleted_at IS NULL
             ORDER BY type
             """.trimIndent()
         ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()

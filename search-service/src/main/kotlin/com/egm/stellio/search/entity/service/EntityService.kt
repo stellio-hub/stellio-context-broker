@@ -1,6 +1,9 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.Either.Left
+import arrow.core.Either.Right
+import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
@@ -24,7 +27,9 @@ import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
@@ -39,6 +44,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.getSpecificAccessPolicy
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -68,8 +74,16 @@ class EntityService(
         expandedEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        authorizationService.userCanCreateEntities(sub.toOption()).bind()
-        entityQueryService.checkEntityExistence(ngsiLdEntity.id, true).bind()
+        entityQueryService.getEntityState(ngsiLdEntity.id).let {
+            when (it) {
+                is Left -> authorizationService.userCanCreateEntities(sub.toOption()).bind()
+                is Right ->
+                    if (it.value.second == null)
+                        AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
+                    else
+                        authorizationService.userCanAdminEntity(ngsiLdEntity.id, sub.toOption()).bind()
+            }
+        }
 
         val createdAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
@@ -104,6 +118,13 @@ class EntityService(
             """
             INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
             VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
+            ON CONFLICT (entity_id)
+                DO UPDATE SET types = :types,
+                    scopes = :scopes,
+                    modified_at = :created_at,
+                    deleted_at = null,
+                    payload = :payload,
+                    specific_access_policy = :specific_access_policy
             """.trimIndent()
         )
             .bind("entity_id", ngsiLdEntity.id)
@@ -545,27 +566,55 @@ class EntityService(
     }
 
     @Transactional
-    suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            INSERT INTO entity_payload (entity_id, payload)
-            VALUES (:entity_id, :payload)
-            ON CONFLICT (entity_id)
-            DO UPDATE SET payload = :payload
-            """.trimIndent()
-        )
-            .bind("payload", Json.of(payload))
-            .bind("entity_id", entityId)
-            .execute()
-
-    @Transactional
     suspend fun deleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
-        val entity = deleteEntityPayload(entityId).bind()
+        val deletedAt = ngsiLdDateTime()
+        val entity = deleteEntityPayload(entityId, deletedAt).bind()
+        entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+        scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
-        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
+        entityEventService.publishEntityDeleteEvent(sub, entity)
+    }
+
+    @Transactional
+    suspend fun deleteEntityPayload(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Entity> = either {
+        val entity = databaseClient.sql(
+            """
+            WITH entity_before_delete AS (
+                SELECT *
+                FROM entity_payload
+                WHERE entity_id = :entity_id
+            ),
+            update_entity AS (
+                UPDATE entity_payload
+                SET deleted_at = :deleted_at,
+                    payload = null,
+                    scopes = null,
+                    specific_access_policy = null,
+                    types = '{}'
+                WHERE entity_id = :entity_id
+            )
+            SELECT * FROM entity_before_delete
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("deleted_at", deletedAt)
+            .oneToResult {
+                it.rowToEntity()
+            }
+            .bind()
+        entity
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
+        entityQueryService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
+
+        val entity = permanentyDeleteEntityPayload(entityId).bind()
+        entityAttributeService.permanentlyDeleteAttributes(entityId).bind()
         scopeService.deleteHistory(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
@@ -573,7 +622,7 @@ class EntityService(
     }
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
+    suspend fun permanentyDeleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
         val entity = databaseClient.sql(
             """
             DELETE FROM entity_payload

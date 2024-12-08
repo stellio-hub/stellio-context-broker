@@ -972,7 +972,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
-        coEvery { entityService.deleteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalService.deleteEntity(any(), any()) } returns Unit.right()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -981,14 +981,14 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteEntity(eq(entityUri), eq(sub.value))
+            temporalService.deleteEntity(eq(entityUri), eq(sub.value))
         }
     }
 
     @Test
     fun `delete temporal entity should return a 404 if entity to be deleted has not been found`() {
         coEvery {
-            entityService.deleteEntity(entityUri, sub.getOrNull())
+            temporalService.deleteEntity(entityUri, sub.getOrNull())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.delete()
@@ -1034,7 +1034,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete temporal entity should return a 500 if entity could not be deleted`() {
         coEvery {
-            entityService.deleteEntity(any(), any())
+            temporalService.deleteEntity(any(), any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1055,7 +1055,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete temporal entity should return a 403 is user is not authorized to delete an entity`() {
         coEvery {
-            entityService.deleteEntity(any(), any())
+            temporalService.deleteEntity(any(), any())
         } returns AccessDeniedException("User forbidden admin access to entity $entityUri").left()
 
         webClient.delete()

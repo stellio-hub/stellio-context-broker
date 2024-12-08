@@ -108,7 +108,7 @@ class EntityAttributeService(
                 DO UPDATE SET deleted_at = null,
                     attribute_type = :attribute_type,
                     attribute_value_type = :attribute_value_type,
-                    created_at = :created_at,
+                    modified_at = :created_at,
                     payload = :payload
             """.trimIndent()
         )
@@ -120,31 +120,6 @@ class EntityAttributeService(
             .bind("created_at", attribute.createdAt)
             .bind("dataset_id", attribute.datasetId)
             .bind("payload", attribute.payload)
-            .execute()
-
-    @Transactional
-    suspend fun updateOnReplace(
-        attributeUUID: UUID,
-        attributeMetadata: AttributeMetadata,
-        modifiedAt: ZonedDateTime,
-        payload: String
-    ): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            UPDATE temporal_entity_attribute
-            SET 
-                attribute_type = :attribute_type,
-                attribute_value_type = :attribute_value_type,
-                modified_at = :modified_at,
-                payload = :payload
-            WHERE id = :id
-            """.trimIndent()
-        )
-            .bind("id", attributeUUID)
-            .bind("attribute_type", attributeMetadata.type.toString())
-            .bind("attribute_value_type", attributeMetadata.valueType.toString())
-            .bind("modified_at", modifiedAt)
-            .bind("payload", Json.of(payload))
             .execute()
 
     @Transactional
@@ -279,32 +254,15 @@ class EntityAttributeService(
             attributeMetadata.datasetId,
             attribute.entityId
         )
-        updateOnReplace(
-            attribute.id,
+        deleteAttribute(attribute.entityId, attribute.attributeName, attribute.datasetId, false, createdAt).bind()
+        addAttribute(
+            attribute.entityId,
+            attribute.attributeName,
             attributeMetadata,
             createdAt,
-            serializeObject(attributePayload)
+            attributePayload,
+            sub
         ).bind()
-
-        val attributeInstance = AttributeInstance(
-            attributeUuid = attribute.id,
-            timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
-            time = createdAt,
-            attributeMetadata = attributeMetadata,
-            payload = attributePayload,
-            sub = sub
-        )
-        attributeInstanceService.create(attributeInstance).bind()
-
-        if (attributeMetadata.observedAt != null) {
-            val attributeObservedAtInstance = AttributeInstance(
-                attributeUuid = attribute.id,
-                time = attributeMetadata.observedAt,
-                attributeMetadata = attributeMetadata,
-                payload = attributePayload
-            )
-            attributeInstanceService.create(attributeObservedAtInstance).bind()
-        }
     }
 
     @Transactional
@@ -435,6 +393,25 @@ class EntityAttributeService(
             attributeInstanceService.deleteAllInstancesOfAttribute(entityId, attributeName).bind()
         else
             attributeInstanceService.deleteInstancesOfAttribute(entityId, attributeName, datasetId).bind()
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteAttributes(
+        entityId: URI,
+    ): Either<APIException, Unit> = either {
+        logger.debug("Permanently deleting all attributes from entity {}", entityId)
+
+        val deletedTeas = databaseClient.sql(
+            """
+            DELETE FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            RETURNING id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .allToMappedList { toUuid(it["id"]) }
+
+        attributeInstanceService.deleteInstancesOfEntity(deletedTeas).bind()
     }
 
     suspend fun getForEntities(
@@ -712,12 +689,10 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
             if (currentAttribute != null) {
-                replaceAttribute(
-                    currentAttribute,
-                    ngsiLdAttribute,
-                    attributeMetadata,
+                partialUpdateAttribute(
+                    entityUri,
+                    Pair(ngsiLdAttribute.name, listOf(attributePayload)),
                     createdAt,
-                    attributePayload,
                     sub
                 ).map {
                     UpdateAttributeResult(

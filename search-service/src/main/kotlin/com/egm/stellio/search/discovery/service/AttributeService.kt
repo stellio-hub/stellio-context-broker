@@ -46,6 +46,7 @@ class AttributeService(
             JOIN temporal_entity_attribute 
                 ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 AND temporal_entity_attribute.deleted_at IS NULL
+            WHERE entity_payload.deleted_at IS NULL
             ORDER BY attribute_name
             """.trimIndent()
         ).allToMappedList { rowToAttributeDetails(it) }.flatten().groupBy({ it.second }, { it.first }).toList()

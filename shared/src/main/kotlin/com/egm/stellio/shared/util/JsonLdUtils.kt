@@ -126,6 +126,8 @@ object JsonLdUtils {
     val NGSILD_SYSATTRS_PROPERTIES = setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
     const val NGSILD_OBSERVED_AT_TERM = "observedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
+    const val NGSILD_DELETED_AT_TERM = "deletedAt"
+    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"
     const val NGSILD_LOCATION_TERM = "location"

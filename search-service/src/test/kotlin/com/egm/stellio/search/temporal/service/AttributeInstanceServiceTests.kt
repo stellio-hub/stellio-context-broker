@@ -39,10 +39,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
@@ -613,7 +615,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create an attribute instance if it has a non null value`() = runTest {
+    fun `it should create an observed attribute instance if it has a non null value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -675,7 +677,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create an attribute instance with boolean value`() = runTest {
+    fun `it should create an observed attribute instance with boolean value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -724,6 +726,60 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/hasValue":[{
                                     "@value":false
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/instanceId":[{
+                                    "@id":"${it.instanceId}"
+                                }]
+                            }
+                            """.trimIndent()
+                        )
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should create a deleted attribute instance`() = runTest {
+        val attributeInstanceService = spyk(
+            AttributeInstanceService(databaseClient, searchProperties),
+            recordPrivateCalls = true
+        )
+        val deletedAt = ngsiLdDateTime()
+        val attributeValues = mapOf(
+            NGSILD_DELETED_AT_PROPERTY to listOf(
+                mapOf(
+                    JSONLD_VALUE to deletedAt,
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                )
+            ),
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    JSONLD_VALUE to NGSILD_NULL
+                )
+            )
+        )
+
+        attributeInstanceService.addDeletedAttributeInstance(
+            incomingAttribute.id,
+            deletedAt,
+            attributeValues
+        )
+
+        verify {
+            attributeInstanceService["create"](
+                match<AttributeInstance> {
+                    it.time.toString() == "$deletedAt" &&
+                        it.value == "urn:ngsi-ld:null" &&
+                        it.measuredValue == null &&
+                        it.payload.asString().matchContent(
+                            """
+                            {
+                                "https://uri.etsi.org/ngsi-ld/deletedAt":[{
+                                    "@value":"$deletedAt",
+                                    "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/hasValue":[{
+                                    "@value":"urn:ngsi-ld:null"
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/instanceId":[{
                                     "@id":"${it.instanceId}"

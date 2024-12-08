@@ -261,6 +261,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
@@ -522,6 +523,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()

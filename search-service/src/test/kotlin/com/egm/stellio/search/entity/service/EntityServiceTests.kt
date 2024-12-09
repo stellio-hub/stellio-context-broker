@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
+import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
 import com.egm.stellio.shared.util.loadSampleData
@@ -36,6 +37,7 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.Job
@@ -566,5 +568,59 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
             .shouldFail {
                 assertInstanceOf(ResourceNotFoundException::class.java, it)
             }
+    }
+
+    @Test
+    fun `it should permanently delete an attribute`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null).shouldSucceed()
+
+        coVerify {
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, null)
+            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null, false)
+            entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        }
+    }
+
+    @Test
+    fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+        } returns ResourceNotFoundException("Entity does not exist").left()
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+        }
+
+        coVerify {
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_PROPERTY, null)
+            listOf(
+                entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null, false),
+                entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+            ) wasNot Called
+        }
     }
 }

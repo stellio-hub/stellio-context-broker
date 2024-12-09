@@ -19,6 +19,8 @@ import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
@@ -40,12 +42,14 @@ data class ContextSourceRegistration(
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
     val status: StatusType? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesFailed: Int = 0,
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,
 ) {
-
+    @JsonIgnore
     fun isAuxiliary(): Boolean = mode == Mode.AUXILIARY
 
     data class TimeInterval(

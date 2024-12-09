@@ -83,7 +83,7 @@ data class Attribute(
                 VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
             }
 
-        fun toDeletedPayload(): Map<String, Any> {
+        fun toNullCompactedRepresentation(): Map<String, Any> {
             return when (this) {
                 Property, GeoProperty, JsonProperty, VocabProperty ->
                     mapOf(

@@ -716,6 +716,52 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should permanently delete an attribute of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.permanentlyDeleteAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY,
+            null,
+            false
+        ).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteInstancesOfAttribute(beehiveTestCId, INCOMING_PROPERTY, null)
+        }
+
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `it should permanently delete all attribute of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfEntity(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.permanentlyDeleteAttributes(beehiveTestCId).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteInstancesOfEntity(
+                match { it.size == 4 }
+            )
+        }
+
+        entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet()).also {
+            assertTrue(it.isEmpty())
+        }
+    }
+
+    @Test
     fun `it should return a right unit if entiy and attribute exist`() = runTest {
         val rawEntity = loadSampleData()
 

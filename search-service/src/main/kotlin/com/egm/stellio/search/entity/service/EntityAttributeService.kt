@@ -333,7 +333,7 @@ class EntityAttributeService(
                     deletedAt,
                     JsonLdUtils.expandAttribute(
                         it.attributeName,
-                        it.attributeType.toDeletedPayload(),
+                        it.attributeType.toNullCompactedRepresentation(),
                         listOf(applicationProperties.contexts.core)
                     ).second[0]
                 )

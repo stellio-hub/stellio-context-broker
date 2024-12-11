@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -261,7 +262,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
@@ -479,7 +482,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
 
@@ -503,6 +508,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
+                NGSILD_NULL,
                 createdAt,
                 expandAttribute(
                     INCOMING_PROPERTY,
@@ -523,7 +529,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
@@ -632,7 +640,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -648,6 +658,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         coVerify {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
+                NGSILD_NULL,
                 deletedAt,
                 expandAttribute(
                     INCOMING_PROPERTY,
@@ -673,7 +684,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -686,7 +699,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         ).shouldSucceed()
 
         coVerify(exactly = 2) {
-            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any())
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
@@ -698,7 +711,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.addDeletedAttributeInstance(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -708,7 +723,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         ).shouldSucceed()
 
         coVerify(exactly = 4) {
-            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any())
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)

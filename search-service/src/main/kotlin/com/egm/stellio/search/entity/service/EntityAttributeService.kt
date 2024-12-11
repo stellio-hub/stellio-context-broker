@@ -329,7 +329,7 @@ class EntityAttributeService(
         val attributesToDeleteWithPayload = attributesToDelete
             .map {
                 Triple(
-                    it.id,
+                    it,
                     deletedAt,
                     JsonLdUtils.expandAttribute(
                         it.attributeName,
@@ -348,7 +348,7 @@ class EntityAttributeService(
             WHERE temporal_entity_attribute.id = new.uuid
             """.trimIndent()
         )
-            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first, it.second, it.third.toJson()) })
+            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, it.second, it.third.toJson()) })
             .allToMappedList {
                 Triple(
                     toUuid(it["id"]),
@@ -357,9 +357,10 @@ class EntityAttributeService(
                 )
             }
 
-        attributesToDeleteWithPayload.forEach { (uuid, deletedAt, expandedAttributePayload) ->
+        attributesToDeleteWithPayload.forEach { (attribute, deletedAt, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
-                attributeUuid = uuid,
+                attributeUuid = attribute.id,
+                value = attribute.attributeType.toNullValue(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()

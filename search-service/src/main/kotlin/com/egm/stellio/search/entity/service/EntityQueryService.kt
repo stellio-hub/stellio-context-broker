@@ -73,6 +73,13 @@ class EntityQueryService(
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
+    ): List<URI> =
+        queryEntities(entitiesQuery, true, accessRightFilter)
+
+    suspend fun queryEntities(
+        entitiesQuery: EntitiesQuery,
+        excludedDeleted: Boolean = true,
+        accessRightFilter: () -> String?
     ): List<URI> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
@@ -81,9 +88,10 @@ class EntityQueryService(
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id AND tea.deleted_at is null
+            ON tea.entity_id = entity_payload.entity_id 
+                ${if (excludedDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
-            AND entity_payload.deleted_at is null
+            ${if (excludedDeleted) " AND entity_payload.deleted_at is null " else ""}
             ORDER BY entity_id
             LIMIT :limit
             OFFSET :offset   
@@ -99,6 +107,13 @@ class EntityQueryService(
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
+    ): Either<APIException, Int> =
+        queryEntitiesCount(entitiesQuery, true, accessRightFilter)
+
+    suspend fun queryEntitiesCount(
+        entitiesQuery: EntitiesQuery,
+        excludedDeleted: Boolean = true,
+        accessRightFilter: () -> String?
     ): Either<APIException, Int> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
@@ -107,9 +122,10 @@ class EntityQueryService(
             SELECT count(distinct(entity_payload.entity_id)) as count_entity
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id AND tea.deleted_at is null
+            ON tea.entity_id = entity_payload.entity_id
+                ${if (excludedDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
-            AND entity_payload.deleted_at is null
+            ${if (excludedDeleted) " AND entity_payload.deleted_at is null " else ""}
             """.trimIndent()
 
         return databaseClient

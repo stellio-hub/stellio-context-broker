@@ -1,9 +1,11 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
@@ -19,6 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI
@@ -83,8 +86,8 @@ data class Attribute(
                 VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
             }
 
-        fun toNullCompactedRepresentation(): Map<String, Any> {
-            return when (this) {
+        fun toNullCompactedRepresentation(): Map<String, Any> =
+            when (this) {
                 Property, GeoProperty, JsonProperty, VocabProperty ->
                     mapOf(
                         JSONLD_TYPE_TERM to this.name,
@@ -101,6 +104,12 @@ data class Attribute(
                         JSONLD_LANGUAGEMAP_TERM to mapOf(NGSILD_NONE_TERM to NGSILD_NULL)
                     )
             }
-        }
+
+        fun toNullValue(): String =
+            when (this) {
+                Property, GeoProperty, JsonProperty, VocabProperty, Relationship -> NGSILD_NULL
+                LanguageProperty ->
+                    serializeObject(listOf(mapOf(JSONLD_VALUE to NGSILD_NULL, JSONLD_LANGUAGE to NGSILD_NONE_TERM)))
+            }
     }
 }

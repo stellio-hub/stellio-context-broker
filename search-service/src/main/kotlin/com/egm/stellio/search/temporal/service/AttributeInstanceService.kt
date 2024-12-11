@@ -14,6 +14,7 @@ import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toUuid
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
@@ -36,7 +37,6 @@ import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -143,13 +143,14 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addDeletedAttributeInstance(
         attributeUuid: UUID,
+        value: String,
         deletedAt: ZonedDateTime,
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
         val attributeInstance = AttributeInstance(
             attributeUuid = attributeUuid,
             timeAndProperty = deletedAt to DELETED_AT,
-            value = Triple(NGSILD_NULL, null, null),
+            value = Triple(value, null, null),
             payload = attributeValues,
             sub = getSubFromSecurityContext().getOrNull()
         )
@@ -267,9 +268,11 @@ class AttributeInstanceService(
         } else
             "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
     } else {
-        val valueColumn = when (attributes[0].attributeValueType) {
-            Attribute.AttributeValueType.NUMBER -> "measured_value as value"
-            Attribute.AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
+        val valueColumn = when {
+            // for deletedAt, the NGSI-LD Null representation is always stored as string in value column
+            temporalQuery.timeproperty == DELETED_AT -> "value"
+            attributes[0].attributeValueType == AttributeValueType.NUMBER -> "measured_value as value"
+            attributes[0].attributeValueType == AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
             else -> "value"
         }
         val subColumn =

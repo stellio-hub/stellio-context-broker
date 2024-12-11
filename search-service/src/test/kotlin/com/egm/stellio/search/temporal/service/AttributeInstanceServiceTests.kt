@@ -761,6 +761,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addDeletedAttributeInstance(
             incomingAttribute.id,
+            NGSILD_NULL,
             deletedAt,
             attributeValues
         )

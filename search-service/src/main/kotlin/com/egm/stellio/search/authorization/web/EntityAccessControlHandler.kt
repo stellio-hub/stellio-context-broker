@@ -1,6 +1,5 @@
 package com.egm.stellio.search.authorization.web
 
-import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.service.AuthorizationService

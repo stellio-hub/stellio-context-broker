@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -23,7 +24,9 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -70,6 +73,55 @@ class ContextSourceCallerTests {
            "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         }
         """.trimIndent()
+
+    @Test
+    fun `queryContextSourceEntities should return the count and the entities when the request succeed`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities"
+        val count = 222
+        val payload = "[$entityWithSysAttrs, $entityWithSysAttrs]"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(
+                    ok()
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                        .withHeader(RESULTS_COUNT_HEADER, count.toString()).withBody(payload)
+                )
+        )
+
+        val response = ContextSourceCaller.queryContextSourceEntities(
+            HttpHeaders.EMPTY,
+            csr,
+            true,
+            emptyParams
+        ).getOrNull()
+        assertNotNull(response)
+        assertEquals(count, response!!.second)
+        assertJsonPayloadsAreEqual(entityWithSysAttrs, serializeObject(response.first.first()))
+    }
+
+    @Test
+    fun `queryContextSourceEntities should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities"
+        stubFor(
+            get(urlMatching(path))
+                .willReturn(
+                    ok()
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE).withBody(entityWithSysAttrs)
+                )
+        )
+
+        val response = ContextSourceCaller.queryContextSourceEntities(
+            HttpHeaders.EMPTY,
+            csr,
+            false,
+            emptyParams
+        )
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(RevalidationFailedWarning::class.java, response.leftOrNull())
+    }
 
     @Test
     fun `retrieveContextSourceEntity should return the entity when the request succeed`() = runTest {

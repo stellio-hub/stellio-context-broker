@@ -35,14 +35,15 @@ object ContextSourceUtils {
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
-        val mergedEntityMap = localEntities.associateBy { it[JSONLD_ID_TERM] }.toMutableMap()
+        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[JSONLD_ID_TERM] }.toMutableMap()
 
-        val warnings = remoteEntitiesWithCSR.mapNotNull { (entities, csr) ->
+        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
             val test = either {
                 entities.forEach { entity ->
                     val id = entity[JSONLD_ID_TERM]
-                    mergedEntityMap[id] = mergedEntityMap[id]
-                        ?.let { getMergeNewValues(it, entity, csr).bind() } ?: entity
+                    mergedEntityMap[id]
+                        ?.let { it.putAll(getMergeNewValues(it, entity, csr).bind()) }
+                        ?: run { mergedEntityMap[id] = entity.toMutableMap() }
                 }
                 null
             }

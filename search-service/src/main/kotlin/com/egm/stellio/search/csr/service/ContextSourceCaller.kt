@@ -26,7 +26,9 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
+
 typealias QueryEntityResponse = Pair<List<CompactedEntity>, Int?>
+
 object ContextSourceCaller {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 

@@ -954,7 +954,7 @@ class EntityHandlerTests {
 
         mockkObject(ContextSourceCaller) {
             coEvery {
-                ContextSourceCaller.getDistributedInformation(any(), any(), any(), any())
+                ContextSourceCaller.retrieveContextSourceEntity(any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr

@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.notContaining
@@ -71,7 +72,7 @@ class ContextSourceCallerTests {
         """.trimIndent()
 
     @Test
-    fun `getDistributedInformation should return the entity when the request succeed`() = runTest {
+    fun `retrieveContextSourceEntity should return the entity when the request succeed`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -82,23 +83,17 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = ContextSourceCaller.retrieveContextSourceEntity(
+            HttpHeaders.EMPTY,
+            csr,
+            apiaryId.toUri(),
+            emptyParams
+        )
         assertJsonPayloadsAreEqual(entityWithSysAttrs, serializeObject(response.getOrNull()!!))
     }
 
     @Test
-    fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
-        val csr = gimmeRawCSR()
-        val path = "/ngsi-ld/v1/entities/$apiaryId"
-
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
-
-        assertTrue(response.isLeft())
-        assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
-    }
-
-    @Test
-    fun `getDistributedInformation should return a RevalidationFailedWarning when receiving a bad payload`() = runTest {
+    fun `retrieveContextSourceEntity should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -109,10 +104,25 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = ContextSourceCaller.retrieveContextSourceEntity(
+            HttpHeaders.EMPTY,
+            csr,
+            apiaryId.toUri(),
+            emptyParams
+        )
 
         assertTrue(response.isLeft())
         assertInstanceOf(RevalidationFailedWarning::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
+        val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
     }
 
     @Test
@@ -142,7 +152,7 @@ class ContextSourceCallerTests {
         val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isRight())
-        assertNull(response.getOrNull())
+        assertNull(response.getOrNull()!!.first)
     }
 
     @Test

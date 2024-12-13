@@ -546,10 +546,10 @@ class EntityAttributeService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI? = null,
-        anyInstance: Boolean = false
+        anyAttributeInstance: Boolean = false
     ): Either<APIException, Unit> {
         val datasetIdFilter =
-            if (anyInstance) ""
+            if (anyAttributeInstance) ""
             else datasetId.toDatasetIdFilter()
         val selectQuery =
             """

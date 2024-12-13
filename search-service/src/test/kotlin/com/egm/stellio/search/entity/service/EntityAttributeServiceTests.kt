@@ -640,6 +640,18 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should return a right unit if entiy and attribute exist whatever its datasetId`() = runTest {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, null, true)
+            .shouldSucceed()
+    }
+
+    @Test
     fun `it should return a left attribute not found if entity exists but not the attribute`() = runTest {
         val rawEntity = loadSampleData()
 

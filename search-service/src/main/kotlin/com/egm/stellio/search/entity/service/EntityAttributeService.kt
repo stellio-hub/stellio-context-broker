@@ -545,8 +545,12 @@ class EntityAttributeService(
     suspend fun checkEntityAndAttributeExistence(
         entityId: URI,
         attributeName: ExpandedTerm,
-        datasetId: URI? = null
+        datasetId: URI? = null,
+        anyInstance: Boolean = false
     ): Either<APIException, Unit> {
+        val datasetIdFilter =
+            if (anyInstance) ""
+            else datasetId.toDatasetIdFilter()
         val selectQuery =
             """
             select 
@@ -560,7 +564,7 @@ class EntityAttributeService(
                     from temporal_entity_attribute 
                     where entity_id = :entity_id 
                     and attribute_name = :attribute_name
-                    ${datasetId.toDatasetIdFilter()}
+                    $datasetIdFilter
                 ) as attributeNameExists;
             """.trimIndent()
 

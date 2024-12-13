@@ -605,7 +605,8 @@ class EntityService(
             entityAttributeService.checkEntityAndAttributeExistence(
                 entityId,
                 attributeName,
-                datasetId
+                datasetId,
+                deleteAll
             ).bind()
             entityAttributeService.deleteAttribute(
                 entityId,

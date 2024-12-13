@@ -930,16 +930,6 @@ class EntityHandlerTests {
             )
     }
 
-    fun initializeQueryEntitiesMocks() {
-        val compactedEntities = slot<List<CompactedEntity>>()
-
-        coEvery {
-            linkedEntityService.processLinkedEntities(capture(compactedEntities), any(), any())
-        } answers {
-            compactedEntities.captured.right()
-        }
-    }
-
     @Test
     fun `get entity by id should return the warnings sent by the CSRs and update the CSRs statuses`() {
         val csr = gimmeRawCSR()
@@ -974,6 +964,16 @@ class EntityHandlerTests {
                 )
 
             coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
+    }
+
+    fun initializeQueryEntitiesMocks() {
+        val compactedEntities = slot<List<CompactedEntity>>()
+
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntities), any(), any())
+        } answers {
+            compactedEntities.captured.right()
         }
     }
 
@@ -1255,6 +1255,45 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `get entities should return the warnings sent by the CSRs and update the CSRs statuses`() {
+        val csr = gimmeRawCSR()
+        initializeQueryEntitiesMocks()
+
+        coEvery {
+            entityQueryService.queryEntities(any(), sub.getOrNull())
+        } returns (emptyList<ExpandedEntity>() to 0).right()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        mockkObject(ContextSourceCaller) {
+            coEvery {
+                ContextSourceCaller.queryContextSourceEntities(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            webClient.get()
+                .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_COMPACT_TYPE&count=true")
+                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+                .exchange()
+                .expectStatus().isOk
+                .expectHeader().valueEquals(
+                    NGSILDWarning.HEADER_NAME,
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+                ).expectHeader().valueEquals(RESULTS_COUNT_HEADER, "0",)
+
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
     }
 
     @Test

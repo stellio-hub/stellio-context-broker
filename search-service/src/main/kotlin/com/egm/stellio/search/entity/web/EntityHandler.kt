@@ -68,7 +68,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
-import kotlin.math.max
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -262,7 +261,7 @@ class EntityHandler(
         // todo is it possible to have a non blocking error ? (like the 404 for the retrieve)
         val (localEntities, localCount) = localResponse.bind()
 
-        val maxCount = max(localCount, remoteCounts.maxBy { it ?: 0 } ?: 0)
+        val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
 
         val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
             localEntities,

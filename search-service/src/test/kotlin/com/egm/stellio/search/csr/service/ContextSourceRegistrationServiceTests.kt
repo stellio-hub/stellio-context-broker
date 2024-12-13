@@ -9,6 +9,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
@@ -279,6 +280,40 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
 
         val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(operations = listOf(Operation.CREATE_ENTITY))
+        )
+        assertTrue(notMatchingCsr.isEmpty())
+    }
+
+    @Test
+    fun `query on CSR entity types should filter the result`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(type = BEEHIVE_TYPE)
+        )
+        assertEquals(listOf(contextSourceRegistration), oneCsrMatching)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(type = "INVALID")
+        )
+        assertTrue(notMatchingCsr.isEmpty())
+    }
+
+    @Test
+    fun `query on CSR entity idPattern should filter the result`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(idPattern = ".*")
+        )
+        assertEquals(listOf(contextSourceRegistration), oneCsrMatching)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(idPattern = "INVALID")
         )
         assertTrue(notMatchingCsr.isEmpty())
     }

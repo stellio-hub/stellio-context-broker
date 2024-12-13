@@ -2,7 +2,7 @@ package com.egm.stellio.shared.model
 
 import arrow.core.Either
 import arrow.core.left
-import arrow.core.mapNotNull
+import arrow.core.mapValuesNotNull
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -102,7 +102,7 @@ data class ExpandedEntity(
             members.filterKeys {
                 includedAttributes.isEmpty() ||
                     JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
-            }.mapNotNull { entry ->
+            }.mapValuesNotNull { entry ->
                 if (entry.key in JSONLD_EXPANDED_ENTITY_CORE_MEMBERS)
                     entry.value
                 else (entry.value as ExpandedAttributeInstances).filter { expandedAttributeInstance ->

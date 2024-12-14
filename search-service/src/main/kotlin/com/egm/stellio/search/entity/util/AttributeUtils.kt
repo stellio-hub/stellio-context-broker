@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -20,8 +21,12 @@ import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
+import com.egm.stellio.shared.model.getRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.savvasdalkitsis.jsonmerger.JsonMerger
@@ -131,6 +136,23 @@ fun guessPropertyValueType(
         else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString(), null, null))
     }
 
+/**
+ * Returns whether the expanded attribute instance holds a NGSI-LD Null value
+ */
+fun hasNgsiLdNullValue(
+    attribute: Attribute,
+    expandedAttributeInstance: ExpandedAttributeInstance
+): Boolean =
+    if (attribute.attributeType == AttributeType.Relationship) {
+        expandedAttributeInstance.getRelationshipObject(attribute.attributeName).fold(
+            { false },
+            { it.toString() == NGSILD_NULL }
+        )
+    } else {
+        val value = expandedAttributeInstance.getMemberValue(attribute.attributeType.toExpandedValueMember())
+        value is String && value == NGSILD_NULL
+    }
+
 fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
     this.deserializeAsMap() as ExpandedAttributeInstance
 
@@ -169,7 +191,7 @@ fun mergePatch(
                     ).deserializeAsMap()
                 )
             }
-        } else if (listOf(JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
+        } else if (listOf(NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
             val sourceLangEntries = source[attrName] as List<Map<String, String>>
             val targetLangEntries = sourceLangEntries.toMutableList()
             (attrValue as List<Map<String, String>>).forEach { langEntry ->

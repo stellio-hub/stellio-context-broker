@@ -28,6 +28,7 @@ import com.egm.stellio.search.entity.model.UpdateOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.guessAttributeValueType
+import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
 import com.egm.stellio.search.entity.util.prepareAttributes
@@ -62,7 +63,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -860,7 +860,7 @@ class EntityAttributeService(
                         UpdateOperationResult.APPENDED
                     )
                 }.bind()
-            else if (attributeMetadata.value == NGSILD_NULL)
+            else if (hasNgsiLdNullValue(currentAttribute, attributePayload))
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,

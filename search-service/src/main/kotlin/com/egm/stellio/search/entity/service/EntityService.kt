@@ -40,6 +40,7 @@ import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -150,7 +151,10 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+            expandedAttributes.toList()
+                // remove @id if it is present (optional as per 5.4)
+                .filter { it.first != JSONLD_ID }
+                .partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 

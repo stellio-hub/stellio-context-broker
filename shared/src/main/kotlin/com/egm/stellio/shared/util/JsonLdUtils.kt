@@ -300,12 +300,12 @@ object JsonLdUtils {
             when (it.value) {
                 is Map<*, *> -> {
                     val geoProperty = it.value as MutableMap<String, Any>
-                    val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM]!! as Map<String, Any>)
+                    val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
                     geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                 }
                 is List<*> -> {
                     (it.value as List<Map<String, Any>>).map { geoProperty ->
-                        val wktGeometry = throwingGeoJsonToWkt(geoProperty[JSONLD_VALUE_TERM] as Map<String, Any>)
+                        val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
                         geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                     }
                 }
@@ -313,6 +313,12 @@ object JsonLdUtils {
             }
         } else it.value
     }
+
+    private fun geoPropertyToWKTOrNull(geoPropertyValue: Any): String =
+        if (geoPropertyValue is String && geoPropertyValue == NGSILD_NULL)
+            NGSILD_NULL
+        else
+            throwingGeoJsonToWkt(geoPropertyValue as Map<String, Any>)
 
     private fun restoreGeoPropertyFromWKT(): (Map.Entry<String, Any>) -> Any = {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {

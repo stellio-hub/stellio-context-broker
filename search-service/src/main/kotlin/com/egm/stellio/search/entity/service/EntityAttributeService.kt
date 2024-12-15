@@ -518,34 +518,6 @@ class EntityAttributeService(
             }
     }
 
-    suspend fun hasNotDeletedAttribute(
-        id: URI,
-        attributeName: String,
-        datasetId: URI? = null
-    ): Either<APIException, Boolean> {
-        val selectQuery =
-            """
-            SELECT count(entity_id) as count
-            FROM temporal_entity_attribute
-            WHERE entity_id = :entity_id
-            AND deleted_at is null
-            ${datasetId.toDatasetIdFilter()}
-            AND attribute_name = :attribute_name
-            """.trimIndent()
-
-        return databaseClient
-            .sql(selectQuery)
-            .bind("entity_id", id)
-            .bind("attribute_name", attributeName)
-            .let {
-                if (datasetId != null) it.bind("dataset_id", datasetId)
-                else it
-            }
-            .oneToResult {
-                it["count"] as Long == 1L
-            }
-    }
-
     private fun rowToAttribute(row: Map<String, Any>) =
         Attribute(
             id = toUuid(row["id"]),
@@ -745,17 +717,33 @@ class EntityAttributeService(
     ): Either<APIException, UpdateResult> = either {
         val attributeName = expandedAttribute.first
         val attributeValues = expandedAttribute.second[0]
-        logger.debug(
-            "Updating attribute {} of entity {} with values: {}",
-            attributeName,
-            entityId,
-            attributeValues
-        )
+        logger.debug("Partial updating attribute {} in entity {}", attributeName, entityId)
 
         val datasetId = attributeValues.getDatasetId()
-        val exists = hasNotDeletedAttribute(entityId, attributeName, datasetId).bind()
+        val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
         val updateAttributeResult =
-            if (exists) {
+            if (currentAttribute == null) {
+                UpdateAttributeResult(
+                    attributeName,
+                    datasetId,
+                    UpdateOperationResult.FAILED,
+                    "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
+                )
+            } else if (hasNgsiLdNullValue(currentAttribute, attributeValues)) {
+                deleteAttribute(
+                    entityId,
+                    attributeName,
+                    datasetId,
+                    false,
+                    modifiedAt
+                ).map {
+                    UpdateAttributeResult(
+                        attributeName,
+                        datasetId,
+                        UpdateOperationResult.DELETED
+                    )
+                }.bind()
+            } else {
                 // first update payload in temporal entity attribute
                 val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
                 attributeValues[JSONLD_TYPE]?.let {
@@ -783,13 +771,6 @@ class EntityAttributeService(
                     attributeName,
                     datasetId,
                     UpdateOperationResult.UPDATED
-                )
-            } else {
-                UpdateAttributeResult(
-                    attributeName,
-                    datasetId,
-                    UpdateOperationResult.FAILED,
-                    "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             }
 

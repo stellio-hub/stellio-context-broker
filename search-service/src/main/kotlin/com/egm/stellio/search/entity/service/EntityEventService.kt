@@ -188,6 +188,20 @@ class EntityEventService(
                     )
                 )
 
+            UpdateOperationResult.DELETED ->
+                publishEntityEvent(
+                    AttributeDeleteEvent(
+                        sub,
+                        tenantName,
+                        entityId,
+                        entityTypesAndPayload.first,
+                        serializedAttribute.first,
+                        updatedDetails.datasetId,
+                        serializedAttribute.second,
+                        emptyList()
+                    )
+                )
+
             else ->
                 logger.warn(
                     "Received an unexpected result (${updatedDetails.updateOperationResult} " +

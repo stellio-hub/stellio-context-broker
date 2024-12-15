@@ -689,20 +689,8 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
-            if (currentAttribute != null) {
-                partialUpdateAttribute(
-                    entityUri,
-                    Pair(ngsiLdAttribute.name, listOf(attributePayload)),
-                    createdAt,
-                    sub
-                ).map {
-                    UpdateAttributeResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.REPLACED
-                    )
-                }.bind()
-            } else {
+
+            if (currentAttribute == null) {
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -715,6 +703,33 @@ class EntityAttributeService(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
                         UpdateOperationResult.APPENDED
+                    )
+                }.bind()
+            } else if (hasNgsiLdNullValue(currentAttribute, attributePayload)) {
+                deleteAttribute(
+                    entityUri,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
+                    false,
+                    createdAt
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.DELETED
+                    )
+                }.bind()
+            } else {
+                partialUpdateAttribute(
+                    entityUri,
+                    Pair(ngsiLdAttribute.name, listOf(attributePayload)),
+                    createdAt,
+                    sub
+                ).map {
+                    UpdateAttributeResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        UpdateOperationResult.REPLACED
                     )
                 }.bind()
             }

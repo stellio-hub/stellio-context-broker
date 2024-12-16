@@ -1,6 +1,7 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
+import arrow.core.getOrNone
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
@@ -104,8 +105,10 @@ object ContextSourceCaller {
                     .path(uri.path)
                     .queryParams(queryParams)
                     .build()
+            }.headers { newHeaders ->
+                httpHeaders.getOrNone(HttpHeaders.LINK).onSome { link -> newHeaders[HttpHeaders.LINK] = link }
             }
-            .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
+
         return runCatching {
             val (statusCode, response, headers) = request.awaitExchange { response ->
                 Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())

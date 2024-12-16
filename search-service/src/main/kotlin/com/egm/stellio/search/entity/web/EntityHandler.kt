@@ -241,7 +241,6 @@ class EntityHandler(
             val response = ContextSourceCaller.queryContextSourceEntities(
                 httpHeaders,
                 csr,
-                count = entitiesQuery.paginationQuery.count,
                 queryParams
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())

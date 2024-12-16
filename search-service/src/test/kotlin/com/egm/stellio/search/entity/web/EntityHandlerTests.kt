@@ -1273,7 +1273,7 @@ class EntityHandlerTests {
 
         mockkObject(ContextSourceCaller) {
             coEvery {
-                ContextSourceCaller.queryContextSourceEntities(any(), any(), any(), any())
+                ContextSourceCaller.queryContextSourceEntities(any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr

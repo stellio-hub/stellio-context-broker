@@ -38,7 +38,7 @@ object ContextSourceUtils {
         val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[JSONLD_ID_TERM] }.toMutableMap()
 
         val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
-            val test = either {
+            either {
                 entities.forEach { entity ->
                     val id = entity[JSONLD_ID_TERM]
                     mergedEntityMap[id]
@@ -46,8 +46,7 @@ object ContextSourceUtils {
                         ?: run { mergedEntityMap[id] = entity.toMutableMap() }
                 }
                 null
-            }
-            test.leftOrNull()
+            }.leftOrNull()
         }.toNonEmptyListOrNull()
 
         val entities = mergedEntityMap.values.toList()

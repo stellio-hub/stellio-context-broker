@@ -27,7 +27,7 @@ import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
-typealias QueryEntityResponse = Pair<List<CompactedEntity>, Int?>
+typealias QueryEntitiesResponse = Pair<List<CompactedEntity>, Int?>
 
 object ContextSourceCaller {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
@@ -58,22 +58,20 @@ object ContextSourceCaller {
     suspend fun queryContextSourceEntities(
         httpHeaders: HttpHeaders,
         csr: ContextSourceRegistration,
-        count: Boolean,
         params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning, QueryEntityResponse> = either {
+    ): Either<NGSILDWarning, QueryEntitiesResponse> = either {
         val path = "/ngsi-ld/v1/entities"
 
         return kotlin.runCatching {
-            getDistributedInformation(httpHeaders, csr, path, params).bind().let {
-                    (response, headers) ->
+            getDistributedInformation(httpHeaders, csr, path, params).bind().let { (response, headers) ->
                 (response?.deserializeAsList() ?: emptyList()) to
-                    if (count) headers.header(RESULTS_COUNT_HEADER).first().toInt() else null
+                    // if count was not asked this will be null
+                    headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
             }
                 .right()
         }.fold(
             onSuccess = { it },
             onFailure = { e ->
-
                 logger.warn("Error contacting CSR ${csr.id} at $path: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 RevalidationFailedWarning(
@@ -109,10 +107,9 @@ object ContextSourceCaller {
             }
             .header(HttpHeaders.LINK, httpHeaders.getFirst(HttpHeaders.LINK))
         return runCatching {
-            val (statusCode, response, headers) = request
-                .awaitExchange { response ->
-                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
-                }
+            val (statusCode, response, headers) = request.awaitExchange { response ->
+                Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
+            }
             when {
                 statusCode.is2xxSuccessful -> {
                     logger.info("Successfully received data from CSR ${csr.id} at $uri")
@@ -140,8 +137,7 @@ object ContextSourceCaller {
                 MiscellaneousWarning(
                     "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
                     csr
-                )
-                    .left()
+                ).left()
             }
         )
     }

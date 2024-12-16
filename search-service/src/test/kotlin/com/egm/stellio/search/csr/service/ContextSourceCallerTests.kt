@@ -92,7 +92,6 @@ class ContextSourceCallerTests {
         val response = ContextSourceCaller.queryContextSourceEntities(
             HttpHeaders.EMPTY,
             csr,
-            true,
             emptyParams
         ).getOrNull()
         assertNotNull(response)
@@ -115,7 +114,6 @@ class ContextSourceCallerTests {
         val response = ContextSourceCaller.queryContextSourceEntities(
             HttpHeaders.EMPTY,
             csr,
-            false,
             emptyParams
         )
 

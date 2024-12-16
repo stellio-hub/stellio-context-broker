@@ -221,24 +221,21 @@ class EntityHandler(
                 operations = listOf(
                     Operation.QUERY_ENTITY,
                     Operation.FEDERATION_OPS,
-                    Operation.RETRIEVE_ENTITY,
+                    Operation.RETRIEVE_OPS,
                     Operation.REDIRECTION_OPS
                 )
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
 
-        val localResponse = either {
-            val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
-            val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
-            val compactedEntities =
-                compactEntities(filteredEntities, contexts).let {
-                    linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
-                }
-            compactedEntities to localCount
-        }
+        val localEntities =
+            compactEntities(filteredEntities, contexts).let {
+                linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
+            }
 
         val (warnings, remoteEntitiesWithCSR, remoteCounts) = matchingCSR.parMap { csr ->
             val response = ContextSourceCaller.queryContextSourceEntities(
@@ -258,21 +255,14 @@ class EntityHandler(
                 )
             }
 
-        // todo is it possible to have a non blocking error ? (like the 404 for the retrieve)
-        val (localEntities, localCount) = localResponse.bind()
-
         val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
 
-        val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
+        val mergedEntities = ContextSourceUtils.mergeEntitiesLists(
             localEntities,
             remoteEntitiesWithCSR
-        ).toPair()
-
-        mergeWarnings?.let { warnings.addAll(it) }
-
-        if (mergedEntities == null) {
-            val localError = localResponse.leftOrNull()
-            return localError!!.toErrorResponse().addWarnings(warnings)
+        ).toPair().let { (mergeWarnings, mergedEntities) ->
+            mergeWarnings?.let { warnings.addAll(it) }
+            mergedEntities ?: emptyList()
         }
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
@@ -320,9 +310,9 @@ class EntityHandler(
             CSRFilters(
                 ids = setOf(entityId),
                 operations = listOf(
+                    Operation.RETRIEVE_ENTITY,
                     Operation.FEDERATION_OPS,
-                    Operation.RETRIEVE_ENTITY,
-                    Operation.RETRIEVE_ENTITY,
+                    Operation.RETRIEVE_OPS,
                     Operation.REDIRECTION_OPS
                 )
             )

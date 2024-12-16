@@ -270,7 +270,8 @@ class ContextSourceRegistrationService(
                     entity_info.type is null OR
                     entity_info.type = '${csrFilters.type}'
                 )
-                """.trimIndent() else null
+                """.trimIndent()
+            else null
 
             // we only filter on id since there is no easy way to know if two idPatterns overlap
             // possible resources : https://meta.stackoverflow.com/questions/426313/canonical-for-overlapping-regex-questions
@@ -288,7 +289,9 @@ class ContextSourceRegistrationService(
                 "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
             } else null
 
-            return listOfNotNull(idFilter, typeFilter, idPatternFilter, csfFilter).joinToString(" AND ")
+            val filters = listOfNotNull(idFilter, typeFilter, idPatternFilter, csfFilter)
+
+            return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }
 
         private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->

@@ -46,8 +46,7 @@ object ContextSourceCaller {
         }.fold(
             onSuccess = { it },
             onFailure = { e ->
-                logger.warn("Error contacting CSR ${csr.id} at $path: ${e.message}")
-                logger.warn(e.stackTraceToString())
+                logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
                     "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
                     csr
@@ -73,8 +72,7 @@ object ContextSourceCaller {
         }.fold(
             onSuccess = { it },
             onFailure = { e ->
-                logger.warn("Error contacting CSR ${csr.id} at $path: ${e.message}")
-                logger.warn(e.stackTraceToString())
+                logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
                     "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
                     csr

@@ -138,7 +138,7 @@ object ContextSourceCaller {
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 MiscellaneousWarning(
-                    "Error connecting to $uri message : \"${e.cause}:${e.message}\"",
+                    "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\"",
                     csr
                 ).left()
             }

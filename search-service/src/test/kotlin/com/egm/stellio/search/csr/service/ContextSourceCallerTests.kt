@@ -122,7 +122,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `retrieveContextSourceEntity should return the entity when the request succeed`() = runTest {
+    fun `retrieveContextSourceEntity should return the entity when the request succeeds`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(

@@ -93,7 +93,7 @@ class TemporalService(
         if (isDeleted) {
             val (expandedEntity, ngsiLdEntity) =
                 parseExpandedInstances(sortedJsonLdInstances, jsonLdTemporalEntity).bind()
-            entityService.createEntityPayload(ngsiLdEntity, expandedEntity, ngsiLdDateTime(), sub).bind()
+            entityService.createEntityPayload(ngsiLdEntity, expandedEntity, ngsiLdDateTime()).bind()
         }
         entityService.upsertAttributes(
             entityId,

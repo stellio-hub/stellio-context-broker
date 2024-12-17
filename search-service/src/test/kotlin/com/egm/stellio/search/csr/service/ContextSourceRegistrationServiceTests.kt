@@ -108,7 +108,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+            CSRFilters(ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()))
         )
 
         assertEquals(1, matchingCsrs.size)
@@ -287,19 +287,18 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
 
     @Test
     fun `query on CSR entity types should filter the result`() = runTest {
-        val contextSourceRegistration =
+        val csr =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
-
+        contextSourceRegistrationService.create(csr, mockUserSub).shouldSucceed()
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(typeSelection = BEEHIVE_TYPE)
         )
-        assertEquals(listOf(contextSourceRegistration), oneCsrMatching)
+        assertEquals(listOf(csr), oneCsrMatching)
 
         val multipleTypesOneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(typeSelection = "$BEEHIVE_TYPE|$DEVICE_TYPE")
         )
-        assertEquals(listOf(contextSourceRegistration), multipleTypesOneCsrMatching)
+        assertEquals(listOf(csr), multipleTypesOneCsrMatching)
 
         val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(typeSelection = "INVALID")

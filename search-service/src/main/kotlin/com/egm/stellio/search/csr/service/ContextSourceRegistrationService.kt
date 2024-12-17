@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
@@ -201,7 +202,7 @@ class ContextSourceRegistrationService(
             LEFT JOIN jsonb_to_recordset(information)
                 as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
             LEFT JOIN jsonb_to_recordset(entities)
-                as entity_info(id text, idPattern text, type text) on true
+                as entity_info(id text, idPattern text, type text[]) on true
             WHERE $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
@@ -263,15 +264,15 @@ class ContextSourceRegistrationService(
             )
                 """.trimIndent()
             else null
-
-            val typeFilter = if (!csrFilters.type.isNullOrBlank())
+            val typeFilter = if (!csrFilters.typeSelection.isNullOrBlank()) {
+                val typeQuery = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
                 """
                 (
-                    entity_info.type is null OR
-                    entity_info.type = '${csrFilters.type}'
+                    type is null OR
+                    ( $typeQuery )
                 )
                 """.trimIndent()
-            else null
+            } else null
 
             // we only filter on id since there is no easy way to know if two idPatterns overlap
             // possible resources : https://meta.stackoverflow.com/questions/426313/canonical-for-overlapping-regex-questions

@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.DEVICE_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
@@ -291,12 +292,17 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(type = BEEHIVE_TYPE)
+            CSRFilters(typeSelection = BEEHIVE_TYPE)
         )
         assertEquals(listOf(contextSourceRegistration), oneCsrMatching)
 
+        val multipleTypesOneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(typeSelection = "$BEEHIVE_TYPE|$DEVICE_TYPE")
+        )
+        assertEquals(listOf(contextSourceRegistration), multipleTypesOneCsrMatching)
+
         val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(type = "INVALID")
+            CSRFilters(typeSelection = "INVALID")
         )
         assertTrue(notMatchingCsr.isEmpty())
     }

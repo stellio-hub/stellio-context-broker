@@ -217,7 +217,7 @@ class EntityHandler(
             CSRFilters(
                 ids = entitiesQuery.ids,
                 idPattern = entitiesQuery.idPattern,
-                type = entitiesQuery.typeSelection,
+                typeSelection = entitiesQuery.typeSelection,
                 operations = listOf(
                     Operation.QUERY_ENTITY,
                     Operation.FEDERATION_OPS,

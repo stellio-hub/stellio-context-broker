@@ -89,22 +89,19 @@ data class ContextSourceRegistration(
     data class EntityInfo(
         val id: URI? = null,
         val idPattern: String? = null,
-        @JsonFormat(
-            with = [
-                JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
-                JsonFormat.Feature.WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED
-            ]
-        )
-        val type: List<String>
+        // no WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED because it is used for the database
+        @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
+        @JsonProperty("type")
+        val types: List<String>
     ) {
         fun expand(contexts: List<String>): EntityInfo =
             this.copy(
-                type = type.map { expandJsonLdTerm(it, contexts) },
+                types = types.map { expandJsonLdTerm(it, contexts) },
             )
 
         fun compact(contexts: List<String>): EntityInfo =
             this.copy(
-                type = type.map { compactTerm(it, contexts) },
+                types = types.map { compactTerm(it, contexts) },
             )
 
         fun validate(): Either<BadRequestDataException, Unit> {

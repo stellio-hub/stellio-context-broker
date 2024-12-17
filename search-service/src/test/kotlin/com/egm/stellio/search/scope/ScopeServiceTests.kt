@@ -23,7 +23,6 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -64,10 +63,6 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @AfterEach
     fun clearEntityPayloadTable() {
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
-
-        runBlocking {
-            scopeService.delete(beehiveTestCId)
-        }
     }
 
     @Suppress("unused")

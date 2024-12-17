@@ -55,7 +55,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
@@ -90,7 +89,8 @@ class EntityService(
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub).bind()
+        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
+        scopeService.createHistory(ngsiLdEntity, createdAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -111,8 +111,7 @@ class EntityService(
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        createdAt: ZonedDateTime,
-        sub: Sub? = null
+        createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
@@ -135,9 +134,6 @@ class EntityService(
             .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.createHistory(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     @Transactional
@@ -204,7 +200,8 @@ class EntityService(
         entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
 
         val replacedAt = ngsiLdDateTime()
-        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
+        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt).bind()
+        scopeService.replace(ngsiLdEntity, replacedAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -224,8 +221,7 @@ class EntityService(
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        replacedAt: ZonedDateTime,
-        sub: Sub? = null
+        replacedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
@@ -250,9 +246,6 @@ class EntityService(
             .bind("payload", Json.of(serializedPayload))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     private suspend fun retrieveCreatedAt(entityId: URI): Either<APIException, ZonedDateTime> =
@@ -464,7 +457,7 @@ class EntityService(
         expandedAttributes: ExpandedAttributes,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
         expandedAttributes.forEach { (attributeName, expandedAttributeInstances) ->
             expandedAttributeInstances.forEach { expandedAttributeInstance ->
                 val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
@@ -619,7 +612,6 @@ class EntityService(
 
         val entity = permanentyDeleteEntityPayload(entityId).bind()
         entityAttributeService.permanentlyDeleteAttributes(entityId).bind()
-        scopeService.deleteHistory(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
         entityEventService.publishEntityDeleteEvent(sub, entity)
@@ -695,7 +687,7 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         if (attributeName == NGSILD_SCOPE_PROPERTY) {
-            scopeService.delete(entityId).bind()
+            scopeService.permanentlyDelete(entityId).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(
                 entityId,

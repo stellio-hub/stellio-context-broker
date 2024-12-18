@@ -7,6 +7,7 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
@@ -228,6 +229,75 @@ class ContextSourceUtilsTests {
             assertThat(warnings).hasSize(1)
             val entityWithNameAndSurname = entityWithName.plus("surName" to nameAttribute)
             assertEquals(entityWithNameAndSurname, entity)
+        }
+    }
+
+    @Test
+    fun `merge entitiesList should merge entities with the same id`() = runTest {
+        val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
+            listOf(entityWithName),
+            listOf(listOf(entityWithLastName) to auxiliaryCSR, listOf(entityWithSurName) to inclusiveCSR)
+        ).getOrNull()
+        assertEquals(1, mergedEntity!!.size)
+        assertEquals(entityWithName + entityWithLastName + entityWithSurName, mergedEntity.first())
+    }
+
+    @Test
+    fun `merge entitiesList should not keep conflicting data from an auxiliary csr`() = runTest {
+        val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
+            listOf(moreRecentEntity),
+            listOf(listOf(evenMoreRecentEntity) to auxiliaryCSR, listOf(entityWithName) to inclusiveCSR)
+        ).getOrNull()
+        assertEquals(1, mergedEntity!!.size)
+        assertEquals(moreRecentEntity, mergedEntity.first())
+    }
+
+    @Test
+    fun `merge entitiesList should add entities with the different ids`() = runTest {
+        val entityWithDifferentId = minimalEntity.toMutableMap() + (JSONLD_ID_TERM to "differentId")
+        val entityWithAnotherDifferentId = minimalEntity.toMutableMap() + (JSONLD_ID_TERM to "anotherDifferentId")
+        val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
+            listOf(entityWithName),
+            listOf(listOf(entityWithDifferentId) to inclusiveCSR, listOf(entityWithAnotherDifferentId) to inclusiveCSR)
+        ).getOrNull()
+        assertThat(mergedEntity)
+            .hasSize(3)
+            .contains(entityWithName, entityWithDifferentId, entityWithAnotherDifferentId)
+    }
+
+    @Test
+    fun `merge entitiesList should merge using getMergeNewValues and return the received warnings`() = runTest {
+        val warning1 = MiscellaneousWarning("1", inclusiveCSR)
+        val warning2 = MiscellaneousWarning("2", inclusiveCSR)
+        mockkObject(ContextSourceUtils) {
+            every { ContextSourceUtils.getMergeNewValues(any(), any(), any()) } returns
+                warning1.left() andThen warning2.left()
+
+            val (warnings, entity) = ContextSourceUtils.mergeEntitiesLists(
+                listOf(entityWithName),
+                listOf(listOf(entityWithName) to inclusiveCSR, listOf(entityWithName) to inclusiveCSR)
+            ).toPair()
+            verify(exactly = 2) { ContextSourceUtils.getMergeNewValues(any(), any(), any()) }
+            assertThat(warnings).hasSize(2).contains(warning1, warning2)
+            assertEquals(listOf(entityWithName), entity)
+        }
+    }
+
+    @Test
+    fun `merge entitiesList should not merge List in error`() = runTest {
+        mockkObject(ContextSourceUtils) {
+            val (warnings, entity) = ContextSourceUtils.mergeEntitiesLists(
+                listOf(entityWithName),
+                listOf(
+                    listOf(invalidEntityWithLastName) to inclusiveCSR,
+                    listOf(entityWithSurName) to inclusiveCSR
+                )
+            ).toPair()
+
+            verify(exactly = 2) { ContextSourceUtils.getMergeNewValues(any(), any(), any()) }
+            assertThat(warnings).hasSize(1)
+            val entityWithNameAndSurname = entityWithName.plus("surName" to nameAttribute)
+            assertEquals(listOf(entityWithNameAndSurname), entity)
         }
     }
 }

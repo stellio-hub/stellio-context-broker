@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
@@ -201,7 +202,7 @@ class ContextSourceRegistrationService(
             LEFT JOIN jsonb_to_recordset(information)
                 as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
             LEFT JOIN jsonb_to_recordset(entities)
-                as entity_info(id text, idPattern text, type text) on true
+                as entity_info(id text, idPattern text, type text[]) on true
             WHERE $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
@@ -262,18 +263,36 @@ class ContextSourceRegistrationService(
                 ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
             )
                 """.trimIndent()
-            else "true"
+            else null
+            val typeFilter = if (!csrFilters.typeSelection.isNullOrBlank()) {
+                val typeQuery = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
+                """
+                (
+                    type is null OR
+                    ( $typeQuery )
+                )
+                """.trimIndent()
+            } else null
+
+            // we only filter on id since there is no easy way to know if two idPatterns overlap
+            // possible resources : https://meta.stackoverflow.com/questions/426313/canonical-for-overlapping-regex-questions
+            val idPatternFilter = if (!csrFilters.idPattern.isNullOrBlank())
+                """
+                (
+                    entity_info.id is null OR
+                    entity_info.id ~ ('${csrFilters.idPattern}')
+                )
+                """.trimIndent()
+            else null
 
             val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
                 val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.groups[1]?.value }
                 "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
-            } else "true"
+            } else null
 
-            return """
-            $idFilter 
-            AND
-            $csfFilter
-            """.trimMargin()
+            val filters = listOfNotNull(idFilter, typeFilter, idPatternFilter, csfFilter)
+
+            return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }
 
         private val rowToContextSourceRegistration: ((Map<String, Any>) -> ContextSourceRegistration) = { row ->

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.BatchEntityError
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
@@ -23,8 +24,7 @@ import java.net.URI
 @Component
 class EntityOperationService(
     private val entityService: EntityService,
-    private val entityQueryService: EntityQueryService,
-    private val entityAttributeService: EntityAttributeService,
+    private val entityQueryService: EntityQueryService
 ) {
 
     /**
@@ -150,7 +150,8 @@ class EntityOperationService(
     @Transactional
     suspend fun upsert(
         entities: List<JsonLdNgsiLdEntity>,
-        options: String?,
+        disallowOverwrite: Boolean,
+        updateMode: Boolean,
         sub: Sub?
     ): Pair<BatchOperationResult, List<URI>> {
         val (existingEntities, newEntities) = splitEntitiesByExistence(entities)
@@ -168,7 +169,7 @@ class EntityOperationService(
 
         if (existingOrDuplicatedEntities.isNotEmpty()) {
             val updateOperationResult =
-                if (options == "update") update(existingOrDuplicatedEntities, false, sub)
+                if (updateMode) update(existingOrDuplicatedEntities, disallowOverwrite, sub)
                 else replace(existingOrDuplicatedEntities, sub)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
@@ -208,8 +209,7 @@ class EntityOperationService(
         entities: List<JsonLdNgsiLdEntity>,
         disallowOverwrite: Boolean = false,
         sub: Sub?,
-        processor:
-        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
+        processor: suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
     ): BatchOperationResult =
         entities.map {
             processEntity(it, disallowOverwrite, sub, processor)
@@ -227,8 +227,7 @@ class EntityOperationService(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean = false,
         sub: Sub?,
-        processor:
-        suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
+        processor: suspend (JsonLdNgsiLdEntity, Boolean, Sub?) -> Either<APIException, UpdateResult>
     ): Either<BatchEntityError, BatchEntitySuccess> =
         kotlin.runCatching {
             either {
@@ -250,19 +249,16 @@ class EntityOperationService(
             onSuccess = { it }
         )
 
+    @SuppressWarnings("UnusedParameter")
     suspend fun replaceEntity(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean,
         sub: Sub?
     ): Either<APIException, UpdateResult> = either {
         val (jsonLdEntity, ngsiLdEntity) = entity
-        entityAttributeService.deleteAttributes(ngsiLdEntity.id).bind()
-        entityService.appendAttributes(
-            ngsiLdEntity.id,
-            jsonLdEntity.getModifiableMembers(),
-            disallowOverwrite,
-            sub
-        ).bind()
+        entityService.replaceEntity(ngsiLdEntity.id, ngsiLdEntity, jsonLdEntity, sub).map {
+            EMPTY_UPDATE_RESULT
+        }.bind()
     }
 
     suspend fun updateEntity(

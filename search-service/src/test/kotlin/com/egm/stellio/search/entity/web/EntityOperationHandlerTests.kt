@@ -112,6 +112,8 @@ class EntityOperationHandlerTests {
 
     private val batchCreateEndpoint = "/ngsi-ld/v1/entityOperations/create"
     private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
+    private val batchUpsertWithUpdateAndNoOverwriteEndpoint =
+        "/ngsi-ld/v1/entityOperations/upsert?options=update,noOverwrite"
     private val batchUpdateEndpoint = "/ngsi-ld/v1/entityOperations/update"
     private val batchUpdateEndpointWithNoOverwriteOption = "/ngsi-ld/v1/entityOperations/update?options=noOverwrite"
     private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
@@ -324,7 +326,7 @@ class EntityOperationHandlerTests {
             updatedEntitiesIds.map { BatchEntitySuccess(it, mockkClass(UpdateResult::class)) }.toMutableList()
         )
 
-        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
+        coEvery { entityOperationService.upsert(any(), any(), any(), any()) } returns (
             updatedBatchResult to createdEntitiesIds
             )
 
@@ -341,7 +343,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch entity should return a 204 if it has only updated existing entities`() = runTest {
         val jsonLdFile = validJsonFile
         coEvery {
-            entityOperationService.upsert(any(), any(), any())
+            entityOperationService.upsert(any(), any(), any(), any())
         } returns (BatchOperationResult(success = mutableListOf(), errors = mutableListOf()) to emptyList())
 
         webClient.post()
@@ -360,7 +362,7 @@ class EntityOperationHandlerTests {
             BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
         )
 
-        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
+        coEvery { entityOperationService.upsert(any(), any(), any(), any()) } returns (
             BatchOperationResult(
                 arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
                 errors
@@ -389,6 +391,24 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `upsert batch entity should update entities without overwriting if update and noOverwrite options`() = runTest {
+        coEvery {
+            entityOperationService.upsert(any(), any(), any(), any())
+        } returns (BatchOperationResult(success = mutableListOf(), errors = mutableListOf()) to emptyList())
+
+        webClient.post()
+            .uri(batchUpsertWithUpdateAndNoOverwriteEndpoint)
+            .bodyValue(validJsonFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify(exactly = 1) {
+            entityOperationService.upsert(any(), true, true, any())
+        }
     }
 
     @Test

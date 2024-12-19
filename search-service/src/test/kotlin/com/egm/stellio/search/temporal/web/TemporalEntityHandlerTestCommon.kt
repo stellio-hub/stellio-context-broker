@@ -1,7 +1,6 @@
 package com.egm.stellio.search.temporal.web
 
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -29,9 +28,6 @@ open class TemporalEntityHandlerTestCommon {
 
     @MockkBean(relaxed = true)
     protected lateinit var temporalQueryService: TemporalQueryService
-
-    @MockkBean
-    protected lateinit var entityService: EntityService
 
     @BeforeAll
     fun configureWebClientDefaults() {

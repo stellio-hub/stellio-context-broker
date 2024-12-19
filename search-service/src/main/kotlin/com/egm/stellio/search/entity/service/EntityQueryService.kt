@@ -10,6 +10,7 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.wrapToAndClause
 import com.egm.stellio.search.entity.model.EntitiesQuery
@@ -18,18 +19,17 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
+import java.time.ZonedDateTime
 
 @Service
 class EntityQueryService(
@@ -73,6 +73,13 @@ class EntityQueryService(
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
+    ): List<URI> =
+        queryEntities(entitiesQuery, true, accessRightFilter)
+
+    suspend fun queryEntities(
+        entitiesQuery: EntitiesQuery,
+        excludedDeleted: Boolean = true,
+        accessRightFilter: () -> String?
     ): List<URI> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
@@ -81,8 +88,10 @@ class EntityQueryService(
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
-            ON tea.entity_id = entity_payload.entity_id
+            ON tea.entity_id = entity_payload.entity_id 
+                ${if (excludedDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
+            ${if (excludedDeleted) " AND entity_payload.deleted_at is null " else ""}
             ORDER BY entity_id
             LIMIT :limit
             OFFSET :offset   
@@ -98,6 +107,13 @@ class EntityQueryService(
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
         accessRightFilter: () -> String?
+    ): Either<APIException, Int> =
+        queryEntitiesCount(entitiesQuery, true, accessRightFilter)
+
+    suspend fun queryEntitiesCount(
+        entitiesQuery: EntitiesQuery,
+        excludedDeleted: Boolean = true,
+        accessRightFilter: () -> String?
     ): Either<APIException, Int> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
@@ -107,7 +123,9 @@ class EntityQueryService(
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
             ON tea.entity_id = entity_payload.entity_id
+                ${if (excludedDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
+            ${if (excludedDeleted) " AND entity_payload.deleted_at is null " else ""}
             """.trimIndent()
 
         return databaseClient
@@ -232,10 +250,7 @@ class EntityQueryService(
             .bind("entities_ids", entitiesIds)
             .allToMappedList { it.rowToEntity() }
 
-    suspend fun checkEntityExistence(
-        entityId: URI,
-        inverse: Boolean = false
-    ): Either<APIException, Unit> {
+    suspend fun checkEntityExistence(entityId: URI): Either<APIException, Unit> {
         val selectQuery =
             """
             select 
@@ -243,6 +258,7 @@ class EntityQueryService(
                     select 1 
                     from entity_payload 
                     where entity_id = :entity_id
+                    and deleted_at is null
                 ) as entityExists;
             """.trimIndent()
 
@@ -251,13 +267,32 @@ class EntityQueryService(
             .bind("entity_id", entityId)
             .oneToResult { it["entityExists"] as Boolean }
             .flatMap {
-                if (it && !inverse || !it && inverse)
+                if (it)
                     Unit.right()
-                else if (it)
-                    AlreadyExistsException(entityAlreadyExistsMessage(entityId.toString())).left()
                 else
                     ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
+    }
+
+    /**
+     * Used for checks before creating a (temporal) entity. Allows to know if the entity does not exist,
+     * or, if it exists, whether it is currently deleted (in which case, it may be possible to create it again
+     * if authorized)
+     */
+    suspend fun getEntityState(
+        entityId: URI
+    ): Either<APIException, Pair<URI, ZonedDateTime?>> {
+        val selectQuery =
+            """
+            select entity_id, deleted_at
+            from entity_payload 
+            where entity_id = :entity_id
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", entityId)
+            .oneToResult { Pair(toUri(it["entity_id"]), toOptionalZonedDateTime(it["deleted_at"])) }
     }
 
     suspend fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
@@ -270,6 +305,7 @@ class EntityQueryService(
             select entity_id 
             from entity_payload
             where entity_id in (:entities_ids)
+            and deleted_at is null
             """.trimIndent()
 
         return databaseClient

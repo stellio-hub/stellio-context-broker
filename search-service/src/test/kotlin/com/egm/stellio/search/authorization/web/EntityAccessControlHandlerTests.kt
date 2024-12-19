@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
@@ -534,7 +535,7 @@ class EntityAccessControlHandlerTests {
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().jsonPath("$.detail", "Bad request")
+            .expectBody().jsonPath("$.title").isEqualTo("Bad request")
     }
 
     @Test
@@ -689,10 +690,8 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody()
-            .jsonPath(
-                "$.detail",
-                "The parameter q only accepts as a value one or more of ${AuthContextModel.ALL_IAM_RIGHTS_TERMS}"
-            )
+            .jsonPath("$.title")
+            .isEqualTo("The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS")
     }
 
     @Test

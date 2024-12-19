@@ -52,35 +52,35 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
     val (attributeType, attributeValueType, attributeValue) = when (this) {
         is NgsiLdPropertyInstance ->
             guessPropertyValueType(this).let {
-                Triple(Attribute.AttributeType.Property, it.first, it.second)
+                Triple(AttributeType.Property, it.first, it.second)
             }
         is NgsiLdRelationshipInstance ->
             Triple(
-                Attribute.AttributeType.Relationship,
+                AttributeType.Relationship,
                 Attribute.AttributeValueType.URI,
                 Triple(this.objectId.toString(), null, null)
             )
         is NgsiLdGeoPropertyInstance ->
             Triple(
-                Attribute.AttributeType.GeoProperty,
+                AttributeType.GeoProperty,
                 Attribute.AttributeValueType.GEOMETRY,
                 Triple(null, null, this.coordinates)
             )
         is NgsiLdJsonPropertyInstance ->
             Triple(
-                Attribute.AttributeType.JsonProperty,
+                AttributeType.JsonProperty,
                 Attribute.AttributeValueType.JSON,
                 Triple(JsonUtils.serializeObject(this.json), null, null)
             )
         is NgsiLdLanguagePropertyInstance ->
             Triple(
-                Attribute.AttributeType.LanguageProperty,
+                AttributeType.LanguageProperty,
                 Attribute.AttributeValueType.ARRAY,
                 Triple(JsonUtils.serializeObject(this.languageMap), null, null)
             )
         is NgsiLdVocabPropertyInstance ->
             Triple(
-                Attribute.AttributeType.VocabProperty,
+                AttributeType.VocabProperty,
                 Attribute.AttributeValueType.ARRAY,
                 Triple(JsonUtils.serializeObject(this.vocab), null, null)
             )
@@ -102,17 +102,17 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
 }
 
 fun guessAttributeValueType(
-    attributeType: Attribute.AttributeType,
+    attributeType: AttributeType,
     expandedAttributeInstance: ExpandedAttributeInstance
 ): Attribute.AttributeValueType =
     when (attributeType) {
-        Attribute.AttributeType.Property ->
+        AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
-        Attribute.AttributeType.Relationship -> Attribute.AttributeValueType.URI
-        Attribute.AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
-        Attribute.AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
-        Attribute.AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
-        Attribute.AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.Relationship -> Attribute.AttributeValueType.URI
+        AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
+        AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
+        AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
     }
 
 fun guessPropertyValueType(

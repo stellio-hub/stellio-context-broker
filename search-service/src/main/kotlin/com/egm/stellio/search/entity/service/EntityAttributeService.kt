@@ -326,18 +326,17 @@ class EntityAttributeService(
         deletedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         if (attributesToDelete.isEmpty()) return Unit.right()
-        val attributesToDeleteWithPayload = attributesToDelete
-            .map {
-                Triple(
-                    it,
-                    deletedAt,
-                    JsonLdUtils.expandAttribute(
-                        it.attributeName,
-                        it.attributeType.toNullCompactedRepresentation(),
-                        listOf(applicationProperties.contexts.core)
-                    ).second[0]
-                )
-            }
+        val attributesToDeleteWithPayload = attributesToDelete.map {
+            Triple(
+                it,
+                deletedAt,
+                JsonLdUtils.expandAttribute(
+                    it.attributeName,
+                    it.attributeType.toNullCompactedRepresentation(),
+                    listOf(applicationProperties.contexts.core)
+                ).second[0]
+            )
+        }
 
         databaseClient.sql(
             """

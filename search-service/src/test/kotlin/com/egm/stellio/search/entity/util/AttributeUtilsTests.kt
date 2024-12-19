@@ -1,11 +1,15 @@
 package com.egm.stellio.search.entity.util
 
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import io.mockk.every
+import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
@@ -23,7 +27,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.STRING,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedStringProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0])
         )
     }
 
@@ -36,7 +40,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
         )
     }
 
@@ -49,7 +53,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
         )
     }
 
@@ -62,7 +66,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.BOOLEAN,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
         )
     }
 
@@ -75,7 +79,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.OBJECT,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedListProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0])
         )
     }
 
@@ -88,7 +92,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.ARRAY,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedListProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0])
         )
     }
 
@@ -101,7 +105,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.TIME,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedTimeProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0])
         )
     }
 
@@ -114,7 +118,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.DATETIME,
-            guessAttributeValueType(Attribute.AttributeType.Property, expandedTimeProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0])
         )
     }
 
@@ -130,7 +134,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.GEOMETRY,
-            guessAttributeValueType(Attribute.AttributeType.GeoProperty, expandedGeoProperty.second[0])
+            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0])
         )
     }
 
@@ -146,7 +150,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.JSON,
-            guessAttributeValueType(Attribute.AttributeType.JsonProperty, expandedJsonProperty.second[0])
+            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0])
         )
     }
 
@@ -160,8 +164,107 @@ class AttributeUtilsTests {
         assertEquals(
             Attribute.AttributeValueType.URI,
             guessAttributeValueType(
-                Attribute.AttributeType.Relationship,
+                AttributeType.Relationship,
                 expandedGeoRelationship.second[0]
+            )
+        )
+    }
+
+    @Test
+    fun `it should find a Property whose value is NGSI-LD Null`() = runTest {
+        val expandedProperty = expandAttribute(
+            """
+                {
+                    "property": {
+                        "type": "Property",
+                        "value": "urn:ngsi-ld:null"
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(
+            hasNgsiLdNullValue(
+                mockkClass(Attribute::class) {
+                    every { attributeType } returns AttributeType.Property
+                },
+                expandedProperty
+            )
+        )
+    }
+
+    @Test
+    fun `it should find a LanguageProperty whose value is NGSI-LD Null`() = runTest {
+        val expandedProperty = expandAttribute(
+            """
+                {
+                    "langProperty": {
+                        "type": "LanguageProperty",
+                        "languageMap": {
+                            "@none": "urn:ngsi-ld:null"
+                        }
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(
+            hasNgsiLdNullValue(
+                mockkClass(Attribute::class) {
+                    every { attributeType } returns AttributeType.LanguageProperty
+                },
+                expandedProperty
+            )
+        )
+    }
+
+    @Test
+    fun `it should find a JsonProperty whose value is NGSI-LD Null`() = runTest {
+        val expandedProperty = expandAttribute(
+            """
+                {
+                    "jsonProperty": {
+                        "type": "JsonProperty",
+                        "json": "urn:ngsi-ld:null"
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(
+            hasNgsiLdNullValue(
+                mockkClass(Attribute::class) {
+                    every { attributeType } returns AttributeType.JsonProperty
+                },
+                expandedProperty
+            )
+        )
+    }
+
+    @Test
+    fun `it should find a Relationship whose value is NGSI-LD Null`() = runTest {
+        val expandedProperty = expandAttribute(
+            """
+                {
+                    "relationship": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:null"
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(
+            hasNgsiLdNullValue(
+                mockkClass(Attribute::class) {
+                    every { attributeType } returns AttributeType.Relationship
+                    every { attributeName } returns "relationship"
+                },
+                expandedProperty
             )
         )
     }

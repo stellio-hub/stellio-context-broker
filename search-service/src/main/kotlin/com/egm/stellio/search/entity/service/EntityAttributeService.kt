@@ -412,7 +412,9 @@ class EntityAttributeService(
             .bind("entity_id", entityId)
             .allToMappedList { toUuid(it["id"]) }
 
-        attributeInstanceService.deleteInstancesOfEntity(deletedTeas).bind()
+        if (deletedTeas.isNotEmpty())
+            attributeInstanceService.deleteInstancesOfEntity(deletedTeas).bind()
+        else Unit.right()
     }
 
     suspend fun getForEntities(

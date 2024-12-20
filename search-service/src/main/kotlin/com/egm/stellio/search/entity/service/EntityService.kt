@@ -74,11 +74,11 @@ class EntityService(
         expandedEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        entityQueryService.getEntityState(ngsiLdEntity.id).let {
+        entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
             when (it) {
                 is Left -> authorizationService.userCanCreateEntities(sub.toOption()).bind()
                 is Right ->
-                    if (it.value.second == null)
+                    if (!it.value)
                         AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
                     else
                         authorizationService.userCanAdminEntity(ngsiLdEntity.id, sub.toOption()).bind()

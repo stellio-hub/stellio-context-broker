@@ -28,7 +28,7 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -239,12 +239,11 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
                 )
             }
 
-        entityQueryService.getEntityState(entity01Uri)
+        entityQueryService.isMarkedAsDeleted(entity01Uri)
             .shouldSucceedWith {
-                assertEquals(entity01Uri, it.first)
-                assertNull(it.second)
+                assertFalse(it)
             }
-        entityQueryService.getEntityState(entity02Uri)
+        entityQueryService.isMarkedAsDeleted(entity02Uri)
             .shouldFail { assert(it is ResourceNotFoundException) }
     }
 }

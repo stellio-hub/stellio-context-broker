@@ -39,7 +39,7 @@ class TemporalService(
         jsonLdTemporalEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, CreateOrUpdateResult> = either {
-        entityQueryService.getEntityState(entityId).let {
+        entityQueryService.isMarkedAsDeleted(entityId).let {
             when (it) {
                 is Left -> {
                     createTemporalEntity(
@@ -55,7 +55,7 @@ class TemporalService(
                         entityId,
                         jsonLdTemporalEntity,
                         jsonLdTemporalEntity.getAttributes().sorted(),
-                        it.value.second != null,
+                        it.value,
                         sub
                     ).bind()
                     CreateOrUpdateResult.UPSERTED

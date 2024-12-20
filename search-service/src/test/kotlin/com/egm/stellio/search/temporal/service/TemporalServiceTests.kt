@@ -53,7 +53,7 @@ class TemporalServiceTests {
     fun `it should ask to create a temporal entity if it does not exist yet`() = runTest {
         mockkAuthorizationForCreation()
         coEvery {
-            entityQueryService.getEntityState(entityUri)
+            entityQueryService.isMarkedAsDeleted(entityUri)
         } returns ResourceNotFoundException("Entity does not exist").left()
         coEvery { entityService.createEntity(any(), any(), any()) } returns Unit.right()
         coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
@@ -66,9 +66,7 @@ class TemporalServiceTests {
     @Test
     fun `it should ask to create a temporal entity if it already exists but is deleted`() = runTest {
         mockkAuthorizationForCreation()
-        coEvery {
-            entityQueryService.getEntityState(entityUri)
-        } returns Pair(entityUri, null).right()
+        coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
         coEvery { entityService.createEntity(any(), any(), any()) } returns Unit.right()
         coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
@@ -80,9 +78,7 @@ class TemporalServiceTests {
     @Test
     fun `it should ask to upsert a temporal entity if it already exists but is not deleted`() = runTest {
         mockkAuthorizationForCreation()
-        coEvery {
-            entityQueryService.getEntityState(entityUri)
-        } returns Pair(entityUri, null).right()
+        coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
         coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
 
         val expandedEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")

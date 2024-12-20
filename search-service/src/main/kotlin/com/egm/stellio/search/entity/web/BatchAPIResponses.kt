@@ -27,16 +27,6 @@ data class BatchOperationResult(
         entities.forEach {
             errors.add(BatchEntityError(it.first.toUri(), arrayListOf(it.second.message)))
         }
-
-    @JsonIgnore
-    fun addEntitiesToErrors(entities: List<NgsiLdEntity>, errorMessage: String) =
-        addIdsToErrors(entities.map { it.id }, errorMessage)
-
-    @JsonIgnore
-    fun addIdsToErrors(entitiesIds: List<URI>, errorMessage: String) =
-        errors.addAll(
-            entitiesIds.map { BatchEntityError(it, arrayListOf(errorMessage)) }
-        )
 }
 
 data class BatchEntitySuccess(
@@ -53,7 +43,6 @@ data class BatchEntityError(
 
 typealias JsonLdNgsiLdEntity = Pair<ExpandedEntity, NgsiLdEntity>
 
-fun List<JsonLdNgsiLdEntity>.extractNgsiLdEntities(): List<NgsiLdEntity> = this.map { it.second }
 fun JsonLdNgsiLdEntity.entityId(): URI = this.second.id
 
 // a temporary data class to hold the result of deserializing, expanding and transforming to NGSI-LD entities

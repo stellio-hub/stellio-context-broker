@@ -10,7 +10,6 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.oneToResult
-import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.wrapToAndClause
 import com.egm.stellio.search.entity.model.EntitiesQuery
@@ -29,7 +28,6 @@ import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
-import java.time.ZonedDateTime
 
 @Service
 class EntityQueryService(
@@ -279,9 +277,7 @@ class EntityQueryService(
      * or, if it exists, whether it is currently deleted (in which case, it may be possible to create it again
      * if authorized)
      */
-    suspend fun getEntityState(
-        entityId: URI
-    ): Either<APIException, Pair<URI, ZonedDateTime?>> {
+    suspend fun isMarkedAsDeleted(entityId: URI): Either<APIException, Boolean> {
         val selectQuery =
             """
             select entity_id, deleted_at
@@ -292,7 +288,7 @@ class EntityQueryService(
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", entityId)
-            .oneToResult { Pair(toUri(it["entity_id"]), toOptionalZonedDateTime(it["deleted_at"])) }
+            .oneToResult { it["deleted_at"] != null }
     }
 
     suspend fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {

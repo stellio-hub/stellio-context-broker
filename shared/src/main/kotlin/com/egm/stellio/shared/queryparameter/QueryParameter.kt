@@ -35,6 +35,9 @@ enum class QueryParameter(
     LASTN("lastN"),
     TIMEPROPERTY("timeproperty"),
 
+    // authz
+    INCLUDE_DELETED("includeDeleted"),
+
     // pagination
     COUNT("count"),
     OFFSET("offset"),

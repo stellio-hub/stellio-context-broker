@@ -108,6 +108,7 @@ class EnabledAuthorizationService(
 
     override suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQueryFromGet,
+        includeDeleted: Boolean,
         contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
@@ -115,9 +116,8 @@ class EnabledAuthorizationService(
         val entitiesAccessRights = entityAccessRightsService.getSubjectAccessRights(
             sub,
             accessRights,
-            entitiesQuery.typeSelection,
-            entitiesQuery.ids,
-            entitiesQuery.paginationQuery
+            entitiesQuery,
+            includeDeleted
         ).bind()
 
         // for each entity user is admin or creator of, retrieve the full details of rights other users have on it
@@ -148,7 +148,8 @@ class EnabledAuthorizationService(
             sub,
             accessRights,
             entitiesQuery.typeSelection,
-            entitiesQuery.ids
+            entitiesQuery.ids,
+            includeDeleted
         ).bind()
 
         Pair(count, entitiesAccessControlWithSubjectRights)

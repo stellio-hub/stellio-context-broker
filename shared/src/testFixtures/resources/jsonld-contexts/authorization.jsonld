@@ -9,6 +9,7 @@
         "clientId": "https://ontology.eglobalmark.com/authorization#clientId",
         "familyName": "https://ontology.eglobalmark.com/authorization#familyName",
         "givenName": "https://ontology.eglobalmark.com/authorization#givenName",
+        "isDeleted": "https://ontology.eglobalmark.com/authorization#isDeleted",
         "isMemberOf": "https://ontology.eglobalmark.com/authorization#isMemberOf",
         "isOwner": "https://ontology.eglobalmark.com/authorization#isOwner",
         "kind": "https://ontology.eglobalmark.com/authorization#kind",

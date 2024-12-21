@@ -577,6 +577,7 @@ class EntityService(
 
     @Transactional
     suspend fun deleteEntityPayload(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Entity> = either {
+        val expandedDeletedEntity = Entity.toExpandedDeletedEntity(entityId, deletedAt)
         val entity = databaseClient.sql(
             """
             WITH entity_before_delete AS (
@@ -587,7 +588,7 @@ class EntityService(
             update_entity AS (
                 UPDATE entity_payload
                 SET deleted_at = :deleted_at,
-                    payload = null,
+                    payload = :payload,
                     scopes = null,
                     specific_access_policy = null,
                     types = '{}'
@@ -598,6 +599,7 @@ class EntityService(
         )
             .bind("entity_id", entityId)
             .bind("deleted_at", deletedAt)
+            .bind("payload", Json.of(serializeObject(expandedDeletedEntity.members)))
             .oneToResult {
                 it.rowToEntity()
             }
@@ -607,7 +609,7 @@ class EntityService(
 
     @Transactional
     suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        entityQueryService.checkEntityExistence(entityId, true).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val entity = permanentyDeleteEntityPayload(entityId).bind()

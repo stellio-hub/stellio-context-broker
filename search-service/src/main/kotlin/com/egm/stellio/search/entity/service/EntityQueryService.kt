@@ -248,7 +248,7 @@ class EntityQueryService(
             .bind("entities_ids", entitiesIds)
             .allToMappedList { it.rowToEntity() }
 
-    suspend fun checkEntityExistence(entityId: URI): Either<APIException, Unit> {
+    suspend fun checkEntityExistence(entityId: URI, allowDeleted: Boolean = false): Either<APIException, Unit> {
         val selectQuery =
             """
             select 
@@ -256,7 +256,7 @@ class EntityQueryService(
                     select 1 
                     from entity_payload 
                     where entity_id = :entity_id
-                    and deleted_at is null
+                    ${if (!allowDeleted) " and deleted_at is null " else ""}
                 ) as entityExists;
             """.trimIndent()
 

@@ -19,8 +19,10 @@ import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -42,6 +44,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -220,6 +223,30 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
         entityService.createEntity(ngsiLdEntity, expandedEntity, null)
             .shouldFail { assertInstanceOf(AccessDeniedException::class.java, it) }
+    }
+
+    @Test
+    fun `it should create the deleted representation of an entity when deleting it`() = runTest {
+        val (expandedEntity, ngsiLdEntity) =
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+                .sampleDataToNgsiLdEntity()
+                .shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            now
+        ).shouldSucceed()
+
+        entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime()).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                val payload = entity.payload.deserializeAsMap()
+                assertThat(payload)
+                    .hasSize(2)
+                    .containsKeys(JSONLD_ID, NGSILD_DELETED_AT_PROPERTY)
+            }
     }
 
     @Test

@@ -40,6 +40,7 @@ class AuthorizationServiceTests {
                 paginationQuery = PaginationQuery(limit = 0, offset = 0),
                 contexts = listOf(applicationProperties.contexts.core)
             ),
+            false,
             listOf(applicationProperties.contexts.core),
             None
         ).shouldSucceedWith {

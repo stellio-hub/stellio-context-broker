@@ -347,7 +347,7 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should returned serialized access control entities with a count`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
@@ -356,7 +356,7 @@ class EnabledAuthorizationServiceTests {
             )
         ).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
@@ -369,6 +369,7 @@ class EnabledAuthorizationServiceTests {
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
             contexts = APIC_COMPOUND_CONTEXTS,
+            includeDeleted = false,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
             assertEquals(1, it.first)
@@ -389,7 +390,7 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should returned serialized access control entities with other rigths if user is admin`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
@@ -403,7 +404,7 @@ class EnabledAuthorizationServiceTests {
             )
         ).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
@@ -424,6 +425,7 @@ class EnabledAuthorizationServiceTests {
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
+            includeDeleted = false,
             contexts = APIC_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {
@@ -446,10 +448,10 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should return serialized access control entities with other rigths if user is owner`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
         } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
             entityAccessRightsService.getAccessRightsForEntities(any(), any())
@@ -476,6 +478,7 @@ class EnabledAuthorizationServiceTests {
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
+            includeDeleted = false,
             contexts = AUTHZ_TEST_COMPOUND_CONTEXTS,
             sub = Some(subjectUuid)
         ).shouldSucceedWith {

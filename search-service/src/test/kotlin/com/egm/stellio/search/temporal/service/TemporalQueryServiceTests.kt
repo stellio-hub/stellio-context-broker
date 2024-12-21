@@ -118,7 +118,7 @@ class TemporalQueryServiceTests {
 
         coEvery { entityQueryService.checkEntityExistence(any()) } returns Unit.right()
         coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns attributes
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
@@ -149,7 +149,7 @@ class TemporalQueryServiceTests {
         coVerify {
             entityQueryService.checkEntityExistence(entityUri)
             authorizationService.userCanReadEntity(entityUri, None)
-            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
+            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
@@ -246,11 +246,11 @@ class TemporalQueryServiceTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
-        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
@@ -305,6 +305,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
+                false,
                 any()
             )
             scopeService.retrieveHistory(listOf(entityUri), any())
@@ -322,7 +323,7 @@ class TemporalQueryServiceTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
@@ -331,7 +332,7 @@ class TemporalQueryServiceTests {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
-        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
 
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(

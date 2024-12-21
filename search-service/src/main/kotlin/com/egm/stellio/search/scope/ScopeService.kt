@@ -37,6 +37,8 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -72,7 +74,7 @@ class ScopeService(
     suspend fun addHistoryEntry(
         entityId: URI,
         scopes: List<String>,
-        temportalProperty: TemporalProperty,
+        temporalProperty: TemporalProperty,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> =
@@ -85,7 +87,7 @@ class ScopeService(
             .bind("entity_id", entityId)
             .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
-            .bind("time_property", temportalProperty.toString())
+            .bind("time_property", temporalProperty.toString())
             .bind("sub", sub)
             .execute()
 
@@ -341,12 +343,12 @@ class ScopeService(
     }
 
     @Transactional
-    suspend fun replaceHistoryEntry(
+    suspend fun replace(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        deleteHistory(ngsiLdEntity.id).bind()
+        delete(ngsiLdEntity.id).bind()
         createHistory(ngsiLdEntity, createdAt, sub).bind()
     }
 
@@ -364,10 +366,17 @@ class ScopeService(
             .execute()
             .bind()
 
-        deleteHistory(entityId).bind()
+        addHistoryEntry(
+            entityId,
+            emptyList(),
+            TemporalProperty.DELETED_AT,
+            ngsiLdDateTime(),
+            getSubFromSecurityContext().getOrNull()
+        )
     }
 
-    suspend fun deleteHistory(entityId: URI): Either<APIException, Unit> =
+    @Transactional
+    suspend fun permanentlyDelete(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM scope_history

@@ -53,6 +53,7 @@ data class UpdateAttributeResult(
             UpdateOperationResult.APPENDED,
             UpdateOperationResult.REPLACED,
             UpdateOperationResult.UPDATED,
+            UpdateOperationResult.DELETED,
             UpdateOperationResult.IGNORED
         )
 }
@@ -61,10 +62,11 @@ enum class UpdateOperationResult {
     APPENDED,
     REPLACED,
     UPDATED,
+    DELETED,
     IGNORED,
     FAILED;
 
-    fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED).contains(this)
+    fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED, DELETED).contains(this)
 }
 
 fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {

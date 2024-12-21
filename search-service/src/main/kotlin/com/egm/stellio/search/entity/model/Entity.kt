@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
@@ -7,6 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
@@ -43,5 +45,19 @@ data class Entity(
         }
 
         return resultEntity
+    }
+
+    companion object {
+
+        fun toExpandedDeletedEntity(
+            entityId: URI,
+            deletedAt: ZonedDateTime
+        ): ExpandedEntity =
+            ExpandedEntity(
+                members = mapOf(
+                    JSONLD_ID to entityId,
+                    NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt)
+                )
+            )
     }
 }

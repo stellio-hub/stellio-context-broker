@@ -23,7 +23,7 @@ import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
-import com.egm.stellio.shared.model.getRelationshipObject
+import com.egm.stellio.shared.model.getRelationshipId
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
@@ -31,6 +31,7 @@ import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -140,16 +141,14 @@ fun guessPropertyValueType(
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value
  */
 fun hasNgsiLdNullValue(
-    attribute: Attribute,
-    expandedAttributeInstance: ExpandedAttributeInstance
+    expandedAttributeInstance: ExpandedAttributeInstance,
+    attributeType: AttributeType
 ): Boolean =
-    if (attribute.attributeType == AttributeType.Relationship) {
-        expandedAttributeInstance.getRelationshipObject(attribute.attributeName).fold(
-            { false },
-            { it.toString() == NGSILD_NULL }
-        )
+    if (attributeType == AttributeType.Relationship) {
+        val value = expandedAttributeInstance.getRelationshipId()
+        value is URI && value.toString() == NGSILD_NULL
     } else {
-        val value = expandedAttributeInstance.getMemberValue(attribute.attributeType.toExpandedValueMember())
+        val value = expandedAttributeInstance.getMemberValue(attributeType.toExpandedValueMember())
         value is String && value == NGSILD_NULL
     }
 

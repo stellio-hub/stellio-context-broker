@@ -678,7 +678,7 @@ class EntityAttributeService(
                         UpdateOperationResult.APPENDED
                     )
                 }.bind()
-            } else if (hasNgsiLdNullValue(currentAttribute, attributePayload)) {
+            } else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType)) {
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -730,7 +730,7 @@ class EntityAttributeService(
                     UpdateOperationResult.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
-            } else if (hasNgsiLdNullValue(currentAttribute, attributeValues)) {
+            } else if (hasNgsiLdNullValue(attributeValues, currentAttribute.attributeType)) {
                 deleteAttribute(
                     entityId,
                     attributeName,
@@ -857,7 +857,7 @@ class EntityAttributeService(
                         UpdateOperationResult.APPENDED
                     )
                 }.bind()
-            else if (hasNgsiLdNullValue(currentAttribute, attributePayload))
+            else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType))
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,

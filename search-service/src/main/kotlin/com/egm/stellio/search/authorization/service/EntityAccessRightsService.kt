@@ -18,13 +18,13 @@ import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalEnum
 import com.egm.stellio.search.common.util.toUri
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.CAN_ADMIN
 import com.egm.stellio.shared.util.AccessRight.CAN_READ
@@ -220,30 +220,32 @@ class EntityAccessRightsService(
     suspend fun getSubjectAccessRights(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
-        type: EntityTypeSelection? = null,
-        ids: Set<URI>? = null,
-        paginationQuery: PaginationQuery,
+        entitiesQuery: EntitiesQueryFromGet,
+        includeDeleted: Boolean = false
     ): Either<APIException, List<EntityAccessRights>> = either {
+        val ids = entitiesQuery.ids
+        val typeSelection = entitiesQuery.typeSelection
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
             .sql(
                 """
-                SELECT ep.entity_id, ep.types, ear.access_right, ep.specific_access_policy
+                SELECT ep.entity_id, ep.types, ear.access_right, ep.specific_access_policy, ep.deleted_at
                 FROM entity_access_rights ear
                 LEFT JOIN entity_payload ep ON ear.entity_id = ep.entity_id
                 WHERE ${if (isStellioAdmin) "1 = 1" else "subject_id IN (:subject_uuids)" }
                 ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
-                ${if (!type.isNullOrEmpty()) " AND (${buildTypeQuery(type)})" else ""}
-                ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
+                ${if (!typeSelection.isNullOrEmpty()) " AND (${buildTypeQuery(typeSelection)})" else ""}
+                ${if (ids.isNotEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
+                ${if (!includeDeleted) " AND deleted_at IS NULL" else ""}
                 ORDER BY entity_id
                 LIMIT :limit
                 OFFSET :offset;
                 """.trimIndent()
             )
-            .bind("limit", paginationQuery.limit)
-            .bind("offset", paginationQuery.offset)
+            .bind("limit", entitiesQuery.paginationQuery.limit)
+            .bind("offset", entitiesQuery.paginationQuery.offset)
             .let {
                 if (!isStellioAdmin)
                     it.bind("subject_uuids", subjectUuids)
@@ -255,7 +257,7 @@ class EntityAccessRightsService(
                 else it
             }
             .let {
-                if (!ids.isNullOrEmpty())
+                if (ids.isNotEmpty())
                     it.bind("entities_ids", ids)
                 else it
             }
@@ -268,6 +270,7 @@ class EntityAccessRightsService(
                 EntityAccessRights(
                     ear.id,
                     ear.types,
+                    ear.isDeleted,
                     entityAccessRights.maxOf { it.right },
                     ear.specificAccessPolicy
                 )
@@ -278,7 +281,8 @@ class EntityAccessRightsService(
         sub: Option<Sub>,
         accessRights: List<AccessRight>,
         type: EntityTypeSelection? = null,
-        ids: Set<URI>? = null
+        ids: Set<URI>? = null,
+        includeDeleted: Boolean = false
     ): Either<APIException, Int> = either {
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
@@ -293,6 +297,7 @@ class EntityAccessRightsService(
                 ${if (accessRights.isNotEmpty()) " AND access_right IN (:access_rights)" else ""}
                 ${if (!type.isNullOrEmpty()) " AND (${buildTypeQuery(type)})" else ""}
                 ${if (!ids.isNullOrEmpty()) " AND ear.entity_id IN (:entities_ids)" else ""}
+                ${if (!includeDeleted) " AND deleted_at IS NULL" else ""}
                 """.trimIndent()
             )
             .let {
@@ -443,6 +448,7 @@ class EntityAccessRightsService(
         return EntityAccessRights(
             id = toUri(row["entity_id"]),
             types = toList(row["types"]),
+            isDeleted = row["deleted_at"] != null,
             right = accessRight,
             specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(row["specific_access_policy"])
         )

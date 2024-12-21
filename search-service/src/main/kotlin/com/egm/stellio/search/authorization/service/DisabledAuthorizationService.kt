@@ -41,6 +41,7 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun getAuthorizedEntities(
         entitiesQuery: EntitiesQueryFromGet,
+        includeDeleted: Boolean,
         contexts: List<String>,
         sub: Option<Sub>
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = Pair(-1, emptyList<ExpandedEntity>()).right()

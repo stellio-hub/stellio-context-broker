@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.addNonReifiedProperty
 import com.egm.stellio.shared.model.addSubAttribute
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_IS_DELETED
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUBJECT_INFO
@@ -27,6 +28,7 @@ import java.net.URI
 data class EntityAccessRights(
     val id: URI,
     val types: List<ExpandedTerm>,
+    val isDeleted: Boolean = false,
     // right the current user has on the entity
     val right: AccessRight,
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
@@ -55,6 +57,8 @@ data class EntityAccessRights(
 
         resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = types
+        if (isDeleted)
+            resultEntity[AUTH_PROP_IS_DELETED] = buildExpandedPropertyValue(true)
         resultEntity[AUTH_PROP_RIGHT] = buildExpandedPropertyValue(right.attributeName)
 
         specificAccessPolicy?.run {

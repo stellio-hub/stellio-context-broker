@@ -19,6 +19,7 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel.ALL_ASSIGNABLE_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
@@ -70,10 +71,11 @@ class EntityAccessControlHandler(
     @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAuthorizedEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @AllowedParameters(implemented = [QP.ID, QP.TYPE, QP.ATTRS, QP.COUNT, QP.OFFSET, QP.LIMIT])
+        @AllowedParameters(implemented = [QP.ID, QP.TYPE, QP.ATTRS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.INCLUDE_DELETED])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
+        val includeDeleted = queryParams.getFirst(QueryParameter.INCLUDE_DELETED.key)?.toBoolean() == true
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
@@ -91,6 +93,7 @@ class EntityAccessControlHandler(
 
         val (count, entities) = authorizationService.getAuthorizedEntities(
             entitiesQuery,
+            includeDeleted,
             contexts,
             sub
         ).bind()

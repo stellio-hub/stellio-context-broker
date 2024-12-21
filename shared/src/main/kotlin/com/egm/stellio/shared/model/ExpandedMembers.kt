@@ -197,6 +197,9 @@ fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadReq
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
+fun ExpandedAttributeInstance.getRelationshipId(): URI? =
+    (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+
 fun ExpandedAttributeInstance.getScopes(): List<String>? =
     when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {
         is String -> listOf(rawScopes)

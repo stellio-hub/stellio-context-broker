@@ -5,8 +5,6 @@ import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import io.mockk.every
-import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -184,14 +182,7 @@ class AttributeUtilsTests {
             NGSILD_TEST_CORE_CONTEXTS
         ).second[0]
 
-        assertTrue(
-            hasNgsiLdNullValue(
-                mockkClass(Attribute::class) {
-                    every { attributeType } returns AttributeType.Property
-                },
-                expandedProperty
-            )
-        )
+        assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Property))
     }
 
     @Test
@@ -210,14 +201,7 @@ class AttributeUtilsTests {
             NGSILD_TEST_CORE_CONTEXTS
         ).second[0]
 
-        assertTrue(
-            hasNgsiLdNullValue(
-                mockkClass(Attribute::class) {
-                    every { attributeType } returns AttributeType.LanguageProperty
-                },
-                expandedProperty
-            )
-        )
+        assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.LanguageProperty))
     }
 
     @Test
@@ -234,14 +218,7 @@ class AttributeUtilsTests {
             NGSILD_TEST_CORE_CONTEXTS
         ).second[0]
 
-        assertTrue(
-            hasNgsiLdNullValue(
-                mockkClass(Attribute::class) {
-                    every { attributeType } returns AttributeType.JsonProperty
-                },
-                expandedProperty
-            )
-        )
+        assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.JsonProperty))
     }
 
     @Test
@@ -258,14 +235,6 @@ class AttributeUtilsTests {
             NGSILD_TEST_CORE_CONTEXTS
         ).second[0]
 
-        assertTrue(
-            hasNgsiLdNullValue(
-                mockkClass(Attribute::class) {
-                    every { attributeType } returns AttributeType.Relationship
-                    every { attributeName } returns "relationship"
-                },
-                expandedProperty
-            )
-        )
+        assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
     }
 }

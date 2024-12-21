@@ -14,7 +14,6 @@ import com.egm.stellio.search.entity.web.entityId
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI

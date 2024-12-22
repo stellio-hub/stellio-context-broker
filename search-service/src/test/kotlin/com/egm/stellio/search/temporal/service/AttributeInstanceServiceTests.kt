@@ -79,8 +79,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -103,7 +101,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
     private lateinit var incomingAttribute: Attribute
     private lateinit var outgoingAttribute: Attribute
     private lateinit var jsonAttribute: Attribute
@@ -333,7 +331,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         entityAttributeService.create(attribute2)
 
         (1..10).forEach { _ ->
-            val observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
                 value = "some value",

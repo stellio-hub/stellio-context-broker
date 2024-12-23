@@ -767,7 +767,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         verify {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
-                    it.time.toString() == "$deletedAt" &&
+                    it.time == deletedAt &&
                         it.value == "urn:ngsi-ld:null" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(

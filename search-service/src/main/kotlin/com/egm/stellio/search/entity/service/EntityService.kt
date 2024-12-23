@@ -580,21 +580,14 @@ class EntityService(
         val expandedDeletedEntity = Entity.toExpandedDeletedEntity(entityId, deletedAt)
         val entity = databaseClient.sql(
             """
-            WITH entity_before_delete AS (
-                SELECT *
-                FROM entity_payload
-                WHERE entity_id = :entity_id
-            ),
-            update_entity AS (
-                UPDATE entity_payload
-                SET deleted_at = :deleted_at,
-                    payload = :payload,
-                    scopes = null,
-                    specific_access_policy = null,
-                    types = '{}'
-                WHERE entity_id = :entity_id
-            )
-            SELECT * FROM entity_before_delete
+            UPDATE entity_payload
+            SET deleted_at = :deleted_at,
+                payload = :payload,
+                scopes = null,
+                specific_access_policy = null,
+                types = '{}'
+            WHERE entity_id = :entity_id
+            RETURNING *
             """.trimIndent()
         )
             .bind("entity_id", entityId)

@@ -52,7 +52,7 @@ import java.time.ZoneOffset
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var attributeService: AttributeService

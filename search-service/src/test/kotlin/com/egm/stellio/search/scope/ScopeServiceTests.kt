@@ -44,7 +44,7 @@ import java.util.stream.Stream
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var scopeService: ScopeService

@@ -76,7 +76,7 @@ import kotlin.time.Duration
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService

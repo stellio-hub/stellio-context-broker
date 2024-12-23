@@ -58,7 +58,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     @SpykBean

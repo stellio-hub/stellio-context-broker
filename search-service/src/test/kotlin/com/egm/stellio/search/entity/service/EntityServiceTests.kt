@@ -60,7 +60,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityService: EntityService

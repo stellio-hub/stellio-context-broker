@@ -45,7 +45,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService

@@ -52,7 +52,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityQueryService: EntityQueryService

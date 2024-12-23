@@ -40,7 +40,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityQueryService: EntityQueryService

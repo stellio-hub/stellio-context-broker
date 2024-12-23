@@ -84,7 +84,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService

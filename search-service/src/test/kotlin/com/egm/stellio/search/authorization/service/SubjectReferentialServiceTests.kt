@@ -6,6 +6,7 @@ import com.egm.stellio.search.authorization.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.model.SubjectReferential
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.ADMIN_ROLES
@@ -36,7 +37,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubjectReferentialServiceTests : WithTimescaleContainer {
+class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var subjectReferentialService: SubjectReferentialService

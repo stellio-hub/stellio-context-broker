@@ -10,6 +10,7 @@ import com.egm.stellio.search.authorization.model.SubjectReferential
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.service.EntityService
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildSapAttribute
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -59,7 +60,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityAccessRightsServiceTests : WithTimescaleContainer {
+class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityAccessRightsService: EntityAccessRightsService

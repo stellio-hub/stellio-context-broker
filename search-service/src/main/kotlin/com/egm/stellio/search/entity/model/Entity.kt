@@ -47,17 +47,19 @@ data class Entity(
         return resultEntity
     }
 
-    companion object {
-
-        fun toExpandedDeletedEntity(
-            entityId: URI,
-            deletedAt: ZonedDateTime
-        ): ExpandedEntity =
-            ExpandedEntity(
-                members = mapOf(
-                    JSONLD_ID to entityId,
-                    NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt)
-                )
-            )
-    }
+    fun toExpandedDeletedEntity(
+        entityId: URI,
+        deletedAt: ZonedDateTime
+    ): ExpandedEntity =
+        ExpandedEntity(
+            members = mapOf(
+                JSONLD_ID to entityId,
+                NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
+                NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
+            ).run {
+                if (modifiedAt != null)
+                    this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                else this
+            }
+        )
 }

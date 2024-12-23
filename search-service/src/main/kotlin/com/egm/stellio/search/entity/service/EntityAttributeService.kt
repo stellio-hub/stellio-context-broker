@@ -327,9 +327,8 @@ class EntityAttributeService(
     ): Either<APIException, Unit> = either {
         if (attributesToDelete.isEmpty()) return Unit.right()
         val attributesToDeleteWithPayload = attributesToDelete.map {
-            Triple(
+            Pair(
                 it,
-                deletedAt,
                 JsonLdUtils.expandAttribute(
                     it.attributeName,
                     it.attributeType.toNullCompactedRepresentation(),
@@ -347,7 +346,7 @@ class EntityAttributeService(
             WHERE temporal_entity_attribute.id = new.uuid
             """.trimIndent()
         )
-            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, it.second, it.third.toJson()) })
+            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.toJson()) })
             .allToMappedList {
                 Triple(
                     toUuid(it["id"]),
@@ -356,7 +355,7 @@ class EntityAttributeService(
                 )
             }
 
-        attributesToDeleteWithPayload.forEach { (attribute, deletedAt, expandedAttributePayload) ->
+        attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
                 value = attribute.attributeType.toNullValue(),

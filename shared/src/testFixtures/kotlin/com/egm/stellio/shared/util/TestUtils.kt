@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.core.io.ClassPathResource
 import java.net.URI
+import java.time.ZonedDateTime
 
 fun loadSampleData(filename: String = "beehive.jsonld"): String {
     val sampleData = ClassPathResource("/ngsild/$filename")
@@ -81,6 +82,21 @@ suspend fun loadAndExpandMinimalEntity(
             "id": "$id",
             "type": [${types.joinToString(",") { "\"$it\"" }}]
             ${attributes?.let { ", $it" } ?: ""}
+        }
+        """.trimIndent(),
+        contexts
+    )
+
+suspend fun loadAndExpandDeletedEntity(
+    id: String,
+    deletedAt: ZonedDateTime? = ngsiLdDateTime(),
+    contexts: List<String> = APIC_COMPOUND_CONTEXTS
+): ExpandedEntity =
+    expandJsonLdEntity(
+        """
+        {
+            "id": "$id",
+            "deletedAt": "$deletedAt"
         }
         """.trimIndent(),
         contexts

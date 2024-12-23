@@ -135,7 +135,7 @@ class EntityEventServiceTests {
         }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        entityEventService.publishEntityDeleteEvent(null, entity).join()
+        entityEventService.publishEntityDeleteEvent(null, entity, deletedEntityPayload).join()
 
         verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }

@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -84,18 +85,20 @@ class EntityEventService(
 
     suspend fun publishEntityDeleteEvent(
         sub: String?,
-        entity: Entity
+        previousEntity: Entity,
+        deletedEntityPayload: ExpandedEntity
     ): Job {
         val tenantName = getTenantFromContext()
         return coroutineScope.launch {
-            logger.debug("Sending delete event for entity {} in tenant {}", entity.entityId, tenantName)
+            logger.debug("Sending delete event for entity {} in tenant {}", previousEntity.entityId, tenantName)
             publishEntityEvent(
                 EntityDeleteEvent(
                     sub,
                     tenantName,
-                    entity.entityId,
-                    entity.types,
-                    entity.payload.asString(),
+                    previousEntity.entityId,
+                    previousEntity.types,
+                    previousEntity.payload.asString(),
+                    serializeObject(deletedEntityPayload.members),
                     emptyList()
                 )
             )

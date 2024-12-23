@@ -28,6 +28,7 @@ import com.egm.stellio.shared.util.SENSOR_COMPACT_TYPE
 import com.egm.stellio.shared.util.SENSOR_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.loadAndExpandDeletedEntity
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
@@ -70,7 +71,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 import kotlin.time.Duration
 
 @SpringBootTest
@@ -347,8 +348,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.notification.endpoint.uri == URI("http://localhost:8084") &&
                     it.notification.endpoint.accept == Endpoint.AcceptType.JSON &&
                     it.entities != null &&
-                    it.entities!!.size == 1 &&
-                    it.entities!!.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE } &&
+                    it.entities.size == 1 &&
+                    it.entities.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE } &&
                     it.watchedAttributes == null &&
                     it.isActive
             }
@@ -383,10 +384,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 it.id == "urn:ngsi-ld:Subscription:1".toUri() &&
                     it.subscriptionName == "A subscription with all possible members" &&
                     it.description == "A possible description" && it.entities != null &&
-                    it.entities!!.size == 3 &&
-                    it.entities!!.all { it.typeSelection == BEEHIVE_TYPE } &&
-                    it.entities!!.any { it.id == "urn:ngsi-ld:Beehive:1234567890".toUri() } &&
-                    it.entities!!.any { it.idPattern == "urn:ngsi-ld:Beehive:1234*" } &&
+                    it.entities.size == 3 &&
+                    it.entities.all { it.typeSelection == BEEHIVE_TYPE } &&
+                    it.entities.any { it.id == "urn:ngsi-ld:Beehive:1234567890".toUri() } &&
+                    it.entities.any { it.idPattern == "urn:ngsi-ld:Beehive:1234*" } &&
                     it.watchedAttributes == listOf(INCOMING_PROPERTY) &&
                     it.notificationTrigger == listOf(
                         ENTITY_CREATED.notificationTrigger,
@@ -395,11 +396,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     ) &&
                     it.timeInterval == null &&
                     it.q == "foodQuantity<150;foodName=='dietary fibres'" && it.geoQ != null &&
-                    it.geoQ!!.georel == "within" &&
-                    it.geoQ!!.geometry == "Polygon" &&
-                    it.geoQ!!.coordinates ==
+                    it.geoQ.georel == "within" &&
+                    it.geoQ.geometry == "Polygon" &&
+                    it.geoQ.coordinates ==
                     "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]" &&
-                    it.geoQ!!.geoproperty == NGSILD_LOCATION_PROPERTY &&
+                    it.geoQ.geoproperty == NGSILD_LOCATION_PROPERTY &&
                     it.scopeQ == "/Nantes/+" &&
                     it.notification.attributes == listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                     it.notification.format == FormatType.NORMALIZED &&
@@ -438,9 +439,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(persistedSubscription)
             .matches {
                 it.notification.lastNotification != null &&
-                    it.notification.lastNotification!!.isEqual(notifiedAt) &&
+                    it.notification.lastNotification.isEqual(notifiedAt) &&
                     it.notification.lastSuccess != null &&
-                    it.notification.lastSuccess!!.isEqual(notifiedAt) &&
+                    it.notification.lastSuccess.isEqual(notifiedAt) &&
                     it.notification.lastFailure == null &&
                     it.notification.timesSent == 1 &&
                     it.notification.status == StatusType.OK
@@ -789,6 +790,27 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
+    fun `it should retrieve a subscription with entityDeleted trigger matched with an entity delete event`() =
+        runTest {
+            val subscription = gimmeSubscriptionFromMembers(
+                mapOf(
+                    "entities" to listOf(mapOf("type" to BEEHIVE_COMPACT_TYPE)),
+                    "notificationTrigger" to listOf(ENTITY_DELETED.notificationTrigger)
+                )
+            )
+            subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+            val expandedEntity = loadAndExpandDeletedEntity("urn:ngsi-ld:Beehive:1234567890")
+            subscriptionService.getMatchingSubscriptions(
+                expandedEntity,
+                emptySet(),
+                ENTITY_DELETED
+            ).shouldSucceedWith {
+                assertEquals(1, it.size)
+            }
+        }
+
+    @Test
     fun `it should update a subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
@@ -821,9 +843,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
                     it.scopeQ == "/A/#,/B" &&
                     it.geoQ!!.georel == "equals" &&
-                    it.geoQ!!.geometry == "Point" &&
-                    it.geoQ!!.coordinates == "[100.0, 0.0]" &&
-                    it.geoQ!!.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace" &&
+                    it.geoQ.geometry == "Point" &&
+                    it.geoQ.coordinates == "[100.0, 0.0]" &&
+                    it.geoQ.geoproperty == "https://uri.etsi.org/ngsi-ld/observationSpace" &&
                     it.throttling == 50 &&
                     it.lang == "fr-CH,fr"
             }
@@ -883,21 +905,21 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(updatedSubscription)
             .matches {
                 it.entities != null &&
-                    it.entities!!.contains(
+                    it.entities.contains(
                         EntitySelector(
                             id = "urn:ngsi-ld:Beehive:123".toUri(),
                             idPattern = null,
                             typeSelection = BEEHIVE_TYPE
                         )
                     ) &&
-                    it.entities!!.contains(
+                    it.entities.contains(
                         EntitySelector(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beehive:12*",
                             typeSelection = BEEHIVE_TYPE
                         )
                     ) &&
-                    it.entities!!.size == 2
+                    it.entities.size == 2
             }
     }
 

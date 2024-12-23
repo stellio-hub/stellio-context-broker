@@ -19,6 +19,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.time.ZonedDateTime
 
 class JsonUtilsTests {
 
@@ -146,6 +147,13 @@ class JsonUtilsTests {
                 entityId,
                 listOf(BEEHIVE_TYPE),
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
+                serializeObject(
+                    loadAndExpandDeletedEntity(
+                        entityId.toString(),
+                        ZonedDateTime.parse("2024-12-23T17:01:02Z"),
+                        APIC_COMPOUND_CONTEXTS
+                    ).members
+                ),
                 emptyList()
             )
         )

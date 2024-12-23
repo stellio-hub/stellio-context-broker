@@ -568,36 +568,48 @@ class EntityService(
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val deletedAt = ngsiLdDateTime()
-        val entity = deleteEntityPayload(entityId, deletedAt).bind()
+        // TODO retrieve entity when checking for existence?
+        val currentEntity = entityQueryService.retrieve(entityId).bind()
+        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, deletedAt)
+        val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
         entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
         scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub, entity)
+        entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Entity> = either {
-        val expandedDeletedEntity = Entity.toExpandedDeletedEntity(entityId, deletedAt)
-        val entity = databaseClient.sql(
+    suspend fun deleteEntityPayload(
+        entityId: URI,
+        deletedAt: ZonedDateTime,
+        deletedEntityPayload: ExpandedEntity
+    ): Either<APIException, Entity> = either {
+        databaseClient.sql(
             """
-            UPDATE entity_payload
-            SET deleted_at = :deleted_at,
-                payload = :payload,
-                scopes = null,
-                specific_access_policy = null,
-                types = '{}'
-            WHERE entity_id = :entity_id
-            RETURNING *
+            WITH entity_before_delete AS (
+                SELECT *
+                FROM entity_payload
+                WHERE entity_id = :entity_id
+            ),
+            update_entity AS (
+                UPDATE entity_payload
+                SET deleted_at = :deleted_at,
+                    payload = :payload,
+                    scopes = null,
+                    specific_access_policy = null,
+                    types = '{}'
+                WHERE entity_id = :entity_id
+            )
+            SELECT * FROM entity_before_delete
             """.trimIndent()
         )
             .bind("entity_id", entityId)
             .bind("deleted_at", deletedAt)
-            .bind("payload", Json.of(serializeObject(expandedDeletedEntity.members)))
+            .bind("payload", Json.of(serializeObject(deletedEntityPayload.members)))
             .oneToResult {
                 it.rowToEntity()
             }
             .bind()
-        entity
     }
 
     @Transactional
@@ -605,16 +617,19 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId, true).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
-        val entity = permanentyDeleteEntityPayload(entityId).bind()
+        // TODO retrieve entity when checking for existence?
+        val currentEntity = entityQueryService.retrieve(entityId).bind()
+        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, ngsiLdDateTime())
+        val previousEntity = permanentyDeleteEntityPayload(entityId).bind()
         entityAttributeService.permanentlyDeleteAttributes(entityId).bind()
         authorizationService.removeRightsOnEntity(entityId).bind()
 
-        entityEventService.publishEntityDeleteEvent(sub, entity)
+        entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
 
     @Transactional
     suspend fun permanentyDeleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
-        val entity = databaseClient.sql(
+        databaseClient.sql(
             """
             DELETE FROM entity_payload
             WHERE entity_id = :entity_id
@@ -626,7 +641,6 @@ class EntityService(
                 it.rowToEntity()
             }
             .bind()
-        entity
     }
 
     @Transactional

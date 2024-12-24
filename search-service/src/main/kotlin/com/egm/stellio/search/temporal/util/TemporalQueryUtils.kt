@@ -21,8 +21,8 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.OptionsParamValue
-import com.egm.stellio.shared.util.hasValueInOptionsParam
+import com.egm.stellio.shared.util.QueryParamValue
+import com.egm.stellio.shared.util.hasValueInQueryParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
@@ -45,18 +45,22 @@ fun composeTemporalEntitiesQueryFromGet(
 
     if (inQueryEntities)
         entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
+    val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
+    val formatParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.FORMAT.key))
+    val withTemporalValues = when {
+        hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) -> true
+        hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES) -> true
+        else -> false
+    }
 
-    val withTemporalValues = hasValueInOptionsParam(
+    val withAggregatedValues = when {
+        hasValueInQueryParam(formatParam, QueryParamValue.AGGREGATED_VALUES) -> true
+        hasValueInQueryParam(optionsParam, QueryParamValue.AGGREGATED_VALUES) -> true
+        else -> false
+    }
+    val withAudit = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.TEMPORAL_VALUES
-    )
-    val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.AUDIT
-    )
-    val withAggregatedValues = hasValueInOptionsParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.AGGREGATED_VALUES
+        QueryParamValue.AUDIT
     )
     val temporalQuery =
         buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
@@ -83,17 +87,17 @@ fun composeTemporalEntitiesQueryFromPost(
         contexts
     ).bind()
 
-    val withTemporalValues = hasValueInOptionsParam(
+    val withTemporalValues = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.TEMPORAL_VALUES
+        QueryParamValue.TEMPORAL_VALUES
     )
-    val withAudit = hasValueInOptionsParam(
+    val withAudit = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.AUDIT
+        QueryParamValue.AUDIT
     )
-    val withAggregatedValues = hasValueInOptionsParam(
+    val withAggregatedValues = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        OptionsParamValue.AGGREGATED_VALUES
+        QueryParamValue.AGGREGATED_VALUES
     )
 
     val temporalParams = mapOf(

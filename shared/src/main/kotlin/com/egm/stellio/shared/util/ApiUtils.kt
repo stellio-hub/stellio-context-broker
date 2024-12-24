@@ -168,16 +168,16 @@ internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
     return expandedType == NGSILD_DATASET_ID_PROPERTY
 }
 
-enum class OptionsParamValue(val value: String) {
+enum class QueryParamValue(val value: String) {
     TEMPORAL_VALUES("temporalValues"),
     AUDIT("audit"),
     AGGREGATED_VALUES("aggregatedValues")
 }
 
-fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamValue): Boolean =
+fun hasValueInQueryParam(options: Optional<String>, queryParamValue: QueryParamValue): Boolean =
     options
         .map { it.split(",") }
-        .filter { it.any { option -> option == optionValue.value } }
+        .filter { it.any { option -> option == queryParamValue.value } }
         .isPresent
 
 fun parseQueryParameter(queryParam: String?): Set<String> =

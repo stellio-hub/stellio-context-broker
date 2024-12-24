@@ -18,6 +18,7 @@ enum class QueryParameter(
     JOIN("join"),
     JOIN_LEVEL("joinLevel"),
     OPTIONS("options"),
+    FORMAT("format"),
     OBSERVED_AT("observedAt"),
 
     // geoQuery
@@ -46,7 +47,6 @@ enum class QueryParameter(
     DELETE_ALL("deleteAll"),
 
     // not implemented yet
-    FORMAT("format"),
     PICK("pick"),
     OMIT("omit"),
     EXPAND_VALUES("expandValues"),

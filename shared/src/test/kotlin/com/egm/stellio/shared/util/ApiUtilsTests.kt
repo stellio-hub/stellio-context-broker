@@ -2,7 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
+import com.egm.stellio.shared.util.QueryParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
 import io.mockk.every
 import io.mockk.mockk
@@ -33,27 +33,27 @@ class ApiUtilsTests {
 
     @Test
     fun `it should not find a value if there is no options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.empty(), TEMPORAL_VALUES))
+        assertFalse(hasValueInQueryParam(Optional.empty(), TEMPORAL_VALUES))
     }
 
     @Test
     fun `it should not find a value if it is not in a single value options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.of("one"), TEMPORAL_VALUES))
+        assertFalse(hasValueInQueryParam(Optional.of("one"), TEMPORAL_VALUES))
     }
 
     @Test
     fun `it should not find a value if it is not in a multi value options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.of("one,two"), TEMPORAL_VALUES))
+        assertFalse(hasValueInQueryParam(Optional.of("one,two"), TEMPORAL_VALUES))
     }
 
     @Test
     fun `it should find a value if it is in a single value options query param`() {
-        assertTrue(hasValueInOptionsParam(Optional.of("temporalValues"), TEMPORAL_VALUES))
+        assertTrue(hasValueInQueryParam(Optional.of("temporalValues"), TEMPORAL_VALUES))
     }
 
     @Test
     fun `it should find a value if it is in a multi value options query param`() {
-        assertTrue(hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES))
+        assertTrue(hasValueInQueryParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES))
     }
 
     @Test

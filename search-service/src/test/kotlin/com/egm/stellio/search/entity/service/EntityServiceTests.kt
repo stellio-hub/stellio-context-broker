@@ -242,7 +242,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime(), loadAndExpandDeletedEntity(entity01Uri))
             .shouldSucceed()
 
-        entityQueryService.retrieve(entity01Uri)
+        entityQueryService.retrieve(entity01Uri, true)
             .shouldSucceedWith { entity ->
                 val payload = entity.payload.deserializeAsMap()
                 assertThat(payload)

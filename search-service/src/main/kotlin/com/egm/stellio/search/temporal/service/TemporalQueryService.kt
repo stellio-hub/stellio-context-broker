@@ -43,7 +43,7 @@ class TemporalQueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         sub: Sub? = null
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        val entity = entityQueryService.retrieve(entityId).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
@@ -56,7 +56,6 @@ class TemporalQueryService(
             else it.right()
         }.bind()
 
-        val entityPayload = entityQueryService.retrieve(entityId).bind()
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
@@ -76,7 +75,7 @@ class TemporalQueryService(
             fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
 
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entityPayload, scopeHistory, attributesWithInstances),
+            EntityTemporalResult(entity, scopeHistory, attributesWithInstances),
             temporalEntitiesQuery
         ) to range
     }

@@ -565,12 +565,10 @@ class EntityService(
 
     @Transactional
     suspend fun deleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        val currentEntity = entityQueryService.retrieve(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val deletedAt = ngsiLdDateTime()
-        // TODO retrieve entity when checking for existence?
-        val currentEntity = entityQueryService.retrieve(entityId).bind()
         val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, deletedAt)
         val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
         entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
@@ -615,11 +613,9 @@ class EntityService(
 
     @Transactional
     suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        entityQueryService.checkEntityExistence(entityId, true).bind()
+        val currentEntity = entityQueryService.retrieve(entityId, true).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
-        // TODO retrieve entity when checking for existence?
-        val currentEntity = entityQueryService.retrieve(entityId).bind()
         val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, ngsiLdDateTime())
         val previousEntity = permanentyDeleteEntityPayload(entityId).bind()
         entityAttributeService.permanentlyDeleteAttributes(entityId).bind()

@@ -1,9 +1,13 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import java.net.URI
 
+/**
+ * UpdateResult datatype as defined in 5.2.18
+ */
 data class UpdateResult(
     val updated: List<UpdatedDetails>,
     val notUpdated: List<NotUpdatedDetails>
@@ -12,7 +16,7 @@ data class UpdateResult(
     @JsonIgnore
     fun isSuccessful(): Boolean =
         notUpdated.isEmpty() &&
-            updated.all { it.updateOperationResult.isSuccessResult() }
+            updated.all { it.operationStatus.isSuccessResult() }
 
     @JsonIgnore
     fun mergeWith(other: UpdateResult): UpdateResult =
@@ -28,37 +32,50 @@ data class UpdateResult(
 
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
 
+/**
+ * NotUpdatedDetails as defined in 5.2.19
+ */
 data class NotUpdatedDetails(
     val attributeName: String,
     val reason: String
 )
 
+/**
+ * Reflects the updated member of an UpdateResult object with additional info used internally only
+ */
 data class UpdatedDetails(
     @JsonValue
     val attributeName: String,
     @JsonIgnore
     val datasetId: URI?,
     @JsonIgnore
-    val updateOperationResult: UpdateOperationResult
+    val operationStatus: OperationStatus
 )
 
-data class UpdateAttributeResult(
-    val attributeName: String,
-    val datasetId: URI? = null,
-    val updateOperationResult: UpdateOperationResult,
-    val errorMessage: String? = null
-) {
-    fun isSuccessfullyUpdated() =
-        this.updateOperationResult in listOf(
-            UpdateOperationResult.APPENDED,
-            UpdateOperationResult.REPLACED,
-            UpdateOperationResult.UPDATED,
-            UpdateOperationResult.DELETED,
-            UpdateOperationResult.IGNORED
-        )
-}
+/**
+ * Internal structure used to convey the result of an operation (update, delete...)
+ */
+sealed class AttributeOperationResult(
+    open val attributeName: String,
+    open val datasetId: URI? = null,
+    open val operationStatus: OperationStatus
+)
 
-enum class UpdateOperationResult {
+data class SucceededAttributeOperationResult(
+    override val attributeName: String,
+    override val datasetId: URI? = null,
+    override val operationStatus: OperationStatus,
+    val newExpandedValue: ExpandedAttributeInstance,
+) : AttributeOperationResult(attributeName, datasetId, operationStatus)
+
+data class FailedAttributeOperationResult(
+    override val attributeName: String,
+    override val datasetId: URI? = null,
+    override val operationStatus: OperationStatus,
+    val errorMessage: String
+) : AttributeOperationResult(attributeName, datasetId, operationStatus)
+
+enum class OperationStatus {
     APPENDED,
     REPLACED,
     UPDATED,
@@ -66,15 +83,22 @@ enum class UpdateOperationResult {
     IGNORED,
     FAILED;
 
-    fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED, DELETED).contains(this)
+    fun isSuccessResult(): Boolean = getSuccessStatuses().contains(this)
+
+    companion object {
+        fun getSuccessStatuses(): List<OperationStatus> = listOf(APPENDED, REPLACED, UPDATED, DELETED, IGNORED)
+    }
 }
 
-fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
-    val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }
-        .map { UpdatedDetails(it.attributeName, it.datasetId, it.updateOperationResult) }
-
-    val notUpdated = updateStatuses.filter { !it.isSuccessfullyUpdated() }
-        .map { NotUpdatedDetails(it.attributeName, it.errorMessage!!) }
-
-    return UpdateResult(updated, notUpdated)
-}
+fun updateResultFromDetailedResult(updateStatuses: List<AttributeOperationResult>): UpdateResult =
+    updateStatuses.map {
+        when (it) {
+            is SucceededAttributeOperationResult -> UpdatedDetails(it.attributeName, it.datasetId, it.operationStatus)
+            is FailedAttributeOperationResult -> NotUpdatedDetails(it.attributeName, it.errorMessage)
+        }
+    }.let {
+        UpdateResult(
+            it.filterIsInstance<UpdatedDetails>(),
+            it.filterIsInstance<NotUpdatedDetails>()
+        )
+    }

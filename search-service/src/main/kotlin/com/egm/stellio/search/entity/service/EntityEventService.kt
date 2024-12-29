@@ -2,12 +2,12 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
 import com.egm.stellio.search.entity.model.Entity
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
@@ -144,8 +145,8 @@ class EntityEventService(
         serializedAttribute: Pair<ExpandedTerm, String>,
         overwrite: Boolean
     ) {
-        when (updatedDetails.updateOperationResult) {
-            UpdateOperationResult.APPENDED ->
+        when (updatedDetails.operationStatus) {
+            OperationStatus.APPENDED ->
                 publishEntityEvent(
                     AttributeAppendEvent(
                         sub,
@@ -161,7 +162,7 @@ class EntityEventService(
                     )
                 )
 
-            UpdateOperationResult.REPLACED ->
+            OperationStatus.REPLACED ->
                 publishEntityEvent(
                     AttributeReplaceEvent(
                         sub,
@@ -176,7 +177,7 @@ class EntityEventService(
                     )
                 )
 
-            UpdateOperationResult.UPDATED ->
+            OperationStatus.UPDATED ->
                 publishEntityEvent(
                     AttributeUpdateEvent(
                         sub,
@@ -191,7 +192,7 @@ class EntityEventService(
                     )
                 )
 
-            UpdateOperationResult.DELETED ->
+            OperationStatus.DELETED ->
                 publishEntityEvent(
                     AttributeDeleteEvent(
                         sub,
@@ -207,7 +208,7 @@ class EntityEventService(
 
             else ->
                 logger.warn(
-                    "Received an unexpected result (${updatedDetails.updateOperationResult} " +
+                    "Received an unexpected result (${updatedDetails.operationStatus} " +
                         "for entity $entityId and attribute ${updatedDetails.attributeName}"
                 )
         }
@@ -216,11 +217,10 @@ class EntityEventService(
     suspend fun publishAttributeDeleteEvent(
         sub: String?,
         entityId: URI,
-        attributeName: ExpandedTerm,
-        datasetId: URI? = null,
-        deleteAll: Boolean
+        attributeOperationResult: SucceededAttributeOperationResult
     ): Job {
         val tenantName = getTenantFromContext()
+        val attributeName = attributeOperationResult.attributeName
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug(
@@ -230,31 +230,20 @@ class EntityEventService(
                 tenantName
             )
             entity.onRight {
-                if (deleteAll)
-                    publishEntityEvent(
-                        AttributeDeleteAllInstancesEvent(
-                            sub,
-                            tenantName,
-                            entityId,
-                            it.first,
-                            attributeName,
-                            it.second,
-                            emptyList()
-                        )
+                val entityPayloadWithDeletedAttribute = it.second.deserializeAsMap()
+                    .plus(mapOf(attributeName to attributeOperationResult.newExpandedValue))
+                publishEntityEvent(
+                    AttributeDeleteEvent(
+                        sub,
+                        tenantName,
+                        entityId,
+                        it.first,
+                        attributeName,
+                        attributeOperationResult.datasetId,
+                        serializeObject(entityPayloadWithDeletedAttribute),
+                        emptyList()
                     )
-                else
-                    publishEntityEvent(
-                        AttributeDeleteEvent(
-                            sub,
-                            tenantName,
-                            entityId,
-                            it.first,
-                            attributeName,
-                            datasetId,
-                            it.second,
-                            emptyList()
-                        )
-                    )
+                )
             }.logAttributeEvent("Attribute Delete", entityId, tenantName)
         }
     }

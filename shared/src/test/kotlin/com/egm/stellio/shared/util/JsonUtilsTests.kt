@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -116,14 +115,6 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should parse an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
-        val parsedEvent = deserializeAs<EntityEvent>(
-            loadSampleData("events/entity/attributeDeleteAllInstancesEvent.json")
-        )
-        Assertions.assertTrue(parsedEvent is AttributeDeleteAllInstancesEvent)
-    }
-
-    @Test
     fun `it should serialize an event of type ENTITY_CREATE`() = runTest {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
@@ -149,7 +140,7 @@ class JsonUtilsTests {
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
                 serializeObject(
                     loadAndExpandDeletedEntity(
-                        entityId.toString(),
+                        entityId,
                         ZonedDateTime.parse("2024-12-23T17:01:02Z"),
                         APIC_COMPOUND_CONTEXTS
                     ).members

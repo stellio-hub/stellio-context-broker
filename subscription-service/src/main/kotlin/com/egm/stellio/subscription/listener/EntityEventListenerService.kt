@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -103,12 +102,6 @@ class EntityEventListenerService(
                     Pair(entityEvent.getEntity(), entityEvent.getEntity()),
                     NotificationTrigger.ATTRIBUTE_DELETED
                 )
-                is AttributeDeleteAllInstancesEvent -> handleEntityEvent(
-                    tenantName,
-                    setOf(entityEvent.attributeName),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
-                    NotificationTrigger.ATTRIBUTE_DELETED
-                )
             }
         }.onFailure {
             logger.warn("Entity event processing has failed: ${it.message}", it)
@@ -118,12 +111,12 @@ class EntityEventListenerService(
     private suspend fun handleEntityEvent(
         tenantName: String,
         updatedAttributes: Set<ExpandedTerm>,
-        entityPayload: Pair<String, String>,
+        previousAndUpdatedPayloads: Pair<String, String>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, Disposable> = either {
         logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val expandedEntityForMatching = ExpandedEntity(entityPayload.first.deserializeAsMap())
-        val expandedEntityForNotification = ExpandedEntity(entityPayload.second.deserializeAsMap())
+        val expandedEntityForMatching = ExpandedEntity(previousAndUpdatedPayloads.first.deserializeAsMap())
+        val expandedEntityForNotification = ExpandedEntity(previousAndUpdatedPayloads.second.deserializeAsMap())
         mono {
             notificationService.notifyMatchingSubscribers(
                 Pair(expandedEntityForMatching, expandedEntityForNotification),

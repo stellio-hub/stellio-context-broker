@@ -4,7 +4,7 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -395,9 +395,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(6, updatedDetails.size)
-            assertEquals(4, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
-            assertEquals(2, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
-            val newAttributes = updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+            assertEquals(4, updatedDetails.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+            assertEquals(2, updatedDetails.filter { it.operationStatus == OperationStatus.APPENDED }.size)
+            val newAttributes = updatedDetails.filter { it.operationStatus == OperationStatus.APPENDED }
                 .map { it.attributeName }
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
@@ -462,7 +462,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
+            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.UPDATED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -502,7 +502,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.DELETED }.size)
+            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -548,7 +548,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.DELETED }.size)
+            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -592,7 +592,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { updateResult ->
             val updatedDetails = updateResult.updated
             assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.DELETED }.size)
+            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
 
         coVerify(exactly = 1) {

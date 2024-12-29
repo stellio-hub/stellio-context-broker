@@ -16,10 +16,11 @@ import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
+import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.OperationType
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
@@ -333,9 +334,10 @@ class ScopeService(
             .map {
                 updateResultFromDetailedResult(
                     listOf(
-                        UpdateAttributeResult(
+                        SucceededAttributeOperationResult(
                             attributeName = NGSILD_SCOPE_PROPERTY,
-                            updateOperationResult = UpdateOperationResult.APPENDED
+                            operationStatus = OperationStatus.APPENDED,
+                            newExpandedValue = mapOf(NGSILD_SCOPE_PROPERTY to scopes.toList())
                         )
                     )
                 )
@@ -348,12 +350,11 @@ class ScopeService(
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        delete(ngsiLdEntity.id).bind()
         createHistory(ngsiLdEntity, createdAt, sub).bind()
     }
 
     @Transactional
-    suspend fun delete(entityId: URI): Either<APIException, Unit> = either {
+    suspend fun delete(entityId: URI): Either<APIException, List<AttributeOperationResult>> = either {
         databaseClient.sql(
             """
             UPDATE entity_payload
@@ -372,6 +373,15 @@ class ScopeService(
             TemporalProperty.DELETED_AT,
             ngsiLdDateTime(),
             getSubFromSecurityContext().getOrNull()
+        ).bind()
+
+        listOf(
+            SucceededAttributeOperationResult(
+                NGSILD_SCOPE_PROPERTY,
+                null,
+                OperationStatus.DELETED,
+                mapOf(NGSILD_SCOPE_PROPERTY to listOf())
+            )
         )
     }
 

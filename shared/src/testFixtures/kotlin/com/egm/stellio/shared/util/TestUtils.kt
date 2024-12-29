@@ -88,14 +88,14 @@ suspend fun loadAndExpandMinimalEntity(
     )
 
 suspend fun loadAndExpandDeletedEntity(
-    id: String,
+    entityId: URI,
     deletedAt: ZonedDateTime? = ngsiLdDateTime(),
     contexts: List<String> = APIC_COMPOUND_CONTEXTS
 ): ExpandedEntity =
     expandJsonLdEntity(
         """
         {
-            "id": "$id",
+            "id": "$entityId",
             "deletedAt": "$deletedAt"
         }
         """.trimIndent(),

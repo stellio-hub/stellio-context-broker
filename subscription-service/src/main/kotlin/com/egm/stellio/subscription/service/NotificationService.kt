@@ -38,17 +38,17 @@ class NotificationService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun notifyMatchingSubscribers(
-        expandedEntities: Pair<ExpandedEntity, ExpandedEntity>,
+        previousAndUpdatedExpandedEntities: Pair<ExpandedEntity, ExpandedEntity>,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
         subscriptionService.getMatchingSubscriptions(
-            expandedEntities.first,
+            previousAndUpdatedExpandedEntities.first,
             updatedAttributes,
             notificationTrigger
         ).bind()
             .map {
-                val filteredEntity = expandedEntities.second.filterAttributes(
+                val filteredEntity = previousAndUpdatedExpandedEntities.second.filterAttributes(
                     it.notification.attributes?.toSet().orEmpty(),
                     it.datasetId?.toSet().orEmpty()
                 )

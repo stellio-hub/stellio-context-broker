@@ -15,13 +15,13 @@ import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES
 import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
 import com.egm.stellio.search.entity.model.OperationType.MERGE_ENTITY
 import com.egm.stellio.search.entity.model.OperationType.UPDATE_ATTRIBUTES
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.prepareAttributes
@@ -318,9 +318,10 @@ class EntityService(
             .map {
                 updateResultFromDetailedResult(
                     listOf(
-                        UpdateAttributeResult(
+                        SucceededAttributeOperationResult(
                             attributeName = JSONLD_TYPE,
-                            updateOperationResult = UpdateOperationResult.APPENDED
+                            operationStatus = OperationStatus.APPENDED,
+                            newExpandedValue = mapOf(JSONLD_TYPE to updatedTypes.toList())
                         )
                     )
                 )
@@ -653,7 +654,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+        val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_PROPERTY) {
             scopeService.delete(entityId).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(
@@ -676,13 +677,10 @@ class EntityService(
             entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
         ).bind()
 
-        entityEventService.publishAttributeDeleteEvent(
-            sub,
-            entityId,
-            attributeName,
-            datasetId,
-            deleteAll
-        )
+        deleteAttributeResults.filterIsInstance<SucceededAttributeOperationResult>()
+            .forEach {
+                entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+            }
     }
 
     @Transactional

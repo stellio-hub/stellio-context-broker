@@ -16,8 +16,7 @@ import java.net.URI
         JsonSubTypes.Type(value = AttributeAppendEvent::class),
         JsonSubTypes.Type(value = AttributeReplaceEvent::class),
         JsonSubTypes.Type(value = AttributeUpdateEvent::class),
-        JsonSubTypes.Type(value = AttributeDeleteEvent::class),
-        JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class)
+        JsonSubTypes.Type(value = AttributeDeleteEvent::class)
     ]
 )
 sealed class EntityEvent(
@@ -145,20 +144,6 @@ data class AttributeDeleteEvent(
     override fun getAttribute() = this.attributeName
 }
 
-@JsonTypeName("ATTRIBUTE_DELETE_ALL_INSTANCES")
-data class AttributeDeleteAllInstancesEvent(
-    override val sub: String?,
-    override val tenantName: String = DEFAULT_TENANT_NAME,
-    override val entityId: URI,
-    override val entityTypes: List<ExpandedTerm>,
-    val attributeName: ExpandedTerm,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, tenantName, entityId, entityTypes, contexts) {
-    override fun getEntity() = this.updatedEntity
-    override fun getAttribute() = this.attributeName
-}
-
 enum class EventsType {
     ENTITY_CREATE,
     ENTITY_REPLACE,
@@ -166,8 +151,7 @@ enum class EventsType {
     ATTRIBUTE_APPEND,
     ATTRIBUTE_REPLACE,
     ATTRIBUTE_UPDATE,
-    ATTRIBUTE_DELETE,
-    ATTRIBUTE_DELETE_ALL_INSTANCES
+    ATTRIBUTE_DELETE
 }
 
 fun unhandledOperationType(operationType: EventsType): String = "Entity event $operationType not handled."

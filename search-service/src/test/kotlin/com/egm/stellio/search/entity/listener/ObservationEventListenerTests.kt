@@ -2,7 +2,7 @@ package com.egm.stellio.search.entity.listener
 
 import arrow.core.right
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
@@ -83,7 +83,7 @@ class ObservationEventListenerTests {
                 UpdatedDetails(
                     TEMPERATURE_PROPERTY,
                     expectedTemperatureDatasetId,
-                    UpdateOperationResult.UPDATED
+                    OperationStatus.UPDATED
                 )
             ),
             notUpdated = arrayListOf()
@@ -111,7 +111,7 @@ class ObservationEventListenerTests {
                     it.updated.size == 1 &&
                         it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
                         it.updated[0].datasetId == expectedTemperatureDatasetId &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
+                        it.updated[0].operationStatus == OperationStatus.UPDATED
                 },
                 eq(false)
             )
@@ -145,7 +145,7 @@ class ObservationEventListenerTests {
                 UpdatedDetails(
                     TEMPERATURE_PROPERTY,
                     expectedTemperatureDatasetId,
-                    UpdateOperationResult.APPENDED
+                    OperationStatus.APPENDED
                 )
             ),
             emptyList()
@@ -175,7 +175,7 @@ class ObservationEventListenerTests {
                 },
                 match {
                     it.updated.size == 1 &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED &&
+                        it.updated[0].operationStatus == OperationStatus.APPENDED &&
                         it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
                         it.updated[0].datasetId == expectedTemperatureDatasetId
                 },

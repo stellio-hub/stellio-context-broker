@@ -10,7 +10,7 @@ import com.egm.stellio.search.csr.service.ContextSourceCaller
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -1411,7 +1411,7 @@ class EntityHandlerTests {
                 UpdatedDetails(
                     fishNumberAttribute,
                     null,
-                    UpdateOperationResult.APPENDED
+                    OperationStatus.APPENDED
                 )
             ),
             emptyList()
@@ -1448,7 +1448,7 @@ class EntityHandlerTests {
                 UpdatedDetails(
                     fishNumberAttribute,
                     null,
-                    UpdateOperationResult.APPENDED
+                    OperationStatus.APPENDED
                 )
             ),
             listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
@@ -1489,7 +1489,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendTypeResult = UpdateResult(
-            listOf(UpdatedDetails(JSONLD_TYPE, null, UpdateOperationResult.APPENDED)),
+            listOf(UpdatedDetails(JSONLD_TYPE, null, OperationStatus.APPENDED)),
             emptyList()
         )
 
@@ -1524,7 +1524,7 @@ class EntityHandlerTests {
             listOf(NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"))
         )
         val appendResult = UpdateResult(
-            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+            listOf(UpdatedDetails(fishNumberAttribute, null, OperationStatus.APPENDED)),
             listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
         )
 
@@ -1650,7 +1650,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
         val updateResult = UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(fishNumberAttribute, "urn:ngsi-ld:Dataset:1".toUri(), UpdateOperationResult.UPDATED)
+                UpdatedDetails(fishNumberAttribute, "urn:ngsi-ld:Dataset:1".toUri(), OperationStatus.UPDATED)
             ),
             notUpdated = arrayListOf()
         )
@@ -1759,12 +1759,12 @@ class EntityHandlerTests {
                 UpdatedDetails(
                     fishNumberAttribute,
                     null,
-                    UpdateOperationResult.REPLACED
+                    OperationStatus.REPLACED
                 ),
                 UpdatedDetails(
                     fishSizeAttribute,
                     null,
-                    UpdateOperationResult.APPENDED
+                    OperationStatus.APPENDED
                 )
             ),
             notUpdated = emptyList()
@@ -1796,12 +1796,12 @@ class EntityHandlerTests {
                 UpdatedDetails(
                     fishNumberAttribute,
                     null,
-                    UpdateOperationResult.REPLACED
+                    OperationStatus.REPLACED
                 ),
                 UpdatedDetails(
                     fishSizeAttribute,
                     null,
-                    UpdateOperationResult.APPENDED
+                    OperationStatus.APPENDED
                 )
             ),
             notUpdated = emptyList()
@@ -1935,7 +1935,7 @@ class EntityHandlerTests {
                 UpdatedDetails(
                     fishNumberAttribute,
                     null,
-                    UpdateOperationResult.REPLACED
+                    OperationStatus.REPLACED
                 )
             ),
             notUpdated = emptyList()
@@ -1970,7 +1970,7 @@ class EntityHandlerTests {
             entityService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
+                UpdatedDetails(fishNumberAttribute, null, OperationStatus.REPLACED)
             ),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
@@ -2355,7 +2355,7 @@ class EntityHandlerTests {
             entityService.replaceAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(INCOMING_PROPERTY, null, UpdateOperationResult.REPLACED)
+                UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.REPLACED)
             ),
             notUpdated = emptyList()
         ).right()

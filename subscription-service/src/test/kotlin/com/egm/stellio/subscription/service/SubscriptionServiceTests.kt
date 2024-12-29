@@ -28,7 +28,6 @@ import com.egm.stellio.shared.util.SENSOR_COMPACT_TYPE
 import com.egm.stellio.shared.util.SENSOR_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
-import com.egm.stellio.shared.util.loadAndExpandDeletedEntity
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
@@ -800,7 +799,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
             subscriptionService.create(subscription, mockUserSub).shouldSucceed()
 
-            val expandedEntity = loadAndExpandDeletedEntity("urn:ngsi-ld:Beehive:1234567890")
+            val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_COMPACT_TYPE)
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
                 emptySet(),

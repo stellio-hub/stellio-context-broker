@@ -357,17 +357,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        // update modifiedAt in entity if at least one attribute has been added
-        if (operationResult.hasSuccessfulResult()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, createdAt, attributes).bind()
-
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                operationResult.getSucceededOperations()
-            )
-        }
+        handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
         updateResultFromDetailedResult(operationResult)
     }
@@ -395,17 +385,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        // update modifiedAt in entity if at least one attribute has been added
-        if (operationResult.hasSuccessfulResult()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, createdAt, attributes).bind()
-
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                operationResult.getSucceededOperations()
-            )
-        }
+        handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
         updateResultFromDetailedResult(operationResult)
     }
@@ -426,20 +406,11 @@ class EntityService(
             expandedAttribute,
             modifiedAt,
             sub
-        ).bind()
+        ).bind().let { listOf(it) }
 
-        if (operationResult.operationStatus.isSuccessResult()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, modifiedAt, attributes).bind()
+        handleSuccessOperationActions(operationResult, entityId, modifiedAt, sub).bind()
 
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                listOf(operationResult as SucceededAttributeOperationResult)
-            )
-        }
-
-        updateResultFromDetailedResult(listOf(operationResult))
+        updateResultFromDetailedResult(operationResult)
     }
 
     @Transactional
@@ -488,21 +459,31 @@ class EntityService(
             expandedAttribute,
             replacedAt,
             sub
-        ).bind()
+        ).bind().let { listOf(it) }
 
+        handleSuccessOperationActions(operationResult, entityId, replacedAt, sub).bind()
+
+        updateResultFromDetailedResult(operationResult)
+    }
+
+    @Transactional
+    internal suspend fun handleSuccessOperationActions(
+        operationResult: List<AttributeOperationResult>,
+        entityId: URI,
+        createdAt: ZonedDateTime,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
         // update modifiedAt in entity if at least one attribute has been added
-        if (operationResult.operationStatus.isSuccessResult()) {
+        if (operationResult.hasSuccessfulResult()) {
             val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, replacedAt, attributes).bind()
+            updateState(entityId, createdAt, attributes).bind()
 
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 entityId,
-                listOf(operationResult as SucceededAttributeOperationResult)
+                operationResult.getSucceededOperations()
             )
         }
-
-        updateResultFromDetailedResult(listOf(operationResult))
     }
 
     @Transactional

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
@@ -27,12 +28,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 data class Attribute(
     @Id
@@ -107,7 +109,7 @@ data class Attribute(
                 VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
             }
 
-        fun toNullCompactedRepresentation(): Map<String, Any> =
+        fun toNullCompactedRepresentation(datasetId: URI? = null): Map<String, Any> =
             when (this) {
                 Property, GeoProperty, JsonProperty, VocabProperty ->
                     mapOf(
@@ -124,6 +126,12 @@ data class Attribute(
                         JSONLD_TYPE_TERM to this.name,
                         JSONLD_LANGUAGEMAP_TERM to mapOf(NGSILD_NONE_TERM to NGSILD_NULL)
                     )
+            }.let { nullAttrRepresentation ->
+                if (datasetId != null)
+                    nullAttrRepresentation.plus(
+                        NGSILD_DATASET_ID_PROPERTY to buildNonReifiedPropertyValue(datasetId.toString())
+                    )
+                else nullAttrRepresentation
             }
 
         fun toNullValue(): String =

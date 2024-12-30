@@ -23,6 +23,7 @@ data class Entity(
     val scopes: List<String>? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
+    val deletedAt: ZonedDateTime? = null,
     val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {

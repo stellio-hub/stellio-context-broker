@@ -4,7 +4,9 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.getSucceededOperations
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -392,12 +394,12 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             null,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(6, updatedDetails.size)
-            assertEquals(4, updatedDetails.filter { it.operationStatus == OperationStatus.UPDATED }.size)
-            assertEquals(2, updatedDetails.filter { it.operationStatus == OperationStatus.APPENDED }.size)
-            val newAttributes = updatedDetails.filter { it.operationStatus == OperationStatus.APPENDED }
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(6, successfulOperations.size)
+            assertEquals(4, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+            assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }.size)
+            val newAttributes = successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }
                 .map { it.attributeName }
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
@@ -459,10 +461,10 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             observedAt,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -499,10 +501,10 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             null,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -545,10 +547,10 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttributes,
             createdAt,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -589,10 +591,8 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttribute,
             createdAt,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.operationStatus == OperationStatus.DELETED }.size)
+        ).shouldSucceedWith { operationResult ->
+            assertEquals(OperationStatus.DELETED, operationResult.operationStatus)
         }
 
         coVerify(exactly = 1) {
@@ -671,11 +671,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttribute,
             replacedAt,
             null
-        ).shouldSucceedWith {
-            assertTrue(it.updated.isEmpty())
-            assertEquals(1, it.notUpdated.size)
-            val notUpdatedDetails = it.notUpdated.first()
-            assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", notUpdatedDetails.attributeName)
+        ).shouldSucceedWith { operationResult ->
+            assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
+            assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", operationResult.attributeName)
         }
     }
 

@@ -4,8 +4,6 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
@@ -18,7 +16,6 @@ import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -153,12 +150,13 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             "sub",
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(
-                listOf(UpdatedDetails(fishNumberProperty, null, OperationStatus.APPENDED)),
-                emptyList()
-            ),
-            true
+            listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = expandedAttribute.second[0]
+                )
+            )
         ).join()
 
         verify {
@@ -188,12 +186,13 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(
-                listOf(UpdatedDetails(fishNumberProperty, null, OperationStatus.REPLACED)),
-                emptyList()
-            ),
-            true
+            listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.REPLACED,
+                    newExpandedValue = expandedAttribute.second[0]
+                )
+            )
         ).join()
 
         verify {
@@ -224,24 +223,24 @@ class EntityEventServiceTests {
                 }
                 """.trimIndent()
             val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-            val appendResult = UpdateResult(
-                listOf(
-                    UpdatedDetails(fishNumberProperty, null, OperationStatus.APPENDED),
-                    UpdatedDetails(fishNameProperty, fishName1DatasetUri, OperationStatus.REPLACED)
+            val operationResult = listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
                 ),
-                emptyList()
+                SucceededAttributeOperationResult(
+                    attributeName = fishNameProperty,
+                    datasetId = fishName1DatasetUri,
+                    operationStatus = OperationStatus.REPLACED,
+                    newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
+                )
             )
 
             coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
             every { entity.types } returns listOf(breedingServiceType)
 
-            entityEventService.publishAttributeChangeEvents(
-                null,
-                breedingServiceUri,
-                jsonLdAttributes,
-                appendResult,
-                true
-            ).join()
+            entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
 
             verify {
                 entityEventService["publishEntityEvent"](
@@ -289,12 +288,18 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
         val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNameProperty, fishName1DatasetUri, OperationStatus.REPLACED),
-                UpdatedDetails(fishNumberProperty, null, OperationStatus.REPLACED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNumberProperty,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
             ),
-            notUpdated = arrayListOf()
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
@@ -303,9 +308,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            jsonLdAttributes,
-            updateResult,
-            true
+            operationResult
         ).join()
 
         verify {
@@ -348,24 +351,25 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
         val jsonLdAttributes = expandAttributes(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNameProperty, fishName1DatasetUri, OperationStatus.REPLACED),
-                UpdatedDetails(fishNameProperty, fishName2DatasetUri, OperationStatus.REPLACED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
             ),
-            notUpdated = arrayListOf()
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName2DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![1]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeChangeEvents(
-            null,
-            breedingServiceUri,
-            jsonLdAttributes,
-            updateResult,
-            true
-        ).join()
+        entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
 
         verify {
             entityEventService["publishEntityEvent"](
@@ -400,8 +404,13 @@ class EntityEventServiceTests {
             fishNameAttributeFragment,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
-        val updatedDetails = listOf(
-            UpdatedDetails(fishNameProperty, fishName1DatasetUri, OperationStatus.UPDATED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.UPDATED,
+                newExpandedValue = expandedAttribute.second[0]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
@@ -410,9 +419,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(updatedDetails, emptyList()),
-            false
+            operationResult
         ).join()
 
         verify {

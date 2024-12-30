@@ -5,11 +5,9 @@ import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
-import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -260,9 +258,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns Unit.right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
-        } returns UpdateResult(
-            listOf(UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.APPENDED)),
-            emptyList()
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap()),
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
@@ -326,9 +323,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns Unit.right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
-        } returns UpdateResult(
-            listOf(UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.APPENDED)),
-            emptyList()
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
@@ -369,13 +365,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns Unit.right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
-        } returns UpdateResult(
-            listOf(UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.APPENDED)),
-            emptyList()
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap())
         ).right()
-        coEvery {
-            entityAttributeService.partialUpdateAttribute(any(), any(), any(), any())
-        } returns EMPTY_UPDATE_RESULT.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
@@ -470,9 +462,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery {
             entityAttributeService.replaceAttribute(any(), any(), any(), any(), any())
-        } returns UpdateResult(
-            updated = listOf(UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.REPLACED)),
-            notUpdated = emptyList()
+        } returns SucceededAttributeOperationResult(
+            attributeName = INCOMING_PROPERTY,
+            operationStatus = OperationStatus.REPLACED,
+            newExpandedValue = emptyMap()
         ).right()
 
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
@@ -487,8 +480,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 it.updated.size == 1 &&
                     it.notUpdated.isEmpty() &&
-                    it.updated[0].attributeName == INCOMING_PROPERTY &&
-                    it.updated[0].operationStatus == OperationStatus.REPLACED
+                    it.updated[0].attributeName == INCOMING_PROPERTY
             }
     }
 
@@ -505,11 +497,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityService.updateTypes(beehiveTestCId, listOf(BEEHIVE_TYPE, APIARY_TYPE), ngsiLdDateTime(), false)
             .shouldSucceedWith {
-                assertTrue(it.isSuccessful())
-                assertEquals(1, it.updated.size)
-                val updatedDetails = it.updated[0]
-                assertEquals(JSONLD_TYPE, updatedDetails.attributeName)
-                assertEquals(OperationStatus.APPENDED, updatedDetails.operationStatus)
+                assertInstanceOf(SucceededAttributeOperationResult::class.java, it)
+                assertEquals(JSONLD_TYPE, it.attributeName)
+                assertEquals(OperationStatus.APPENDED, it.operationStatus)
             }
 
         entityQueryService.retrieve(beehiveTestCId)

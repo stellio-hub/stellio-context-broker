@@ -4,8 +4,6 @@ import arrow.core.Either
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
@@ -16,11 +14,9 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.EventsType
-import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
@@ -109,27 +105,19 @@ class EntityEventService(
     suspend fun publishAttributeChangeEvents(
         sub: String?,
         entityId: URI,
-        jsonLdAttributes: Map<String, Any>,
-        updateResult: UpdateResult,
-        overwrite: Boolean
+        attributesOperationsResults: List<SucceededAttributeOperationResult>
     ): Job {
         val tenantName = getTenantFromContext()
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
-            logger.debug("Sending attributes change events for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
-                updateResult.updated.forEach { updatedDetails ->
-                    val attributeName = updatedDetails.attributeName
-                    val serializedAttribute =
-                        getSerializedAttribute(jsonLdAttributes, attributeName, updatedDetails.datasetId)
+                attributesOperationsResults.forEach { attributeOperationResult ->
                     publishAttributeChangeEvent(
-                        updatedDetails,
                         sub,
                         tenantName,
                         entityId,
                         it,
-                        serializedAttribute,
-                        overwrite
+                        attributeOperationResult
                     )
                 }
             }.logAttributeEvent("Attribute Change", entityId, tenantName)
@@ -137,15 +125,21 @@ class EntityEventService(
     }
 
     private fun publishAttributeChangeEvent(
-        updatedDetails: UpdatedDetails,
         sub: String?,
         tenantName: String,
         entityId: URI,
         entityTypesAndPayload: Pair<List<ExpandedTerm>, String>,
-        serializedAttribute: Pair<ExpandedTerm, String>,
-        overwrite: Boolean
+        attributeOperationResult: SucceededAttributeOperationResult
     ) {
-        when (updatedDetails.operationStatus) {
+        val attributeName = attributeOperationResult.attributeName
+        logger.debug(
+            "Sending {} event for attribute {} of entity {} in tenant {}",
+            attributeOperationResult.operationStatus,
+            attributeName,
+            entityId,
+            tenantName
+        )
+        when (attributeOperationResult.operationStatus) {
             OperationStatus.APPENDED ->
                 publishEntityEvent(
                     AttributeAppendEvent(
@@ -153,10 +147,9 @@ class EntityEventService(
                         tenantName,
                         entityId,
                         entityTypesAndPayload.first,
-                        serializedAttribute.first,
-                        updatedDetails.datasetId,
-                        overwrite,
-                        serializedAttribute.second,
+                        attributeOperationResult.attributeName,
+                        attributeOperationResult.datasetId,
+                        serializeObject(attributeOperationResult.newExpandedValue),
                         entityTypesAndPayload.second,
                         emptyList()
                     )
@@ -169,9 +162,9 @@ class EntityEventService(
                         tenantName,
                         entityId,
                         entityTypesAndPayload.first,
-                        serializedAttribute.first,
-                        updatedDetails.datasetId,
-                        serializedAttribute.second,
+                        attributeOperationResult.attributeName,
+                        attributeOperationResult.datasetId,
+                        serializeObject(attributeOperationResult.newExpandedValue),
                         entityTypesAndPayload.second,
                         emptyList()
                     )
@@ -184,9 +177,9 @@ class EntityEventService(
                         tenantName,
                         entityId,
                         entityTypesAndPayload.first,
-                        serializedAttribute.first,
-                        updatedDetails.datasetId,
-                        serializedAttribute.second,
+                        attributeOperationResult.attributeName,
+                        attributeOperationResult.datasetId,
+                        serializeObject(attributeOperationResult.newExpandedValue),
                         entityTypesAndPayload.second,
                         emptyList()
                     )
@@ -199,17 +192,21 @@ class EntityEventService(
                         tenantName,
                         entityId,
                         entityTypesAndPayload.first,
-                        serializedAttribute.first,
-                        updatedDetails.datasetId,
-                        serializedAttribute.second,
+                        attributeOperationResult.attributeName,
+                        attributeOperationResult.datasetId,
+                        injectDeletedAttribute(
+                            entityTypesAndPayload.second,
+                            attributeName,
+                            attributeOperationResult.newExpandedValue
+                        ),
                         emptyList()
                     )
                 )
 
             else ->
                 logger.warn(
-                    "Received an unexpected result (${updatedDetails.operationStatus} " +
-                        "for entity $entityId and attribute ${updatedDetails.attributeName}"
+                    "Received an unexpected result (${attributeOperationResult.operationStatus} " +
+                        "for entity $entityId and attribute ${attributeOperationResult.attributeName}"
                 )
         }
     }
@@ -230,8 +227,6 @@ class EntityEventService(
                 tenantName
             )
             entity.onRight {
-                val entityPayloadWithDeletedAttribute = it.second.deserializeAsMap()
-                    .plus(mapOf(attributeName to attributeOperationResult.newExpandedValue))
                 publishEntityEvent(
                     AttributeDeleteEvent(
                         sub,
@@ -240,7 +235,7 @@ class EntityEventService(
                         it.first,
                         attributeName,
                         attributeOperationResult.datasetId,
-                        serializeObject(entityPayloadWithDeletedAttribute),
+                        injectDeletedAttribute(it.second, attributeName, attributeOperationResult.newExpandedValue),
                         emptyList()
                     )
                 )
@@ -256,20 +251,18 @@ class EntityEventService(
                 Pair(it.types, it.payload.asString())
             }
 
-    private fun getSerializedAttribute(
-        jsonLdAttributes: Map<String, Any>,
+    internal fun injectDeletedAttribute(
+        entityPayload: String,
         attributeName: ExpandedTerm,
-        datasetId: URI?
-    ): Pair<ExpandedTerm, String> =
-        if (attributeName == JSONLD_TYPE) {
-            Pair(JSONLD_TYPE, serializeObject(jsonLdAttributes[JSONLD_TYPE]!!))
-        } else {
-            val extractedPayload = (jsonLdAttributes as ExpandedAttributes).getAttributeFromExpandedAttributes(
-                attributeName,
-                datasetId
-            )!!
-            Pair(attributeName, serializeObject(extractedPayload))
+        deletedAttributeInstance: ExpandedAttributeInstance
+    ): String {
+        val entityPayload = entityPayload.deserializeAsMap().toMutableMap()
+        entityPayload.merge(attributeName, listOf(deletedAttributeInstance)) { currentValue, newValue ->
+            (currentValue as List<Any>).plus(newValue as List<Any>)
         }
+
+        return serializeObject(entityPayload)
+    }
 
     private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantName: String) =
         this.fold({

@@ -10,7 +10,6 @@ import com.egm.stellio.search.csr.service.ContextSourceCaller
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -1407,13 +1406,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendResult = UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    OperationStatus.APPENDED
-                )
-            ),
+            listOf(UpdatedDetails(fishNumberAttribute)),
             emptyList()
         )
 
@@ -1444,13 +1437,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_twoNewProperties.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendResult = UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    OperationStatus.APPENDED
-                )
-            ),
+            listOf(UpdatedDetails(fishNumberAttribute)),
             listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
         )
 
@@ -1489,7 +1476,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendTypeResult = UpdateResult(
-            listOf(UpdatedDetails(JSONLD_TYPE, null, OperationStatus.APPENDED)),
+            listOf(UpdatedDetails(JSONLD_TYPE)),
             emptyList()
         )
 
@@ -1519,18 +1506,16 @@ class EntityHandlerTests {
     fun `append entity attribute should return a 207 if types or attributes could not be appended`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newInvalidTypeAndAttribute.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
-        val appendTypeResult = UpdateResult(
-            emptyList(),
-            listOf(NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"))
-        )
-        val appendResult = UpdateResult(
-            listOf(UpdatedDetails(fishNumberAttribute, null, OperationStatus.APPENDED)),
-            listOf(NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed"))
-        )
 
         coEvery {
             entityService.appendAttributes(any(), any(), any(), any())
-        } returns appendTypeResult.mergeWith(appendResult).right()
+        } returns UpdateResult(
+            updated = listOf(UpdatedDetails(fishNumberAttribute)),
+            notUpdated = listOf(
+                NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"),
+                NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed")
+            )
+        ).right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1649,9 +1634,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val attrId = "fishNumber"
         val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNumberAttribute, "urn:ngsi-ld:Dataset:1".toUri(), OperationStatus.UPDATED)
-            ),
+            updated = arrayListOf(UpdatedDetails(fishNumberAttribute)),
             notUpdated = arrayListOf()
         )
 
@@ -1756,16 +1739,8 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val updateResult = UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    OperationStatus.REPLACED
-                ),
-                UpdatedDetails(
-                    fishSizeAttribute,
-                    null,
-                    OperationStatus.APPENDED
-                )
+                UpdatedDetails(fishNumberAttribute),
+                UpdatedDetails(fishSizeAttribute)
             ),
             notUpdated = emptyList()
         )
@@ -1793,16 +1768,8 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val updateResult = UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    OperationStatus.REPLACED
-                ),
-                UpdatedDetails(
-                    fishSizeAttribute,
-                    null,
-                    OperationStatus.APPENDED
-                )
+                UpdatedDetails(fishNumberAttribute),
+                UpdatedDetails(fishSizeAttribute)
             ),
             notUpdated = emptyList()
         )
@@ -1931,13 +1898,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    OperationStatus.REPLACED
-                )
-            ),
+            updated = arrayListOf(UpdatedDetails(fishNumberAttribute)),
             notUpdated = emptyList()
         )
 
@@ -1969,9 +1930,7 @@ class EntityHandlerTests {
         coEvery {
             entityService.updateAttributes(any(), any(), any())
         } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNumberAttribute, null, OperationStatus.REPLACED)
-            ),
+            updated = arrayListOf(UpdatedDetails(fishNumberAttribute)),
             notUpdated = arrayListOf(notUpdatedAttribute)
         ).right()
 
@@ -2354,9 +2313,7 @@ class EntityHandlerTests {
         coEvery {
             entityService.replaceAttribute(any(), any(), any())
         } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(INCOMING_PROPERTY, null, OperationStatus.REPLACED)
-            ),
+            updated = arrayListOf(UpdatedDetails(INCOMING_PROPERTY)),
             notUpdated = emptyList()
         ).right()
 

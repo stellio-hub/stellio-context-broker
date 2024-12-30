@@ -1,6 +1,5 @@
 package com.egm.stellio.search.entity.model
 
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -25,9 +24,7 @@ class UpdateResultTests {
         val updateResult =
             UpdateResult(
                 notUpdated = emptyList(),
-                updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), OperationStatus.UPDATED)
-                )
+                updated = listOf(UpdatedDetails("attributeName"))
             )
 
         assertTrue(updateResult.isSuccessful())
@@ -37,12 +34,8 @@ class UpdateResultTests {
     fun `it should find a failed update result if there is one not updated attribute`() {
         val updateResult =
             UpdateResult(
-                notUpdated = listOf(
-                    NotUpdatedDetails("attributeName", "attribute is malformed")
-                ),
-                updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), OperationStatus.UPDATED)
-                )
+                notUpdated = listOf(NotUpdatedDetails("attributeName", "attribute is malformed")),
+                updated = listOf(UpdatedDetails("attributeName"))
             )
 
         assertFalse(updateResult.isSuccessful())
@@ -52,10 +45,11 @@ class UpdateResultTests {
     fun `it should find a failed update result if an attribute update has failed`() {
         val updateResult =
             UpdateResult(
-                notUpdated = emptyList(),
+                notUpdated = listOf(
+                    NotUpdatedDetails("failedAttributeName", "attribute does not exist")
+                ),
                 updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), OperationStatus.UPDATED),
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), OperationStatus.FAILED)
+                    UpdatedDetails("succeededAttributeName")
                 )
             )
 

@@ -22,12 +22,11 @@ import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.guessAttributeValueType
 import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
@@ -205,40 +204,39 @@ class EntityAttributeService(
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
         sub: Sub?
-    ): Either<APIException, Unit> =
-        either {
-            logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
-            val attribute = Attribute(
-                entityId = entityId,
-                attributeName = attributeName,
-                attributeType = attributeMetadata.type,
-                attributeValueType = attributeMetadata.valueType,
-                datasetId = attributeMetadata.datasetId,
-                createdAt = createdAt,
-                payload = Json.of(serializeObject(attributePayload))
-            )
-            create(attribute).bind()
+    ): Either<APIException, Unit> = either {
+        logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
+        val attribute = Attribute(
+            entityId = entityId,
+            attributeName = attributeName,
+            attributeType = attributeMetadata.type,
+            attributeValueType = attributeMetadata.valueType,
+            datasetId = attributeMetadata.datasetId,
+            createdAt = createdAt,
+            payload = Json.of(serializeObject(attributePayload))
+        )
+        create(attribute).bind()
 
-            val attributeInstance = AttributeInstance(
+        val attributeInstance = AttributeInstance(
+            attributeUuid = attribute.id,
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = createdAt,
+            attributeMetadata = attributeMetadata,
+            payload = attributePayload,
+            sub = sub
+        )
+        attributeInstanceService.create(attributeInstance).bind()
+
+        if (attributeMetadata.observedAt != null) {
+            val attributeObservedAtInstance = AttributeInstance(
                 attributeUuid = attribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                time = createdAt,
+                time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
-                payload = attributePayload,
-                sub = sub
+                payload = attributePayload
             )
-            attributeInstanceService.create(attributeInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = AttributeInstance(
-                    attributeUuid = attribute.id,
-                    time = attributeMetadata.observedAt,
-                    attributeMetadata = attributeMetadata,
-                    payload = attributePayload
-                )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
-            }
+            attributeInstanceService.create(attributeObservedAtInstance).bind()
         }
+    }
 
     @Transactional
     suspend fun replaceAttribute(
@@ -341,7 +339,7 @@ class EntityAttributeService(
                 it,
                 JsonLdUtils.expandAttribute(
                     it.attributeName,
-                    it.attributeType.toNullCompactedRepresentation(),
+                    it.attributeType.toNullCompactedRepresentation(it.datasetId),
                     listOf(applicationProperties.contexts.core)
                 ).second[0]
             )
@@ -605,7 +603,7 @@ class EntityAttributeService(
         disallowOverwrite: Boolean,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -659,7 +657,7 @@ class EntityAttributeService(
                 }.bind()
             }
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun updateAttributes(
@@ -668,7 +666,7 @@ class EntityAttributeService(
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -721,7 +719,7 @@ class EntityAttributeService(
                 }.bind()
             }
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun partialUpdateAttribute(
@@ -729,7 +727,7 @@ class EntityAttributeService(
         expandedAttribute: ExpandedAttribute,
         modifiedAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, AttributeOperationResult> = either {
         val attributeName = expandedAttribute.first
         val attributeValues = expandedAttribute.second[0]
         logger.debug("Partial updating attribute {} in entity {}", attributeName, entityId)
@@ -784,7 +782,7 @@ class EntityAttributeService(
                 )
             }
 
-        updateResultFromDetailedResult(listOf(attributeOperationResult))
+        attributeOperationResult
     }
 
     @Transactional
@@ -838,7 +836,7 @@ class EntityAttributeService(
         createdAt: ZonedDateTime,
         observedAt: ZonedDateTime?,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -893,7 +891,7 @@ class EntityAttributeService(
                     )
                 }.bind()
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun replaceAttribute(
@@ -902,7 +900,7 @@ class EntityAttributeService(
         expandedAttribute: ExpandedAttribute,
         replacedAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, AttributeOperationResult> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeName = ngsiLdAttribute.name
         val datasetId = ngsiLdAttributeInstance.datasetId
@@ -935,7 +933,7 @@ class EntityAttributeService(
                 )
             }
 
-        updateResultFromDetailedResult(listOf(attributeOperationResult))
+        attributeOperationResult
     }
 
     suspend fun getValueFromPartialAttributePayload(

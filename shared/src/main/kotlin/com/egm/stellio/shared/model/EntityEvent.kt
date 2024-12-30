@@ -88,7 +88,6 @@ data class AttributeAppendEvent(
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
-    val overwrite: Boolean = true,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>

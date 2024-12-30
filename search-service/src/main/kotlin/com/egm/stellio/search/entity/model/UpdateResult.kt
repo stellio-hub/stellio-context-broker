@@ -15,19 +15,7 @@ data class UpdateResult(
 
     @JsonIgnore
     fun isSuccessful(): Boolean =
-        notUpdated.isEmpty() &&
-            updated.all { it.operationStatus.isSuccessResult() }
-
-    @JsonIgnore
-    fun mergeWith(other: UpdateResult): UpdateResult =
-        UpdateResult(
-            updated = this.updated.plus(other.updated),
-            notUpdated = this.notUpdated.plus(other.notUpdated)
-        )
-
-    @JsonIgnore
-    fun hasSuccessfulUpdate(): Boolean =
-        this.updated.isNotEmpty()
+        notUpdated.isEmpty()
 }
 
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
@@ -41,15 +29,11 @@ data class NotUpdatedDetails(
 )
 
 /**
- * Reflects the updated member of an UpdateResult object with additional info used internally only
+ * UpdatedDetails as defined in 5.2.18
  */
 data class UpdatedDetails(
     @JsonValue
-    val attributeName: String,
-    @JsonIgnore
-    val datasetId: URI?,
-    @JsonIgnore
-    val operationStatus: OperationStatus
+    val attributeName: String
 )
 
 /**
@@ -90,10 +74,16 @@ enum class OperationStatus {
     }
 }
 
+fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
+    this.any { it is SucceededAttributeOperationResult }
+
+fun List<AttributeOperationResult>.getSucceededOperations(): List<SucceededAttributeOperationResult> =
+    this.filterIsInstance<SucceededAttributeOperationResult>()
+
 fun updateResultFromDetailedResult(updateStatuses: List<AttributeOperationResult>): UpdateResult =
     updateStatuses.map {
         when (it) {
-            is SucceededAttributeOperationResult -> UpdatedDetails(it.attributeName, it.datasetId, it.operationStatus)
+            is SucceededAttributeOperationResult -> UpdatedDetails(it.attributeName)
             is FailedAttributeOperationResult -> NotUpdatedDetails(it.attributeName, it.errorMessage)
         }
     }.let {

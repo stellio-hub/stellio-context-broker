@@ -17,6 +17,7 @@ fun Map<String, Any>.rowToEntity(): Entity =
         scopes = toOptionalList(this["scopes"]),
         createdAt = toZonedDateTime(this["created_at"]),
         modifiedAt = toOptionalZonedDateTime(this["modified_at"]),
+        deletedAt = toOptionalZonedDateTime(this["deleted_at"]),
         payload = toJson(this["payload"]),
         specificAccessPolicy = toOptionalEnum<SpecificAccessPolicy>(this["specific_access_policy"])
     )

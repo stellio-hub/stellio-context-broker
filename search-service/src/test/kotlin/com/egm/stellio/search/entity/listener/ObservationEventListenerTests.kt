@@ -79,18 +79,12 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    TEMPERATURE_PROPERTY,
-                    expectedTemperatureDatasetId,
-                    OperationStatus.UPDATED
-                )
-            ),
+            updated = arrayListOf(UpdatedDetails(TEMPERATURE_PROPERTY)),
             notUpdated = arrayListOf()
         ).right()
 
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -106,14 +100,12 @@ class ObservationEventListenerTests {
             entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
-                match { it.containsKey(TEMPERATURE_PROPERTY) },
                 match {
-                    it.updated.size == 1 &&
-                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it.updated[0].datasetId == expectedTemperatureDatasetId &&
-                        it.updated[0].operationStatus == OperationStatus.UPDATED
-                },
-                eq(false)
+                    it.size == 1 &&
+                        it[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it[0].datasetId == expectedTemperatureDatasetId &&
+                        it[0].operationStatus == OperationStatus.UPDATED
+                }
             )
         }
     }
@@ -141,19 +133,13 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    TEMPERATURE_PROPERTY,
-                    expectedTemperatureDatasetId,
-                    OperationStatus.APPENDED
-                )
-            ),
+            listOf(UpdatedDetails(TEMPERATURE_PROPERTY)),
             emptyList()
         ).right()
         val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -171,15 +157,11 @@ class ObservationEventListenerTests {
                 null,
                 eq(expectedEntityId),
                 match {
-                    it.containsKey(TEMPERATURE_PROPERTY)
-                },
-                match {
-                    it.updated.size == 1 &&
-                        it.updated[0].operationStatus == OperationStatus.APPENDED &&
-                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it.updated[0].datasetId == expectedTemperatureDatasetId
-                },
-                eq(true)
+                    it.size == 1 &&
+                        it[0].operationStatus == OperationStatus.APPENDED &&
+                        it[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it[0].datasetId == expectedTemperatureDatasetId
+                }
             )
         }
     }

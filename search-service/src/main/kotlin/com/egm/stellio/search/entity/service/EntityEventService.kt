@@ -132,6 +132,7 @@ class EntityEventService(
         attributeOperationResult: SucceededAttributeOperationResult
     ) {
         val attributeName = attributeOperationResult.attributeName
+        val (types, payload) = entityTypesAndPayload
         logger.debug(
             "Sending {} event for attribute {} of entity {} in tenant {}",
             attributeOperationResult.operationStatus,
@@ -146,11 +147,11 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        entityTypesAndPayload.first,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        entityTypesAndPayload.second,
+                        payload,
                         emptyList()
                     )
                 )
@@ -161,11 +162,11 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        entityTypesAndPayload.first,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        entityTypesAndPayload.second,
+                        payload,
                         emptyList()
                     )
                 )
@@ -176,11 +177,11 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        entityTypesAndPayload.first,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        entityTypesAndPayload.second,
+                        payload,
                         emptyList()
                     )
                 )
@@ -191,14 +192,10 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        entityTypesAndPayload.first,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
-                        injectDeletedAttribute(
-                            entityTypesAndPayload.second,
-                            attributeName,
-                            attributeOperationResult.newExpandedValue
-                        ),
+                        injectDeletedAttribute(payload, attributeName, attributeOperationResult.newExpandedValue),
                         emptyList()
                     )
                 )

@@ -438,6 +438,43 @@ class EntityEventServiceTests {
     }
 
     @Test
+    fun `it should publish ATTRIBUTE_DELETE event if an attribute has been deleted as part of an update `() = runTest {
+        val entity = mockk<Entity>(relaxed = true).apply {
+            every { payload } returns Json.of("{}")
+            every { types } returns listOf(breedingServiceType)
+        }
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
+
+        entityEventService.publishAttributeChangeEvents(
+            null,
+            breedingServiceUri,
+            listOf(
+                SucceededAttributeOperationResult(
+                    fishNameProperty,
+                    fishName1DatasetUri,
+                    OperationStatus.DELETED,
+                    emptyMap()
+                )
+            )
+        ).join()
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeDeleteEvent> { entityEvent ->
+                    listOf(entityEvent).all {
+                        it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityTypes == listOf(breedingServiceType) &&
+                            it.attributeName == fishNameProperty &&
+                            it.datasetId == fishName1DatasetUri &&
+                            it.contexts.isEmpty()
+                    }
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
         val entity = mockk<Entity>(relaxed = true).apply {
             every { payload } returns Json.of("{}")

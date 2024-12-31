@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
@@ -30,6 +31,7 @@ class ExpandedMembersTests {
         assertThat(attrPayloadWithSysAttrs)
             .containsKey(NGSILD_CREATED_AT_PROPERTY)
             .doesNotContainKey(NGSILD_MODIFIED_AT_PROPERTY)
+            .doesNotContainKey(NGSILD_DELETED_AT_PROPERTY)
     }
 
     @Test
@@ -41,6 +43,20 @@ class ExpandedMembersTests {
         assertThat(attrPayloadWithSysAttrs)
             .containsKey(NGSILD_CREATED_AT_PROPERTY)
             .containsKey(NGSILD_MODIFIED_AT_PROPERTY)
+            .doesNotContainKey(NGSILD_DELETED_AT_PROPERTY)
+    }
+
+    @Test
+    fun `it should add createdAt, modifiedAt and deletedAt information into an attribute`() {
+        val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
+
+        val attrPayloadWithSysAttrs =
+            attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime(), ngsiLdDateTime())
+
+        assertThat(attrPayloadWithSysAttrs)
+            .containsKey(NGSILD_CREATED_AT_PROPERTY)
+            .containsKey(NGSILD_MODIFIED_AT_PROPERTY)
+            .containsKey(NGSILD_DELETED_AT_PROPERTY)
     }
 
     @Test

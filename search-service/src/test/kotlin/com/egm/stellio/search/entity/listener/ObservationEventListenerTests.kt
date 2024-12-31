@@ -8,7 +8,6 @@ import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
@@ -49,7 +48,7 @@ class ObservationEventListenerTests {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
@@ -57,7 +56,7 @@ class ObservationEventListenerTests {
 
         coVerify {
             entityService.createEntity(
-                any<NgsiLdEntity>(),
+                any(),
                 any(),
                 eq("0123456789-1234-5678-987654321")
             )

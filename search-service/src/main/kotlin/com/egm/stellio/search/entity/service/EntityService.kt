@@ -537,7 +537,7 @@ class EntityService(
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val deletedAt = ngsiLdDateTime()
-        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, deletedAt)
+        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
         val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
         entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
         scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
@@ -590,7 +590,7 @@ class EntityService(
 
         if (currentEntity.deletedAt == null) {
             // only send a notification if entity was not already previously deleted
-            val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(entityId, ngsiLdDateTime())
+            val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(ngsiLdDateTime())
             entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
         }
     }

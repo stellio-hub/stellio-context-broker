@@ -49,12 +49,12 @@ data class Entity(
     }
 
     fun toExpandedDeletedEntity(
-        entityId: URI,
         deletedAt: ZonedDateTime
     ): ExpandedEntity =
         ExpandedEntity(
             members = mapOf(
                 JSONLD_ID to entityId,
+                JSONLD_TYPE to types,
                 NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
                 NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
             ).run {

@@ -61,6 +61,7 @@ import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import io.mockk.spyk
 import io.mockk.verify
@@ -774,7 +775,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/deletedAt":[{
-                                    "@value":"$deletedAt",
+                                    "@value":"${deletedAt.toNgsiLdFormat()}",
                                     "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/hasValue":[{

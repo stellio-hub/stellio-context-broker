@@ -704,10 +704,12 @@ class EntityAttributeService(
                     createdAt
                 ).bind().first()
             } else {
-                partialUpdateAttribute(
-                    entityUri,
-                    Pair(ngsiLdAttribute.name, listOf(attributePayload)),
+                replaceAttribute(
+                    currentAttribute,
+                    ngsiLdAttribute,
+                    attributeMetadata,
                     createdAt,
+                    attributePayload,
                     sub
                 ).map {
                     SucceededAttributeOperationResult(

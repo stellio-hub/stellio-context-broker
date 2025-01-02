@@ -7,20 +7,19 @@ import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockkClass
 import io.mockk.verify
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,6 +41,11 @@ class ObservationEventListenerTests {
 
     private val expectedEntityId = "urn:ngsi-ld:BeeHive:01".toUri()
     private val expectedTemperatureDatasetId = "urn:ngsi-ld:Dataset:WeatherApi".toUri()
+
+    @BeforeEach
+    fun clearMocks() {
+        clearAllMocks()
+    }
 
     @Test
     fun `it should parse and transmit an ENTITY_CREATE event`() = runTest {
@@ -138,8 +142,6 @@ class ObservationEventListenerTests {
             listOf(UpdatedDetails(TEMPERATURE_PROPERTY)),
             emptyList()
         ).right()
-        val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
-        every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
             entityEventService.publishAttributeChangeEvents(any(), any(), any())
         } returns Job()

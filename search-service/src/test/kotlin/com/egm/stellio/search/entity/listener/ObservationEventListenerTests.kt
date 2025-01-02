@@ -122,6 +122,9 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
+        coVerify {
+            entityService.partialUpdateAttribute(any(), any(), any())
+        }
         verify { entityEventService wasNot called }
     }
 

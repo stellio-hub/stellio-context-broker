@@ -20,7 +20,7 @@ dependencies {
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.github.stellio-hub:json-merge:0.1.0")
-    implementation("org.json:json:20240303")
+    implementation("org.json:json:20241224")
     implementation(project(":shared"))
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.7")

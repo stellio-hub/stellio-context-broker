@@ -47,11 +47,9 @@ fun composeTemporalEntitiesQueryFromGet(
         entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
     val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
     val formatParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.FORMAT.key))
-    val withTemporalValues = when {
-        hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) -> true
-        hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES) -> true
-        else -> false
-    }
+    val withTemporalValues = 
+        hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) ||
+        hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
 
     val withAggregatedValues = when {
         hasValueInQueryParam(formatParam, QueryParamValue.AGGREGATED_VALUES) -> true

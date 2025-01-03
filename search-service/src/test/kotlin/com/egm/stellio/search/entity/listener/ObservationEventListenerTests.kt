@@ -32,10 +32,10 @@ class ObservationEventListenerTests {
     @Autowired
     private lateinit var observationEventListener: ObservationEventListener
 
-    @MockkBean(relaxed = true)
+    @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean(relaxed = true)
+    @MockkBean
     private lateinit var entityEventService: EntityEventService
 
     private val expectedEntityId = "urn:ngsi-ld:BeeHive:01".toUri()
@@ -91,7 +91,7 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             entityService.partialUpdateAttribute(
                 expectedEntityId,
                 match { it.first == TEMPERATURE_PROPERTY },

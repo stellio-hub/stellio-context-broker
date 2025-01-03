@@ -95,6 +95,27 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
+    fun `it shouldn't validate the temporal query if both temporalValues and aggregatedValues are present`() = runTest {
+        val queryParams = gimmeTemporalEntitiesQueryParams()
+        queryParams.replace("options", listOf("aggregatedValues,temporalValues"))
+        queryParams.add("aggrMethods", "sum")
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+        every { pagination.temporalLimit } returns 100
+
+        composeTemporalEntitiesQueryFromGet(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXTS,
+            true
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Only one temporal representation can be present", it.message)
+        }
+    }
+
+    @Test
     fun `it should parse a valid temporal query`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
 

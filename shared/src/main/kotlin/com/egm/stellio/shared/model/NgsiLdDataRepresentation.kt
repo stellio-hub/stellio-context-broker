@@ -29,11 +29,13 @@ data class NgsiLdDataRepresentation(
             acceptMediaType: MediaType
         ): NgsiLdDataRepresentation {
             val optionsParam = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
-            val formatParam = queryParams.getOrDefault(QueryParameter.FORMAT.key, emptyList())
+            val formatParam = queryParams.getFirst(QueryParameter.FORMAT.key)
             val attributeRepresentation = when {
-                formatParam.contains(FormatValue.KEY_VALUES.value) -> AttributeRepresentation.SIMPLIFIED
-                formatParam.contains(FormatValue.NORMALIZED.value) -> AttributeRepresentation.NORMALIZED
-                optionsParam.contains(FormatValue.KEY_VALUES.value) -> AttributeRepresentation.SIMPLIFIED
+                formatParam.equals(FormatValue.KEY_VALUES.value) ||
+                    formatParam.equals(FormatValue.SIMPLIFIED.value) -> AttributeRepresentation.SIMPLIFIED
+                formatParam.equals(FormatValue.NORMALIZED.value) -> AttributeRepresentation.NORMALIZED
+                optionsParam.contains(FormatValue.KEY_VALUES.value) ||
+                    optionsParam.contains(FormatValue.SIMPLIFIED.value) -> AttributeRepresentation.SIMPLIFIED
                 else -> AttributeRepresentation.NORMALIZED
             }
             val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS.value)

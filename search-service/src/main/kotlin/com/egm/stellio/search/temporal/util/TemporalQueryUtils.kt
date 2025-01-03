@@ -20,6 +20,7 @@ import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.queryparameter.FormatValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.QueryParamValue
 import com.egm.stellio.shared.util.hasValueInQueryParam
@@ -42,18 +43,26 @@ fun composeTemporalEntitiesQueryFromGet(
         requestParams,
         contexts
     ).bind()
-
-    if (inQueryEntities)
+    var withTemporalValues = false
+    var withAggregatedValues = false
+    if (inQueryEntities) {
         entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
+    }
     val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
-    val formatParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.FORMAT.key))
-    val withTemporalValues = 
-        hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) ||
-        hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
-
-        val withAggregatedValues = 
-            hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) ||
-            hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
+    val formatParam = requestParams.getFirst(QueryParameter.FORMAT.key)
+    when (formatParam) {
+        FormatValue.TEMPORAL_VALUES.value -> withTemporalValues = true
+        FormatValue.AGGREGATED_VALUES.value -> withAggregatedValues = true
+        else -> {
+            val hasTemporal = hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
+            val hasAggregated = hasValueInQueryParam(optionsParam, QueryParamValue.AGGREGATED_VALUES)
+            if (hasTemporal && hasAggregated) {
+                return BadRequestDataException("Only one temporal representation can be present").left()
+            }
+            withTemporalValues = hasTemporal
+            withAggregatedValues = hasAggregated
+        }
+    }
     val withAudit = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         QueryParamValue.AUDIT

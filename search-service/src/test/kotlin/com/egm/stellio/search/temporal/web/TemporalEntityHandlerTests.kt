@@ -426,6 +426,27 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
+    fun `it should raise a 400 if temporalValues and aggregatedValues exist in options query param`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&options=aggregatedValues," +
+                    "temporalValues&aggrPeriodDuration=PXD3N"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Only one temporal representation can be present",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any(), any())

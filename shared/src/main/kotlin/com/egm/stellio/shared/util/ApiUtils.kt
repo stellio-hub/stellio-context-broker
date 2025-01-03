@@ -174,8 +174,8 @@ enum class QueryParamValue(val value: String) {
     AGGREGATED_VALUES("aggregatedValues")
 }
 
-fun hasValueInQueryParam(options: Optional<String>, queryParamValue: QueryParamValue): Boolean =
-    options
+fun hasValueInQueryParam(queryParam: Optional<String>, queryParamValue: QueryParamValue): Boolean =
+    queryParam
         .map { it.split(",") }
         .filter { it.any { option -> option == queryParamValue.value } }
         .isPresent

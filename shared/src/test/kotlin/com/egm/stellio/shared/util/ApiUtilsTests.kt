@@ -32,27 +32,27 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should not find a value if there is no options query param`() {
+    fun `it should not find a value if there is no format query param`() {
         assertFalse(hasValueInQueryParam(Optional.empty(), TEMPORAL_VALUES))
     }
 
     @Test
-    fun `it should not find a value if it is not in a single value options query param`() {
+    fun `it should not find a value if it is not in a single value format query param`() {
         assertFalse(hasValueInQueryParam(Optional.of("one"), TEMPORAL_VALUES))
     }
 
     @Test
-    fun `it should not find a value if it is not in a multi value options query param`() {
+    fun `it should not find a value if it is not in a multi value format query param`() {
         assertFalse(hasValueInQueryParam(Optional.of("one,two"), TEMPORAL_VALUES))
     }
 
     @Test
-    fun `it should find a value if it is in a single value options query param`() {
+    fun `it should find a value if it is in a single value format query param`() {
         assertTrue(hasValueInQueryParam(Optional.of("temporalValues"), TEMPORAL_VALUES))
     }
 
     @Test
-    fun `it should find a value if it is in a multi value options query param`() {
+    fun `it should find a value if it is in a multi value format query param`() {
         assertTrue(hasValueInQueryParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES))
     }
 

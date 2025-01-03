@@ -299,7 +299,7 @@ object JsonLdUtils {
         if (NGSILD_GEO_PROPERTIES_TERMS.contains(it.key)) {
             when (it.value) {
                 is Map<*, *> -> {
-                    val geoProperty = it.value as MutableMap<String, Any>
+                    val geoProperty = it.value as Map<String, Any>
                     val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
                     geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
                 }

@@ -94,10 +94,10 @@ class TemporalQueryService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
 
-        if (!temporalEntitiesQuery.withAggregatedValues)
-            return null
+        return if (!temporalEntitiesQuery.withAggregatedValues)
+            null
         else if (temporalQuery.timeAt != null)
-            return temporalQuery.timeAt
+            temporalQuery.timeAt
         else {
             val originForAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, attributes)
@@ -108,7 +108,7 @@ class TemporalQueryService(
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
                 else null
 
-            return when {
+            when {
                 originForAttributes == null -> originForScope
                 originForScope == null -> originForAttributes
                 else -> minOf(originForAttributes, originForScope)

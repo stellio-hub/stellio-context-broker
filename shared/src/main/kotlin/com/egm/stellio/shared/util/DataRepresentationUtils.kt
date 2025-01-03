@@ -42,7 +42,7 @@ fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
 private fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_', '@').contains(char) }
 
-val scopeNameRegex: Regex = """^/?\p{L}+[\p{L}\w_]*(/\p{L}+[\p{L}\w_]*)*$""".toRegex()
+val scopeNameRegex: Regex = """^/?\p{L}+[\p{L}\w]*(/\p{L}+[\p{L}\w]*)*$""".toRegex()
 
 fun Any.checkScopesNamesAreNgsiLdSupported(): Either<APIException, Unit> {
     val rawScope = this

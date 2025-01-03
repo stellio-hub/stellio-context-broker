@@ -51,7 +51,7 @@ fun composeTemporalEntitiesQueryFromGet(
         hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) ||
         hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
 
-        val withTemporalValues = 
+        val withAggregatedValues = 
             hasValueInQueryParam(formatParam, QueryParamValue.TEMPORAL_VALUES) ||
             hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
     val withAudit = hasValueInQueryParam(

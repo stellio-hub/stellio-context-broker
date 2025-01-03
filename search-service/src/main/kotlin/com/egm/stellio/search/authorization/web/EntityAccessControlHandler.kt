@@ -8,7 +8,7 @@ import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -275,7 +275,7 @@ class EntityAccessControlHandler(
                 }
             )
         }
-        val appendResult = updateResultFromDetailedResult(results)
+        val appendResult = UpdateResult(results)
 
         if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

@@ -251,10 +251,10 @@ class EntityEventService(
     internal fun injectDeletedAttribute(
         entityPayload: String,
         attributeName: ExpandedTerm,
-        deletedAttributeInstance: ExpandedAttributeInstance
+        attributeInstance: ExpandedAttributeInstance
     ): String {
         val entityPayload = entityPayload.deserializeAsMap().toMutableMap()
-        entityPayload.merge(attributeName, listOf(deletedAttributeInstance)) { currentValue, newValue ->
+        entityPayload.merge(attributeName, listOf(attributeInstance)) { currentValue, newValue ->
             (currentValue as List<Any>).plus(newValue as List<Any>)
         }
 

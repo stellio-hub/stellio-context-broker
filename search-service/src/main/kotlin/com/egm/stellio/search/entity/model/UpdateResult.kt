@@ -2,20 +2,35 @@ package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonValue
 import java.net.URI
 
 /**
  * UpdateResult datatype as defined in 5.2.18
  */
 data class UpdateResult(
-    val updated: List<UpdatedDetails>,
+    val updated: List<String>,
     val notUpdated: List<NotUpdatedDetails>
 ) {
 
     @JsonIgnore
     fun isSuccessful(): Boolean =
         notUpdated.isEmpty()
+
+    companion object {
+
+        operator fun invoke(operationsResults: List<AttributeOperationResult>): UpdateResult =
+            operationsResults.map {
+                when (it) {
+                    is SucceededAttributeOperationResult -> it.attributeName
+                    is FailedAttributeOperationResult -> NotUpdatedDetails(it.attributeName, it.errorMessage)
+                }
+            }.let {
+                UpdateResult(
+                    it.filterIsInstance<String>(),
+                    it.filterIsInstance<NotUpdatedDetails>()
+                )
+            }
+    }
 }
 
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
@@ -26,14 +41,6 @@ val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
 data class NotUpdatedDetails(
     val attributeName: String,
     val reason: String
-)
-
-/**
- * UpdatedDetails as defined in 5.2.18
- */
-data class UpdatedDetails(
-    @JsonValue
-    val attributeName: String
 )
 
 /**
@@ -79,16 +86,3 @@ fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
 
 fun List<AttributeOperationResult>.getSucceededOperations(): List<SucceededAttributeOperationResult> =
     this.filterIsInstance<SucceededAttributeOperationResult>()
-
-fun updateResultFromDetailedResult(updateStatuses: List<AttributeOperationResult>): UpdateResult =
-    updateStatuses.map {
-        when (it) {
-            is SucceededAttributeOperationResult -> UpdatedDetails(it.attributeName)
-            is FailedAttributeOperationResult -> NotUpdatedDetails(it.attributeName, it.errorMessage)
-        }
-    }.let {
-        UpdateResult(
-            it.filterIsInstance<UpdatedDetails>(),
-            it.filterIsInstance<NotUpdatedDetails>()
-        )
-    }

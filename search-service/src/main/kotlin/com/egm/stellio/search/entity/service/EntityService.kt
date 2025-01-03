@@ -26,7 +26,6 @@ import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.model.getSucceededOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
@@ -179,7 +178,7 @@ class EntityService(
             )
         }
 
-        updateResultFromDetailedResult(operationResult)
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -359,7 +358,7 @@ class EntityService(
         val operationResult = coreOperationResult.plus(attrsOperationResult)
         handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
-        updateResultFromDetailedResult(operationResult)
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -387,7 +386,7 @@ class EntityService(
         val operationResult = coreOperationResult.plus(attrsOperationResult)
         handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
-        updateResultFromDetailedResult(operationResult)
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -410,7 +409,7 @@ class EntityService(
 
         handleSuccessOperationActions(operationResult, entityId, modifiedAt, sub).bind()
 
-        updateResultFromDetailedResult(operationResult)
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -463,7 +462,7 @@ class EntityService(
 
         handleSuccessOperationActions(operationResult, entityId, replacedAt, sub).bind()
 
-        updateResultFromDetailedResult(operationResult)
+        UpdateResult(operationResult)
     }
 
     @Transactional

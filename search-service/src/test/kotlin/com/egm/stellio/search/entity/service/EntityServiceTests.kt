@@ -480,7 +480,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 it.updated.size == 1 &&
                     it.notUpdated.isEmpty() &&
-                    it.updated[0].attributeName == INCOMING_PROPERTY
+                    it.updated[0] == INCOMING_PROPERTY
             }
     }
 

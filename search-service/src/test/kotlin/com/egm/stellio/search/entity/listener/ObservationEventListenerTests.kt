@@ -4,7 +4,6 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -82,8 +81,8 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
-            updated = arrayListOf(UpdatedDetails(TEMPERATURE_PROPERTY)),
-            notUpdated = arrayListOf()
+            updated = listOf(TEMPERATURE_PROPERTY),
+            notUpdated = emptyList()
         ).right()
 
         coEvery {
@@ -139,7 +138,7 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
-            listOf(UpdatedDetails(TEMPERATURE_PROPERTY)),
+            listOf(TEMPERATURE_PROPERTY),
             emptyList()
         ).right()
         coEvery {

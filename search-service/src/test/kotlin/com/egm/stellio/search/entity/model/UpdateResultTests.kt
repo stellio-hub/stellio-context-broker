@@ -24,7 +24,7 @@ class UpdateResultTests {
         val updateResult =
             UpdateResult(
                 notUpdated = emptyList(),
-                updated = listOf(UpdatedDetails("attributeName"))
+                updated = listOf("attributeName")
             )
 
         assertTrue(updateResult.isSuccessful())
@@ -35,7 +35,7 @@ class UpdateResultTests {
         val updateResult =
             UpdateResult(
                 notUpdated = listOf(NotUpdatedDetails("attributeName", "attribute is malformed")),
-                updated = listOf(UpdatedDetails("attributeName"))
+                updated = listOf("attributeName")
             )
 
         assertFalse(updateResult.isSuccessful())
@@ -48,9 +48,7 @@ class UpdateResultTests {
                 notUpdated = listOf(
                     NotUpdatedDetails("failedAttributeName", "attribute does not exist")
                 ),
-                updated = listOf(
-                    UpdatedDetails("succeededAttributeName")
-                )
+                updated = listOf("succeededAttributeName")
             )
 
         assertFalse(updateResult.isSuccessful())

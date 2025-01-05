@@ -145,9 +145,9 @@ class GeoQueryUtilsTests {
         assertEqualsIgnoringNoise(
             """
             public.ST_disjoint(
-                public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))'), 
                 public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}]}',
-                    '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'))
+                    '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value')),
+                public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))')
             )
             """,
             queryStatement

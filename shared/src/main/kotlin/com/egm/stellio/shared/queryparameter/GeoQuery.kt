@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -46,25 +45,25 @@ data class GeoQuery(
     fun buildSqlFilter(target: ExpandedEntity? = null): String {
         val targetWKTCoordinates =
             """
-        (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
+            (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
             """.trimIndent()
         val georelQuery = Georel.prepareQuery(georel)
 
         return (
             if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
                 """
-            public.ST_Distance(
-                cast('SRID=4326;${wktCoordinates.value}' as public.geography), 
-                cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
-                false
-            ) ${georelQuery.second} ${georelQuery.third}
+                public.ST_Distance(
+                    cast('SRID=4326;${wktCoordinates.value}' as public.geography), 
+                    cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
+                    false
+                ) ${georelQuery.second} ${georelQuery.third}
                 """.trimIndent()
             else
                 """
-            public.ST_${georelQuery.first}(
-                public.ST_GeomFromText('${wktCoordinates.value}'), 
-                public.ST_GeomFromText($targetWKTCoordinates)
-            ) 
+                public.ST_${georelQuery.first}(
+                    public.ST_GeomFromText($targetWKTCoordinates),
+                    public.ST_GeomFromText('${wktCoordinates.value}')
+                ) 
                 """.trimIndent()
             )
             .let {
@@ -95,7 +94,7 @@ data class GeoQuery(
             }
             val geoproperty = requestParams[QueryParameter.GEOPROPERTY.key]?.let {
                 expandJsonLdTerm(it, contexts)
-            } ?: JsonLdUtils.NGSILD_LOCATION_PROPERTY
+            } ?: NGSILD_LOCATION_PROPERTY
 
             // if at least one parameter is provided, the three must be provided for the geoquery to be valid
             val notNullGeoParameters = listOfNotNull(georel, geometry, coordinates)

@@ -191,8 +191,9 @@ fun buildTimerelAndTime(
         "'timerel' and 'time' must be used in conjunction".left()
     }
 
-fun extractTemporalRepresentation(requestParams: MultiValueMap<String, String>):
-    Either<APIException, TemporalRepresentation> = either {
+fun extractTemporalRepresentation(
+    requestParams: MultiValueMap<String, String>
+): Either<APIException, TemporalRepresentation> = either {
     val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
     val formatParam = requestParams.getFirst(QueryParameter.FORMAT.key)
     return when (formatParam) {

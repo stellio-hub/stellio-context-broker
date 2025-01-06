@@ -85,7 +85,8 @@ data class AttributeInstance private constructor(
     enum class TemporalProperty(val propertyName: String) {
         OBSERVED_AT("observedAt"),
         CREATED_AT("createdAt"),
-        MODIFIED_AT("modifiedAt");
+        MODIFIED_AT("modifiedAt"),
+        DELETED_AT("deletedAt");
 
         companion object {
             fun forPropertyName(propertyName: String): TemporalProperty? =

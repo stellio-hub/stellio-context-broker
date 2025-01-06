@@ -16,12 +16,11 @@ import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute.AttributeValueType
-import com.egm.stellio.search.entity.model.NotUpdatedDetails
+import com.egm.stellio.search.entity.model.AttributeOperationResult
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.OperationType
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
@@ -37,6 +36,8 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -72,7 +73,7 @@ class ScopeService(
     suspend fun addHistoryEntry(
         entityId: URI,
         scopes: List<String>,
-        temportalProperty: TemporalProperty,
+        temporalProperty: TemporalProperty,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> =
@@ -85,7 +86,7 @@ class ScopeService(
             .bind("entity_id", entityId)
             .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
-            .bind("time_property", temportalProperty.toString())
+            .bind("time_property", temporalProperty.toString())
             .bind("sub", sub)
             .execute()
 
@@ -253,7 +254,7 @@ class ScopeService(
         modifiedAt: ZonedDateTime,
         operationType: OperationType,
         sub: Sub? = null
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, AttributeOperationResult> = either {
         val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
         val (currentScopes, currentPayload) = retrieve(entityId).bind()
 
@@ -262,14 +263,10 @@ class ScopeService(
                 if (currentScopes != null) {
                     val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
                     Pair(scopes, updatedPayload)
-                } else return@either UpdateResult(
-                    updated = emptyList(),
-                    notUpdated = listOf(
-                        NotUpdatedDetails(
-                            NGSILD_SCOPE_PROPERTY,
-                            "Attribute does not exist and operation does not allow creating it"
-                        )
-                    )
+                } else return@either FailedAttributeOperationResult(
+                    attributeName = NGSILD_SCOPE_PROPERTY,
+                    operationStatus = OperationStatus.FAILED,
+                    errorMessage = "Scope does not exist and operation does not allow creating it"
                 )
             }
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
@@ -289,7 +286,7 @@ class ScopeService(
         }
 
         updatedScopes?.let {
-            val updateResult =
+            val operationResult =
                 performUpdate(entityId, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
             val temporalPropertyToAdd =
                 if (currentScopes == null) TemporalProperty.CREATED_AT
@@ -300,10 +297,11 @@ class ScopeService(
                 // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
                 // sub-Property
                 addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
-            updateResult
-        } ?: UpdateResult(
-            emptyList(),
-            listOf(NotUpdatedDetails(NGSILD_SCOPE_PROPERTY, "Unrecognized operation type: $operationType"))
+            operationResult
+        } ?: FailedAttributeOperationResult(
+            attributeName = NGSILD_SCOPE_PROPERTY,
+            operationStatus = OperationStatus.FAILED,
+            errorMessage = "Unrecognized operation type on scope: $operationType"
         )
     }
 
@@ -313,7 +311,7 @@ class ScopeService(
         scopes: List<String>,
         modifiedAt: ZonedDateTime,
         payload: String
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, SucceededAttributeOperationResult> = either {
         databaseClient.sql(
             """
             UPDATE entity_payload
@@ -329,29 +327,25 @@ class ScopeService(
             .bind("payload", Json.of(payload))
             .execute()
             .map {
-                updateResultFromDetailedResult(
-                    listOf(
-                        UpdateAttributeResult(
-                            attributeName = NGSILD_SCOPE_PROPERTY,
-                            updateOperationResult = UpdateOperationResult.APPENDED
-                        )
-                    )
+                SucceededAttributeOperationResult(
+                    attributeName = NGSILD_SCOPE_PROPERTY,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = mapOf(NGSILD_SCOPE_PROPERTY to scopes.toList())
                 )
             }.bind()
     }
 
     @Transactional
-    suspend fun replaceHistoryEntry(
+    suspend fun replace(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        deleteHistory(ngsiLdEntity.id).bind()
         createHistory(ngsiLdEntity, createdAt, sub).bind()
     }
 
     @Transactional
-    suspend fun delete(entityId: URI): Either<APIException, Unit> = either {
+    suspend fun delete(entityId: URI): Either<APIException, List<AttributeOperationResult>> = either {
         databaseClient.sql(
             """
             UPDATE entity_payload
@@ -364,10 +358,26 @@ class ScopeService(
             .execute()
             .bind()
 
-        deleteHistory(entityId).bind()
+        addHistoryEntry(
+            entityId,
+            emptyList(),
+            TemporalProperty.DELETED_AT,
+            ngsiLdDateTime(),
+            getSubFromSecurityContext().getOrNull()
+        ).bind()
+
+        listOf(
+            SucceededAttributeOperationResult(
+                NGSILD_SCOPE_PROPERTY,
+                null,
+                OperationStatus.DELETED,
+                mapOf(NGSILD_SCOPE_PROPERTY to listOf())
+            )
+        )
     }
 
-    suspend fun deleteHistory(entityId: URI): Either<APIException, Unit> =
+    @Transactional
+    suspend fun permanentlyDelete(entityId: URI): Either<APIException, Unit> =
         databaseClient.sql(
             """
             DELETE FROM scope_history

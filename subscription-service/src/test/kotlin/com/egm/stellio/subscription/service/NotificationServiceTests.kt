@@ -136,7 +136,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -179,7 +179,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -224,7 +224,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
@@ -265,7 +265,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_TERM),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
@@ -295,7 +295,7 @@ class NotificationServiceTests {
             )
 
             notificationService.notifyMatchingSubscribers(
-                expandedEntity,
+                Pair(expandedEntity, expandedEntity),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
@@ -333,7 +333,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
@@ -379,7 +379,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
@@ -540,7 +540,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -582,7 +582,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -641,7 +641,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
-            expandedEntity,
+            Pair(expandedEntity, expandedEntity),
             setOf(FRIENDLYNAME_LANGUAGEPROPERTY),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {

@@ -2,12 +2,10 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.entity.model.Entity
-import com.egm.stellio.search.entity.model.UpdateOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -16,8 +14,8 @@ import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -32,6 +30,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -135,7 +134,7 @@ class EntityEventServiceTests {
         }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        entityEventService.publishEntityDeleteEvent(null, entity).join()
+        entityEventService.publishEntityDeleteEvent(null, entity, ExpandedEntity(emptyMap())).join()
 
         verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }
@@ -151,12 +150,13 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             "sub",
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(
-                listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.APPENDED)),
-                emptyList()
-            ),
-            true
+            listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = expandedAttribute.second[0]
+                )
+            )
         ).join()
 
         verify {
@@ -186,12 +186,13 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(
-                listOf(UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.REPLACED)),
-                emptyList()
-            ),
-            true
+            listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.REPLACED,
+                    newExpandedValue = expandedAttribute.second[0]
+                )
+            )
         ).join()
 
         verify {
@@ -222,24 +223,24 @@ class EntityEventServiceTests {
                 }
                 """.trimIndent()
             val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-            val appendResult = UpdateResult(
-                listOf(
-                    UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.APPENDED),
-                    UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.REPLACED)
+            val operationResult = listOf(
+                SucceededAttributeOperationResult(
+                    attributeName = fishNumberProperty,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
                 ),
-                emptyList()
+                SucceededAttributeOperationResult(
+                    attributeName = fishNameProperty,
+                    datasetId = fishName1DatasetUri,
+                    operationStatus = OperationStatus.REPLACED,
+                    newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
+                )
             )
 
             coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
             every { entity.types } returns listOf(breedingServiceType)
 
-            entityEventService.publishAttributeChangeEvents(
-                null,
-                breedingServiceUri,
-                jsonLdAttributes,
-                appendResult,
-                true
-            ).join()
+            entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
 
             verify {
                 entityEventService["publishEntityEvent"](
@@ -287,12 +288,18 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
         val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.REPLACED),
-                UpdatedDetails(fishNumberProperty, null, UpdateOperationResult.REPLACED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNumberProperty,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
             ),
-            notUpdated = arrayListOf()
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
@@ -301,9 +308,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            jsonLdAttributes,
-            updateResult,
-            true
+            operationResult
         ).join()
 
         verify {
@@ -346,24 +351,25 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
         val jsonLdAttributes = expandAttributes(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.REPLACED),
-                UpdatedDetails(fishNameProperty, fishName2DatasetUri, UpdateOperationResult.REPLACED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
             ),
-            notUpdated = arrayListOf()
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName2DatasetUri,
+                operationStatus = OperationStatus.REPLACED,
+                newExpandedValue = jsonLdAttributes[fishNameProperty]!![1]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
 
-        entityEventService.publishAttributeChangeEvents(
-            null,
-            breedingServiceUri,
-            jsonLdAttributes,
-            updateResult,
-            true
-        ).join()
+        entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
 
         verify {
             entityEventService["publishEntityEvent"](
@@ -398,8 +404,13 @@ class EntityEventServiceTests {
             fishNameAttributeFragment,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
-        val updatedDetails = listOf(
-            UpdatedDetails(fishNameProperty, fishName1DatasetUri, UpdateOperationResult.UPDATED)
+        val operationResult = listOf(
+            SucceededAttributeOperationResult(
+                attributeName = fishNameProperty,
+                datasetId = fishName1DatasetUri,
+                operationStatus = OperationStatus.UPDATED,
+                newExpandedValue = expandedAttribute.second[0]
+            )
         )
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
@@ -408,9 +419,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
-            expandedAttribute.toExpandedAttributes(),
-            UpdateResult(updatedDetails, emptyList()),
-            false
+            operationResult
         ).join()
 
         verify {
@@ -429,39 +438,47 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_DELETE_ALL_INSTANCE event if all instances of an attribute are deleted`() =
-        runTest {
-            val entity = mockk<Entity>(relaxed = true)
-
-            coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
-            every { entity.types } returns listOf(breedingServiceType)
-
-            entityEventService.publishAttributeDeleteEvent(
-                null,
-                breedingServiceUri,
-                fishNameProperty,
-                null,
-                true
-            ).join()
-
-            verify {
-                entityEventService["publishEntityEvent"](
-                    match<AttributeDeleteAllInstancesEvent> { entityEvent ->
-                        listOf(entityEvent).all {
-                            it.operationType == EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES &&
-                                it.entityId == breedingServiceUri &&
-                                it.entityTypes == listOf(breedingServiceType) &&
-                                it.attributeName == fishNameProperty &&
-                                it.contexts.isEmpty()
-                        }
-                    }
-                )
-            }
+    fun `it should publish ATTRIBUTE_DELETE event if an attribute has been deleted as part of an update `() = runTest {
+        val entity = mockk<Entity>(relaxed = true).apply {
+            every { payload } returns Json.of("{}")
+            every { types } returns listOf(breedingServiceType)
         }
+        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
+
+        entityEventService.publishAttributeChangeEvents(
+            null,
+            breedingServiceUri,
+            listOf(
+                SucceededAttributeOperationResult(
+                    fishNameProperty,
+                    fishName1DatasetUri,
+                    OperationStatus.DELETED,
+                    emptyMap()
+                )
+            )
+        ).join()
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeDeleteEvent> { entityEvent ->
+                    listOf(entityEvent).all {
+                        it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityTypes == listOf(breedingServiceType) &&
+                            it.attributeName == fishNameProperty &&
+                            it.datasetId == fishName1DatasetUri &&
+                            it.contexts.isEmpty()
+                    }
+                }
+            )
+        }
+    }
 
     @Test
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
-        val entity = mockk<Entity>(relaxed = true)
+        val entity = mockk<Entity>(relaxed = true).apply {
+            every { payload } returns Json.of("{}")
+        }
 
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
@@ -469,9 +486,12 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeDeleteEvent(
             null,
             breedingServiceUri,
-            fishNameProperty,
-            fishName1DatasetUri,
-            false
+            SucceededAttributeOperationResult(
+                fishNameProperty,
+                fishName1DatasetUri,
+                OperationStatus.DELETED,
+                emptyMap()
+            )
         ).join()
 
         verify {

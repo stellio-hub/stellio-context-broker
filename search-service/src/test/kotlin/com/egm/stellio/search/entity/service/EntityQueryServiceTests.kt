@@ -7,7 +7,6 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultQueryParams
-import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
@@ -29,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,7 +40,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var entityQueryService: EntityQueryService
@@ -96,14 +96,15 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
-                entityService.createEntityPayload(
+                entityService.createEntity(
                     it.second,
-                    it.first,
-                    now,
+                    it.first
                 ).shouldSucceed()
             }
 
@@ -210,7 +211,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should check the existence or non-existence of an entity`() = runTest {
+    fun `it should check the existence of an entity`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -224,8 +225,25 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
         entityQueryService.checkEntityExistence(entity01Uri).shouldSucceed()
         entityQueryService.checkEntityExistence(entity02Uri)
             .shouldFail { assert(it is ResourceNotFoundException) }
-        entityQueryService.checkEntityExistence(entity01Uri, true)
-            .shouldFail { assert(it is AlreadyExistsException) }
-        entityQueryService.checkEntityExistence(entity02Uri, true).shouldSucceed()
+    }
+
+    @Test
+    fun `it should check the state of an entity`() = runTest {
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            .sampleDataToNgsiLdEntity()
+            .map {
+                entityService.createEntityPayload(
+                    it.second,
+                    it.first,
+                    now
+                )
+            }
+
+        entityQueryService.isMarkedAsDeleted(entity01Uri)
+            .shouldSucceedWith {
+                assertFalse(it)
+            }
+        entityQueryService.isMarkedAsDeleted(entity02Uri)
+            .shouldFail { assert(it is ResourceNotFoundException) }
     }
 }

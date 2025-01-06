@@ -1,6 +1,9 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.Either.Left
+import arrow.core.Either.Right
+import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
@@ -10,21 +13,25 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
-import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
+import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.OperationType
 import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES
 import com.egm.stellio.search.entity.model.OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
 import com.egm.stellio.search.entity.model.OperationType.MERGE_ENTITY
 import com.egm.stellio.search.entity.model.OperationType.UPDATE_ATTRIBUTES
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.getSucceededOperations
+import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
+import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
@@ -32,13 +39,14 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addSysAttrs
-import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.getSpecificAccessPolicy
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -48,7 +56,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Service
@@ -68,14 +75,23 @@ class EntityService(
         expandedEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        authorizationService.userCanCreateEntities(sub.toOption()).bind()
-        entityQueryService.checkEntityExistence(ngsiLdEntity.id, true).bind()
+        entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
+            when (it) {
+                is Left -> authorizationService.userCanCreateEntities(sub.toOption()).bind()
+                is Right ->
+                    if (!it.value)
+                        AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
+                    else
+                        authorizationService.userCanAdminEntity(ngsiLdEntity.id, sub.toOption()).bind()
+            }
+        }
 
         val createdAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt, sub).bind()
+        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
+        scopeService.createHistory(ngsiLdEntity, createdAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -96,14 +112,20 @@ class EntityService(
     suspend fun createEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        createdAt: ZonedDateTime,
-        sub: Sub? = null
+        createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
             INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
             VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
+            ON CONFLICT (entity_id)
+                DO UPDATE SET types = :types,
+                    scopes = :scopes,
+                    modified_at = :created_at,
+                    deleted_at = null,
+                    payload = :payload,
+                    specific_access_policy = :specific_access_policy
             """.trimIndent()
         )
             .bind("entity_id", ngsiLdEntity.id)
@@ -113,9 +135,6 @@ class EntityService(
             .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.createHistory(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     @Transactional
@@ -129,12 +148,15 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+            expandedAttributes.toList()
+                // remove @id if it is present (optional as per 5.4)
+                .filter { it.first != JSONLD_ID }
+                .partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
-        val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
-        val attrsUpdateResult = entityAttributeService.mergeAttributes(
+        val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
+        val attrsOperationResult = entityAttributeService.mergeAttributes(
             entityId,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -143,24 +165,20 @@ class EntityService(
             sub
         ).bind()
 
-        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
+        val operationResult = coreOperationResult.plus(attrsOperationResult)
         // update modifiedAt in entity if at least one attribute has been merged
-        if (updateResult.hasSuccessfulUpdate()) {
+        if (operationResult.hasSuccessfulResult()) {
             val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             updateState(entityId, mergedAt, attributes).bind()
-        }
 
-        if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 entityId,
-                expandedAttributes,
-                updateResult,
-                true
+                operationResult.getSucceededOperations()
             )
         }
 
-        updateResult
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -173,13 +191,14 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        val replacedAt = ngsiLdDateTime()
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeService.deleteAttributes(entityId)
+        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
 
-        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt, sub).bind()
+        val replacedAt = ngsiLdDateTime()
+        replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt).bind()
+        scopeService.replace(ngsiLdEntity, replacedAt, sub).bind()
         entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
@@ -199,8 +218,7 @@ class EntityService(
     suspend fun replaceEntityPayload(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
-        replacedAt: ZonedDateTime,
-        sub: Sub? = null
+        replacedAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         val createdAt = retrieveCreatedAt(ngsiLdEntity.id).bind()
@@ -225,9 +243,6 @@ class EntityService(
             .bind("payload", Json.of(serializedPayload))
             .bind("specific_access_policy", specificAccessPolicy?.toString())
             .execute()
-            .map {
-                scopeService.replaceHistoryEntry(ngsiLdEntity, createdAt, sub)
-            }
     }
 
     private suspend fun retrieveCreatedAt(entityId: URI): Either<APIException, ZonedDateTime> =
@@ -246,7 +261,7 @@ class EntityService(
         coreAttrs: List<Pair<ExpandedTerm, ExpandedAttributeInstances>>,
         modifiedAt: ZonedDateTime,
         operationType: OperationType
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<AttributeOperationResult>> = either {
         coreAttrs.map { (expandedTerm, expandedAttributeInstances) ->
             when (expandedTerm) {
                 JSONLD_TYPE ->
@@ -255,11 +270,14 @@ class EntityService(
                     scopeService.update(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
                 else -> {
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
-                    EMPTY_UPDATE_RESULT.right().bind()
+                    FailedAttributeOperationResult(
+                        attributeName = expandedTerm,
+                        operationStatus = OperationStatus.IGNORED,
+                        errorMessage = "Ignoring unhandled core property: $expandedTerm"
+                    ).right().bind()
                 }
             }
-        }.ifEmpty { listOf(EMPTY_UPDATE_RESULT) }
-            .reduce { acc, cur -> acc.mergeWith(cur) }
+        }
     }
 
     @Transactional
@@ -268,12 +286,16 @@ class EntityService(
         newTypes: List<ExpandedTerm>,
         modifiedAt: ZonedDateTime,
         allowEmptyListOfTypes: Boolean = true
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, SucceededAttributeOperationResult> = either {
         val entityPayload = entityQueryService.retrieve(entityId).bind()
         val currentTypes = entityPayload.types
         // when dealing with an entity update, list of types can be empty if no change of type is requested
         if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
-            return@either UpdateResult(emptyList(), emptyList())
+            return@either SucceededAttributeOperationResult(
+                attributeName = JSONLD_TYPE,
+                operationStatus = OperationStatus.APPENDED,
+                newExpandedValue = mapOf(JSONLD_TYPE to currentTypes.toList())
+            )
 
         val updatedTypes = currentTypes.union(newTypes)
         val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
@@ -298,13 +320,10 @@ class EntityService(
             .bind("payload", Json.of(serializeObject(updatedPayload)))
             .execute()
             .map {
-                updateResultFromDetailedResult(
-                    listOf(
-                        UpdateAttributeResult(
-                            attributeName = JSONLD_TYPE,
-                            updateOperationResult = UpdateOperationResult.APPENDED
-                        )
-                    )
+                SucceededAttributeOperationResult(
+                    attributeName = JSONLD_TYPE,
+                    operationStatus = OperationStatus.APPENDED,
+                    newExpandedValue = mapOf(JSONLD_TYPE to updatedTypes.toList())
                 )
             }.bind()
     }
@@ -326,8 +345,8 @@ class EntityService(
         val operationType =
             if (disallowOverwrite) APPEND_ATTRIBUTES
             else APPEND_ATTRIBUTES_OVERWRITE_ALLOWED
-        val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, createdAt, operationType).bind()
-        val attrsUpdateResult = entityAttributeService.appendAttributes(
+        val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, operationType).bind()
+        val attrsOperationResult = entityAttributeService.appendAttributes(
             entityId,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -336,24 +355,10 @@ class EntityService(
             sub
         ).bind()
 
-        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
-        // update modifiedAt in entity if at least one attribute has been added
-        if (updateResult.hasSuccessfulUpdate()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, createdAt, attributes).bind()
-        }
+        val operationResult = coreOperationResult.plus(attrsOperationResult)
+        handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
-        if (updateResult.hasSuccessfulUpdate()) {
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                expandedAttributes,
-                updateResult,
-                true
-            )
-        }
-
-        updateResult
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -369,8 +374,8 @@ class EntityService(
             expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val createdAt = ngsiLdDateTime()
 
-        val coreUpdateResult = updateCoreAttributes(entityId, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
-        val attrsUpdateResult = entityAttributeService.updateAttributes(
+        val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
+        val attrsOperationResult = entityAttributeService.updateAttributes(
             entityId,
             otherAttrs.toMap().toNgsiLdAttributes().bind(),
             expandedAttributes,
@@ -378,24 +383,10 @@ class EntityService(
             sub
         ).bind()
 
-        val updateResult = coreUpdateResult.mergeWith(attrsUpdateResult)
-        // update modifiedAt in entity if at least one attribute has been added
-        if (updateResult.hasSuccessfulUpdate()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, createdAt, attributes).bind()
-        }
+        val operationResult = coreOperationResult.plus(attrsOperationResult)
+        handleSuccessOperationActions(operationResult, entityId, createdAt, sub).bind()
 
-        if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                expandedAttributes,
-                updateResult,
-                true
-            )
-        }
-
-        updateResult
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -409,28 +400,16 @@ class EntityService(
 
         val modifiedAt = ngsiLdDateTime()
 
-        val updateResult = entityAttributeService.partialUpdateAttribute(
+        val operationResult = entityAttributeService.partialUpdateAttribute(
             entityId,
             expandedAttribute,
             modifiedAt,
             sub
-        ).bind()
+        ).bind().let { listOf(it) }
 
-        if (updateResult.isSuccessful()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, modifiedAt, attributes).bind()
-        }
+        handleSuccessOperationActions(operationResult, entityId, modifiedAt, sub).bind()
 
-        if (updateResult.updated.isNotEmpty())
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                expandedAttribute.toExpandedAttributes(),
-                updateResult,
-                false
-            )
-
-        updateResult
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -439,7 +418,7 @@ class EntityService(
         expandedAttributes: ExpandedAttributes,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
-        val createdAt = ZonedDateTime.now(ZoneOffset.UTC)
+        val createdAt = ngsiLdDateTime()
         expandedAttributes.forEach { (attributeName, expandedAttributeInstances) ->
             expandedAttributeInstances.forEach { expandedAttributeInstance ->
                 val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
@@ -473,30 +452,37 @@ class EntityService(
         val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
         val replacedAt = ngsiLdDateTime()
 
-        val updateResult = entityAttributeService.replaceAttribute(
+        val operationResult = entityAttributeService.replaceAttribute(
             entityId,
             ngsiLdAttribute,
             expandedAttribute,
             replacedAt,
             sub
-        ).bind()
+        ).bind().let { listOf(it) }
 
+        handleSuccessOperationActions(operationResult, entityId, replacedAt, sub).bind()
+
+        UpdateResult(operationResult)
+    }
+
+    @Transactional
+    internal suspend fun handleSuccessOperationActions(
+        operationResult: List<AttributeOperationResult>,
+        entityId: URI,
+        createdAt: ZonedDateTime,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
         // update modifiedAt in entity if at least one attribute has been added
-        if (updateResult.hasSuccessfulUpdate()) {
+        if (operationResult.hasSuccessfulResult()) {
             val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, replacedAt, attributes).bind()
-        }
+            updateState(entityId, createdAt, attributes).bind()
 
-        if (updateResult.updated.isNotEmpty())
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 entityId,
-                expandedAttribute.toExpandedAttributes(),
-                updateResult,
-                false
+                operationResult.getSucceededOperations()
             )
-
-        updateResult
+        }
     }
 
     @Transactional
@@ -545,36 +531,72 @@ class EntityService(
     }
 
     @Transactional
-    suspend fun upsertEntityPayload(entityId: URI, payload: String): Either<APIException, Unit> =
-        databaseClient.sql(
-            """
-            INSERT INTO entity_payload (entity_id, payload)
-            VALUES (:entity_id, :payload)
-            ON CONFLICT (entity_id)
-            DO UPDATE SET payload = :payload
-            """.trimIndent()
-        )
-            .bind("payload", Json.of(payload))
-            .bind("entity_id", entityId)
-            .execute()
-
-    @Transactional
     suspend fun deleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        val currentEntity = entityQueryService.retrieve(entityId).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
-        val entity = deleteEntityPayload(entityId).bind()
+        val deletedAt = ngsiLdDateTime()
+        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
+        val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
+        entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+        scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
-        entityAttributeService.deleteAttributes(entityId).bind()
-        scopeService.deleteHistory(entityId).bind()
-        authorizationService.removeRightsOnEntity(entityId).bind()
-
-        entityEventService.publishEntityDeleteEvent(sub, entity)
+        entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
 
     @Transactional
-    suspend fun deleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
-        val entity = databaseClient.sql(
+    suspend fun deleteEntityPayload(
+        entityId: URI,
+        deletedAt: ZonedDateTime,
+        deletedEntityPayload: ExpandedEntity
+    ): Either<APIException, Entity> = either {
+        databaseClient.sql(
+            """
+            WITH entity_before_delete AS (
+                SELECT *
+                FROM entity_payload
+                WHERE entity_id = :entity_id
+            ),
+            update_entity AS (
+                UPDATE entity_payload
+                SET deleted_at = :deleted_at,
+                    payload = :payload,
+                    scopes = null,
+                    specific_access_policy = null,
+                    types = '{}'
+                WHERE entity_id = :entity_id
+            )
+            SELECT * FROM entity_before_delete
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("deleted_at", deletedAt)
+            .bind("payload", Json.of(serializeObject(deletedEntityPayload.members)))
+            .oneToResult {
+                it.rowToEntity()
+            }
+            .bind()
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
+        val currentEntity = entityQueryService.retrieve(entityId, true).bind()
+        authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
+
+        val previousEntity = permanentyDeleteEntityPayload(entityId).bind()
+        entityAttributeService.permanentlyDeleteAttributes(entityId).bind()
+        authorizationService.removeRightsOnEntity(entityId).bind()
+
+        if (currentEntity.deletedAt == null) {
+            // only send a notification if entity was not already previously deleted
+            val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(ngsiLdDateTime())
+            entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
+        }
+    }
+
+    @Transactional
+    suspend fun permanentyDeleteEntityPayload(entityId: URI): Either<APIException, Entity> = either {
+        databaseClient.sql(
             """
             DELETE FROM entity_payload
             WHERE entity_id = :entity_id
@@ -586,7 +608,6 @@ class EntityService(
                 it.rowToEntity()
             }
             .bind()
-        entity
     }
 
     @Transactional
@@ -599,7 +620,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+        val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_PROPERTY) {
             scopeService.delete(entityId).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(
@@ -612,7 +633,8 @@ class EntityService(
                 entityId,
                 attributeName,
                 datasetId,
-                deleteAll
+                deleteAll,
+                ngsiLdDateTime()
             ).bind()
         }
         updateState(
@@ -621,12 +643,41 @@ class EntityService(
             entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
         ).bind()
 
-        entityEventService.publishAttributeDeleteEvent(
-            sub,
+        deleteAttributeResults.filterIsInstance<SucceededAttributeOperationResult>()
+            .forEach {
+                entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+            }
+    }
+
+    @Transactional
+    suspend fun permanentlyDeleteAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        deleteAll: Boolean = false,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+
+        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+            scopeService.permanentlyDelete(entityId).bind()
+        } else {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                entityId,
+                attributeName,
+                datasetId
+            ).bind()
+            entityAttributeService.permanentlyDeleteAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                deleteAll
+            ).bind()
+        }
+        updateState(
             entityId,
-            attributeName,
-            datasetId,
-            deleteAll
-        )
+            ngsiLdDateTime(),
+            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+        ).bind()
     }
 }

@@ -1,6 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import arrow.core.Either
+import arrow.core.Either.Left
+import arrow.core.Either.Right
 import arrow.core.raise.either
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
@@ -11,12 +13,15 @@ import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addCoreMembers
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Service
@@ -34,25 +39,28 @@ class TemporalService(
         jsonLdTemporalEntity: ExpandedEntity,
         sub: Sub? = null
     ): Either<APIException, CreateOrUpdateResult> = either {
-        val entityDoesNotExist = entityQueryService.checkEntityExistence(entityId, true).isRight()
-
-        if (entityDoesNotExist) {
-            createTemporalEntity(
-                entityId,
-                jsonLdTemporalEntity,
-                jsonLdTemporalEntity.getAttributes().sorted(),
-                sub
-            ).bind()
-
-            CreateOrUpdateResult.CREATED
-        } else {
-            upsertTemporalEntity(
-                entityId,
-                jsonLdTemporalEntity.getAttributes().sorted(),
-                sub
-            ).bind()
-
-            CreateOrUpdateResult.UPSERTED
+        entityQueryService.isMarkedAsDeleted(entityId).let {
+            when (it) {
+                is Left -> {
+                    createTemporalEntity(
+                        entityId,
+                        jsonLdTemporalEntity,
+                        jsonLdTemporalEntity.getAttributes().sorted(),
+                        sub
+                    ).bind()
+                    CreateOrUpdateResult.CREATED
+                }
+                is Right -> {
+                    upsertTemporalEntity(
+                        entityId,
+                        jsonLdTemporalEntity,
+                        jsonLdTemporalEntity.getAttributes().sorted(),
+                        it.value,
+                        sub
+                    ).bind()
+                    CreateOrUpdateResult.UPSERTED
+                }
+            }
         }
     }
 
@@ -64,14 +72,7 @@ class TemporalService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanCreateEntities(sub.toOption()).bind()
 
-        // create a view of the entity containing only the most recent instance of each attribute
-        val expandedEntity = ExpandedEntity(
-            sortedJsonLdInstances
-                .keepFirstInstances()
-                .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types)
-        )
-        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
-
+        val (expandedEntity, ngsiLdEntity) = parseExpandedInstances(sortedJsonLdInstances, jsonLdTemporalEntity).bind()
         entityService.createEntity(ngsiLdEntity, expandedEntity, sub).bind()
         entityService.upsertAttributes(
             entityId,
@@ -83,15 +84,37 @@ class TemporalService(
 
     internal suspend fun upsertTemporalEntity(
         entityId: URI,
+        jsonLdTemporalEntity: ExpandedEntity,
         sortedJsonLdInstances: ExpandedAttributes,
+        isDeleted: Boolean,
         sub: Sub? = null
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+        if (isDeleted) {
+            val (expandedEntity, ngsiLdEntity) =
+                parseExpandedInstances(sortedJsonLdInstances, jsonLdTemporalEntity).bind()
+            entityService.createEntityPayload(ngsiLdEntity, expandedEntity, ngsiLdDateTime()).bind()
+        }
         entityService.upsertAttributes(
             entityId,
             sortedJsonLdInstances,
             sub
         ).bind()
+    }
+
+    private suspend fun parseExpandedInstances(
+        sortedJsonLdInstances: ExpandedAttributes,
+        jsonLdTemporalEntity: ExpandedEntity
+    ): Either<APIException, Pair<ExpandedEntity, NgsiLdEntity>> = either {
+        // create a view of the entity containing only the most recent instance of each attribute
+        val expandedEntity = ExpandedEntity(
+            sortedJsonLdInstances
+                .keepFirstInstances()
+                .addCoreMembers(jsonLdTemporalEntity.id, jsonLdTemporalEntity.types)
+        )
+        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
+
+        Pair(expandedEntity, ngsiLdEntity)
     }
 
     private fun ExpandedAttributes.keepFirstInstances(): ExpandedAttributes =
@@ -122,6 +145,25 @@ class TemporalService(
             jsonLdInstances.sorted(),
             sub
         ).bind()
+    }
+
+    @Transactional
+    suspend fun deleteEntity(
+        entityId: URI,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        entityService.permanentlyDeleteEntity(entityId, sub).bind()
+    }
+
+    @Transactional
+    suspend fun deleteAttribute(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        deleteAll: Boolean = false,
+        sub: Sub? = null
+    ): Either<APIException, Unit> = either {
+        entityService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, deleteAll, sub).bind()
     }
 
     suspend fun modifyAttributeInstance(

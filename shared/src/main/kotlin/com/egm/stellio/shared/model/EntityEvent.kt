@@ -9,15 +9,14 @@ import java.net.URI
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "operationType")
 @JsonSubTypes(
-    *[
+    value = [
         JsonSubTypes.Type(value = EntityCreateEvent::class),
         JsonSubTypes.Type(value = EntityReplaceEvent::class),
         JsonSubTypes.Type(value = EntityDeleteEvent::class),
         JsonSubTypes.Type(value = AttributeAppendEvent::class),
         JsonSubTypes.Type(value = AttributeReplaceEvent::class),
         JsonSubTypes.Type(value = AttributeUpdateEvent::class),
-        JsonSubTypes.Type(value = AttributeDeleteEvent::class),
-        JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class)
+        JsonSubTypes.Type(value = AttributeDeleteEvent::class)
     ]
 )
 sealed class EntityEvent(
@@ -74,10 +73,11 @@ data class EntityDeleteEvent(
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
     // null only when in the case of an IAM event (previous state is not known)
-    val deletedEntity: String?,
+    val previousEntity: String?,
+    val updatedEntity: String,
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantName, entityId, entityTypes, contexts) {
-    override fun getEntity() = this.deletedEntity
+    override fun getEntity() = this.previousEntity
 }
 
 @JsonTypeName("ATTRIBUTE_APPEND")
@@ -88,7 +88,6 @@ data class AttributeAppendEvent(
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
-    val overwrite: Boolean = true,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
@@ -144,20 +143,6 @@ data class AttributeDeleteEvent(
     override fun getAttribute() = this.attributeName
 }
 
-@JsonTypeName("ATTRIBUTE_DELETE_ALL_INSTANCES")
-data class AttributeDeleteAllInstancesEvent(
-    override val sub: String?,
-    override val tenantName: String = DEFAULT_TENANT_NAME,
-    override val entityId: URI,
-    override val entityTypes: List<ExpandedTerm>,
-    val attributeName: ExpandedTerm,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, tenantName, entityId, entityTypes, contexts) {
-    override fun getEntity() = this.updatedEntity
-    override fun getAttribute() = this.attributeName
-}
-
 enum class EventsType {
     ENTITY_CREATE,
     ENTITY_REPLACE,
@@ -165,8 +150,7 @@ enum class EventsType {
     ATTRIBUTE_APPEND,
     ATTRIBUTE_REPLACE,
     ATTRIBUTE_UPDATE,
-    ATTRIBUTE_DELETE,
-    ATTRIBUTE_DELETE_ALL_INSTANCES
+    ATTRIBUTE_DELETE
 }
 
 fun unhandledOperationType(operationType: EventsType): String = "Entity event $operationType not handled."

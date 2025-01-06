@@ -3,6 +3,8 @@ package com.egm.stellio.search.entity.listener
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.APIException
@@ -120,9 +122,14 @@ class ObservationEventListener(
                     entityEventService.publishAttributeChangeEvents(
                         observationEvent.sub,
                         observationEvent.entityId,
-                        expandedAttribute.toExpandedAttributes(),
-                        it,
-                        false
+                        listOf(
+                            SucceededAttributeOperationResult(
+                                observationEvent.attributeName,
+                                observationEvent.datasetId,
+                                OperationStatus.UPDATED,
+                                expandedAttribute.toExpandedAttributes()
+                            )
+                        )
                     )
                 }
             }
@@ -143,7 +150,7 @@ class ObservationEventListener(
             entityService.appendAttributes(
                 observationEvent.entityId,
                 expandedAttribute.toExpandedAttributes(),
-                !observationEvent.overwrite,
+                false,
                 observationEvent.sub
             ).map {
                 if (it.notUpdated.isNotEmpty()) {
@@ -157,9 +164,14 @@ class ObservationEventListener(
                     entityEventService.publishAttributeChangeEvents(
                         observationEvent.sub,
                         observationEvent.entityId,
-                        expandedAttribute.toExpandedAttributes(),
-                        it,
-                        observationEvent.overwrite
+                        listOf(
+                            SucceededAttributeOperationResult(
+                                observationEvent.attributeName,
+                                observationEvent.datasetId,
+                                OperationStatus.APPENDED,
+                                expandedAttribute.toExpandedAttributes()
+                            )
+                        )
                     )
                 }
             }

@@ -29,6 +29,7 @@ class EntityTypeService(
             """
             SELECT DISTINCT(unnest(types)) as type
             FROM entity_payload
+            WHERE deleted_at IS NULL
             ORDER BY type
             """.trimIndent()
         ).allToMappedList { rowToType(it) }
@@ -41,7 +42,10 @@ class EntityTypeService(
             """
             SELECT unnest(types) as type, attribute_name
             FROM entity_payload
-            JOIN temporal_entity_attribute ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+            JOIN temporal_entity_attribute 
+                ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+                AND temporal_entity_attribute.deleted_at IS NULL
+            WHERE entity_payload.deleted_at IS NULL
             ORDER BY type
             """.trimIndent()
         ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()
@@ -65,10 +69,12 @@ class EntityTypeService(
                 SELECT entity_id
                 FROM entity_payload 
                 WHERE :type_name = any (types)
+                AND deleted_at IS NULL
             )    
             SELECT attribute_name, attribute_type, (select count(entity_id) from entities) as entity_count
             FROM temporal_entity_attribute
             WHERE entity_id IN (SELECT entity_id FROM entities)
+            AND deleted_at IS NULL
             GROUP BY attribute_name, attribute_type
             """.trimIndent()
         )

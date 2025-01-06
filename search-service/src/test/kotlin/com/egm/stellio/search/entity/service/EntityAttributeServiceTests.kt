@@ -4,7 +4,9 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.getSucceededOperations
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -18,8 +20,10 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -56,7 +60,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     @SpykBean
@@ -260,6 +264,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
@@ -387,12 +394,12 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             createdAt,
             null,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(6, updatedDetails.size)
-            assertEquals(4, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
-            assertEquals(2, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }.size)
-            val newAttributes = updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.APPENDED }
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(6, successfulOperations.size)
+            assertEquals(4, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+            assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }.size)
+            val newAttributes = successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }
                 .map { it.attributeName }
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
@@ -454,10 +461,10 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             createdAt,
             observedAt,
             null
-        ).shouldSucceedWith { updateResult ->
-            val updatedDetails = updateResult.updated
-            assertEquals(1, updatedDetails.size)
-            assertEquals(1, updatedDetails.filter { it.updateOperationResult == UpdateOperationResult.UPDATED }.size)
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
         }
 
         coVerify(exactly = 1) {
@@ -473,10 +480,148 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `it should delete an attribute in merge operation if its value is NGSI-LD null`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val createdAt = ngsiLdDateTime()
+        val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null.json")
+        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
+        entityAttributeService.mergeAttributes(
+            beehiveTestCId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            createdAt,
+            null,
+            null
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
+        }
+
+        coVerify(exactly = 1) {
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                NGSILD_NULL,
+                createdAt,
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
+            )
+        }
+    }
+
+    @Test
+    fun `it should delete an attribute in update operation if its value is NGSI-LD null`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val createdAt = ngsiLdDateTime()
+        val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null.json")
+        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
+        entityAttributeService.updateAttributes(
+            beehiveTestCId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            createdAt,
+            null
+        ).shouldSucceedWith { operationResults ->
+            val successfulOperations = operationResults.getSucceededOperations()
+            assertEquals(1, successfulOperations.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
+        }
+
+        coVerify(exactly = 1) {
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                NGSILD_NULL,
+                createdAt,
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
+            )
+        }
+    }
+
+    @Test
+    fun `it should delete an attribute in partial attribute update operation if its value is NGSI-LD null`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val createdAt = ngsiLdDateTime()
+        val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null_fragment.json")
+        val expandedAttribute = expandAttribute(INCOMING_PROPERTY, propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        entityAttributeService.partialUpdateAttribute(
+            beehiveTestCId,
+            expandedAttribute,
+            createdAt,
+            null
+        ).shouldSucceedWith { operationResult ->
+            assertEquals(OperationStatus.DELETED, operationResult.operationStatus)
+        }
+
+        coVerify(exactly = 1) {
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                NGSILD_NULL,
+                createdAt,
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
+            )
+        }
+    }
+
+    @Test
     fun `it should replace an entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
@@ -526,11 +671,9 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             expandedAttribute,
             replacedAt,
             null
-        ).shouldSucceedWith {
-            assertTrue(it.updated.isEmpty())
-            assertEquals(1, it.notUpdated.size)
-            val notUpdatedDetails = it.notUpdated.first()
-            assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", notUpdatedDetails.attributeName)
+        ).shouldSucceedWith { operationResult ->
+            assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
+            assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", operationResult.attributeName)
         }
     }
 
@@ -581,34 +724,57 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
-    fun `it should delete a temporal attribute references`() = runTest {
+    fun `it should flag and audit a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
+        val deletedAt = ngsiLdDateTime()
         entityAttributeService.deleteAttribute(
             beehiveTestDId,
             INCOMING_PROPERTY,
-            null
+            null,
+            false,
+            deletedAt
         ).shouldSucceed()
 
         coVerify {
-            attributeInstanceService.deleteInstancesOfAttribute(eq(beehiveTestDId), eq(INCOMING_PROPERTY), null)
+            attributeInstanceService.addDeletedAttributeInstance(
+                any(),
+                NGSILD_NULL,
+                deletedAt,
+                expandAttribute(
+                    INCOMING_PROPERTY,
+                    """
+                        {
+                            "type": "Property",
+                            "value": "urn:ngsi-ld:null"
+                        }
+                    """.trimIndent(),
+                    NGSILD_TEST_CORE_CONTEXTS
+                ).second[0]
+            )
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_PROPERTY)
-            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+            .shouldSucceedWith {
+                assertEquals(deletedAt, it.deletedAt)
+            }
     }
 
     @Test
-    fun `it should delete references of all temporal attribute instances`() = runTest {
+    fun `it should flag and audit all instances of a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { attributeInstanceService.deleteAllInstancesOfAttribute(any(), any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
@@ -616,15 +782,86 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
             beehiveTestCId,
             INCOMING_PROPERTY,
             null,
-            deleteAll = true
+            deleteAll = true,
+            ngsiLdDateTime()
         ).shouldSucceed()
 
-        coVerify {
-            attributeInstanceService.deleteAllInstancesOfAttribute(eq(beehiveTestCId), eq(INCOMING_PROPERTY))
+        coVerify(exactly = 2) {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `it should flag and audit all deleted attributes of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.deleteAttributes(
+            beehiveTestCId,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        coVerify(exactly = 4) {
+            attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
+        }
+
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+            .shouldSucceedWith { assertTrue(it.deletedAt != null) }
+    }
+
+    @Test
+    fun `it should permanently delete an attribute of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfAttribute(any(), any(), any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.permanentlyDeleteAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY,
+            null,
+            false
+        ).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteInstancesOfAttribute(beehiveTestCId, INCOMING_PROPERTY, null)
+        }
+
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `it should permanently delete all attribute of an entity`() = runTest {
+        val rawEntity = loadSampleData("beehive.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+        coEvery { attributeInstanceService.deleteInstancesOfEntity(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
+
+        entityAttributeService.permanentlyDeleteAttributes(beehiveTestCId).shouldSucceed()
+
+        coVerify {
+            attributeInstanceService.deleteInstancesOfEntity(
+                match { it.size == 4 }
+            )
+        }
+
+        entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet()).also {
+            assertTrue(it.isEmpty())
+        }
     }
 
     @Test

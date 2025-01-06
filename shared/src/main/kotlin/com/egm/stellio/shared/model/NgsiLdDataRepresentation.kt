@@ -31,9 +31,9 @@ data class NgsiLdDataRepresentation(
             val optionsParam = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             val formatParam = queryParams.getFirst(QueryParameter.FORMAT.key)
             val attributeRepresentation = when {
-                formatParam.equals(FormatValue.KEY_VALUES.value) ||
-                    formatParam.equals(FormatValue.SIMPLIFIED.value) -> AttributeRepresentation.SIMPLIFIED
-                formatParam.equals(FormatValue.NORMALIZED.value) -> AttributeRepresentation.NORMALIZED
+                formatParam == FormatValue.KEY_VALUES.value ||
+                    formatParam == FormatValue.SIMPLIFIED.value -> AttributeRepresentation.SIMPLIFIED
+                formatParam == FormatValue.NORMALIZED.value -> AttributeRepresentation.NORMALIZED
                 optionsParam.contains(FormatValue.KEY_VALUES.value) ||
                     optionsParam.contains(FormatValue.SIMPLIFIED.value) -> AttributeRepresentation.SIMPLIFIED
                 else -> AttributeRepresentation.NORMALIZED

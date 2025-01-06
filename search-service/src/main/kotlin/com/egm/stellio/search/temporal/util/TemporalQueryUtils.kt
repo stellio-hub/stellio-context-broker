@@ -43,39 +43,22 @@ fun composeTemporalEntitiesQueryFromGet(
         requestParams,
         contexts
     ).bind()
-    var withTemporalValues = false
-    var withAggregatedValues = false
     if (inQueryEntities) {
         entitiesQueryFromGet.validateMinimalQueryEntitiesParameters().bind()
     }
-    val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
-    val formatParam = requestParams.getFirst(QueryParameter.FORMAT.key)
-    when (formatParam) {
-        FormatValue.TEMPORAL_VALUES.value -> withTemporalValues = true
-        FormatValue.AGGREGATED_VALUES.value -> withAggregatedValues = true
-        else -> {
-            val hasTemporal = hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
-            val hasAggregated = hasValueInQueryParam(optionsParam, QueryParamValue.AGGREGATED_VALUES)
-            if (hasTemporal && hasAggregated) {
-                return BadRequestDataException("Only one temporal representation can be present").left()
-            }
-            withTemporalValues = hasTemporal
-            withAggregatedValues = hasAggregated
-        }
-    }
+    val temporalRepresentation = extractTemporalRepresentation(requestParams).bind()
     val withAudit = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         QueryParamValue.AUDIT
     )
     val temporalQuery =
-        buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, withAggregatedValues).bind()
+        buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, temporalRepresentation).bind()
 
     TemporalEntitiesQueryFromGet(
         entitiesQuery = entitiesQueryFromGet,
         temporalQuery = temporalQuery,
-        withTemporalValues = withTemporalValues,
-        withAudit = withAudit,
-        withAggregatedValues = withAggregatedValues
+        temporalRepresentation = temporalRepresentation,
+        withAudit = withAudit
     )
 }
 
@@ -91,20 +74,12 @@ fun composeTemporalEntitiesQueryFromPost(
         requestParams,
         contexts
     ).bind()
+    val temporalRepresentation = extractTemporalRepresentation(requestParams).bind()
 
-    val withTemporalValues = hasValueInQueryParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        QueryParamValue.TEMPORAL_VALUES
-    )
     val withAudit = hasValueInQueryParam(
         Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
         QueryParamValue.AUDIT
     )
-    val withAggregatedValues = hasValueInQueryParam(
-        Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key)),
-        QueryParamValue.AGGREGATED_VALUES
-    )
-
     val temporalParams = mapOf(
         QueryParameter.TIMEREL.key to listOf(query.temporalQ?.timerel),
         QueryParameter.TIMEAT.key to listOf(query.temporalQ?.timeAt),
@@ -118,15 +93,14 @@ fun composeTemporalEntitiesQueryFromPost(
         MultiValueMapAdapter(temporalParams),
         defaultPagination,
         true,
-        withAggregatedValues
+        temporalRepresentation
     ).bind()
 
     TemporalEntitiesQueryFromPost(
         entitiesQuery = entitiesQueryFromPost,
         temporalQuery = temporalQuery,
-        withTemporalValues = withTemporalValues,
-        withAudit = withAudit,
-        withAggregatedValues = withAggregatedValues
+        temporalRepresentation = temporalRepresentation,
+        withAudit = withAudit
     )
 }
 
@@ -135,11 +109,12 @@ fun buildTemporalQuery(
     params: MultiValueMap<String, String>,
     pagination: ApplicationProperties.Pagination,
     inQueryEntities: Boolean = false,
-    withAggregatedValues: Boolean = false,
+    temporalRepresentation: TemporalRepresentation,
 ): Either<APIException, TemporalQuery> {
     val timerelParam = params.getFirst(QueryParameter.TIMEREL.key)
     val timeAtParam = params.getFirst(QueryParameter.TIMEAT.key)
     val endTimeAtParam = params.getFirst(QueryParameter.ENDTIMEAT.key)
+    val withAggregatedValues = temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES
     val aggrPeriodDurationParam =
         if (withAggregatedValues)
             params.getFirst(QueryParameter.AGGRPERIODDURATION.key) ?: WHOLE_TIME_RANGE_DURATION
@@ -215,3 +190,30 @@ fun buildTimerelAndTime(
     } else {
         "'timerel' and 'time' must be used in conjunction".left()
     }
+
+fun extractTemporalRepresentation(requestParams: MultiValueMap<String, String>):
+    Either<APIException, TemporalRepresentation> = either {
+    val optionsParam = Optional.ofNullable(requestParams.getFirst(QueryParameter.OPTIONS.key))
+    val formatParam = requestParams.getFirst(QueryParameter.FORMAT.key)
+    return when (formatParam) {
+        FormatValue.TEMPORAL_VALUES.value -> TemporalRepresentation.TEMPORAL_VALUES.right()
+        FormatValue.AGGREGATED_VALUES.value -> TemporalRepresentation.AGGREGATED_VALUES.right()
+        else -> {
+            val hasTemporal = hasValueInQueryParam(optionsParam, QueryParamValue.TEMPORAL_VALUES)
+            val hasAggregated = hasValueInQueryParam(optionsParam, QueryParamValue.AGGREGATED_VALUES)
+            when {
+                hasTemporal && hasAggregated ->
+                    return BadRequestDataException("Only one temporal representation can be present").left()
+                hasTemporal -> TemporalRepresentation.TEMPORAL_VALUES.right()
+                hasAggregated -> TemporalRepresentation.AGGREGATED_VALUES.right()
+                else -> TemporalRepresentation.NONE.right()
+            }
+        }
+    }
+}
+
+enum class TemporalRepresentation {
+    TEMPORAL_VALUES,
+    AGGREGATED_VALUES,
+    NONE
+}

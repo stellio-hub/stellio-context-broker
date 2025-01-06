@@ -56,9 +56,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NONE,
+                withAudit = false
             )
         )
         assertJsonPayloadsAreEqual(
@@ -73,7 +72,7 @@ class TemporalEntityBuilderTests {
     fun `it should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: AttributesWithInstances,
-        withTemporalValues: Boolean,
+        temporalRepresentation: TemporalRepresentation,
         withAudit: Boolean,
         expectation: String
     ) {
@@ -89,9 +88,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                withTemporalValues,
-                withAudit,
-                false
+                temporalRepresentation,
+                withAudit
             )
         )
         assertJsonPayloadsAreEqual(
@@ -105,7 +103,7 @@ class TemporalEntityBuilderTests {
     @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
     fun `it should correctly build temporal entities`(
         entityTemporalResults: List<EntityTemporalResult>,
-        withTemporalValues: Boolean,
+        temporalRepresentation: TemporalRepresentation,
         withAudit: Boolean,
         expectation: String
     ) {
@@ -114,9 +112,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                withTemporalValues,
-                withAudit,
-                false
+                temporalRepresentation,
+                withAudit
             )
         )
         assertJsonPayloadsAreEqual(
@@ -193,9 +190,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             )
         )
 

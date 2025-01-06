@@ -20,6 +20,7 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_TYPE
@@ -91,9 +92,8 @@ class TemporalQueryServiceTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
             )
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
@@ -139,9 +139,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NONE,
+                withAudit = false
             )
         )
 
@@ -172,9 +171,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NONE,
+                withAudit = false
             ),
             emptyList()
         )
@@ -195,9 +193,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             emptyList()
         )
@@ -223,9 +220,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             emptyList()
         )
@@ -274,9 +270,8 @@ class TemporalQueryServiceTests {
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
             )
         )
 
@@ -345,9 +340,8 @@ class TemporalQueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                     aggrMethods = listOf(TemporalQuery.Aggregate.AVG)
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             )
         )
             .fold({

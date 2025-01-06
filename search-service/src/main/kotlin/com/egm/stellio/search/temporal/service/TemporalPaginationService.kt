@@ -5,6 +5,7 @@ import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import java.time.ZonedDateTime
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
@@ -47,12 +48,13 @@ object TemporalPaginationService {
         val temporalQuery = query.temporalQuery
 
         val attributesTimeRanges = attributeInstancesWhoReachedLimit.map {
-            it.first().getComparableTime() to if (query.withAggregatedValues) {
-                val lastInstance = it.last() as AggregatedAttributeInstanceResult
-                lastInstance.values.first().endDateTime
-            } else {
-                it.last().getComparableTime()
-            }
+            it.first().getComparableTime() to
+                if (query.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
+                    val lastInstance = it.last() as AggregatedAttributeInstanceResult
+                    lastInstance.values.first().endDateTime
+                } else {
+                    it.last().getComparableTime()
+                }
         }
 
         if (temporalQuery.hasLastN()) {

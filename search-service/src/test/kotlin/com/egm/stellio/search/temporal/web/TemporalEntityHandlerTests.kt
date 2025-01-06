@@ -8,6 +8,7 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalService.CreateOrUpdateResult
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -494,7 +495,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         ) &&
-                        !temporalEntitiesQuery.withTemporalValues &&
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NONE &&
                         !temporalEntitiesQuery.withAudit
                 },
                 eq(sub.value)
@@ -625,7 +626,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         entitiesQueryFromGet.ids.isEmpty() &&
                         entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        !temporalEntitiesQuery.withTemporalValues
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NONE
                 },
                 any()
             )

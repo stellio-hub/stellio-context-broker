@@ -6,6 +6,7 @@ import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
@@ -73,9 +74,8 @@ class TemporalScopeBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             )
         )
 
@@ -111,9 +111,8 @@ class TemporalScopeBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
             )
         )
 
@@ -151,9 +150,8 @@ class TemporalScopeBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NONE,
+                withAudit = false
             )
         )
 

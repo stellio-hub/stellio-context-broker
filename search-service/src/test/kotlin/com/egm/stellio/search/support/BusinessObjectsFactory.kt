@@ -7,6 +7,7 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
@@ -153,9 +154,8 @@ fun gimmeVocabPropertyAttributeInstance(
 
 fun gimmeTemporalEntitiesQuery(
     temporalQuery: TemporalQuery,
-    withTemporalValues: Boolean = false,
-    withAudit: Boolean = false,
-    withAggregatedValues: Boolean = false
+    temporalRepresentation: TemporalRepresentation,
+    withAudit: Boolean = false
 ): TemporalEntitiesQueryFromGet =
     TemporalEntitiesQueryFromGet(
         entitiesQuery = EntitiesQueryFromGet(
@@ -163,9 +163,8 @@ fun gimmeTemporalEntitiesQuery(
             contexts = APIC_COMPOUND_CONTEXTS
         ),
         temporalQuery = temporalQuery,
-        withTemporalValues = withTemporalValues,
-        withAudit = withAudit,
-        withAggregatedValues = withAggregatedValues
+        temporalRepresentation = temporalRepresentation,
+        withAudit = withAudit
     )
 
 fun buildDefaultQueryParams(): EntitiesQueryFromGet =

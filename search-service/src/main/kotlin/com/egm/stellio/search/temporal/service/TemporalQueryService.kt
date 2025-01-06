@@ -18,6 +18,7 @@ import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPagi
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.search.temporal.web.Range
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -93,7 +94,7 @@ class TemporalQueryService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
 
-        return if (!temporalEntitiesQuery.withAggregatedValues)
+        return if (!(temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES))
             null
         else if (temporalQuery.timeAt != null)
             temporalQuery.timeAt
@@ -198,7 +199,7 @@ class TemporalQueryService(
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
                 // transformed during compaction as it is not done for temporal values, so it is done now
                 if (it.key == Attribute.AttributeValueType.GEOMETRY &&
-                    temporalEntitiesQuery.withTemporalValues
+                    temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
                 ) {
                     it.value.map { attributeInstanceResult ->
                         attributeInstanceResult as SimplifiedAttributeInstanceResult

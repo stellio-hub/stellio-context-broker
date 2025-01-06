@@ -1,7 +1,6 @@
 package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.common.model.Query
-import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
@@ -130,11 +129,11 @@ class TemporalQueryUtilsTests {
 
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
-            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).ids
+            temporalEntitiesQuery.entitiesQuery.ids
         )
         assertEquals(
             "$BEEHIVE_TYPE,$APIARY_TYPE",
-            (temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromGet).typeSelection
+            temporalEntitiesQuery.entitiesQuery.typeSelection
         )
         assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
@@ -145,7 +144,7 @@ class TemporalQueryUtilsTests {
             ),
             temporalEntitiesQuery.temporalQuery
         )
-        assertTrue(temporalEntitiesQuery.withTemporalValues)
+        assertTrue(temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES)
         assertFalse(temporalEntitiesQuery.withAudit)
         assertEquals(10, temporalEntitiesQuery.entitiesQuery.paginationQuery.limit)
         assertEquals(2, temporalEntitiesQuery.entitiesQuery.paginationQuery.offset)
@@ -249,7 +248,12 @@ class TemporalQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            buildDefaultPagination(),
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.instanceLimit)
         assertEquals(2, temporalQuery.lastN)
@@ -262,7 +266,12 @@ class TemporalQueryUtilsTests {
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
         val pagination = buildDefaultPagination()
-        val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            pagination,
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
         assertNull(temporalQuery.lastN)
@@ -276,7 +285,12 @@ class TemporalQueryUtilsTests {
         queryParams.add("lastN", "-2")
         val pagination = buildDefaultPagination()
 
-        val temporalQuery = buildTemporalQuery(queryParams, pagination).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            pagination,
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
         assertNull(temporalQuery.lastN)
@@ -286,7 +300,12 @@ class TemporalQueryUtilsTests {
     fun `it should treat time and timerel properties as optional in a temporal query`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            buildDefaultPagination(),
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertNull(temporalQuery.timeAt)
         assertNull(temporalQuery.timerel)
@@ -297,7 +316,12 @@ class TemporalQueryUtilsTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "createdAt")
 
-        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            buildDefaultPagination(),
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
     }
@@ -306,7 +330,12 @@ class TemporalQueryUtilsTests {
     fun `it should set timeproperty to observedAt if no value is provided in query parameters`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, buildDefaultPagination()).shouldSucceedAndResult()
+        val temporalQuery = buildTemporalQuery(
+            queryParams,
+            buildDefaultPagination(),
+            false,
+            TemporalRepresentation.NONE
+        ).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
     }

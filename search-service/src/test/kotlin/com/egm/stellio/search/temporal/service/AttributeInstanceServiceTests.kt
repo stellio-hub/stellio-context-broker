@@ -200,7 +200,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -225,7 +226,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -250,7 +252,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -275,7 +278,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -294,7 +298,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -310,7 +315,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         attributeInstanceService.search(
-            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery()),
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.NONE),
             incomingAttribute
         )
             .shouldSucceedWith {
@@ -410,7 +415,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("2022-07-01T00:00:00Z"),
                 instanceLimit = 5
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
@@ -436,7 +442,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timeAt = ZonedDateTime.parse("2022-07-01T00:00:00Z"),
                 endTimeAt = ZonedDateTime.parse("2022-07-05T00:00:00Z"),
                 instanceLimit = 5
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
@@ -463,7 +470,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timeAt = now.minusHours(1),
                 instanceLimit = 5,
                 lastN = 5
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -525,7 +533,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith { results ->
@@ -547,7 +556,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(
             temporalEntitiesQuery,
@@ -568,7 +578,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.plusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -809,7 +820,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.modifyAttributeInstance(
@@ -847,7 +859,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.modifyAttributeInstance(
@@ -886,7 +899,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.modifyAttributeInstance(
@@ -930,7 +944,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.modifyAttributeInstance(
@@ -969,7 +984,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         ).shouldSucceed()
 
         attributeInstanceService.search(
-            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery()),
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.NONE),
             incomingAttribute
         )
             .shouldSucceedWith {
@@ -1043,7 +1058,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith { assertThat(it).isEmpty() }
@@ -1053,7 +1069,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1),
                 timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
-            )
+            ),
+            TemporalRepresentation.NONE
         )
 
         attributeInstanceService.search(temporalEntitiesAuditQuery, incomingAttribute)
@@ -1079,7 +1096,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, outgoingAttribute)
             .shouldSucceedWith { assertThat(it).hasSize(5) }
@@ -1106,7 +1124,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             buildDefaultTestTemporalQuery(
                 timerel = Timerel.AFTER,
                 timeAt = now.minusHours(1)
-            )
+            ),
+            TemporalRepresentation.NONE
         )
         attributeInstanceService.search(temporalEntitiesQuery, outgoingAttribute)
             .shouldSucceedWith { assertThat(it).hasSize(5) }

@@ -38,11 +38,10 @@ class EntityQueryService(
         entityId: URI,
         sub: Sub? = null
     ): Either<APIException, ExpandedEntity> = either {
-        checkEntityExistence(entityId).bind()
+        val entity = retrieve(entityId).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
-        val entityPayload = retrieve(entityId).bind()
-        toJsonLdEntity(entityPayload)
+        toJsonLdEntity(entity)
     }
 
     suspend fun queryEntities(
@@ -228,15 +227,16 @@ class EntityQueryService(
         return entitySelectorFilter?.joinToString(separator = " OR ") ?: " 1 = 1 "
     }
 
-    suspend fun retrieve(entityId: URI): Either<APIException, Entity> =
+    suspend fun retrieve(entityId: URI, allowDeleted: Boolean = false): Either<APIException, Entity> =
         databaseClient.sql(
             """
             SELECT * from entity_payload
             WHERE entity_id = :entity_id
+            ${if (!allowDeleted) " and deleted_at is null " else ""}
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .oneToResult { it.rowToEntity() }
+            .oneToResult(ResourceNotFoundException(entityNotFoundMessage(entityId.toString()))) { it.rowToEntity() }
 
     suspend fun retrieve(entitiesIds: List<URI>): List<Entity> =
         databaseClient.sql(

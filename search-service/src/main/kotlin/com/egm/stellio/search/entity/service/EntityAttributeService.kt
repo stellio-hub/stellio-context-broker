@@ -22,11 +22,11 @@ import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.EntitiesQuery
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
-import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.util.guessAttributeValueType
 import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
@@ -48,6 +48,7 @@ import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flatOnInstances
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getDatasetId
@@ -83,7 +84,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.*
-import kotlin.collections.map
 
 @Service
 class EntityAttributeService(
@@ -204,40 +204,39 @@ class EntityAttributeService(
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
         sub: Sub?
-    ): Either<APIException, Unit> =
-        either {
-            logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
-            val attribute = Attribute(
-                entityId = entityId,
-                attributeName = attributeName,
-                attributeType = attributeMetadata.type,
-                attributeValueType = attributeMetadata.valueType,
-                datasetId = attributeMetadata.datasetId,
-                createdAt = createdAt,
-                payload = Json.of(serializeObject(attributePayload))
-            )
-            create(attribute).bind()
+    ): Either<APIException, Unit> = either {
+        logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
+        val attribute = Attribute(
+            entityId = entityId,
+            attributeName = attributeName,
+            attributeType = attributeMetadata.type,
+            attributeValueType = attributeMetadata.valueType,
+            datasetId = attributeMetadata.datasetId,
+            createdAt = createdAt,
+            payload = Json.of(serializeObject(attributePayload))
+        )
+        create(attribute).bind()
 
-            val attributeInstance = AttributeInstance(
+        val attributeInstance = AttributeInstance(
+            attributeUuid = attribute.id,
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = createdAt,
+            attributeMetadata = attributeMetadata,
+            payload = attributePayload,
+            sub = sub
+        )
+        attributeInstanceService.create(attributeInstance).bind()
+
+        if (attributeMetadata.observedAt != null) {
+            val attributeObservedAtInstance = AttributeInstance(
                 attributeUuid = attribute.id,
-                timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
-                time = createdAt,
+                time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
-                payload = attributePayload,
-                sub = sub
+                payload = attributePayload
             )
-            attributeInstanceService.create(attributeInstance).bind()
-
-            if (attributeMetadata.observedAt != null) {
-                val attributeObservedAtInstance = AttributeInstance(
-                    attributeUuid = attribute.id,
-                    time = attributeMetadata.observedAt,
-                    attributeMetadata = attributeMetadata,
-                    payload = attributePayload
-                )
-                attributeInstanceService.create(attributeObservedAtInstance).bind()
-            }
+            attributeInstanceService.create(attributeObservedAtInstance).bind()
         }
+    }
 
     @Transactional
     suspend fun replaceAttribute(
@@ -310,59 +309,75 @@ class EntityAttributeService(
         datasetId: URI?,
         deleteAll: Boolean = false,
         deletedAt: ZonedDateTime
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
                 getForEntity(entityId, setOf(attributeName), emptySet())
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
+
         deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
+            .map { expandedAttributeInstance ->
+                SucceededAttributeOperationResult(
+                    attributeName,
+                    datasetId,
+                    OperationStatus.DELETED,
+                    expandedAttributeInstance
+                )
+            }
     }
 
     @Transactional
     internal suspend fun deleteSelectedAttributes(
         attributesToDelete: List<Attribute>,
         deletedAt: ZonedDateTime
-    ): Either<APIException, Unit> = either {
-        if (attributesToDelete.isEmpty()) return Unit.right()
+    ): Either<APIException, List<ExpandedAttributeInstance>> = either {
+        if (attributesToDelete.isEmpty()) return emptyList<ExpandedAttributeInstance>().right()
         val attributesToDeleteWithPayload = attributesToDelete.map {
-            Triple(
+            Pair(
                 it,
-                deletedAt,
                 JsonLdUtils.expandAttribute(
                     it.attributeName,
-                    it.attributeType.toNullCompactedRepresentation(),
+                    it.attributeType.toNullCompactedRepresentation(it.datasetId),
                     listOf(applicationProperties.contexts.core)
                 ).second[0]
             )
         }
 
-        databaseClient.sql(
+        val teasTimestamps = databaseClient.sql(
             """
             UPDATE temporal_entity_attribute
             SET deleted_at = new.deleted_at,
                 payload = new.payload
             FROM (VALUES :values) AS new(uuid, deleted_at, payload)
             WHERE temporal_entity_attribute.id = new.uuid
+            RETURNING id, created_at, modified_at, new.deleted_at
             """.trimIndent()
         )
-            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, it.second, it.third.toJson()) })
-            .allToMappedList {
-                Triple(
-                    toUuid(it["id"]),
-                    Attribute.AttributeType.valueOf(it["attribute_type"] as String),
-                    it["attribute_name"] as String
+            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.toJson()) })
+            .allToMappedList { row ->
+                mapOf(
+                    toUuid(row["id"]) to Triple(
+                        toZonedDateTime(row["created_at"]),
+                        toOptionalZonedDateTime(row["modified_at"]),
+                        toZonedDateTime(row["deleted_at"])
+                    )
                 )
             }
 
-        attributesToDeleteWithPayload.forEach { (attribute, deletedAt, expandedAttributePayload) ->
+        attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
                 value = attribute.attributeType.toNullValue(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
+        }
+
+        attributesToDeleteWithPayload.map { (attribute, expandedAttributeInstance) ->
+            val teaTimestamps = teasTimestamps.find { it.containsKey(attribute.id) }!!.values.first()
+            expandedAttributeInstance.addSysAttrs(true, teaTimestamps.first, teaTimestamps.second, teaTimestamps.third)
         }
     }
 
@@ -588,7 +603,7 @@ class EntityAttributeService(
         disallowOverwrite: Boolean,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -609,20 +624,20 @@ class EntityAttributeService(
                     attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.APPENDED
+                        OperationStatus.APPENDED,
+                        attributePayload
                     )
                 }.bind()
             } else if (disallowOverwrite) {
-                val message = "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
-                logger.info(message)
-                UpdateAttributeResult(
+                logger.info("Attribute already exists on $entityUri and overwrite is not allowed, ignoring")
+                SucceededAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.IGNORED,
-                    message
+                    OperationStatus.IGNORED,
+                    attributePayload
                 ).right().bind()
             } else {
                 replaceAttribute(
@@ -633,15 +648,16 @@ class EntityAttributeService(
                     attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.REPLACED
+                        OperationStatus.REPLACED,
+                        attributePayload
                     )
                 }.bind()
             }
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun updateAttributes(
@@ -650,7 +666,7 @@ class EntityAttributeService(
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Updating attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -672,10 +688,11 @@ class EntityAttributeService(
                     attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.APPENDED
+                        OperationStatus.APPENDED,
+                        attributePayload
                     )
                 }.bind()
             } else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType)) {
@@ -685,29 +702,26 @@ class EntityAttributeService(
                     ngsiLdAttributeInstance.datasetId,
                     false,
                     createdAt
-                ).map {
-                    UpdateAttributeResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.DELETED
-                    )
-                }.bind()
+                ).bind().first()
             } else {
-                partialUpdateAttribute(
-                    entityUri,
-                    Pair(ngsiLdAttribute.name, listOf(attributePayload)),
+                replaceAttribute(
+                    currentAttribute,
+                    ngsiLdAttribute,
+                    attributeMetadata,
                     createdAt,
+                    attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.REPLACED
+                        OperationStatus.REPLACED,
+                        attributePayload
                     )
                 }.bind()
             }
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun partialUpdateAttribute(
@@ -715,19 +729,19 @@ class EntityAttributeService(
         expandedAttribute: ExpandedAttribute,
         modifiedAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, AttributeOperationResult> = either {
         val attributeName = expandedAttribute.first
         val attributeValues = expandedAttribute.second[0]
         logger.debug("Partial updating attribute {} in entity {}", attributeName, entityId)
 
         val datasetId = attributeValues.getDatasetId()
         val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
-        val updateAttributeResult =
+        val attributeOperationResult =
             if (currentAttribute == null) {
-                UpdateAttributeResult(
+                FailedAttributeOperationResult(
                     attributeName,
                     datasetId,
-                    UpdateOperationResult.FAILED,
+                    OperationStatus.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             } else if (hasNgsiLdNullValue(attributeValues, currentAttribute.attributeType)) {
@@ -737,13 +751,7 @@ class EntityAttributeService(
                     datasetId,
                     false,
                     modifiedAt
-                ).map {
-                    UpdateAttributeResult(
-                        attributeName,
-                        datasetId,
-                        UpdateOperationResult.DELETED
-                    )
-                }.bind()
+                ).bind().first()
             } else {
                 // first update payload in temporal entity attribute
                 val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
@@ -768,14 +776,15 @@ class EntityAttributeService(
                 )
                 attributeInstanceService.create(attributeInstance).bind()
 
-                UpdateAttributeResult(
+                SucceededAttributeOperationResult(
                     attributeName,
                     datasetId,
-                    UpdateOperationResult.UPDATED
+                    OperationStatus.UPDATED,
+                    updatedAttributeInstance
                 )
             }
 
-        updateResultFromDetailedResult(listOf(updateAttributeResult))
+        attributeOperationResult
     }
 
     @Transactional
@@ -829,7 +838,7 @@ class EntityAttributeService(
         createdAt: ZonedDateTime,
         observedAt: ZonedDateTime?,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Merging attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -851,10 +860,11 @@ class EntityAttributeService(
                     attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.APPENDED
+                        OperationStatus.APPENDED,
+                        attributePayload
                     )
                 }.bind()
             else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType))
@@ -864,13 +874,7 @@ class EntityAttributeService(
                     ngsiLdAttributeInstance.datasetId,
                     false,
                     createdAt
-                ).map {
-                    UpdateAttributeResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.DELETED
-                    )
-                }.bind()
+                ).bind().first()
             else
                 mergeAttribute(
                     currentAttribute,
@@ -881,14 +885,15 @@ class EntityAttributeService(
                     attributePayload,
                     sub
                 ).map {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        UpdateOperationResult.UPDATED
+                        OperationStatus.UPDATED,
+                        attributePayload
                     )
                 }.bind()
         }
-    }.fold({ it.left() }, { updateResultFromDetailedResult(it).right() })
+    }.fold({ it.left() }, { it.right() })
 
     @Transactional
     suspend fun replaceAttribute(
@@ -897,19 +902,19 @@ class EntityAttributeService(
         expandedAttribute: ExpandedAttribute,
         replacedAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, UpdateResult> = either {
+    ): Either<APIException, AttributeOperationResult> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeName = ngsiLdAttribute.name
         val datasetId = ngsiLdAttributeInstance.datasetId
         val currentTea =
             getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
         val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
-        val updateAttributeResult =
+        val attributeOperationResult =
             if (currentTea == null) {
-                UpdateAttributeResult(
+                FailedAttributeOperationResult(
                     attributeName,
                     datasetId,
-                    UpdateOperationResult.FAILED,
+                    OperationStatus.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             } else {
@@ -922,14 +927,15 @@ class EntityAttributeService(
                     sub
                 ).bind()
 
-                UpdateAttributeResult(
+                SucceededAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
-                    UpdateOperationResult.REPLACED
+                    OperationStatus.REPLACED,
+                    expandedAttribute.second.first()
                 )
             }
 
-        updateResultFromDetailedResult(listOf(updateAttributeResult))
+        attributeOperationResult
     }
 
     suspend fun getValueFromPartialAttributePayload(

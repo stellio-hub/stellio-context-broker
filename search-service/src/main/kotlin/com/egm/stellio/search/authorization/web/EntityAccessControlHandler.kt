@@ -4,10 +4,11 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.authorization.service.EntityAccessRightsService
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -257,24 +258,24 @@ class EntityAccessControlHandler(
                 AccessRight.forAttributeName(ngsiLdRel.name).getOrNull()!!
             ).fold(
                 ifLeft = { apiException ->
-                    UpdateAttributeResult(
+                    FailedAttributeOperationResult(
                         ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
-                        UpdateOperationResult.FAILED,
+                        OperationStatus.FAILED,
                         apiException.message
                     )
                 },
                 ifRight = {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
-                        UpdateOperationResult.APPENDED,
-                        null
+                        OperationStatus.APPENDED,
+                        emptyMap()
                     )
                 }
             )
         }
-        val appendResult = updateResultFromDetailedResult(results)
+        val appendResult = UpdateResult(results)
 
         if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

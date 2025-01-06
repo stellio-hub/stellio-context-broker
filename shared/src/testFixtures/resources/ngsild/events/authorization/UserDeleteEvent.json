@@ -3,6 +3,7 @@
   "tenantName": "urn:ngsi-ld:tenant:default",
   "entityId":  "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
   "entityTypes": ["User"],
+  "updatedEntity": "{ \"https://uri.etsi.org/ngsi-ld/deletedAt\": [{ \"@type\": \"https://uri.etsi.org/ngsi-ld/DateTime\",\"@value\": \"2024-12-29T00:00:00Z\"} ], \"@id\": \"urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0\" }]",
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ]

@@ -8,6 +8,5 @@
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ],
-  "overwrite": true,
   "operationType": "ATTRIBUTE_APPEND"
 }

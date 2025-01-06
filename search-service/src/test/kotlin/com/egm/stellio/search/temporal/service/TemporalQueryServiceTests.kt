@@ -83,7 +83,7 @@ class TemporalQueryServiceTests {
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {
         coEvery {
-            entityQueryService.checkEntityExistence(any())
+            entityQueryService.retrieve(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         temporalQueryService.queryTemporalEntity(
@@ -116,10 +116,9 @@ class TemporalQueryServiceTests {
                 )
             }
 
-        coEvery { entityQueryService.checkEntityExistence(any()) } returns Unit.right()
+        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
-        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
@@ -147,7 +146,7 @@ class TemporalQueryServiceTests {
         )
 
         coVerify {
-            entityQueryService.checkEntityExistence(entityUri)
+            entityQueryService.retrieve(entityUri)
             authorizationService.userCanReadEntity(entityUri, None)
             entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
             attributeInstanceService.search(

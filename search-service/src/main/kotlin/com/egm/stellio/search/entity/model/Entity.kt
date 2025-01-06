@@ -23,6 +23,7 @@ data class Entity(
     val scopes: List<String>? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime? = null,
+    val deletedAt: ZonedDateTime? = null,
     val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
 ) {
@@ -47,17 +48,19 @@ data class Entity(
         return resultEntity
     }
 
-    companion object {
-
-        fun toExpandedDeletedEntity(
-            entityId: URI,
-            deletedAt: ZonedDateTime
-        ): ExpandedEntity =
-            ExpandedEntity(
-                members = mapOf(
-                    JSONLD_ID to entityId,
-                    NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt)
-                )
-            )
-    }
+    fun toExpandedDeletedEntity(
+        deletedAt: ZonedDateTime
+    ): ExpandedEntity =
+        ExpandedEntity(
+            members = mapOf(
+                JSONLD_ID to entityId,
+                JSONLD_TYPE to types,
+                NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
+                NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
+            ).run {
+                if (modifiedAt != null)
+                    this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                else this
+            }
+        )
 }

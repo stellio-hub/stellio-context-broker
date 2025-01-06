@@ -1,6 +1,5 @@
 package com.egm.stellio.search.entity.model
 
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -9,15 +8,15 @@ class UpdateResultTests {
 
     @Test
     fun `it should find the successful update operation results`() {
-        assertTrue(UpdateOperationResult.UPDATED.isSuccessResult())
-        assertTrue(UpdateOperationResult.APPENDED.isSuccessResult())
-        assertTrue(UpdateOperationResult.REPLACED.isSuccessResult())
+        assertTrue(OperationStatus.UPDATED.isSuccessResult())
+        assertTrue(OperationStatus.APPENDED.isSuccessResult())
+        assertTrue(OperationStatus.REPLACED.isSuccessResult())
+        assertTrue(OperationStatus.IGNORED.isSuccessResult())
     }
 
     @Test
     fun `it should find the failed update operation results`() {
-        assertFalse(UpdateOperationResult.FAILED.isSuccessResult())
-        assertFalse(UpdateOperationResult.IGNORED.isSuccessResult())
+        assertFalse(OperationStatus.FAILED.isSuccessResult())
     }
 
     @Test
@@ -25,9 +24,7 @@ class UpdateResultTests {
         val updateResult =
             UpdateResult(
                 notUpdated = emptyList(),
-                updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), UpdateOperationResult.UPDATED)
-                )
+                updated = listOf("attributeName")
             )
 
         assertTrue(updateResult.isSuccessful())
@@ -37,12 +34,8 @@ class UpdateResultTests {
     fun `it should find a failed update result if there is one not updated attribute`() {
         val updateResult =
             UpdateResult(
-                notUpdated = listOf(
-                    NotUpdatedDetails("attributeName", "attribute is malformed")
-                ),
-                updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), UpdateOperationResult.UPDATED)
-                )
+                notUpdated = listOf(NotUpdatedDetails("attributeName", "attribute is malformed")),
+                updated = listOf("attributeName")
             )
 
         assertFalse(updateResult.isSuccessful())
@@ -52,11 +45,10 @@ class UpdateResultTests {
     fun `it should find a failed update result if an attribute update has failed`() {
         val updateResult =
             UpdateResult(
-                notUpdated = emptyList(),
-                updated = listOf(
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), UpdateOperationResult.UPDATED),
-                    UpdatedDetails("attributeName", "urn:ngsi-ld:Entity:01".toUri(), UpdateOperationResult.FAILED)
-                )
+                notUpdated = listOf(
+                    NotUpdatedDetails("failedAttributeName", "attribute does not exist")
+                ),
+                updated = listOf("succeededAttributeName")
             )
 
         assertFalse(updateResult.isSuccessful())

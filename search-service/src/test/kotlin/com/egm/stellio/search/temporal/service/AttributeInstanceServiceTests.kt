@@ -742,7 +742,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
         )
-        val deletedAt = ngsiLdDateTime()
+        val deletedAt = ZonedDateTime.parse("2025-01-02T11:20:30.000001Z")
         val attributeValues = mapOf(
             NGSILD_DELETED_AT_PROPERTY to listOf(
                 mapOf(
@@ -767,14 +767,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         verify {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
-                    it.time == deletedAt &&
+                    it.time.toString() == "2025-01-02T11:20:30.000001Z" &&
                         it.value == "urn:ngsi-ld:null" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
                             {
                                 "https://uri.etsi.org/ngsi-ld/deletedAt":[{
-                                    "@value":"$deletedAt",
+                                    "@value":"2025-01-02T11:20:30.000001Z",
                                     "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/hasValue":[{

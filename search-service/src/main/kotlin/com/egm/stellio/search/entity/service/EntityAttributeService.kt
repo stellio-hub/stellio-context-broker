@@ -95,7 +95,7 @@ class EntityAttributeService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    suspend fun create(attribute: Attribute): Either<APIException, Unit> =
+    suspend fun create(attribute: Attribute): Either<APIException, UUID> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
@@ -110,6 +110,7 @@ class EntityAttributeService(
                     attribute_value_type = :attribute_value_type,
                     modified_at = :created_at,
                     payload = :payload
+            RETURNING id
             """.trimIndent()
         )
             .bind("id", attribute.id)
@@ -120,7 +121,7 @@ class EntityAttributeService(
             .bind("created_at", attribute.createdAt)
             .bind("dataset_id", attribute.datasetId)
             .bind("payload", attribute.payload)
-            .execute()
+            .oneToResult { row -> toUuid(row["id"]) }
 
     @Transactional
     suspend fun updateOnUpdate(
@@ -215,10 +216,10 @@ class EntityAttributeService(
             createdAt = createdAt,
             payload = Json.of(serializeObject(attributePayload))
         )
-        create(attribute).bind()
+        val attributeUuid = create(attribute).bind()
 
         val attributeInstance = AttributeInstance(
-            attributeUuid = attribute.id,
+            attributeUuid = attributeUuid,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
             time = createdAt,
             attributeMetadata = attributeMetadata,
@@ -229,7 +230,7 @@ class EntityAttributeService(
 
         if (attributeMetadata.observedAt != null) {
             val attributeObservedAtInstance = AttributeInstance(
-                attributeUuid = attribute.id,
+                attributeUuid = attributeUuid,
                 time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = attributePayload

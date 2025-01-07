@@ -264,7 +264,7 @@ class EntityHandler(
             mergedEntities ?: emptyList()
         }
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
             mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             maxCount,
@@ -358,7 +358,7 @@ class EntityHandler(
         val mergedEntityWithLinkedEntities =
             linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

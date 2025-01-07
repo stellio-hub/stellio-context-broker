@@ -150,7 +150,7 @@ class TemporalScopeBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = temporalQuery,
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         )

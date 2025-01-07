@@ -448,6 +448,48 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
+    fun `it should raise a 400 if format query param has an invalid value`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&" +
+                    "format=invalid"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "'invalid' is not a valid temporal representation",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if options query param has an invalid value`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&" +
+                    "options=invalidOptions"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "'invalidOptions' is not a valid options value",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any(), any())
@@ -495,7 +537,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         ) &&
-                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NONE &&
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED &&
                         !temporalEntitiesQuery.withAudit
                 },
                 eq(sub.value)
@@ -626,7 +668,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         entitiesQueryFromGet.ids.isEmpty() &&
                         entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NONE
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED
                 },
                 any()
             )

@@ -56,7 +56,7 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         )

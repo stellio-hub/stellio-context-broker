@@ -175,7 +175,7 @@ class AttributeInstanceService(
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, attributes, origin))
 
-        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NONE)
+        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED)
             sqlQueryBuilder.append(", payload")
 
         if (temporalQuery.timeproperty == OBSERVED_AT)

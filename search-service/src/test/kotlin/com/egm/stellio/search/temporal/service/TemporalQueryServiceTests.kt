@@ -139,7 +139,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         )
@@ -171,7 +171,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             ),
             emptyList()

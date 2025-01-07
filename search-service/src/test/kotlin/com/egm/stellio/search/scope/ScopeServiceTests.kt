@@ -155,7 +155,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 buildDefaultTestTemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         ).shouldSucceedAndResult()
@@ -184,7 +184,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime()
                 ),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         ).shouldSucceedAndResult()
@@ -360,7 +360,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
                     instanceLimit = 5
                 ),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
@@ -407,7 +407,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     endTimeAt = ZonedDateTime.parse("2024-08-15T00:00:00Z"),
                     instanceLimit = 5
                 ),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
@@ -440,7 +440,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 buildDefaultTestTemporalQuery(),
-                temporalRepresentation = TemporalRepresentation.NONE,
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         ).shouldSucceedAndResult()

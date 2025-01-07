@@ -69,7 +69,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
             )
@@ -115,7 +115,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_relationship_multi_instances_without_datasetId.jsonld")
             )
@@ -193,7 +193,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances.jsonld")
             )
@@ -237,7 +237,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_string_values.jsonld")
             )
@@ -281,7 +281,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 true,
                 loadSampleData("expectations/beehive_incoming_multi_instances_string_values_with_audit.jsonld")
             )
@@ -324,7 +324,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData(
                     "expectations/beehive_incoming_multi_instances_without_datasetId_string_values.jsonld"
@@ -541,7 +541,7 @@ class TemporalEntityParameterizedSource {
                     )
                 ),
                 emptyMap<Attribute, List<AttributeInstanceResult>>(),
-                TemporalRepresentation.NONE,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_scope_multi_instances.jsonld")
             )

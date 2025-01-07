@@ -9,6 +9,7 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -111,6 +112,46 @@ class TemporalQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("Only one temporal representation can be present", it.message)
+        }
+    }
+
+    @Test
+    fun `it shouldn't validate the temporal query if format contains an invalid value`() = runTest {
+        val queryParams = gimmeTemporalEntitiesQueryParams()
+        queryParams.add("format", "invalid")
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+        every { pagination.temporalLimit } returns 100
+
+        composeTemporalEntitiesQueryFromGet(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXTS,
+            true
+        ).shouldFail {
+            assertInstanceOf(InvalidRequestException::class.java, it)
+            assertEquals("'invalid' is not a valid temporal representation", it.message)
+        }
+    }
+
+    @Test
+    fun `it shouldn't validate the temporal query if options contains an invalid value`() = runTest {
+        val queryParams = gimmeTemporalEntitiesQueryParams()
+        queryParams.replace("options", listOf("invalidOptions"))
+        val pagination = mockkClass(ApplicationProperties.Pagination::class)
+        every { pagination.limitDefault } returns 30
+        every { pagination.limitMax } returns 100
+        every { pagination.temporalLimit } returns 100
+
+        composeTemporalEntitiesQueryFromGet(
+            pagination,
+            queryParams,
+            APIC_COMPOUND_CONTEXTS,
+            true
+        ).shouldFail {
+            assertInstanceOf(InvalidRequestException::class.java, it)
+            assertEquals("'invalidOptions' is not a valid options value", it.message)
         }
     }
 
@@ -252,7 +293,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             buildDefaultPagination(),
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.instanceLimit)
@@ -270,7 +311,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             pagination,
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
@@ -289,7 +330,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             pagination,
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
@@ -304,7 +345,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             buildDefaultPagination(),
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertNull(temporalQuery.timeAt)
@@ -320,7 +361,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             buildDefaultPagination(),
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
@@ -334,7 +375,7 @@ class TemporalQueryUtilsTests {
             queryParams,
             buildDefaultPagination(),
             false,
-            TemporalRepresentation.NONE
+            TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)

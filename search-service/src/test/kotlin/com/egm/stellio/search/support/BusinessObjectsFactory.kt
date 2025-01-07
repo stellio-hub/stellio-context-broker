@@ -154,7 +154,7 @@ fun gimmeVocabPropertyAttributeInstance(
 
 fun gimmeTemporalEntitiesQuery(
     temporalQuery: TemporalQuery,
-    temporalRepresentation: TemporalRepresentation,
+    temporalRepresentation: TemporalRepresentation = TemporalRepresentation.NORMALIZED,
     withAudit: Boolean = false
 ): TemporalEntitiesQueryFromGet =
     TemporalEntitiesQueryFromGet(

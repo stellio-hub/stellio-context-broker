@@ -1,5 +1,6 @@
 package com.egm.stellio.search.temporal.web
 
+import arrow.core.raise.either
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedEntity
@@ -30,8 +31,8 @@ object TemporalApiResponses {
         contexts: List<String>,
         range: Range?,
         lang: String? = null,
-    ): ResponseEntity<String> {
-        val baseRepresentation = parseRepresentations(requestParams, mediaType)
+    ): ResponseEntity<*> = either {
+        val baseRepresentation = parseRepresentations(requestParams, mediaType).bind()
         // this is needed for queryEntitiesViaPost where the properties are not in the query parameters
         val representation = lang?.let {
             baseRepresentation.copy(languageFilter = it, timeproperty = query.temporalQuery.timeproperty.propertyName)
@@ -48,7 +49,7 @@ object TemporalApiResponses {
             contexts
         )
 
-        return if (range == null)
+        if (range == null)
             successResponse
         else ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
             this.headers(
@@ -59,7 +60,10 @@ object TemporalApiResponses {
                 getHeaderRange(range, query.temporalQuery)
             )
         }.body(serializeObject(entities.toFinalRepresentation(representation)))
-    }
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     fun buildEntityTemporalResponse(
         mediaType: MediaType,

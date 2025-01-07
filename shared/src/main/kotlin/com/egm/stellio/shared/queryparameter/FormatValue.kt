@@ -5,5 +5,9 @@ enum class FormatValue(val value: String) {
     SIMPLIFIED("simplified"),
     NORMALIZED("normalized"),
     TEMPORAL_VALUES("temporalValues"),
-    AGGREGATED_VALUES("aggregatedValues")
+    AGGREGATED_VALUES("aggregatedValues");
+    companion object {
+        fun fromString(key: String): FormatValue? =
+            FormatValue.entries.find { it.value == key }
+    }
 }

@@ -105,7 +105,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -150,7 +150,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -196,7 +196,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

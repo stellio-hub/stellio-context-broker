@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NotAcceptableException
+import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -168,17 +169,19 @@ internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
     return expandedType == NGSILD_DATASET_ID_PROPERTY
 }
 
-enum class QueryParamValue(val value: String) {
-    TEMPORAL_VALUES("temporalValues"),
-    AUDIT("audit"),
-    AGGREGATED_VALUES("aggregatedValues")
-}
-
-fun hasValueInQueryParam(queryParam: Optional<String>, queryParamValue: QueryParamValue): Boolean =
-    queryParam
+fun hasValueInOptionsParam(
+    queryParam: Optional<String>,
+    optionsParamValue: OptionsValue
+): Either<APIException, Boolean> = either {
+    val optionsValue = queryParam
         .map { it.split(",") }
-        .filter { it.any { option -> option == queryParamValue.value } }
-        .isPresent
+        .orElse(emptyList())
+
+    optionsValue.forEach { option ->
+        OptionsValue.fromString(option).bind()
+    }
+    optionsValue.any { option -> option == optionsParamValue.value }
+}
 
 fun parseQueryParameter(queryParam: String?): Set<String> =
     queryParam

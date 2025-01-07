@@ -139,7 +139,7 @@ class TemporalPaginationServiceTests {
             attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
             contexts = APIC_COMPOUND_CONTEXTS
         ),
-        temporalRepresentation = TemporalRepresentation.NONE,
+        temporalRepresentation = TemporalRepresentation.NORMALIZED,
         withAudit = false
     )
 

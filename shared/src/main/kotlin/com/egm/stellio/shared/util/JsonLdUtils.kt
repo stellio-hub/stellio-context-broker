@@ -98,26 +98,6 @@ object JsonLdUtils {
 
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
-    // List of members that are part of a core entity base definition (i.e., without attributes)
-    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
-        setOf(
-            JSONLD_ID,
-            JSONLD_TYPE,
-            JSONLD_CONTEXT,
-            NGSILD_SCOPE_PROPERTY,
-            NGSILD_CREATED_AT_PROPERTY,
-            NGSILD_MODIFIED_AT_PROPERTY
-        )
-    val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
-        setOf(
-            JSONLD_ID_TERM,
-            JSONLD_TYPE_TERM,
-            JSONLD_CONTEXT,
-            NGSILD_SCOPE_TERM,
-            NGSILD_CREATED_AT_TERM,
-            NGSILD_MODIFIED_AT_TERM
-        )
-
     const val NGSILD_CREATED_AT_TERM = "createdAt"
     const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
     val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
@@ -148,8 +128,30 @@ object JsonLdUtils {
     const val NGSILD_CSR_TERM = "ContextSourceRegistration"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
+    const val NGSILD_DATE_TIME_TERM = "DateTime"
+
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
+
+    // List of members that are part of a core entity base definition (i.e., without attributes)
+    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
+        setOf(
+            JSONLD_ID,
+            JSONLD_TYPE,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_PROPERTY,
+            NGSILD_CREATED_AT_PROPERTY,
+            NGSILD_MODIFIED_AT_PROPERTY
+        )
+    val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
+        setOf(
+            JSONLD_ID_TERM,
+            JSONLD_TYPE_TERM,
+            JSONLD_CONTEXT,
+            NGSILD_SCOPE_TERM,
+            NGSILD_CREATED_AT_TERM,
+            NGSILD_MODIFIED_AT_TERM
+        )
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 

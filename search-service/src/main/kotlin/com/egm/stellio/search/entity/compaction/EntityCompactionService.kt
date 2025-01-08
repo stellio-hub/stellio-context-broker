@@ -1,4 +1,4 @@
-package com.egm.stellio.search.entity.sources
+package com.egm.stellio.search.entity.compaction
 
 import arrow.core.Either
 import arrow.core.left
@@ -27,16 +27,13 @@ import org.springframework.stereotype.Service
 import org.springframework.util.MultiValueMap
 import java.net.URI
 
-// todo find better package name and file name
 @Service
-class EntitySourceService(
+class EntityCompactionService(
     private val entityQueryService: EntityQueryService,
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
     private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
-    // todo could also return Pair<Either<APIException, EntitiesWithCount>, List<NGSILDWarning>>
-    // + more consistent with getEntity and let combined ApiException with warnings (no case for now)
-    // - can't use .bind() easilly
+
     suspend fun getEntitiesFromSources(
         sub: Sub?,
         contexts: List<String>,

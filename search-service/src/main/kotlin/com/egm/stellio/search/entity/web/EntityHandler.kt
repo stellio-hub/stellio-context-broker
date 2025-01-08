@@ -5,8 +5,8 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.addWarnings
+import com.egm.stellio.search.entity.compaction.EntityCompactionService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.search.entity.sources.EntitySourceService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -63,7 +63,7 @@ import java.net.URI
 class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
-    private val entitySourceService: EntitySourceService
+    private val entityCompactionService: EntityCompactionService
 ) : BaseHandler() {
 
     /**
@@ -199,7 +199,7 @@ class EntityHandler(
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val (entities, count, warnings) = entitySourceService.getEntitiesFromSources(
+        val (entities, count, warnings) = entityCompactionService.getEntitiesFromSources(
             sub = sub.getOrNull(),
             contexts = contexts,
             entitiesQuery = entitiesQuery,
@@ -248,7 +248,7 @@ class EntityHandler(
             contexts
         ).bind()
 
-        val (entityOrException, warnings) = entitySourceService.getEntityFromSources(
+        val (entityOrException, warnings) = entityCompactionService.getEntityFromSources(
             sub = sub.getOrNull(),
             contexts = contexts,
             entitiesQuery = entitiesQuery,

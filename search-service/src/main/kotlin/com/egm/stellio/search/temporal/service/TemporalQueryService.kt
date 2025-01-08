@@ -94,7 +94,7 @@ class TemporalQueryService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
 
-        return if (!(temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES))
+        return if (temporalEntitiesQuery.temporalRepresentation != TemporalRepresentation.AGGREGATED_VALUES)
             null
         else if (temporalQuery.timeAt != null)
             temporalQuery.timeAt

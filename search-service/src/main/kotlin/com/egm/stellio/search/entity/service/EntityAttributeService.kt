@@ -705,21 +705,14 @@ class EntityAttributeService(
                     createdAt
                 ).bind().first()
             } else {
-                replaceAttribute(
-                    currentAttribute,
-                    ngsiLdAttribute,
-                    attributeMetadata,
-                    createdAt,
+                applyPartialUpdatePatchOperation(
+                    entityUri,
+                    ngsiLdAttribute.name,
+                    ngsiLdAttributeInstance.datasetId,
                     attributePayload,
+                    createdAt,
                     sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.REPLACED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
             }
         }
     }.fold({ it.left() }, { it.right() })
@@ -754,38 +747,57 @@ class EntityAttributeService(
                     modifiedAt
                 ).bind().first()
             } else {
-                // first update payload in temporal entity attribute
-                val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
-                attributeValues[JSONLD_TYPE]?.let {
-                    ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
-                        BadRequestDataException("The type of the attribute has to be the same as the existing one")
-                    }
-                }
-                val (jsonTargetObject, updatedAttributeInstance) =
-                    partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
-                val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
-                val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues)
-                updateOnUpdate(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
-
-                // then update attribute instance
-                val attributeInstance = createContextualAttributeInstance(
-                    attribute,
-                    updatedAttributeInstance,
-                    value,
-                    modifiedAt,
-                    sub
-                )
-                attributeInstanceService.create(attributeInstance).bind()
-
-                SucceededAttributeOperationResult(
+                applyPartialUpdatePatchOperation(
+                    entityId,
                     attributeName,
                     datasetId,
-                    OperationStatus.UPDATED,
-                    updatedAttributeInstance
-                )
+                    attributeValues,
+                    modifiedAt,
+                    sub
+                ).bind()
             }
 
         attributeOperationResult
+    }
+
+    @Transactional
+    suspend fun applyPartialUpdatePatchOperation(
+        entityId: URI,
+        attributeName: ExpandedTerm,
+        datasetId: URI?,
+        attributeValues: ExpandedAttributeInstance,
+        modifiedAt: ZonedDateTime,
+        sub: Sub?
+    ): Either<APIException, SucceededAttributeOperationResult> = either {
+        // first update payload in temporal entity attribute
+        val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
+        attributeValues[JSONLD_TYPE]?.let {
+            ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
+                BadRequestDataException("The type of the attribute has to be the same as the existing one")
+            }
+        }
+        val (jsonTargetObject, updatedAttributeInstance) =
+            partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
+        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
+        val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues)
+        updateOnUpdate(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
+
+        // then update attribute instance
+        val attributeInstance = createContextualAttributeInstance(
+            attribute,
+            updatedAttributeInstance,
+            value,
+            modifiedAt,
+            sub
+        )
+        attributeInstanceService.create(attributeInstance).bind()
+
+        SucceededAttributeOperationResult(
+            attributeName,
+            datasetId,
+            OperationStatus.UPDATED,
+            updatedAttributeInstance
+        )
     }
 
     @Transactional

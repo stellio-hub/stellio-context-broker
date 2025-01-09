@@ -15,7 +15,7 @@ import org.springframework.util.LinkedMultiValueMap
 class NgsiLdDataRepresentationTests {
 
     @Test
-    fun `it should return the attribute representation from the format query param when both format and options exist`() {
+    fun `it should return the attribute representation from the format when both format and options exist`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -78,7 +78,7 @@ class NgsiLdDataRepresentationTests {
 
         parseRepresentations(queryParams, MediaType.APPLICATION_JSON).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'invalid' is not a valid format value", it.message)
+            assertEquals("'invalid' is not a valid value for the format query parameter", it.message)
         }
     }
 
@@ -91,7 +91,7 @@ class NgsiLdDataRepresentationTests {
 
         parseRepresentations(queryParams, MediaType.APPLICATION_JSON).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'invalidOptions' is not a valid options value", it.message)
+            assertEquals("'invalidOptions' is not a valid value for the options query parameter", it.message)
         }
     }
 
@@ -104,7 +104,7 @@ class NgsiLdDataRepresentationTests {
 
         parseRepresentations(queryParams, MediaType.APPLICATION_JSON).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'invalidOptions' is not a valid options value", it.message)
+            assertEquals("'invalidOptions' is not a valid value for the options query parameter", it.message)
         }
     }
 }

@@ -190,7 +190,7 @@ fun buildTimerelAndTime(
         "'timerel' and 'time' must be used in conjunction".left()
     }
 
-fun extractTemporalRepresentation(
+private fun extractTemporalRepresentation(
     queryParams: MultiValueMap<String, String>
 ): Either<APIException, TemporalRepresentation> = either {
     val optionsParam = Optional.ofNullable(queryParams.getFirst(QueryParameter.OPTIONS.key))
@@ -198,18 +198,21 @@ fun extractTemporalRepresentation(
     if (formatParam != null) {
         return TemporalRepresentation.fromString(formatParam)
     } else {
-        if (!optionsParam.isEmpty) {
+        return if (!optionsParam.isEmpty) {
             val hasTemporal = hasValueInOptionsParam(optionsParam, OptionsValue.TEMPORAL_VALUES).bind()
             val hasAggregated = hasValueInOptionsParam(optionsParam, OptionsValue.AGGREGATED_VALUES).bind()
             when {
                 hasTemporal && hasAggregated ->
-                    return BadRequestDataException("Only one temporal representation can be present").left()
-                hasTemporal -> return TemporalRepresentation.TEMPORAL_VALUES.right()
-                hasAggregated -> return TemporalRepresentation.AGGREGATED_VALUES.right()
-                else -> return TemporalRepresentation.NORMALIZED.right()
+                    BadRequestDataException(
+                        "Found different temporal representations in options query parameter," +
+                            " only one can be provided"
+                    ).left()
+                hasTemporal -> TemporalRepresentation.TEMPORAL_VALUES.right()
+                hasAggregated -> TemporalRepresentation.AGGREGATED_VALUES.right()
+                else -> TemporalRepresentation.NORMALIZED.right()
             }
         } else
-            return TemporalRepresentation.NORMALIZED.right()
+            TemporalRepresentation.NORMALIZED.right()
     }
 }
 

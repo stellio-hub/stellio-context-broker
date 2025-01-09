@@ -170,17 +170,14 @@ internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
 }
 
 fun hasValueInOptionsParam(
-    queryParam: Optional<String>,
-    optionsParamValue: OptionsValue
+    optionsParam: Optional<String>,
+    optionsValue: OptionsValue
 ): Either<APIException, Boolean> = either {
-    val optionsValue = queryParam
+    optionsParam
         .map { it.split(",") }
         .orElse(emptyList())
-
-    optionsValue.forEach { option ->
-        OptionsValue.fromString(option).bind()
-    }
-    optionsValue.any { option -> option == optionsParamValue.value }
+        .map { OptionsValue.fromString(it).bind() }
+        .any { it == optionsValue }
 }
 
 fun parseQueryParameter(queryParam: String?): Set<String> =

@@ -440,7 +440,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Only one temporal representation can be present",
+                    "title": "Found different temporal representations in options query parameter, only one can be provided",
                     "detail": "$DEFAULT_DETAIL"
                 } 
                 """
@@ -482,7 +482,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "'invalidOptions' is not a valid options value",
+                    "title": "'invalidOptions' is not a valid value for the options query parameter",
                     "detail": "$DEFAULT_DETAIL"
                 } 
                 """

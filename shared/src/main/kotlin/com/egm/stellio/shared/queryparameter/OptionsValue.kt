@@ -20,7 +20,7 @@ enum class OptionsValue(val value: String) {
     companion object {
         fun fromString(key: String): Either<APIException, OptionsValue> = either {
             OptionsValue.entries.find { it.value == key }
-                ?: return InvalidRequestException("'$key' is not a valid options value").left()
+                ?: return InvalidRequestException("'$key' is not a valid value for the options query parameter").left()
         }
     }
 }

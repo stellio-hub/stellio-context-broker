@@ -111,7 +111,10 @@ class TemporalQueryUtilsTests {
             true
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("Only one temporal representation can be present", it.message)
+            assertEquals(
+                "Found different temporal representations in options query parameter, only one can be provided",
+                it.message
+            )
         }
     }
 
@@ -151,7 +154,7 @@ class TemporalQueryUtilsTests {
             true
         ).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'invalidOptions' is not a valid options value", it.message)
+            assertEquals("'invalidOptions' is not a valid value for the options query parameter", it.message)
         }
     }
 

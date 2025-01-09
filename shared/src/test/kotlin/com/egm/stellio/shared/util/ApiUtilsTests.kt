@@ -42,7 +42,7 @@ class ApiUtilsTests {
     fun `it should return an exception if it is given an invalid options query param`() {
         hasValueInOptionsParam(Optional.of("one"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'one' is not a valid options value", it.message)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
         }
     }
 
@@ -50,7 +50,7 @@ class ApiUtilsTests {
     fun `it should return an exception if it is given an invalid multi value options query param`() {
         hasValueInOptionsParam(Optional.of("one,two"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'one' is not a valid options value", it.message)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
         }
     }
 
@@ -64,7 +64,7 @@ class ApiUtilsTests {
     fun `it should return an exception if it is given at least one invalid value in options query param`() {
         hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'one' is not a valid options value", it.message)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
         }
     }
 

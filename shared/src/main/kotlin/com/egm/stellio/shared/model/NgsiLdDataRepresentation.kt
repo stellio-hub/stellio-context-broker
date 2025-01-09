@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.model
 
 import arrow.core.Either
-import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.queryparameter.FormatValue
@@ -34,23 +33,20 @@ data class NgsiLdDataRepresentation(
         ): Either<APIException, NgsiLdDataRepresentation> = either {
             val optionsParam = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
                 .flatMap { it.split(",") }
-            val formatParam = queryParams.getFirst(QueryParameter.FORMAT.key)
-            if (formatParam != null && FormatValue.fromString(formatParam) == null) {
-                return InvalidRequestException("'$formatParam' is not a valid format value").left()
-            }
-
-            optionsParam.forEach { option ->
-                OptionsValue.fromString(option).bind()
+                .map { OptionsValue.fromString(it).bind() }
+            val formatParam = queryParams.getFirst(QueryParameter.FORMAT.key)?.let {
+                FormatValue.fromString(it).bind()
             }
             val attributeRepresentation = when {
-                formatParam == FormatValue.KEY_VALUES.value ||
-                    formatParam == FormatValue.SIMPLIFIED.value -> AttributeRepresentation.SIMPLIFIED
-                formatParam == FormatValue.NORMALIZED.value -> AttributeRepresentation.NORMALIZED
-                optionsParam.contains(FormatValue.KEY_VALUES.value) ||
-                    optionsParam.contains(FormatValue.SIMPLIFIED.value) -> AttributeRepresentation.SIMPLIFIED
+                formatParam == FormatValue.KEY_VALUES || formatParam == FormatValue.SIMPLIFIED ->
+                    AttributeRepresentation.SIMPLIFIED
+                formatParam == FormatValue.NORMALIZED ->
+                    AttributeRepresentation.NORMALIZED
+                optionsParam.contains(OptionsValue.KEY_VALUES) || optionsParam.contains(OptionsValue.SIMPLIFIED) ->
+                    AttributeRepresentation.SIMPLIFIED
                 else -> AttributeRepresentation.NORMALIZED
             }
-            val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS.value)
+            val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS)
             val languageFilter = queryParams.getFirst(QueryParameter.LANG.key)
             val entityRepresentation = EntityRepresentation.forMediaType(acceptMediaType)
             val geometryProperty =

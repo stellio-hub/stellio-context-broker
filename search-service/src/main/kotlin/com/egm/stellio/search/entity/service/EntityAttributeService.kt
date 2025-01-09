@@ -218,9 +218,15 @@ class EntityAttributeService(
         )
         val attributeUuid = create(attribute).bind()
 
+        // if the temporal property existed before, the create operation returned a different id than the one
+        // in the attribute object
+        val timeProperty =
+            if (attributeUuid != attribute.id) AttributeInstance.TemporalProperty.MODIFIED_AT
+            else AttributeInstance.TemporalProperty.CREATED_AT
+
         val attributeInstance = AttributeInstance(
             attributeUuid = attributeUuid,
-            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            timeProperty = timeProperty,
             time = createdAt,
             attributeMetadata = attributeMetadata,
             payload = attributePayload,
@@ -254,7 +260,6 @@ class EntityAttributeService(
             attributeMetadata.datasetId,
             attribute.entityId
         )
-        deleteAttribute(attribute.entityId, attribute.attributeName, attribute.datasetId, false, createdAt).bind()
         addAttribute(
             attribute.entityId,
             attribute.attributeName,
@@ -705,14 +710,21 @@ class EntityAttributeService(
                     createdAt
                 ).bind().first()
             } else {
-                applyPartialUpdatePatchOperation(
-                    entityUri,
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    attributePayload,
+                replaceAttribute(
+                    currentAttribute,
+                    ngsiLdAttribute,
+                    attributeMetadata,
                     createdAt,
+                    attributePayload,
                     sub
-                ).bind()
+                ).map {
+                    SucceededAttributeOperationResult(
+                        ngsiLdAttribute.name,
+                        ngsiLdAttributeInstance.datasetId,
+                        OperationStatus.REPLACED,
+                        attributePayload
+                    )
+                }.bind()
             }
         }
     }.fold({ it.left() }, { it.right() })
@@ -748,9 +760,7 @@ class EntityAttributeService(
                 ).bind().first()
             } else {
                 applyPartialUpdatePatchOperation(
-                    entityId,
-                    attributeName,
-                    datasetId,
+                    currentAttribute,
                     attributeValues,
                     modifiedAt,
                     sub
@@ -761,16 +771,13 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun applyPartialUpdatePatchOperation(
-        entityId: URI,
-        attributeName: ExpandedTerm,
-        datasetId: URI?,
+    internal suspend fun applyPartialUpdatePatchOperation(
+        attribute: Attribute,
         attributeValues: ExpandedAttributeInstance,
         modifiedAt: ZonedDateTime,
         sub: Sub?
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         // first update payload in temporal entity attribute
-        val attribute = getForEntityAndAttribute(entityId, attributeName, datasetId).bind()
         attributeValues[JSONLD_TYPE]?.let {
             ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
                 BadRequestDataException("The type of the attribute has to be the same as the existing one")
@@ -793,8 +800,8 @@ class EntityAttributeService(
         attributeInstanceService.create(attributeInstance).bind()
 
         SucceededAttributeOperationResult(
-            attributeName,
-            datasetId,
+            attribute.attributeName,
+            attribute.datasetId,
             OperationStatus.UPDATED,
             updatedAttributeInstance
         )

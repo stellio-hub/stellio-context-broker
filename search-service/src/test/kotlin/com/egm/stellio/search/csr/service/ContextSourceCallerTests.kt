@@ -23,6 +23,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import com.ninjasquad.springmockk.SpykBean
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -40,6 +41,9 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
 class ContextSourceCallerTests {
+
+    @SpykBean
+    private lateinit var contextSourceCaller: ContextSourceCaller
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
@@ -75,7 +79,7 @@ class ContextSourceCallerTests {
         """.trimIndent()
 
     @Test
-    fun `queryContextSourceEntities should return the count and the entities when the request succeed`() = runTest {
+    fun `queryEntitiesFromContextSource should return the count and the entities when the request succeed`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
         val count = 222
@@ -89,7 +93,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.queryContextSourceEntities(
+        val response = contextSourceCaller.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -100,7 +104,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `queryContextSourceEntities should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
+    fun `queryEntities ContextSource should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
         stubFor(
@@ -111,7 +115,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.queryContextSourceEntities(
+        val response = contextSourceCaller.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -122,7 +126,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `retrieveContextSourceEntity should return the entity when the request succeeds`() = runTest {
+    fun `retrieveEntityFromContextSource should return the entity when the request succeeds`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -133,7 +137,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.retrieveContextSourceEntity(
+        val response = contextSourceCaller.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -143,7 +147,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `retrieveContextSourceEntity should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
+    fun `retrieveEntityContextSource should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -154,7 +158,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.retrieveContextSourceEntity(
+        val response = contextSourceCaller.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -169,7 +173,7 @@ class ContextSourceCallerTests {
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities/$apiaryId"
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
@@ -184,7 +188,7 @@ class ContextSourceCallerTests {
                 .willReturn(unauthorized())
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
@@ -199,7 +203,7 @@ class ContextSourceCallerTests {
                 .willReturn(notFound())
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isRight())
         assertNull(response.getOrNull()!!.first)
@@ -215,7 +219,7 @@ class ContextSourceCallerTests {
         )
         val header = HttpHeaders()
         header.accept = listOf(GEO_JSON_MEDIA_TYPE)
-        ContextSourceCaller.getDistributedInformation(
+        contextSourceCaller.getDistributedInformation(
             header,
             csr,
             path,
@@ -236,7 +240,7 @@ class ContextSourceCallerTests {
                 .willReturn(notFound())
         )
         val params = LinkedMultiValueMap(mapOf(QueryParameter.OPTIONS.key to listOf("simplified")))
-        ContextSourceCaller.getDistributedInformation(
+        contextSourceCaller.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
             path,

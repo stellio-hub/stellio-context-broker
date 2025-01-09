@@ -4,6 +4,8 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.support.WithKafkaContainer
+import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -23,7 +25,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
-import com.ninjasquad.springmockk.SpykBean
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -31,6 +32,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.context.ActiveProfiles
@@ -38,11 +41,12 @@ import org.springframework.util.LinkedMultiValueMap
 import wiremock.com.google.common.net.HttpHeaders.ACCEPT
 import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 
+@SpringBootTest
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
-class ContextSourceCallerTests {
+class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer {
 
-    @SpykBean
+    @Autowired
     private lateinit var contextSourceCaller: ContextSourceCaller
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"

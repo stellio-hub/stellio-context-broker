@@ -15,7 +15,7 @@ import org.springframework.util.LinkedMultiValueMap
 class NgsiLdDataRepresentationTests {
 
     @Test
-    fun `it should return the attribute representation in the format query param when options exist`() {
+    fun `it should return the attribute representation from the format query param when both format and options exist`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")

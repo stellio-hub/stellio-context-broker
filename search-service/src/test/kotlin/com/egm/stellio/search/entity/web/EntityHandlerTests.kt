@@ -479,6 +479,47 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should correctly return the representation asked in the format parameter`() {
+        initializeRetrieveEntityMocks()
+        coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
+            mapOf(
+                "@id" to beehiveId.toString(),
+                "@type" to listOf("Beehive"),
+                "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
+                    JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        JSONLD_VALUE to "some value"
+                    )
+                ),
+                "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
+                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_OBJECT to mapOf(
+                        JSONLD_ID to "urn:ngsi-ld:Entity:1234"
+                    )
+                )
+            )
+        ).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId?format=keyValues&options=normalized")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                {
+                    "id": "$beehiveId",
+                    "type": "Beehive",
+                    "prop1": "some value",
+                    "rel1": "urn:ngsi-ld:Entity:1234",
+                    "@context": "${applicationProperties.contexts.core}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(

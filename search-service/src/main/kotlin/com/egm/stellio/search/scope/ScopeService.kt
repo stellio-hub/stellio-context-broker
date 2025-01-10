@@ -24,6 +24,7 @@ import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.search.temporal.util.composeAggregationSelectClause
 import com.egm.stellio.shared.model.APIException
@@ -136,7 +137,7 @@ class ScopeService(
 
         if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
             sqlQueryBuilder.append(" GROUP BY entity_id, start")
-        else if (temporalEntitiesQuery.withAggregatedValues)
+        else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES)
             sqlQueryBuilder.append(" GROUP BY entity_id")
         if (temporalQuery.hasLastN())
             // in order to get first or last instances, need to order by time
@@ -161,7 +162,7 @@ class ScopeService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         origin: ZonedDateTime?
     ): String = when {
-        temporalEntitiesQuery.withAggregatedValues -> {
+        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES -> {
             val temporalQuery = temporalEntitiesQuery.temporalQuery
             val aggrPeriodDuration = temporalQuery.aggrPeriodDuration
             val allAggregates = temporalQuery.aggrMethods?.composeAggregationSelectClause(AttributeValueType.ARRAY)
@@ -215,7 +216,7 @@ class ScopeService(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): ScopeInstanceResult =
-        if (temporalEntitiesQuery.withAggregatedValues) {
+        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
             val startDateTime = toZonedDateTime(row["start"])
             val endDateTime =
                 if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
@@ -231,7 +232,7 @@ class ScopeService(
                 entityId = toUri(row["entity_id"]),
                 values = values
             )
-        } else if (temporalEntitiesQuery.withTemporalValues) {
+        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES) {
             SimplifiedScopeInstanceResult(
                 entityId = toUri(row["entity_id"]),
                 scopes = toList(row["value"]),

@@ -2,7 +2,8 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
+import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.queryparameter.OptionsValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
 import io.mockk.every
 import io.mockk.mockk
@@ -33,27 +34,38 @@ class ApiUtilsTests {
 
     @Test
     fun `it should not find a value if there is no options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.empty(), TEMPORAL_VALUES))
+        val result = hasValueInOptionsParam(Optional.empty(), TEMPORAL_VALUES).shouldSucceedAndResult()
+        assertFalse(result)
     }
 
     @Test
-    fun `it should not find a value if it is not in a single value options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.of("one"), TEMPORAL_VALUES))
+    fun `it should return an exception if it is given an invalid options query param`() {
+        hasValueInOptionsParam(Optional.of("one"), TEMPORAL_VALUES).shouldFail {
+            assertInstanceOf(InvalidRequestException::class.java, it)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
+        }
     }
 
     @Test
-    fun `it should not find a value if it is not in a multi value options query param`() {
-        assertFalse(hasValueInOptionsParam(Optional.of("one,two"), TEMPORAL_VALUES))
+    fun `it should return an exception if it is given an invalid multi value options query param`() {
+        hasValueInOptionsParam(Optional.of("one,two"), TEMPORAL_VALUES).shouldFail {
+            assertInstanceOf(InvalidRequestException::class.java, it)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
+        }
     }
 
     @Test
     fun `it should find a value if it is in a single value options query param`() {
-        assertTrue(hasValueInOptionsParam(Optional.of("temporalValues"), TEMPORAL_VALUES))
+        val result = hasValueInOptionsParam(Optional.of("temporalValues"), TEMPORAL_VALUES).shouldSucceedAndResult()
+        assertTrue(result)
     }
 
     @Test
-    fun `it should find a value if it is in a multi value options query param`() {
-        assertTrue(hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES))
+    fun `it should return an exception if it is given at least one invalid value in options query param`() {
+        hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES).shouldFail {
+            assertInstanceOf(InvalidRequestException::class.java, it)
+            assertEquals("'one' is not a valid value for the options query parameter", it.message)
+        }
     }
 
     @Test

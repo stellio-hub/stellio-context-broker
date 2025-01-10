@@ -6,6 +6,7 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
@@ -101,7 +102,7 @@ class TemporalEntityOperationsHandlerTests {
                         entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
                 },
                 any()
             )
@@ -155,7 +156,7 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
                 },
                 any()
             )

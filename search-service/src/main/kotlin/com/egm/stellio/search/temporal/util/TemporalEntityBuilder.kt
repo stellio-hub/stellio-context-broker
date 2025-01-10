@@ -68,10 +68,10 @@ object TemporalEntityBuilder {
         attributeAndResultsMap: AttributesWithInstances,
         temporalEntitiesQuery: TemporalEntitiesQuery,
     ): Map<String, Any> =
-        if (temporalEntitiesQuery.withTemporalValues) {
+        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
-        } else if (temporalEntitiesQuery.withAggregatedValues) {
+        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
             val attributes = buildAttributesAggregatedRepresentation(
                 attributeAndResultsMap,
                 temporalEntitiesQuery.temporalQuery.aggrMethods!!

@@ -281,7 +281,7 @@ class EntityOperationHandler(
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
             .copy(languageFilter = query.lang)
 
         buildQueryResponse(

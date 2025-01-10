@@ -21,6 +21,7 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
@@ -353,7 +354,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         attributeInstanceService.search(
-            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), withTemporalValues = true),
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.TEMPORAL_VALUES),
             attribute2
         ).shouldSucceedWith { results ->
             assertThat(results)
@@ -381,7 +382,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 aggrPeriodDuration = "P30D",
                 aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
             ),
-            withAggregatedValues = true
+            TemporalRepresentation.AGGREGATED_VALUES
         )
 
         val origin = attributeInstanceService.selectOldestDate(
@@ -492,7 +493,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                 instanceLimit = 5,
             ),
-            withAggregatedValues = true
+            TemporalRepresentation.AGGREGATED_VALUES
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -600,7 +601,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     timerel = Timerel.AFTER,
                     timeAt = now.minusHours(1)
                 ),
-                withTemporalValues = true
+                TemporalRepresentation.TEMPORAL_VALUES
             ),
             incomingAttribute
         ).shouldSucceedWith { results ->

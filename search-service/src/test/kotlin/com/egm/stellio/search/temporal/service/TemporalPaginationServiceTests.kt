@@ -13,6 +13,7 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
@@ -138,9 +139,8 @@ class TemporalPaginationServiceTests {
             attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
             contexts = APIC_COMPOUND_CONTEXTS
         ),
-        withTemporalValues = false,
-        withAudit = false,
-        withAggregatedValues = false
+        temporalRepresentation = TemporalRepresentation.NORMALIZED,
+        withAudit = false
     )
 
     @Test
@@ -282,9 +282,8 @@ class TemporalPaginationServiceTests {
                 attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
-            withTemporalValues = false,
-            withAudit = false,
-            withAggregatedValues = true
+            temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+            withAudit = false
         )
 
         val attributesWithInstances: AttributesWithInstances =

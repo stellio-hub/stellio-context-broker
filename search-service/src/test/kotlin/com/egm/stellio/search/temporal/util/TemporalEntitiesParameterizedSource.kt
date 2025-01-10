@@ -227,19 +227,19 @@ class TemporalEntitiesParameterizedSource {
             return Stream.of(
                 Arguments.arguments(
                     resultOfTwoEntitiesWithOneProperty,
-                    false,
+                    TemporalRepresentation.NORMALIZED,
                     true,
                     loadSampleData("expectations/query/two_beehives.json")
                 ),
                 Arguments.arguments(
                     simplifiedResultOfTwoEntitiesWithOneProperty,
-                    true,
+                    TemporalRepresentation.TEMPORAL_VALUES,
                     false,
                     loadSampleData("expectations/query/two_beehives_temporal_values.json")
                 ),
                 Arguments.arguments(
                     simplifiedResultOfTwoEntitiesWithOnePropertyAndOneRelationship,
-                    true,
+                    TemporalRepresentation.TEMPORAL_VALUES,
                     false,
                     loadSampleData("expectations/query/two_entities_temporal_values_property_and_relationship.json")
                 )

@@ -28,6 +28,7 @@ import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.search.temporal.util.composeAggregationSelectClause
 import com.egm.stellio.shared.model.APIException
@@ -174,7 +175,7 @@ class AttributeInstanceService(
 
         sqlQueryBuilder.append(composeSearchSelectStatement(temporalQuery, attributes, origin))
 
-        if (!temporalEntitiesQuery.withTemporalValues && !temporalEntitiesQuery.withAggregatedValues)
+        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED)
             sqlQueryBuilder.append(", payload")
 
         if (temporalQuery.timeproperty == OBSERVED_AT)
@@ -204,7 +205,7 @@ class AttributeInstanceService(
 
         if (temporalEntitiesQuery.isAggregatedWithDefinedDuration())
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute, start")
-        else if (temporalEntitiesQuery.withAggregatedValues)
+        else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES)
             sqlQueryBuilder.append(" GROUP BY temporal_entity_attribute")
 
         if (temporalQuery.hasLastN())
@@ -319,7 +320,7 @@ class AttributeInstanceService(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): AttributeInstanceResult =
-        if (temporalEntitiesQuery.withAggregatedValues) {
+        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
             val startDateTime = toZonedDateTime(row["start"])
             val endDateTime =
                 if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
@@ -335,7 +336,7 @@ class AttributeInstanceService(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 values = values
             )
-        } else if (temporalEntitiesQuery.withTemporalValues)
+        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES)
             SimplifiedAttributeInstanceResult(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
